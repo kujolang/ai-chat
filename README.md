@@ -1,6 +1,6 @@
-# Kujo AI Chat
+# AI Chat
 
-Kujo AI Chat is a local showcase app for provider-gated chat workflows, offline fixtures, structured conversation behavior, and reviewable AI interaction boundaries.
+AI Chat is a local showcase app for provider-gated chat workflows, offline fixtures, structured conversation behavior, and reviewable AI interaction boundaries.
 
 The app boots locally, persists chats/settings in SQLite, and uses browser localStorage only for client cache plus app token/session metadata.
 
@@ -47,7 +47,7 @@ Use the app as a clear boundary for chat workflows, not as a promise of correctn
 - Node.js 18+
 - npm 9+
 - Kujo binary available locally
-- Kujo AI SDK directory available locally (for example: `/path/to/ai-sdk/src`)
+- AI SDK directory available locally (for example: `/path/to/ai-sdk/src`)
 
 ## Project Structure
 
@@ -58,7 +58,7 @@ Use the app as a clear boundary for chat workflows, not as a promise of correctn
 - Backend
 	- server.js
 	- lib/server-runtime.js
-- Kujo SDK bridge files
+- Bridge files
 	- bridge_chat.kujo
 - External SDK files are loaded from AI_SDK_PATH (not vendored in this repository):
 		- ai_sdk.kujo

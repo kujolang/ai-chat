@@ -1,4 +1,4 @@
-# Kujo AI Chat Security Hardening Checklist
+# AI Chat Security Hardening Checklist
 
 This checklist tracks the security hardening pass applied to the current codebase.
 

@@ -1,6 +1,6 @@
-# Kujo AI Chat Setup and Install Guide
+# AI Chat Setup and Install Guide
 
-This guide is a dedicated, end-user focused setup reference for running Kujo AI Chat locally.
+This guide is a dedicated, end-user focused setup reference for running AI Chat locally.
 
 ## 1. Prerequisites
 

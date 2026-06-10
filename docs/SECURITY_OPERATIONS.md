@@ -1,6 +1,6 @@
 # Security Operations Reference
 
-This guide provides deployment-level examples for mTLS, reverse-proxy ACLs, and SIEM forwarding for Kujo AI Chat.
+This guide provides deployment-level examples for mTLS, reverse-proxy ACLs, and SIEM forwarding for AI Chat.
 
 ## 1. Reference Architecture
 
@@ -8,7 +8,7 @@ Recommended deployment boundary:
 
 1. Internet or internal clients connect over TLS to a reverse proxy.
 2. Reverse proxy enforces client auth (mTLS or identity gateway), source ACLs, and request size/time limits.
-3. Kujo AI Chat runs on a private network interface and accepts only proxy traffic.
+3. AI Chat runs on a private network interface and accepts only proxy traffic.
 4. Audit log events are forwarded to a centralized SIEM pipeline.
 
 ## 2. Reverse Proxy ACL Example (Nginx)
@@ -86,7 +86,7 @@ If traffic is fully internal, still set explicit allowlists rather than leaving 
 
 ## 5. SIEM Forwarding Example
 
-Kujo AI Chat writes append-only JSON-line security events to `AUDIT_LOG_PATH`.
+AI Chat writes append-only JSON-line security events to `AUDIT_LOG_PATH`.
 
 Example using Fluent Bit tail input:
 

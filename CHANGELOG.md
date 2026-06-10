@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to Kujo AI Chat should be documented in this file.
+All notable changes to AI Chat should be documented in this file.
 
 The format is inspired by Keep a Changelog and semantic versioning.
 

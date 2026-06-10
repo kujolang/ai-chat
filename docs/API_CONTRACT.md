@@ -1,6 +1,6 @@
 # API Contract and Versioning
 
-This document defines the public HTTP contract for Kujo AI Chat and the compatibility rules for clients and agents.
+This document defines the public HTTP contract for AI Chat and the compatibility rules for clients and agents.
 
 ## 1. Contract Scope
 
@@ -72,7 +72,7 @@ Profile key handling guarantee:
 Bridge/offline path note:
 
 - The bridge accepts an `offline_fixture` flag for safe local smoke validation.
-- Live provider calls remain gated behind configured API keys and the external Kujo AI SDK files.
+- Live provider calls remain gated behind configured API keys and the external AI SDK files.
 
 ## 5. Streaming Contract (`POST /api/chat/stream`)
 
