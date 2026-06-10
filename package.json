@@ -1,0 +1,25 @@
+{
+	"name": "ai-chat",
+	"version": "0.1.0",
+	"private": true,
+	"description": "Modern multi-provider chat UI powered by an external Kujo AI SDK",
+	"main": "server.js",
+	"engines": {
+		"node": ">=18",
+		"npm": ">=9"
+	},
+	"scripts": {
+		"start": "node server.js",
+		"dev": "node server.js",
+		"test": "node --test tests/*.test.js",
+		"test:unit": "node --test tests/*.test.js",
+		"smoke": "node scripts/smoke-test.js",
+		"db:backup": "node scripts/backup-db.js",
+		"db:vacuum": "node scripts/vacuum-db.js"
+	},
+	"dependencies": {
+		"better-sqlite3": "^11.7.0",
+		"express": "^4.21.2",
+		"multer": "^2.0.0"
+	}
+}

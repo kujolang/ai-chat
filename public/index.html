@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>AI Chat</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.11.1/styles/github-dark.min.css">
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css">
+	<link rel="stylesheet" href="/app.css">
+</head>
+<body>
+	<div id="app" class="app-shell">
+		<aside class="sidebar">
+			<div class="sidebar-main">
+			<div class="brand-row">
+				<div class="brand-meta">
+					<div class="brand-dot"></div>
+					<div>
+						<h1>AI Chat</h1>
+					</div>
+				</div>
+				<div class="brand-actions">
+					<button id="new-chat-btn" class="btn ghost nav-link icon-only" aria-label="New Chat" title="New Chat">
+						<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-message-circle-icon lucide-message-circle" aria-hidden="true"><path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"/></svg>
+					</button>
+					<button id="open-search-btn" class="btn ghost nav-link icon-only" aria-label="Search Chats" title="Search Chats">
+						<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-search-icon lucide-search" aria-hidden="true"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+					</button>
+					<button id="open-plugins-btn" type="button" class="btn ghost nav-link nav-link-muted icon-only" aria-label="Plugins" title="Plugins">
+						<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-blocks-icon lucide-blocks" aria-hidden="true"><path d="M10 22V7a1 1 0 0 0-1-1H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5a1 1 0 0 0-1-1H2"/><rect x="14" y="2" width="8" height="8" rx="1"/></svg>
+					</button>
+					<button id="open-automations-btn" type="button" class="btn ghost nav-link nav-link-muted icon-only" aria-label="Automations" title="Automations">
+						<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-bot-icon lucide-bot" aria-hidden="true"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
+					</button>
+				</div>
+			</div>
+
+			<div class="sidebar-subtitle">Conversations</div>
+			<div class="sidebar-filters">
+				<button id="show-active-btn" class="btn ghost active">Active</button>
+				<button id="show-archived-btn" class="btn ghost">Archived</button>
+			</div>
+
+			<div id="chat-list" class="chat-list"></div>
+
+			<div class="sidebar-projects">
+				<div class="projects-head">
+					<div class="sidebar-subtitle">Projects</div>
+					<button id="add-project-folder-btn" class="project-folder-add-btn" aria-label="Add Project Folder" title="Add Project Folder">
+						<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-folder-plus-icon lucide-folder-plus" aria-hidden="true"><path d="M12 10v6"/><path d="M9 13h6"/><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>
+					</button>
+				</div>
+				<div id="project-folder-list" class="project-folder-list"></div>
+			</div>
+			</div>
+
+			<div class="sidebar-footer">
+				<button id="open-usage-btn" class="btn ghost nav-link sidebar-settings-btn icon-only" aria-label="Token Usage" title="Token Usage">
+					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chart-pie-icon lucide-chart-pie" aria-hidden="true"><path d="M21 12c.552 0 1.005-.449.95-.998a10 10 0 0 0-8.953-8.951c-.55-.055-.998.398-.998.95v8a1 1 0 0 0 1 1z"/><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/></svg>
+				</button>
+				<button id="open-settings-btn" class="btn ghost nav-link sidebar-settings-btn icon-only" aria-label="Settings" title="Settings">
+					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-settings-icon lucide-settings" aria-hidden="true"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></svg>
+				</button>
+			</div>
+		</aside>
+
+		<main class="workspace">
+			<header class="workspace-top">
+				<div class="workspace-title">
+					<input id="chat-title-input" type="text" value="" placeholder="Chat title">
+				</div>
+				<div class="workspace-actions">
+					<label class="broadcast-toggle">
+						<input id="broadcast-toggle" type="checkbox" checked>
+						<span>Broadcast to all panes</span>
+					</label>
+					<button id="add-pane-btn" class="btn ghost icon-only" aria-label="Add Panel" title="Add Panel">
+						<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-columns2-icon lucide-columns-2" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M12 3v18"/></svg>
+					</button>
+				</div>
+			</header>
+
+			<section id="pane-grid" class="pane-grid"></section>
+
+			<footer class="composer">
+				<div class="composer-row">
+					<textarea id="composer-input" rows="3" placeholder="Send a message to your active pane or broadcast to all panes"></textarea>
+				</div>
+				<div class="composer-actions">
+					<div class="composer-status-group">
+						<div id="voice-status" class="voice-status">Voice: idle</div>
+						<div class="composer-status-separator" aria-hidden="true">|</div>
+						<div id="composer-token-summary" class="composer-token-summary" aria-live="polite">This chat: 0 tokens</div>
+					</div>
+					<select id="composer-profile-select" class="composer-profile-select" aria-label="Profile"></select>
+					<button id="voice-btn" class="btn ghost icon-only" aria-label="Voice" title="Voice">
+						<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mic-icon lucide-mic" aria-hidden="true"><path d="M12 19v3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><rect x="9" y="2" width="6" height="13" rx="3"/></svg>
+					</button>
+					<button id="whisper-btn" class="btn ghost icon-only" aria-label="Record" title="Record">
+						<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-audio-lines-icon lucide-audio-lines" aria-hidden="true"><path d="M2 10v3"/><path d="M6 6v11"/><path d="M10 3v18"/><path d="M14 8v7"/><path d="M18 5v13"/><path d="M22 10v3"/></svg>
+					</button>
+					<button id="send-btn" class="btn primary icon-only" aria-label="Send" title="Send">
+						<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-send-icon lucide-send" aria-hidden="true"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></svg>
+					</button>
+				</div>
+			</footer>
+		</main>
+	</div>
+
+	<div id="settings-modal" class="modal hidden">
+		<div class="modal-backdrop" data-close="true"></div>
+		<div class="modal-panel">
+			<div class="modal-head">
+				<h2>Settings</h2>
+				<button id="close-settings-btn" class="modal-close-icon" aria-label="Close settings" title="Close settings">
+					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-x-icon lucide-circle-x" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>
+				</button>
+			</div>
+
+			<section class="settings-section">
+				<h3>Model Defaults</h3>
+				<div class="settings-grid">
+					<label>
+						<span>Temperature</span>
+						<input id="settings-temperature" type="number" step="0.1" min="0" max="2">
+					</label>
+					<label>
+						<span>Max Tokens</span>
+						<input id="settings-max-tokens" type="number" step="1" min="64" max="64000">
+					</label>
+				</div>
+			</section>
+
+			<section class="settings-section settings-section-app-access">
+				<div class="settings-row-head">
+					<h3>App Access</h3>
+				</div>
+				<div class="settings-grid settings-grid-compact">
+					<label>
+						<span>App API Auth Token</span>
+						<input id="settings-api-token" type="password" value="" placeholder="Paste API_AUTH_TOKEN" autocomplete="off">
+					</label>
+					<label>
+						<span>Status</span>
+						<input id="settings-api-token-status" type="text" value="Not configured" disabled>
+					</label>
+				</div>
+				<p class="settings-note">Use the app access token from the server environment variable <strong>API_AUTH_TOKEN</strong> (not provider API keys).</p>
+				<div class="profile-actions profile-actions-app-access">
+					<button id="clear-api-token-btn" class="btn ghost">Clear Token</button>
+				</div>
+				<div id="settings-save-indicator" class="settings-save-indicator" aria-live="polite"></div>
+			</section>
+
+			<section class="settings-section settings-section-profiles">
+				<div class="settings-row-head">
+					<h3>Provider Profiles</h3>
+					<button id="add-profile-btn" class="btn ghost add-profile-btn">
+						<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-plus-icon lucide-plus" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+						<span>Add Profile</span>
+					</button>
+				</div>
+				<p class="settings-note">API keys are encrypted at rest in SQLite using AES-256-GCM.</p>
+				<div id="profile-list" class="profile-list"></div>
+			</section>
+		</div>
+	</div>
+
+	<div id="search-modal" class="modal hidden">
+		<div class="modal-backdrop" data-close-search="true"></div>
+		<div class="modal-panel search-modal-panel">
+			<div class="modal-head">
+				<h2>Search chats</h2>
+					<button id="close-search-btn" class="modal-close-icon" aria-label="Close search" title="Close search">
+						<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-x-icon lucide-circle-x" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>
+					</button>
+			</div>
+			<div class="search-modal-input-wrap">
+				<input id="search-modal-input" type="text" placeholder="Search chats..." autocomplete="off">
+			</div>
+			<div id="search-modal-results" class="search-modal-results"></div>
+		</div>
+	</div>
+
+	<div id="plugins-modal" class="modal hidden">
+		<div class="modal-backdrop" data-close-plugins="true"></div>
+		<div class="modal-panel plugins-modal-panel">
+			<div class="modal-head">
+				<h2>Plugins</h2>
+				<button id="close-plugins-btn" class="modal-close-icon" aria-label="Close plugins" title="Close plugins">
+					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-x-icon lucide-circle-x" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>
+				</button>
+			</div>
+			<p class="settings-note">Manage model provider integrations configured for this workspace.</p>
+			<div id="plugins-modal-content" class="plugins-modal-content"></div>
+			<div class="profile-actions">
+				<button id="plugins-open-settings-btn" class="btn">Manage Provider Profiles</button>
+			</div>
+		</div>
+	</div>
+
+	<div id="automations-modal" class="modal hidden">
+		<div class="modal-backdrop" data-close-automations="true"></div>
+		<div class="modal-panel automations-modal-panel">
+			<div class="modal-head">
+				<h2>Automations</h2>
+				<button id="close-automations-btn" class="modal-close-icon" aria-label="Close automations" title="Close automations">
+					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-x-icon lucide-circle-x" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>
+				</button>
+			</div>
+			<p class="settings-note">Run common workspace actions in one click.</p>
+			<div id="automation-actions" class="automation-actions">
+				<button class="btn automation-action" data-automation-action="new-chat">Start New Chat</button>
+				<button class="btn automation-action" data-automation-action="add-pane">Add Pane</button>
+				<button class="btn automation-action" data-automation-action="open-search">Open Chat Search</button>
+				<button class="btn automation-action" data-automation-action="open-settings">Open Settings</button>
+				<button class="btn automation-action" data-automation-action="toggle-broadcast">Toggle Broadcast Mode</button>
+			</div>
+		</div>
+	</div>
+
+	<div id="usage-modal" class="modal hidden">
+		<div class="modal-backdrop" data-close-usage="true"></div>
+		<div class="modal-panel usage-modal-panel">
+			<div class="modal-head">
+				<h2>Token Usage</h2>
+				<button id="close-usage-btn" class="modal-close-icon" aria-label="Close token usage" title="Close token usage">
+					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-x-icon lucide-circle-x" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>
+				</button>
+			</div>
+
+			<div class="usage-summary-grid">
+				<div class="usage-stat-card">
+					<div class="usage-stat-label">Total Tokens</div>
+					<div id="usage-stat-total" class="usage-stat-value">0</div>
+				</div>
+				<div class="usage-stat-card">
+					<div class="usage-stat-label">Responses With Usage</div>
+					<div id="usage-stat-responses" class="usage-stat-value">0</div>
+				</div>
+				<div class="usage-stat-card">
+					<div class="usage-stat-label">Average Tokens</div>
+					<div id="usage-stat-average" class="usage-stat-value">0</div>
+				</div>
+			</div>
+
+			<div class="usage-filters-grid">
+				<label>
+					<span>Chat</span>
+					<select id="usage-filter-chat"></select>
+				</label>
+				<label>
+					<span>Pane</span>
+					<select id="usage-filter-pane"></select>
+				</label>
+				<label>
+					<span>Provider</span>
+					<select id="usage-filter-provider"></select>
+				</label>
+				<label>
+					<span>Model</span>
+					<select id="usage-filter-model"></select>
+				</label>
+				<label>
+					<span>Time Window</span>
+					<select id="usage-filter-window">
+						<option value="all">All time</option>
+						<option value="24h">Last 24 hours</option>
+						<option value="7d">Last 7 days</option>
+						<option value="30d">Last 30 days</option>
+					</select>
+				</label>
+				<label>
+					<span>Group By</span>
+					<select id="usage-group-by">
+						<option value="model">Model</option>
+						<option value="provider">Provider</option>
+						<option value="chat">Chat</option>
+						<option value="pane">Pane</option>
+						<option value="day">Day</option>
+					</select>
+				</label>
+				<label>
+					<span>Chart Type</span>
+					<select id="usage-chart-type">
+						<option value="bar">Bar</option>
+						<option value="line">Line</option>
+						<option value="doughnut">Doughnut</option>
+					</select>
+				</label>
+			</div>
+
+			<div class="usage-chart-wrap">
+				<canvas id="usage-chart-canvas" aria-label="Token usage chart"></canvas>
+			</div>
+
+			<div id="usage-breakdown" class="usage-breakdown"></div>
+		</div>
+	</div>
+
+	<div id="project-folder-modal" class="modal hidden">
+		<div class="modal-backdrop" data-close-project-folder="true"></div>
+		<div class="modal-panel project-folder-modal-panel">
+			<div class="modal-head">
+				<h2 id="project-folder-modal-title">Project Folder</h2>
+				<button id="close-project-folder-btn" class="modal-close-icon" aria-label="Close project folder modal" title="Close project folder modal">
+					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-x-icon lucide-circle-x" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>
+				</button>
+			</div>
+			<div class="project-folder-form">
+				<label for="project-folder-input">Project name</label>
+				<select id="project-folder-input" multiple="multiple" data-placeholder="Type or choose a project name"></select>
+				<div id="project-folder-error" class="project-folder-error" aria-live="polite"></div>
+				<div class="project-folder-actions">
+					<button id="clear-project-folder-btn" class="btn ghost">Clear</button>
+					<button id="save-project-folder-btn" class="btn">Save</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<template id="pane-template">
+		<article class="pane-card">
+			<header class="pane-head">
+				<div class="pane-summary-block">
+					<div class="pane-summary"></div>
+					<select class="pane-profile-model-select" aria-label="Pane model and profile"></select>
+				</div>
+				<div class="pane-head-right">
+					<div class="pane-status"></div>
+					<button class="pane-remove-btn btn ghost icon-only" aria-label="Remove pane" title="Remove pane">
+						<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash-icon lucide-trash" aria-hidden="true"><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+					</button>
+				</div>
+			</header>
+			<div class="message-list"></div>
+		</article>
+	</template>
+
+	<script src="https://cdn.jsdelivr.net/npm/markdown-it@14.1.0/dist/markdown-it.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+	<script src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,160 @@
+from providers import openai_provider, openrouter_provider, deepseek_provider, custom_openai_compatible_provider
+from ai_sdk import create_client, create_message, chat_completion
+
+func dict_get_or(obj, key, default_value) {
+	if type(obj) != "dict" {
+		return default_value
+	}
+	if has_key(obj, key) == 1 {
+		return obj[key]
+	}
+	return default_value
+}
+
+func parse_payload_arg(raw_args) {
+	payload_text := ""
+	i := 0
+	while i < len(raw_args) {
+		token := raw_args[i]
+		if token == "--payload" {
+			if i + 1 < len(raw_args) {
+				payload_text := raw_args[i + 1]
+			}
+		}
+		i := i + 1
+	}
+	return payload_text
+}
+
+func resolve_provider(payload) {
+	provider_id := dict_get_or(payload, "provider_id", "openai")
+	model := dict_get_or(payload, "model", "")
+
+	if provider_id == "openrouter" {
+		provider := openrouter_provider()
+		if model != "" {
+			provider["default_model"] := model
+		}
+		return provider
+	}
+
+	if provider_id == "deepseek" {
+		provider := deepseek_provider()
+		if model != "" {
+			provider["default_model"] := model
+		}
+		return provider
+	}
+
+	if provider_id == "custom" {
+		base_url := dict_get_or(payload, "base_url", "")
+		if base_url == "" {
+			base_url := "https://api.openai.com/v1"
+		}
+		default_model := model
+		if default_model == "" {
+			default_model := "gpt-4.1-mini"
+		}
+		return custom_openai_compatible_provider(base_url, "CUSTOM_API_KEY", default_model)
+	}
+
+	provider := openai_provider()
+	if model != "" {
+		provider["default_model"] := model
+	}
+	return provider
+}
+
+func normalize_messages(raw_messages) {
+	result := []
+	if type(raw_messages) != "array" {
+		return result
+	}
+
+	i := 0
+	while i < len(raw_messages) {
+		entry := raw_messages[i]
+		if type(entry) == "dict" {
+			role := dict_get_or(entry, "role", "")
+			content := dict_get_or(entry, "content", "")
+			if type(role) == "string" {
+				if type(content) == "string" {
+					if role != "" {
+						result := push(result, create_message(role, content))
+					}
+				}
+			}
+		}
+		i := i + 1
+	}
+
+	return result
+}
+
+func emit_error(code, message, status_code) {
+	print(to_json({
+		"ok": false,
+		"provider": "ai-bridge",
+		"error": {
+			"code": code,
+			"message": message,
+			"retryable": false
+		},
+		"status_code": status_code,
+		"normalized_at": current_timestamp(),
+		"raw": null
+	}))
+}
+
+raw_args := args()
+payload_text := parse_payload_arg(raw_args)
+
+if payload_text == "" {
+	emit_error("invalid_request", "Missing --payload argument.", 400)
+	exit(1)
+}
+
+payload := null
+parse_failed := false
+parse_error := ""
+try {
+	payload := parse_json(payload_text)
+} except err {
+	parse_failed := true
+	parse_error := to_string(err)
+}
+
+if parse_failed {
+	emit_error("invalid_json", "Could not parse payload JSON: " + parse_error, 400)
+	exit(1)
+}
+
+if type(payload) != "dict" {
+	emit_error("invalid_request", "Payload must be a JSON object.", 400)
+	exit(1)
+}
+
+provider := resolve_provider(payload)
+api_key := dict_get_or(payload, "api_key", null)
+messages := normalize_messages(dict_get_or(payload, "messages", []))
+
+if len(messages) == 0 {
+	emit_error("invalid_request", "At least one message is required.", 400)
+	exit(1)
+}
+
+options := {
+	"model": provider["default_model"],
+	"temperature": dict_get_or(payload, "temperature", 0.2),
+	"max_tokens": dict_get_or(payload, "max_tokens", 700),
+	"max_retries": dict_get_or(payload, "max_retries", 2),
+	"retry_delay_ms": dict_get_or(payload, "retry_delay_ms", 250)
+}
+
+if dict_get_or(payload, "offline_fixture", false) {
+	options["offline_fixture"] := true
+}
+
+client := create_client(provider, api_key)
+result := chat_completion(client, messages, options)
+print(to_json(result))

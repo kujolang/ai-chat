@@ -1,0 +1,37 @@
+node_modules/
+data/
+
+# Environment files (keep only example template tracked)
+.env
+.env.*
+!.env.example
+
+# Logs and runtime artifacts
+*.log
+npm-debug.log*
+*.pid
+
+# Database artifacts
+*.sqlite
+*.sqlite-*
+*.db
+*.db-*
+
+# Sensitive key/cert material
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.csr
+*.der
+
+# Package manager locks not used in this repo
+yarn.lock
+pnpm-lock.yaml
+
+# OS/editor noise
+.DS_Store
+.vscode/
+.idea/
+*.swp

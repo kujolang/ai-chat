@@ -1,0 +1,4742 @@
+const defaultState = {
+	chats: [],
+	projectFolders: [],
+	activeProjectPath: "",
+	activeChatId: null,
+	showArchived: false,
+	searchQuery: "",
+	broadcastToAllPanes: true,
+	settings: {
+		temperature: 0.2,
+		maxTokens: 3200,
+		profiles: []
+	}
+};
+
+let state = structuredClone(defaultState);
+let recognition = null;
+let isListening = false;
+let mediaRecorder = null;
+let whisperStream = null;
+let whisperChunks = [];
+let whisperRecording = false;
+let persistTimer = null;
+let settingsSaveIndicatorTimer = null;
+let suppressNextTokenBlurSave = false;
+let usageChart = null;
+let markdownRenderer = null;
+let workspaceRenderScheduled = false;
+let streamingMessagePatchScheduled = false;
+const streamingMessagePatchQueue = new Map();
+let codeHighlightScheduled = false;
+const pendingCodeHighlightRoots = new Set();
+const apiTokenStorageKey = "ai_chat_api_token";
+const apiTokenExpiresAtStorageKey = "ai_chat_api_token_expires_at";
+const stateCacheStorageKey = "ai_chat_state_cache_v1";
+const usageLedgerStorageKey = "ai_chat_usage_ledger_v1";
+const legacyApiTokenStorageKey = "kujo_ai_chat_api_token";
+const legacyApiTokenExpiresAtStorageKey = "kujo_ai_chat_api_token_expires_at";
+const legacyStateCacheStorageKey = "kujo_ai_chat_state_cache_v1";
+const legacyUsageLedgerStorageKey = "kujo_ai_chat_usage_ledger_v1";
+const maxVisibleProjectFolders = 5;
+const sidebarChatPageSize = 5;
+const defaultApiTokenTtlDays = 3650;
+const maxApiTokenTtlDays = 36500;
+const copyCodeButtonSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"code-copy-icon\" aria-hidden=\"true\"><rect width=\"14\" height=\"14\" x=\"8\" y=\"8\" rx=\"2\" ry=\"2\"/><path d=\"M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2\"/></svg>";
+let apiAuthToken = "";
+let apiAuthTokenExpiresAt = 0;
+let usageLedger = loadUsageLedgerFromStorage();
+const pendingAutoTitleChatIds = new Set();
+let projectFolderModalContext = null;
+let sidebarChatVisibleCount = sidebarChatPageSize;
+let projectFolderSelect2Ready = false;
+loadApiAuthTokenFromStorage();
+
+const nodes = {
+	newChatBtn: document.getElementById("new-chat-btn"),
+	openSearchBtn: document.getElementById("open-search-btn"),
+	openPluginsBtn: document.getElementById("open-plugins-btn"),
+	openAutomationsBtn: document.getElementById("open-automations-btn"),
+	showActiveBtn: document.getElementById("show-active-btn"),
+	showArchivedBtn: document.getElementById("show-archived-btn"),
+	projectFolderList: document.getElementById("project-folder-list"),
+	addProjectFolderBtn: document.getElementById("add-project-folder-btn"),
+	chatList: document.getElementById("chat-list"),
+	chatTitleInput: document.getElementById("chat-title-input"),
+	addPaneBtn: document.getElementById("add-pane-btn"),
+	broadcastToggle: document.getElementById("broadcast-toggle"),
+	openUsageBtn: document.getElementById("open-usage-btn"),
+	openSettingsBtn: document.getElementById("open-settings-btn"),
+	paneGrid: document.getElementById("pane-grid"),
+	composerInput: document.getElementById("composer-input"),
+	composerTokenSummary: document.getElementById("composer-token-summary"),
+	composerProfileSelect: document.getElementById("composer-profile-select"),
+	sendBtn: document.getElementById("send-btn"),
+	voiceBtn: document.getElementById("voice-btn"),
+	whisperBtn: document.getElementById("whisper-btn"),
+	voiceStatus: document.getElementById("voice-status"),
+	settingsModal: document.getElementById("settings-modal"),
+	closeSettingsBtn: document.getElementById("close-settings-btn"),
+	searchModal: document.getElementById("search-modal"),
+	closeSearchBtn: document.getElementById("close-search-btn"),
+	searchModalInput: document.getElementById("search-modal-input"),
+	searchModalResults: document.getElementById("search-modal-results"),
+	pluginsModal: document.getElementById("plugins-modal"),
+	closePluginsBtn: document.getElementById("close-plugins-btn"),
+	pluginsModalContent: document.getElementById("plugins-modal-content"),
+	pluginsOpenSettingsBtn: document.getElementById("plugins-open-settings-btn"),
+	projectFolderModal: document.getElementById("project-folder-modal"),
+	projectFolderModalTitle: document.getElementById("project-folder-modal-title"),
+	closeProjectFolderBtn: document.getElementById("close-project-folder-btn"),
+	projectFolderInput: document.getElementById("project-folder-input"),
+	projectFolderError: document.getElementById("project-folder-error"),
+	clearProjectFolderBtn: document.getElementById("clear-project-folder-btn"),
+	saveProjectFolderBtn: document.getElementById("save-project-folder-btn"),
+	automationsModal: document.getElementById("automations-modal"),
+	closeAutomationsBtn: document.getElementById("close-automations-btn"),
+	automationActions: document.getElementById("automation-actions"),
+	usageModal: document.getElementById("usage-modal"),
+	closeUsageBtn: document.getElementById("close-usage-btn"),
+	usageStatTotal: document.getElementById("usage-stat-total"),
+	usageStatResponses: document.getElementById("usage-stat-responses"),
+	usageStatAverage: document.getElementById("usage-stat-average"),
+	usageFilterChat: document.getElementById("usage-filter-chat"),
+	usageFilterPane: document.getElementById("usage-filter-pane"),
+	usageFilterProvider: document.getElementById("usage-filter-provider"),
+	usageFilterModel: document.getElementById("usage-filter-model"),
+	usageFilterWindow: document.getElementById("usage-filter-window"),
+	usageGroupBy: document.getElementById("usage-group-by"),
+	usageChartType: document.getElementById("usage-chart-type"),
+	usageChartCanvas: document.getElementById("usage-chart-canvas"),
+	usageBreakdown: document.getElementById("usage-breakdown"),
+	addProfileBtn: document.getElementById("add-profile-btn"),
+	settingsTemperature: document.getElementById("settings-temperature"),
+	settingsMaxTokens: document.getElementById("settings-max-tokens"),
+	settingsApiToken: document.getElementById("settings-api-token"),
+	settingsApiTokenStatus: document.getElementById("settings-api-token-status"),
+	settingsSaveIndicator: document.getElementById("settings-save-indicator"),
+	clearApiTokenBtn: document.getElementById("clear-api-token-btn"),
+	profileList: document.getElementById("profile-list"),
+	paneTemplate: document.getElementById("pane-template")
+};
+
+void bootstrap();
+
+async function bootstrap() {
+	wireEvents();
+	initializeProjectFolderSelect2();
+	if (!hasValidApiAuthToken()) {
+		nodes.voiceStatus.textContent = "Voice: API token required for server actions";
+	}
+
+	await loadStateFromServer();
+	ensureMinimumState();
+	renderAll();
+	setupSpeechRecognition();
+	setupWhisperRecorder();
+}
+
+function ensureMinimumState() {
+	if (!Array.isArray(state.settings.profiles)) {
+		state.settings.profiles = [];
+	}
+
+	if (state.chats.length === 0) {
+		const created = createChat("New Chat");
+		state.chats.push(created);
+		state.activeChatId = created.id;
+		schedulePersist();
+	}
+
+	if (!state.activeChatId && state.chats[0]) {
+		state.activeChatId = state.chats[0].id;
+		schedulePersist();
+	}
+}
+
+async function loadStateFromServer() {
+	try {
+		const response = await apiFetch("/api/state");
+		if (!response.ok) {
+			throw new Error(`state load failed: ${response.status}`);
+		}
+		const payload = await response.json();
+		if (payload && payload.ok && payload.state) {
+			state = migrateState(payload.state);
+			saveStateToCache();
+		}
+	} catch (error) {
+		console.error(error);
+		const cachedState = loadStateFromCache();
+		state = cachedState || structuredClone(defaultState);
+	}
+}
+
+function migrateState(candidate) {
+	const merged = structuredClone(defaultState);
+	if (candidate && typeof candidate === "object") {
+		if (Array.isArray(candidate.chats)) {
+			merged.chats = candidate.chats
+				.map((chat) => normalizeIncomingChat(chat))
+				.filter(Boolean);
+		}
+		if (Array.isArray(candidate.projectFolders)) {
+			merged.projectFolders = uniqueProjectFolders(candidate.projectFolders.map((folder) => normalizeProjectPath(folder)));
+		}
+		if (typeof candidate.activeProjectPath === "string") {
+			merged.activeProjectPath = normalizeProjectPath(candidate.activeProjectPath);
+		}
+		if (typeof candidate.activeChatId === "string") {
+			merged.activeChatId = candidate.activeChatId;
+		}
+		if (typeof candidate.showArchived === "boolean") {
+			merged.showArchived = candidate.showArchived;
+		}
+		if (typeof candidate.searchQuery === "string") {
+			merged.searchQuery = candidate.searchQuery;
+		}
+		if (typeof candidate.broadcastToAllPanes === "boolean") {
+			merged.broadcastToAllPanes = candidate.broadcastToAllPanes;
+		}
+		if (candidate.settings && typeof candidate.settings === "object") {
+			if (Number.isFinite(Number(candidate.settings.temperature))) {
+				merged.settings.temperature = Number(candidate.settings.temperature);
+			}
+			if (Number.isFinite(Number(candidate.settings.maxTokens))) {
+				merged.settings.maxTokens = Number(candidate.settings.maxTokens);
+			} else {
+				merged.settings.maxTokens = 3200;
+			}
+			if (Array.isArray(candidate.settings.profiles)) {
+				merged.settings.profiles = candidate.settings.profiles.map((profile) => ({
+					...profile,
+					api_key_dirty: false
+				}));
+			}
+		}
+	}
+
+	if (!Array.isArray(merged.projectFolders)) {
+		merged.projectFolders = [];
+	}
+	merged.projectFolders = uniqueProjectFolders(merged.projectFolders.concat(collectProjectFoldersFromChats(merged.chats)));
+	if (merged.activeProjectPath && !merged.projectFolders.includes(merged.activeProjectPath)) {
+		merged.activeProjectPath = "";
+	}
+
+	return merged;
+}
+
+function normalizeIncomingChat(chat) {
+	if (!chat || typeof chat !== "object") {
+		return null;
+	}
+
+	return {
+		...chat,
+		projectPath: normalizeProjectPath(chat.projectPath || chat.project_path || "")
+	};
+}
+
+function wireEvents() {
+	nodes.newChatBtn.addEventListener("click", () => {
+		createAndActivateChat();
+	});
+
+	window.addEventListener("keydown", (event) => {
+		if (!event.metaKey || !event.shiftKey || event.ctrlKey || event.altKey) {
+			return;
+		}
+
+		if (String(event.key || "").toLowerCase() !== "n") {
+			return;
+		}
+
+		event.preventDefault();
+		createAndActivateChat();
+	});
+
+	nodes.openSearchBtn.addEventListener("click", openSearchModal);
+	nodes.closeSearchBtn.addEventListener("click", closeSearchModal);
+	nodes.openPluginsBtn.addEventListener("click", openPluginsModal);
+	nodes.closePluginsBtn.addEventListener("click", closePluginsModal);
+	nodes.openAutomationsBtn.addEventListener("click", openAutomationsModal);
+	nodes.closeAutomationsBtn.addEventListener("click", closeAutomationsModal);
+
+	nodes.searchModal.addEventListener("click", (event) => {
+		if (event.target.getAttribute("data-close-search") === "true") {
+			closeSearchModal();
+		}
+	});
+
+	nodes.pluginsModal.addEventListener("click", (event) => {
+		if (event.target.getAttribute("data-close-plugins") === "true") {
+			closePluginsModal();
+		}
+	});
+
+	nodes.automationsModal.addEventListener("click", (event) => {
+		if (event.target.getAttribute("data-close-automations") === "true") {
+			closeAutomationsModal();
+		}
+	});
+
+	nodes.pluginsOpenSettingsBtn.addEventListener("click", () => {
+		closePluginsModal();
+		openSettings();
+	});
+
+	nodes.automationActions.addEventListener("click", (event) => {
+		const actionNode = event.target.closest("[data-automation-action]");
+		if (!actionNode) {
+			return;
+		}
+
+		const action = String(actionNode.getAttribute("data-automation-action") || "");
+		if (!action) {
+			return;
+		}
+
+		runAutomationAction(action);
+	});
+
+	nodes.searchModalInput.addEventListener("input", (event) => {
+		state.searchQuery = String(event.target.value || "");
+		renderSearchResults();
+		schedulePersist();
+	});
+
+	nodes.searchModalInput.addEventListener("keydown", (event) => {
+		if (event.key === "Escape") {
+			event.preventDefault();
+			closeSearchModal();
+		}
+	});
+
+	nodes.searchModalResults.addEventListener("click", (event) => {
+		const row = event.target.closest("[data-chat-id]");
+		if (!row) {
+			return;
+		}
+
+		const chatId = row.getAttribute("data-chat-id");
+		const chat = getChatById(chatId);
+		if (!chat) {
+			return;
+		}
+
+		state.showArchived = Boolean(chat.archived);
+		state.activeChatId = chat.id;
+		schedulePersist();
+		renderAll();
+		closeSearchModal();
+	});
+
+	nodes.showActiveBtn.addEventListener("click", () => {
+		state.showArchived = false;
+		resetSidebarChatPagination();
+		schedulePersist();
+		renderAll();
+	});
+
+	nodes.showArchivedBtn.addEventListener("click", () => {
+		state.showArchived = true;
+		resetSidebarChatPagination();
+		schedulePersist();
+		renderAll();
+	});
+
+	nodes.projectFolderList.addEventListener("click", (event) => {
+		const actionNode = event.target.closest("[data-action='select-project-folder']");
+		if (!actionNode) {
+			return;
+		}
+
+		const nextPath = normalizeProjectPath(actionNode.getAttribute("data-project-path") || "");
+		state.activeProjectPath = nextPath;
+		resetSidebarChatPagination();
+		schedulePersist();
+		renderAll();
+	});
+
+	nodes.addProjectFolderBtn.addEventListener("click", () => {
+		openProjectFolderModal({ mode: "create-folder" });
+	});
+
+	nodes.projectFolderModal.addEventListener("click", (event) => {
+		if (event.target.getAttribute("data-close-project-folder") === "true") {
+			closeProjectFolderModal();
+		}
+	});
+
+	nodes.closeProjectFolderBtn.addEventListener("click", closeProjectFolderModal);
+	nodes.clearProjectFolderBtn.addEventListener("click", clearProjectFolderFromModal);
+	nodes.saveProjectFolderBtn.addEventListener("click", saveProjectFolderFromModal);
+
+	nodes.projectFolderModal.addEventListener("keydown", (event) => {
+		if ("Escape" === event.key) {
+			event.preventDefault();
+			closeProjectFolderModal();
+		}
+	});
+
+	nodes.chatTitleInput.addEventListener("change", (event) => {
+		const chat = getActiveChat();
+		if (!chat) {
+			return;
+		}
+		chat.title = cleanTitle(event.target.value, chat.title);
+		chat.updatedAt = Date.now();
+		schedulePersist();
+		renderSidebar();
+	});
+
+	nodes.addPaneBtn.addEventListener("click", () => {
+		const chat = getActiveChat();
+		if (!chat) {
+			return;
+		}
+		const firstProfile = state.settings.profiles[0] || createDefaultProfile();
+		if (state.settings.profiles.length === 0) {
+			state.settings.profiles.push(firstProfile);
+		}
+		chat.panes.push(createPane(firstProfile.id));
+		chat.updatedAt = Date.now();
+		schedulePersist();
+		renderAll();
+	});
+
+	nodes.broadcastToggle.addEventListener("change", (event) => {
+		state.broadcastToAllPanes = event.target.checked;
+		schedulePersist();
+	});
+
+	nodes.openUsageBtn.addEventListener("click", openUsageModal);
+	nodes.closeUsageBtn.addEventListener("click", closeUsageModal);
+
+	nodes.usageModal.addEventListener("click", (event) => {
+		if (event.target.getAttribute("data-close-usage") === "true") {
+			closeUsageModal();
+		}
+	});
+
+	const usageFilterNodes = [
+		nodes.usageFilterChat,
+		nodes.usageFilterPane,
+		nodes.usageFilterProvider,
+		nodes.usageFilterModel,
+		nodes.usageFilterWindow,
+		nodes.usageGroupBy,
+		nodes.usageChartType
+	];
+
+	for (const usageFilterNode of usageFilterNodes) {
+		usageFilterNode.addEventListener("change", () => {
+			renderUsageModalContent();
+		});
+	}
+
+	nodes.openSettingsBtn.addEventListener("click", openSettings);
+	nodes.closeSettingsBtn.addEventListener("click", closeSettings);
+
+	nodes.settingsModal.addEventListener("click", (event) => {
+		if (event.target.getAttribute("data-close") === "true") {
+			closeSettings();
+		}
+	});
+
+	nodes.addProfileBtn.addEventListener("click", () => {
+		state.settings.profiles.push(createDefaultProfile());
+		renderSettings();
+		renderAll();
+		schedulePersist();
+	});
+
+	nodes.settingsApiToken.addEventListener("keydown", (event) => {
+		if (event.key !== "Enter") {
+			return;
+		}
+
+		event.preventDefault();
+		void saveApiTokenFromSettings();
+	});
+
+	nodes.settingsApiToken.addEventListener("blur", () => {
+		if (suppressNextTokenBlurSave) {
+			suppressNextTokenBlurSave = false;
+			return;
+		}
+		void saveApiTokenFromSettings({ silentIfEmpty: true });
+	});
+
+	nodes.clearApiTokenBtn.addEventListener("mousedown", () => {
+		suppressNextTokenBlurSave = true;
+	});
+
+	nodes.clearApiTokenBtn.addEventListener("click", () => {
+		suppressNextTokenBlurSave = false;
+		clearApiAuthToken();
+		nodes.settingsApiToken.value = "";
+		nodes.voiceStatus.textContent = "Voice: API token required for server actions";
+		setSettingsSaveIndicator("success", "Settings saved");
+		renderSettings();
+	});
+
+	nodes.settingsTemperature.addEventListener("change", (event) => {
+		const value = Number(event.target.value);
+		state.settings.temperature = Number.isFinite(value) ? value : 0.2;
+		schedulePersist();
+	});
+
+	nodes.settingsMaxTokens.addEventListener("change", (event) => {
+		const value = Number(event.target.value);
+		state.settings.maxTokens = Number.isFinite(value) ? value : 3200;
+		schedulePersist();
+	});
+
+	nodes.sendBtn.addEventListener("click", () => {
+		void sendFromComposer();
+	});
+
+	nodes.composerInput.addEventListener("keydown", (event) => {
+		if (event.key === "Enter" && !event.shiftKey) {
+			event.preventDefault();
+			void sendFromComposer();
+		}
+	});
+
+	nodes.voiceBtn.addEventListener("click", () => {
+		toggleVoice();
+	});
+
+	nodes.whisperBtn.addEventListener("click", () => {
+		void toggleWhisperRecording();
+	});
+
+	nodes.composerProfileSelect.addEventListener("change", (event) => {
+		const selectedOption = event.target.selectedOptions && event.target.selectedOptions[0]
+			? event.target.selectedOptions[0]
+			: null;
+		const profileId = selectedOption
+			? String(selectedOption.getAttribute("data-profile-id") || "")
+			: String(event.target.value || "");
+		const selectedModel = selectedOption
+			? String(selectedOption.getAttribute("data-model") || "")
+			: "";
+		const profile = getProfileById(profileId);
+		if (!profile) {
+			return;
+		}
+
+		const chat = getActiveChat();
+		if (!chat) {
+			return;
+		}
+
+		for (const pane of chat.panes) {
+			pane.profile_id = profile.id;
+			pane.model = selectedModel || firstModelFromProfile(profile);
+		}
+
+		chat.updatedAt = Date.now();
+		schedulePersist();
+		renderAll();
+	});
+
+	nodes.chatList.addEventListener("click", (event) => {
+		const listActionNode = event.target.closest("[data-action='view-more-chats']");
+		if (listActionNode) {
+			sidebarChatVisibleCount += sidebarChatPageSize;
+			renderSidebar();
+			return;
+		}
+
+		const row = event.target.closest(".chat-item");
+		if (!row) {
+			return;
+		}
+
+		const chatId = row.getAttribute("data-chat-id");
+		const actionElement = event.target.closest("[data-action]");
+		const action = actionElement ? actionElement.getAttribute("data-action") : "";
+		const chat = getChatById(chatId);
+		if (!chat) {
+			return;
+		}
+
+		if (!action) {
+			state.activeChatId = chat.id;
+			schedulePersist();
+			renderAll();
+			return;
+		}
+
+		handleChatAction(chat, action);
+	});
+
+	nodes.paneGrid.addEventListener("click", (event) => {
+		const copyCodeButton = event.target.closest("[data-action='copy-code']");
+		if (copyCodeButton) {
+			const codeWrap = copyCodeButton.closest(".code-block-wrap");
+			const codeNode = codeWrap ? codeWrap.querySelector("pre code") : null;
+			const textToCopy = codeNode ? String(codeNode.textContent || "") : "";
+			if (!textToCopy || !navigator.clipboard || typeof navigator.clipboard.writeText !== "function") {
+				return;
+			}
+
+			void navigator.clipboard.writeText(textToCopy).then(() => {
+				copyCodeButton.classList.add("copied");
+				copyCodeButton.setAttribute("aria-label", "Copied");
+				copyCodeButton.setAttribute("title", "Copied");
+				window.setTimeout(() => {
+					copyCodeButton.classList.remove("copied");
+					copyCodeButton.setAttribute("aria-label", "Copy code");
+					copyCodeButton.setAttribute("title", "Copy code");
+				}, 1200);
+			}).catch(() => {
+				// Ignore clipboard failures.
+			});
+
+			return;
+		}
+
+		const copyMessageButton = event.target.closest("[data-action='copy-message']");
+		if (copyMessageButton) {
+			const paneId = String(copyMessageButton.getAttribute("data-pane-id") || "");
+			const messageId = String(copyMessageButton.getAttribute("data-message-id") || "");
+			if (!paneId || !messageId || !navigator.clipboard || typeof navigator.clipboard.writeText !== "function") {
+				return;
+			}
+
+			const chat = getActiveChat();
+			if (!chat) {
+				return;
+			}
+
+			const pane = chat.panes.find((candidate) => candidate.id === paneId);
+			if (!pane) {
+				return;
+			}
+
+			const message = pane.messages.find((candidate) => candidate.id === messageId);
+			if (!message) {
+				return;
+			}
+
+			const textToCopy = String(message.content || "");
+			if (!textToCopy) {
+				return;
+			}
+
+			void navigator.clipboard.writeText(textToCopy).then(() => {
+				copyMessageButton.classList.add("copied");
+				copyMessageButton.setAttribute("aria-label", "Copied");
+				copyMessageButton.setAttribute("title", "Copied");
+				window.setTimeout(() => {
+					copyMessageButton.classList.remove("copied");
+					copyMessageButton.setAttribute("aria-label", "Copy message");
+					copyMessageButton.setAttribute("title", "Copy message");
+				}, 1200);
+			}).catch(() => {
+				// Ignore clipboard failures.
+			});
+
+			return;
+		}
+
+		const thinkingToggleButton = event.target.closest("[data-action='toggle-thinking']");
+		if (thinkingToggleButton) {
+			const paneId = String(thinkingToggleButton.getAttribute("data-pane-id") || "");
+			const messageId = String(thinkingToggleButton.getAttribute("data-message-id") || "");
+			if (!paneId || !messageId) {
+				return;
+			}
+
+			const chat = getActiveChat();
+			if (!chat) {
+				return;
+			}
+
+			const pane = chat.panes.find((candidate) => candidate.id === paneId);
+			if (!pane) {
+				return;
+			}
+
+			const message = pane.messages.find((candidate) => candidate.id === messageId);
+			if (!message) {
+				return;
+			}
+
+			message.thinking_expanded = !Boolean(message.thinking_expanded);
+			renderWorkspace({ preserveScroll: true });
+			return;
+		}
+
+		const actionElement = event.target.closest("[data-action][data-pane-id]");
+		const action = actionElement ? actionElement.getAttribute("data-action") : "";
+		const paneId = actionElement ? actionElement.getAttribute("data-pane-id") : "";
+		if (!action || !paneId) {
+			return;
+		}
+
+		const chat = getActiveChat();
+		if (!chat) {
+			return;
+		}
+
+		if (action === "remove-pane" && chat.panes.length > 1) {
+			chat.panes = chat.panes.filter((pane) => pane.id !== paneId);
+			chat.updatedAt = Date.now();
+			schedulePersist();
+			renderAll();
+			return;
+		}
+
+	});
+
+	nodes.paneGrid.addEventListener("change", (event) => {
+		const select = event.target.closest(".pane-profile-model-select");
+		if (!select) {
+			return;
+		}
+
+		const paneId = String(select.getAttribute("data-pane-id") || "");
+		if (!paneId) {
+			return;
+		}
+
+		const selectedOption = select.selectedOptions && select.selectedOptions[0]
+			? select.selectedOptions[0]
+			: null;
+		if (!selectedOption) {
+			return;
+		}
+
+		const profileId = String(selectedOption.getAttribute("data-profile-id") || "");
+		const selectedModel = String(selectedOption.getAttribute("data-model") || "");
+		const profile = getProfileById(profileId);
+		if (!profile) {
+			return;
+		}
+
+		const chat = getActiveChat();
+		if (!chat) {
+			return;
+		}
+
+		const pane = chat.panes.find((candidate) => candidate.id === paneId);
+		if (!pane) {
+			return;
+		}
+
+		pane.profile_id = profile.id;
+		pane.model = selectedModel || firstModelFromProfile(profile);
+		chat.updatedAt = Date.now();
+		schedulePersist();
+		renderAll();
+	});
+
+	const onProfileFieldChange = (event) => {
+		const profileId = event.target.getAttribute("data-profile-id");
+		const field = event.target.getAttribute("data-field");
+		if (!profileId || !field) {
+			return;
+		}
+		const profile = getProfileById(profileId);
+		if (!profile) {
+			return;
+		}
+		if (field === "api_key") {
+			profile.api_key = event.target.value;
+			profile.api_key_dirty = true;
+		} else {
+			profile[field] = event.target.value;
+			if (field === "name" || field === "models_csv") {
+				renderComposerProfileSelect();
+			}
+		}
+		schedulePersist();
+	};
+
+	nodes.profileList.addEventListener("input", onProfileFieldChange);
+	nodes.profileList.addEventListener("change", onProfileFieldChange);
+
+	nodes.profileList.addEventListener("click", (event) => {
+		const action = event.target.getAttribute("data-action");
+		if (action !== "delete-profile") {
+			return;
+		}
+
+		const profileId = event.target.getAttribute("data-profile-id");
+		if (!profileId) {
+			return;
+		}
+
+		if (state.settings.profiles.length <= 1) {
+			window.alert("At least one profile is required.");
+			return;
+		}
+
+		state.settings.profiles = state.settings.profiles.filter((profile) => profile.id !== profileId);
+		const fallback = state.settings.profiles[0];
+		for (const chat of state.chats) {
+			for (const pane of chat.panes) {
+				if (pane.profile_id === profileId) {
+					pane.profile_id = fallback.id;
+				}
+			}
+		}
+
+		schedulePersist();
+		renderSettings();
+		renderAll();
+	});
+}
+
+function createAndActivateChat() {
+	const chat = createChat("New Chat");
+	state.chats.push(chat);
+	state.activeChatId = chat.id;
+	schedulePersist();
+	renderAll();
+	focusComposerInput();
+}
+
+function focusComposerInput() {
+	window.requestAnimationFrame(() => {
+		if (!nodes.composerInput) {
+			return;
+		}
+
+		nodes.composerInput.focus();
+		const cursorAt = nodes.composerInput.value.length;
+		if (typeof nodes.composerInput.setSelectionRange === "function") {
+			nodes.composerInput.setSelectionRange(cursorAt, cursorAt);
+		}
+	});
+}
+
+function schedulePersist() {
+	saveStateToCache();
+	if (isSettingsModalOpen()) {
+		setSettingsSaveIndicator("pending", "Saving settings...", 0);
+	}
+
+	if (persistTimer) {
+		clearTimeout(persistTimer);
+	}
+	persistTimer = setTimeout(() => {
+		void persistStateToServer();
+	}, 300);
+}
+
+async function persistStateToServer() {
+	persistTimer = null;
+	try {
+		const payload = buildPersistPayload();
+		const response = await apiFetch("/api/state", {
+			method: "PUT",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify(payload)
+		});
+
+		if (!response.ok) {
+			throw new Error(`state persist failed: ${response.status}`);
+		}
+
+		for (const profile of state.settings.profiles) {
+			if (profile.api_key_dirty) {
+				profile.api_key = "";
+				profile.api_key_dirty = false;
+				profile.api_key_present = true;
+			}
+		}
+
+		saveStateToCache();
+		if (isSettingsModalOpen()) {
+			setSettingsSaveIndicator("success", "Settings saved");
+		}
+	} catch (error) {
+		console.error(error);
+		if (isSettingsModalOpen()) {
+			setSettingsSaveIndicator("error", "Settings failed to save");
+		}
+	}
+}
+
+function isSettingsModalOpen() {
+	return !nodes.settingsModal.classList.contains("hidden");
+}
+
+function clearSettingsSaveIndicator() {
+	if (settingsSaveIndicatorTimer) {
+		clearTimeout(settingsSaveIndicatorTimer);
+		settingsSaveIndicatorTimer = null;
+	}
+
+	nodes.settingsSaveIndicator.classList.remove("visible", "pending", "success", "error");
+	nodes.settingsSaveIndicator.textContent = "";
+}
+
+function setSettingsSaveIndicator(status, message, hideDelayMs = 2200) {
+	if (!nodes.settingsSaveIndicator) {
+		return;
+	}
+
+	if (settingsSaveIndicatorTimer) {
+		clearTimeout(settingsSaveIndicatorTimer);
+		settingsSaveIndicatorTimer = null;
+	}
+
+	nodes.settingsSaveIndicator.classList.remove("pending", "success", "error");
+	nodes.settingsSaveIndicator.classList.add("visible");
+	nodes.settingsSaveIndicator.classList.add(status);
+	nodes.settingsSaveIndicator.textContent = String(message || "");
+
+	if (hideDelayMs > 0) {
+		settingsSaveIndicatorTimer = setTimeout(() => {
+			clearSettingsSaveIndicator();
+		}, hideDelayMs);
+	}
+}
+
+function buildCachePayload() {
+	const snapshot = structuredClone(state);
+	if (!snapshot.settings || !Array.isArray(snapshot.settings.profiles)) {
+		return snapshot;
+	}
+
+	for (const profile of snapshot.settings.profiles) {
+		delete profile.api_key;
+		delete profile.api_key_dirty;
+		delete profile.api_key_present;
+	}
+
+	return snapshot;
+}
+
+function saveStateToCache() {
+	try {
+		const payload = buildCachePayload();
+		window.localStorage.setItem(stateCacheStorageKey, JSON.stringify(payload));
+	} catch (error) {
+		// Ignore cache write errors to avoid breaking UI interactions.
+	}
+}
+
+function loadStateFromCache() {
+	try {
+		const raw = String(readStorageValue(stateCacheStorageKey, legacyStateCacheStorageKey) || "");
+		if (!raw) {
+			return null;
+		}
+		return migrateState(JSON.parse(raw));
+	} catch (error) {
+		return null;
+	}
+}
+
+function buildPersistPayload() {
+	const snapshot = structuredClone(state);
+	if (!snapshot.settings || !Array.isArray(snapshot.settings.profiles)) {
+		return snapshot;
+	}
+
+	for (const profile of snapshot.settings.profiles) {
+		if (!profile.api_key_dirty) {
+			delete profile.api_key;
+		}
+		delete profile.api_key_dirty;
+		delete profile.api_key_present;
+	}
+
+	return snapshot;
+}
+
+function handleChatAction(chat, action) {
+	if (action === "pin") {
+		chat.pinned = !chat.pinned;
+		chat.updatedAt = Date.now();
+	}
+
+	if (action === "archive") {
+		chat.archived = !chat.archived;
+		markUsageLedgerChatArchived(chat.id, chat.archived);
+		chat.updatedAt = Date.now();
+	}
+
+	if (action === "rename") {
+		const next = window.prompt("Rename chat", chat.title);
+		if (typeof next === "string") {
+			chat.title = cleanTitle(next, chat.title);
+			chat.updatedAt = Date.now();
+		}
+	}
+
+	if (action === "project") {
+		openProjectFolderModal({
+			mode: "assign-chat",
+			chatId: chat.id
+		});
+		return;
+	}
+
+	if (action === "delete") {
+		const ok = window.confirm("Delete this chat?");
+		if (ok) {
+			markUsageLedgerChatDeleted(chat.id);
+			state.chats = state.chats.filter((item) => item.id !== chat.id);
+			if (state.chats.length === 0) {
+				const created = createChat("New Chat");
+				state.chats.push(created);
+				state.activeChatId = created.id;
+			} else if (state.activeChatId === chat.id) {
+				state.activeChatId = state.chats[0].id;
+			}
+		}
+	}
+
+	schedulePersist();
+	renderAll();
+}
+
+function renderAll() {
+	nodes.broadcastToggle.checked = state.broadcastToAllPanes;
+	renderComposerProfileSelect();
+	renderComposerUsageSummary();
+	renderSidebar();
+	renderWorkspace();
+
+	if (isUsageModalOpen()) {
+		renderUsageModalContent();
+	}
+}
+
+function buildProfileModelOptions() {
+	if (!Array.isArray(state.settings.profiles)) {
+		return [];
+	}
+
+	const options = [];
+	for (const profile of state.settings.profiles) {
+		const models = profileModels(profile);
+		if (models.length === 0) {
+			options.push({
+				profile_id: profile.id,
+				model: "",
+				label: profile.name
+			});
+			continue;
+		}
+
+		for (const model of models) {
+			options.push({
+				profile_id: profile.id,
+				model,
+				label: `${profile.name} | ${model}`
+			});
+		}
+	}
+
+	return options;
+}
+
+function renderComposerProfileSelect() {
+	const chat = getActiveChat();
+	const selectedPane = chat && chat.panes[0] ? chat.panes[0] : null;
+	const selectedProfileId = selectedPane ? selectedPane.profile_id : "";
+	const selectedProfile = selectedPane ? getProfileById(selectedPane.profile_id) : null;
+	const selectedModel = selectedProfile
+		? modelForProfileSelection(selectedProfile, selectedPane ? selectedPane.model : "")
+		: "";
+	if (!Array.isArray(state.settings.profiles) || state.settings.profiles.length === 0) {
+		nodes.composerProfileSelect.innerHTML = "";
+		nodes.composerProfileSelect.disabled = true;
+		return;
+	}
+
+	const options = buildProfileModelOptions();
+
+	if (options.length === 0) {
+		nodes.composerProfileSelect.innerHTML = "";
+		nodes.composerProfileSelect.disabled = true;
+		return;
+	}
+
+	nodes.composerProfileSelect.innerHTML = options
+		.map((option, index) => {
+			const selected = option.profile_id === selectedProfileId
+				&& option.model === selectedModel
+				? "selected"
+				: "";
+			return `<option value="opt-${index}" data-profile-id="${escapeHtml(option.profile_id)}" data-model="${escapeHtml(option.model)}" ${selected}>${escapeHtml(option.label)}</option>`;
+		})
+		.join("");
+
+	const hasMultiplePanes = Boolean(chat && Array.isArray(chat.panes) && chat.panes.length > 1);
+	nodes.composerProfileSelect.disabled = hasMultiplePanes;
+	nodes.composerProfileSelect.title = hasMultiplePanes
+		? "Per-pane model/profile selection is active when multiple panes are open."
+		: "";
+}
+
+function renderSidebar() {
+	nodes.showActiveBtn.classList.toggle("active", !state.showArchived);
+	nodes.showArchivedBtn.classList.toggle("active", state.showArchived);
+	renderProjectFolderList();
+
+	const filtered = state.chats
+		.filter((chat) => chat.archived === state.showArchived)
+		.filter((chat) => {
+			if (!state.activeProjectPath) {
+				return true;
+			}
+			return normalizeProjectPath(chat.projectPath || chat.project_path || "") === state.activeProjectPath;
+		})
+		.sort((left, right) => {
+			if (Boolean(left.pinned) !== Boolean(right.pinned)) {
+				return Boolean(right.pinned) ? 1 : -1;
+			}
+			return Number(right.updatedAt || 0) - Number(left.updatedAt || 0);
+		});
+
+	if (sidebarChatVisibleCount < sidebarChatPageSize) {
+		sidebarChatVisibleCount = sidebarChatPageSize;
+	}
+
+	const pinnedChats = filtered.filter((chat) => Boolean(chat.pinned));
+	const regularChats = filtered.filter((chat) => !chat.pinned);
+	const visibleRegularChats = regularChats.slice(0, sidebarChatVisibleCount);
+	const hasMoreChats = regularChats.length > visibleRegularChats.length;
+
+	if (pinnedChats.length === 0 && visibleRegularChats.length === 0) {
+		nodes.chatList.innerHTML = `<div class="empty-state">${state.activeProjectPath ? "No chats in this project." : "No chats found."}</div>`;
+		return;
+	}
+	const sections = [];
+
+	if (pinnedChats.length > 0) {
+		sections.push(`
+			<div class="chat-group">
+				<div class="chat-group-title">Pinned</div>
+				${renderSidebarChatItems(pinnedChats)}
+			</div>
+		`);
+	}
+
+	if (visibleRegularChats.length > 0) {
+		sections.push(`
+			<div class="chat-group">
+				<div class="chat-group-title">Recent</div>
+				${renderSidebarChatItems(visibleRegularChats)}
+			</div>
+		`);
+	}
+
+	if (hasMoreChats) {
+		sections.push(`
+			<div class="chat-list-view-more-wrap">
+				<button class="btn ghost chat-list-view-more-btn" data-action="view-more-chats">View More</button>
+			</div>
+		`);
+	}
+
+	nodes.chatList.innerHTML = sections.join("");
+}
+
+function resetSidebarChatPagination() {
+	sidebarChatVisibleCount = sidebarChatPageSize;
+}
+
+function renderProjectFolderList() {
+	const projectFolders = uniqueProjectFolders(state.projectFolders.concat(collectProjectFoldersFromChats(state.chats)));
+	state.projectFolders = projectFolders;
+
+	if (state.activeProjectPath && !projectFolders.includes(state.activeProjectPath)) {
+		state.activeProjectPath = "";
+	}
+
+	const visibleChats = state.chats.filter((chat) => chat.archived === state.showArchived);
+	const counts = new Map();
+	for (const chat of visibleChats) {
+		const key = normalizeProjectPath(chat.projectPath || chat.project_path || "");
+		if (!key) {
+			continue;
+		}
+		counts.set(key, Number(counts.get(key) || 0) + 1);
+	}
+
+	const allActiveClass = state.activeProjectPath ? "" : " active";
+	const allCount = visibleChats.length;
+	const rows = [
+		`<button class="project-folder-item${allActiveClass}" data-action="select-project-folder" data-project-path="" title="All chats">All (${allCount})</button>`
+	];
+
+	let visibleProjectFolders = projectFolders.slice(0, maxVisibleProjectFolders);
+	if (state.activeProjectPath
+		&& projectFolders.includes(state.activeProjectPath)
+		&& !visibleProjectFolders.includes(state.activeProjectPath)
+	) {
+		visibleProjectFolders = visibleProjectFolders
+			.slice(0, Math.max(0, maxVisibleProjectFolders - 1))
+			.concat([state.activeProjectPath]);
+	}
+
+	for (const folderPath of visibleProjectFolders) {
+		const activeClass = state.activeProjectPath === folderPath ? " active" : "";
+		const folderLabel = projectFolderNameFromPath(folderPath);
+		const folderCount = Number(counts.get(folderPath) || 0);
+		rows.push(`<button class="project-folder-item${activeClass}" data-action="select-project-folder" data-project-path="${escapeHtml(folderPath)}" title="${escapeHtml(folderPath)}">${escapeHtml(folderLabel)} (${folderCount})</button>`);
+	}
+
+	nodes.projectFolderList.innerHTML = rows.join("");
+}
+
+function renderSidebarChatItems(chats) {
+	return chats
+		.map((chat) => {
+			const active = chat.id === state.activeChatId ? "active" : "";
+			const paneCount = Array.isArray(chat.panes) ? chat.panes.length : 0;
+			const count = (chat.panes || []).reduce((sum, pane) => sum + pane.messages.length, 0);
+			const archiveLabel = chat.archived ? "Unarchive" : "Archive";
+			const pinLabel = chat.pinned ? "Unpin" : "Pin";
+			const shouldShowPin = !state.showArchived;
+			const projectPath = normalizeProjectPath(chat.projectPath || chat.project_path || "");
+			const projectLabel = projectPath ? "Set Project Folder" : "Add To Project Folder";
+			const archiveIcon = state.showArchived
+				? "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-archive-restore-icon lucide-archive-restore\" aria-hidden=\"true\"><rect width=\"20\" height=\"5\" x=\"2\" y=\"3\" rx=\"1\"/><path d=\"M4 8v11a2 2 0 0 0 2 2h2\"/><path d=\"M20 8v11a2 2 0 0 1-2 2h-2\"/><path d=\"m9 15 3-3 3 3\"/><path d=\"M12 12v9\"/></svg>"
+				: "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-archive-icon lucide-archive\" aria-hidden=\"true\"><rect width=\"20\" height=\"5\" x=\"2\" y=\"3\" rx=\"1\"/><path d=\"M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8\"/><path d=\"M10 12h4\"/></svg>";
+			const deleteButton = state.showArchived
+				? `<button class="chat-action chat-action-danger" data-action="delete" aria-label="Delete" title="Delete"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash-icon lucide-trash" aria-hidden="true"><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>`
+				: "";
+
+			return `
+				<article class="chat-item ${active}" data-chat-id="${chat.id}">
+					<div class="chat-item-top">
+						<div class="chat-item-title" title="${escapeHtml(chat.title)}">${escapeHtml(chat.title)}</div>
+					</div>
+					<div class="chat-item-bottom">
+						<div class="chat-item-meta" title="${escapeHtml(projectPath || "No project folder")}">${paneCount} panes | ${count} messages${projectPath ? " | in project" : ""}</div>
+						<div class="chat-item-actions">
+							<button class="chat-action" data-action="project" aria-label="${projectLabel}" title="${projectLabel}"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-folder-icon lucide-folder" aria-hidden="true"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg></button>
+							${shouldShowPin ? `<button class="chat-action" data-action="pin" aria-label="${pinLabel}" title="${pinLabel}"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-pin-icon lucide-pin" aria-hidden="true"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg></button>` : ""}
+							<button class="chat-action" data-action="archive" aria-label="${archiveLabel}" title="${archiveLabel}">
+								${archiveIcon}
+							</button>
+							${deleteButton}
+						</div>
+					</div>
+				</article>
+			`;
+		})
+		.join("");
+}
+
+function renderWorkspace(options = {}) {
+	const preserveScroll = Boolean(options.preserveScroll);
+	let paneGridScrollTop = 0;
+	const paneScrollTopById = new Map();
+
+	if (preserveScroll) {
+		paneGridScrollTop = nodes.paneGrid.scrollTop;
+		const existingLists = nodes.paneGrid.querySelectorAll(".message-list[data-pane-id]");
+		for (const list of existingLists) {
+			const paneId = String(list.getAttribute("data-pane-id") || "");
+			if (!paneId) {
+				continue;
+			}
+			paneScrollTopById.set(paneId, list.scrollTop);
+		}
+	}
+
+	const chat = getActiveChat();
+	if (!chat) {
+		nodes.chatTitleInput.value = "";
+		nodes.paneGrid.innerHTML = "<div class=\"empty-state\">No active chat selected.</div>";
+		return;
+	}
+
+	nodes.chatTitleInput.value = chat.title;
+	const paneCount = chat.panes.length;
+	nodes.paneGrid.classList.toggle("cols-2", paneCount === 2);
+	nodes.paneGrid.classList.toggle("cols-3", paneCount >= 3);
+
+	nodes.paneGrid.innerHTML = "";
+	const profileModelOptions = buildProfileModelOptions();
+	const hasMultiplePanes = paneCount > 1;
+	for (let paneIndex = 0; paneIndex < chat.panes.length; paneIndex += 1) {
+		const pane = chat.panes[paneIndex];
+		const fragment = nodes.paneTemplate.content.cloneNode(true);
+		const card = fragment.querySelector(".pane-card");
+		const paneSummary = fragment.querySelector(".pane-summary");
+		const paneModelSelect = fragment.querySelector(".pane-profile-model-select");
+		const statusNode = fragment.querySelector(".pane-status");
+		const removeBtn = fragment.querySelector(".pane-remove-btn");
+		const messageList = fragment.querySelector(".message-list");
+		messageList.setAttribute("data-pane-id", pane.id);
+		const paneProfile = getProfileById(pane.profile_id);
+		const paneModelName = paneProfile ? modelForProfileSelection(paneProfile, pane.model) : String(pane.model || "");
+		paneSummary.textContent = `Pane ${paneIndex + 1}`;
+		paneSummary.classList.toggle("hidden", !hasMultiplePanes);
+		paneModelSelect.classList.toggle("hidden", !hasMultiplePanes);
+
+		if (!hasMultiplePanes) {
+			paneModelSelect.innerHTML = "";
+			paneModelSelect.disabled = true;
+		} else if (profileModelOptions.length === 0) {
+			paneModelSelect.innerHTML = "";
+			paneModelSelect.disabled = true;
+		} else {
+			paneModelSelect.disabled = false;
+			paneModelSelect.innerHTML = profileModelOptions
+				.map((option, index) => {
+					const selected = option.profile_id === pane.profile_id
+						&& option.model === paneModelName
+						? "selected"
+						: "";
+					return `<option value="pane-opt-${index}" data-profile-id="${escapeHtml(option.profile_id)}" data-model="${escapeHtml(option.model)}" ${selected}>${escapeHtml(option.label)}</option>`;
+				})
+				.join("");
+		}
+		paneModelSelect.setAttribute("data-pane-id", pane.id);
+
+		removeBtn.setAttribute("data-pane-id", pane.id);
+		removeBtn.setAttribute("data-action", "remove-pane");
+		removeBtn.disabled = chat.panes.length <= 1;
+
+		statusNode.textContent = pane.status || "idle";
+		statusNode.classList.remove("waiting", "error", "partial");
+		if (pane.status === "waiting") {
+			statusNode.classList.add("waiting");
+		}
+		if (pane.status === "error") {
+			statusNode.classList.add("error");
+		}
+		if (pane.status === "partial") {
+			statusNode.classList.add("partial");
+		}
+
+		if (pane.messages.length === 0) {
+			messageList.innerHTML = "<div class=\"empty-state\">No messages yet for this pane.</div>";
+		} else {
+			messageList.innerHTML = pane.messages
+				.map((message) => renderMessageNodeHtml(message, pane.id))
+				.join("");
+		}
+
+		card.appendChild(messageList);
+		nodes.paneGrid.appendChild(fragment);
+	}
+
+	window.requestAnimationFrame(() => {
+		if (preserveScroll) {
+			nodes.paneGrid.scrollTop = paneGridScrollTop;
+			const messageLists = nodes.paneGrid.querySelectorAll(".message-list[data-pane-id]");
+			for (const list of messageLists) {
+				const paneId = String(list.getAttribute("data-pane-id") || "");
+				if (!paneId || !paneScrollTopById.has(paneId)) {
+					continue;
+				}
+				list.scrollTop = Number(paneScrollTopById.get(paneId));
+			}
+			return;
+		}
+
+		nodes.paneGrid.scrollTop = nodes.paneGrid.scrollHeight;
+		const messageLists = nodes.paneGrid.querySelectorAll(".message-list");
+		for (const list of messageLists) {
+			list.scrollTop = list.scrollHeight;
+		}
+		scheduleCodeHighlighting(nodes.paneGrid);
+	});
+}
+
+function renderMessageNodeHtml(message, paneId) {
+	const messageClasses = ["message", message.role];
+	if (message.role === "assistant" && message.thinking) {
+		messageClasses.push("with-thinking");
+	}
+
+	const metaBits = [];
+	if (message.provider) {
+		metaBits.push(message.provider);
+	}
+	if (message.model) {
+		metaBits.push(message.model);
+	}
+	if (message.usage && Number.isFinite(Number(message.usage.total_tokens))) {
+		metaBits.push(`tokens ${message.usage.total_tokens}`);
+	}
+	if (Number(message.continuation_passes) > 0) {
+		metaBits.push(`continued ${message.continuation_passes}x`);
+	}
+
+	const meta = metaBits.length > 0 ? `<div class=\"message-meta\">${escapeHtml(metaBits.join(" | "))}</div>` : "";
+	const thinking = renderThinkingBlock(message, paneId);
+	const contentBody = message.role === "assistant"
+		? renderAssistantMarkdown(message.content)
+		: renderPlainText(message.content);
+	const content = `<div class="message-content-block">${contentBody}</div>`;
+	const timestamp = formatMessageTime(message.createdAt);
+	const footer = `<div class="message-footer"><span class="message-time">${escapeHtml(timestamp)}</span><button type="button" class="message-copy-btn" data-action="copy-message" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}" aria-label="Copy message" title="Copy message">${copyCodeButtonSvg}</button></div>`;
+
+	if ("assistant" === message.role) {
+		const metaFooter = meta || footer
+			? `<div class="message-meta-footer">${meta}${footer}</div>`
+			: "";
+		return `<div class="${messageClasses.join(" ")}" data-message-id="${escapeHtml(message.id)}" data-pane-id="${escapeHtml(paneId)}">${thinking}${content}${metaFooter}</div>`;
+	}
+
+	return `<div class="${messageClasses.join(" ")}" data-message-id="${escapeHtml(message.id)}" data-pane-id="${escapeHtml(paneId)}"><div class="message-bubble">${content}${meta}</div>${footer}</div>`;
+}
+
+function scheduleWorkspaceRender() {
+	if (workspaceRenderScheduled) {
+		return;
+	}
+
+	workspaceRenderScheduled = true;
+	window.requestAnimationFrame(() => {
+		workspaceRenderScheduled = false;
+		renderWorkspace();
+	});
+}
+
+function scheduleStreamingMessagePatch(chatId, paneId, messageId) {
+	const safeChatId = String(chatId || "");
+	const safePaneId = String(paneId || "");
+	const safeMessageId = String(messageId || "");
+	if (!safeChatId || !safePaneId || !safeMessageId) {
+		scheduleWorkspaceRender();
+		return;
+	}
+
+	const patchKey = `${safeChatId}:${safePaneId}:${safeMessageId}`;
+	streamingMessagePatchQueue.set(patchKey, {
+		chatId: safeChatId,
+		paneId: safePaneId,
+		messageId: safeMessageId
+	});
+
+	if (streamingMessagePatchScheduled) {
+		return;
+	}
+
+	streamingMessagePatchScheduled = true;
+	window.requestAnimationFrame(() => {
+		streamingMessagePatchScheduled = false;
+		const patches = Array.from(streamingMessagePatchQueue.values());
+		streamingMessagePatchQueue.clear();
+		applyStreamingMessagePatches(patches);
+	});
+}
+
+function applyStreamingMessagePatches(patches) {
+	if (!Array.isArray(patches) || patches.length === 0) {
+		return;
+	}
+
+	const activeChat = getActiveChat();
+	if (!activeChat) {
+		return;
+	}
+
+	let shouldFallbackToFullRender = false;
+	for (const patch of patches) {
+		if (!patch || patch.chatId !== activeChat.id) {
+			continue;
+		}
+
+		const pane = activeChat.panes.find((candidate) => candidate.id === patch.paneId);
+		if (!pane) {
+			shouldFallbackToFullRender = true;
+			continue;
+		}
+
+		const message = pane.messages.find((candidate) => candidate.id === patch.messageId);
+		if (!message) {
+			shouldFallbackToFullRender = true;
+			continue;
+		}
+
+		const messageList = nodes.paneGrid.querySelector(`.message-list[data-pane-id="${patch.paneId}"]`);
+		if (!messageList) {
+			shouldFallbackToFullRender = true;
+			continue;
+		}
+
+		const distanceFromBottom = messageList.scrollHeight - messageList.scrollTop - messageList.clientHeight;
+		const stickToBottom = distanceFromBottom < 44;
+
+		const selector = `.message[data-message-id="${patch.messageId}"]`;
+		const messageHtml = renderMessageNodeHtml(message, patch.paneId);
+		const existingMessageNode = messageList.querySelector(selector);
+		if (existingMessageNode) {
+			existingMessageNode.outerHTML = messageHtml;
+		} else {
+			const emptyState = messageList.querySelector(".empty-state");
+			if (emptyState) {
+				messageList.innerHTML = messageHtml;
+			} else {
+				messageList.insertAdjacentHTML("beforeend", messageHtml);
+			}
+		}
+
+		if (stickToBottom) {
+			messageList.scrollTop = messageList.scrollHeight;
+		}
+
+		scheduleCodeHighlighting(messageList);
+	}
+
+	if (shouldFallbackToFullRender) {
+		scheduleWorkspaceRender();
+	}
+}
+
+function scheduleCodeHighlighting(rootNode) {
+	const root = rootNode || nodes.paneGrid;
+	if (!root) {
+		return;
+	}
+
+	pendingCodeHighlightRoots.add(root);
+	if (codeHighlightScheduled) {
+		return;
+	}
+
+	codeHighlightScheduled = true;
+	window.requestAnimationFrame(() => {
+		codeHighlightScheduled = false;
+		const roots = Array.from(pendingCodeHighlightRoots.values());
+		pendingCodeHighlightRoots.clear();
+		for (const candidateRoot of roots) {
+			applyCodeHighlighting(candidateRoot);
+		}
+	});
+}
+
+function applyCodeHighlighting(rootNode) {
+	const hljs = window.hljs;
+	if (!hljs || typeof hljs.highlightElement !== "function") {
+		return;
+	}
+
+	const codeNodes = rootNode.querySelectorAll("pre code.hljs");
+	for (const codeNode of codeNodes) {
+		if (String(codeNode.getAttribute("data-hljs-applied") || "") === "1") {
+			continue;
+		}
+
+		try {
+			hljs.highlightElement(codeNode);
+			codeNode.setAttribute("data-hljs-applied", "1");
+		} catch (error) {
+			// Ignore highlighting failures and keep plain code visible.
+		}
+	}
+}
+
+function openSettings() {
+	renderSettings();
+	clearSettingsSaveIndicator();
+	nodes.settingsModal.classList.remove("hidden");
+}
+
+function openSearchModal() {
+	nodes.searchModalInput.value = state.searchQuery;
+	renderSearchResults();
+	nodes.searchModal.classList.remove("hidden");
+	window.requestAnimationFrame(() => {
+		nodes.searchModalInput.focus();
+		nodes.searchModalInput.select();
+	});
+}
+
+function openPluginsModal() {
+	renderPluginsModal();
+	nodes.pluginsModal.classList.remove("hidden");
+}
+
+function closePluginsModal() {
+	nodes.pluginsModal.classList.add("hidden");
+}
+
+function openAutomationsModal() {
+	nodes.automationsModal.classList.remove("hidden");
+}
+
+function closeAutomationsModal() {
+	nodes.automationsModal.classList.add("hidden");
+}
+
+function openUsageModal() {
+	nodes.usageModal.classList.remove("hidden");
+	window.requestAnimationFrame(() => {
+		syncUsageFilterOptions(false);
+		renderUsageModalContent();
+	});
+}
+
+function closeUsageModal() {
+	nodes.usageModal.classList.add("hidden");
+	destroyUsageChart();
+}
+
+function isUsageModalOpen() {
+	return !nodes.usageModal.classList.contains("hidden");
+}
+
+function closeSearchModal() {
+	nodes.searchModal.classList.add("hidden");
+}
+
+function initializeProjectFolderSelect2() {
+	if (projectFolderSelect2Ready || !nodes.projectFolderInput) {
+		return;
+	}
+
+	const jquery = window.jQuery;
+	if (!jquery || !jquery.fn || "function" !== typeof jquery.fn.select2) {
+		return;
+	}
+
+	const $projectFolderInput = jquery(nodes.projectFolderInput);
+	const placeholder = String(nodes.projectFolderInput.getAttribute("data-placeholder") || "");
+	$projectFolderInput.select2({
+		tags: true,
+		multiple: true,
+		width: "100%",
+		placeholder,
+		allowClear: false,
+		closeOnSelect: false,
+		dropdownParent: jquery(nodes.projectFolderModal),
+		minimumResultsForSearch: 0,
+		createTag: (params) => {
+			const normalizedPath = normalizeProjectPath(params.term || "");
+			if (!normalizedPath) {
+				return null;
+			}
+
+			return {
+				id: normalizedPath,
+				text: normalizedPath,
+				newTag: true
+			};
+		},
+		insertTag: (data, tag) => {
+			data.push(tag);
+		}
+	});
+
+	$projectFolderInput.on("select2:open", () => {
+		const searchField = document.querySelector(".select2-container--open .select2-search__field");
+		if (!searchField) {
+			return;
+		}
+
+		searchField.setAttribute("placeholder", "Type or choose a project name");
+	});
+
+	$projectFolderInput.on("select2:select", () => {
+		const selected = $projectFolderInput.val();
+		if (!Array.isArray(selected) || selected.length <= 1) {
+			return;
+		}
+
+		const keepValue = String(selected[selected.length - 1] || "");
+		$projectFolderInput.val(keepValue ? [keepValue] : []).trigger("change.select2");
+	});
+
+	projectFolderSelect2Ready = true;
+}
+
+function getProjectFolderInputValue() {
+	if (projectFolderSelect2Ready && window.jQuery && nodes.projectFolderInput) {
+		const selected = window.jQuery(nodes.projectFolderInput).val();
+		if (Array.isArray(selected)) {
+			const lastSelected = selected.length > 0 ? selected[selected.length - 1] : "";
+			return String(lastSelected || "");
+		}
+
+		return String(selected || "");
+	}
+
+	return String((nodes.projectFolderInput && nodes.projectFolderInput.value) || "");
+}
+
+function setProjectFolderInputValue(value) {
+	if (!nodes.projectFolderInput) {
+		return;
+	}
+
+	const normalizedPath = normalizeProjectPath(value || "");
+	if (projectFolderSelect2Ready && window.jQuery) {
+		if (normalizedPath && !Array.from(nodes.projectFolderInput.options).some((option) => option.value === normalizedPath)) {
+			nodes.projectFolderInput.add(new Option(normalizedPath, normalizedPath));
+		}
+
+		window.jQuery(nodes.projectFolderInput).val(normalizedPath ? [normalizedPath] : []).trigger("change");
+		return;
+	}
+
+	nodes.projectFolderInput.value = normalizedPath;
+}
+
+function focusProjectFolderInput() {
+	if (projectFolderSelect2Ready && window.jQuery && nodes.projectFolderInput) {
+		const selectContainer = window.jQuery(nodes.projectFolderInput).next(".select2-container");
+		if (selectContainer.length > 0) {
+			const inlineSearchField = selectContainer.find(".select2-search__field");
+			if (inlineSearchField.length > 0) {
+				inlineSearchField.trigger("focus");
+				return;
+			}
+
+			selectContainer.find(".select2-selection").trigger("focus");
+			return;
+		}
+
+		window.jQuery(nodes.projectFolderInput).trigger("focus");
+		return;
+	}
+
+	if (nodes.projectFolderInput) {
+		nodes.projectFolderInput.focus();
+	}
+}
+
+function closeProjectFolderInputDropdown() {
+	if (projectFolderSelect2Ready && window.jQuery && nodes.projectFolderInput) {
+		window.jQuery(nodes.projectFolderInput).select2("close");
+	}
+}
+
+function openProjectFolderModal(context) {
+	const nextContext = context && typeof context === "object"
+		? context
+		: { mode: "create-folder" };
+	projectFolderModalContext = nextContext;
+	renderProjectFolderInputOptions();
+
+	let initialPath = "";
+	let title = "Add Project Folder";
+	let clearHidden = true;
+
+	if (nextContext.mode === "assign-chat" && nextContext.chatId) {
+		const chat = getChatById(nextContext.chatId);
+		if (chat) {
+			initialPath = normalizeProjectPath(chat.projectPath || chat.project_path || "");
+			title = "Set Chat Project Folder";
+			clearHidden = false;
+		}
+	}
+
+	nodes.projectFolderModalTitle.textContent = title;
+	setProjectFolderInputValue(initialPath);
+	nodes.projectFolderError.textContent = "";
+	nodes.clearProjectFolderBtn.classList.toggle("hidden", clearHidden);
+	nodes.projectFolderModal.classList.remove("hidden");
+
+	window.requestAnimationFrame(() => {
+		focusProjectFolderInput();
+	});
+}
+
+function closeProjectFolderModal() {
+	projectFolderModalContext = null;
+	closeProjectFolderInputDropdown();
+	nodes.projectFolderModal.classList.add("hidden");
+	nodes.projectFolderError.textContent = "";
+}
+
+function renderProjectFolderInputOptions() {
+	if (!nodes.projectFolderInput) {
+		return;
+	}
+
+	const currentValue = normalizeProjectPath(getProjectFolderInputValue());
+	const options = uniqueProjectFolders(state.projectFolders.concat(collectProjectFoldersFromChats(state.chats)));
+	nodes.projectFolderInput.innerHTML = options
+		.map((folderPath) => `<option value="${escapeHtml(folderPath)}">${escapeHtml(folderPath)}</option>`)
+		.join("");
+
+	if (currentValue && !options.includes(currentValue)) {
+		nodes.projectFolderInput.add(new Option(currentValue, currentValue));
+	}
+
+	setProjectFolderInputValue(currentValue);
+}
+
+function clearProjectFolderFromModal() {
+	if (!projectFolderModalContext || projectFolderModalContext.mode !== "assign-chat") {
+		setProjectFolderInputValue("");
+		focusProjectFolderInput();
+		return;
+	}
+
+	const chat = getChatById(projectFolderModalContext.chatId);
+	if (!chat) {
+		closeProjectFolderModal();
+		return;
+	}
+
+	const previousProjectPath = normalizeProjectPath(chat.projectPath || chat.project_path || "");
+	chat.projectPath = "";
+	chat.updatedAt = Date.now();
+	if (state.activeProjectPath && state.activeProjectPath === previousProjectPath) {
+		state.activeProjectPath = "";
+	}
+	closeProjectFolderModal();
+	schedulePersist();
+	renderAll();
+}
+
+function saveProjectFolderFromModal() {
+	const normalizedPath = normalizeProjectPath(getProjectFolderInputValue());
+	nodes.projectFolderError.textContent = "";
+
+	if (!projectFolderModalContext || projectFolderModalContext.mode === "create-folder") {
+		if (!normalizedPath) {
+			nodes.projectFolderError.textContent = "Enter a project name.";
+			return;
+		}
+
+		state.projectFolders = uniqueProjectFolders(state.projectFolders.concat([normalizedPath]));
+		state.activeProjectPath = normalizedPath;
+		closeProjectFolderModal();
+		schedulePersist();
+		renderAll();
+		return;
+	}
+
+	if (projectFolderModalContext.mode === "assign-chat") {
+		const chat = getChatById(projectFolderModalContext.chatId);
+		if (!chat) {
+			nodes.projectFolderError.textContent = "Unable to find this chat.";
+			return;
+		}
+
+		chat.projectPath = normalizedPath;
+		chat.updatedAt = Date.now();
+		if (normalizedPath) {
+			state.projectFolders = uniqueProjectFolders(state.projectFolders.concat([normalizedPath]));
+		}
+		closeProjectFolderModal();
+		schedulePersist();
+		renderAll();
+	}
+}
+
+function renderComposerUsageSummary() {
+	const chat = getActiveChat();
+	if (!chat) {
+		nodes.composerTokenSummary.textContent = "This chat: 0 tokens";
+		return;
+	}
+
+	const records = collectUsageRecords().filter((record) => record.chat_id === chat.id);
+	const totalTokens = records.reduce((sum, record) => sum + record.tokens, 0);
+	const responseCount = records.length;
+	const average = responseCount > 0 ? Math.round(totalTokens / responseCount) : 0;
+	nodes.composerTokenSummary.textContent = `This chat: ${formatNumber(totalTokens)} tokens across ${formatNumber(responseCount)} responses (avg ${formatNumber(average)})`;
+}
+
+function collectUsageRecords() {
+	const records = [];
+	const liveMessageIds = new Set();
+
+	for (const chat of state.chats) {
+		for (let paneIndex = 0; paneIndex < chat.panes.length; paneIndex += 1) {
+			const pane = chat.panes[paneIndex];
+			for (const message of pane.messages) {
+				const tokenCount = Number(message && message.usage && message.usage.total_tokens);
+				if (!Number.isFinite(tokenCount) || tokenCount <= 0) {
+					continue;
+				}
+
+				const createdAt = Number(message.createdAt);
+				const messageId = String(message.id || "");
+				if (messageId) {
+					liveMessageIds.add(messageId);
+				}
+
+				records.push({
+					message_id: messageId,
+					chat_id: chat.id,
+					chat_title: chat.title,
+					chat_archived: Boolean(chat.archived),
+					chat_deleted: false,
+					pane_id: pane.id,
+					pane_label: `Pane ${paneIndex + 1}`,
+					provider: String(message.provider || "unknown"),
+					model: String(message.model || "unknown"),
+					role: String(message.role || "assistant"),
+					tokens: tokenCount,
+					createdAt: Number.isFinite(createdAt) ? createdAt : Number(chat.updatedAt || Date.now())
+				});
+			}
+		}
+	}
+
+	for (const entry of usageLedger) {
+		if (!entry || typeof entry !== "object") {
+			continue;
+		}
+
+		const tokenCount = Number(entry.tokens);
+		if (!Number.isFinite(tokenCount) || tokenCount <= 0) {
+			continue;
+		}
+
+		const messageId = String(entry.message_id || "");
+		if (messageId && liveMessageIds.has(messageId)) {
+			continue;
+		}
+
+		records.push({
+			message_id: messageId,
+			chat_id: String(entry.chat_id || "unknown-chat"),
+			chat_title: String(entry.chat_title || "Deleted chat"),
+			chat_archived: Boolean(entry.chat_archived),
+			chat_deleted: Boolean(entry.chat_deleted),
+			pane_id: String(entry.pane_id || "unknown-pane"),
+			pane_label: String(entry.pane_label || "Pane"),
+			provider: String(entry.provider || "unknown"),
+			model: String(entry.model || "unknown"),
+			role: String(entry.role || "assistant"),
+			tokens: tokenCount,
+			createdAt: Number.isFinite(Number(entry.createdAt)) ? Number(entry.createdAt) : Date.now()
+		});
+	}
+
+	return records;
+}
+
+function syncUsageFilterOptions(preserveSelections = true) {
+	const activeChat = getActiveChat();
+	const activeChatId = activeChat ? activeChat.id : "";
+	const selectedChat = preserveSelections ? String(nodes.usageFilterChat.value || "all") : "all";
+
+	const currentChatIds = new Set(state.chats.map((chat) => chat.id));
+	const deletedChatMap = new Map();
+	for (const record of usageLedger) {
+		if (!record || !record.chat_deleted) {
+			continue;
+		}
+		const chatId = String(record.chat_id || "");
+		if (!chatId || currentChatIds.has(chatId) || deletedChatMap.has(chatId)) {
+			continue;
+		}
+		deletedChatMap.set(chatId, String(record.chat_title || "Deleted chat"));
+	}
+
+	const chatOptions = [{ value: "all", label: "All chats" }, { value: "active", label: "Active chat" }]
+		.concat(
+			state.chats
+				.slice()
+				.sort((left, right) => right.updatedAt - left.updatedAt)
+				.map((chat) => ({
+					value: `chat:${chat.id}`,
+					label: chat.archived ? `${chat.title} (Archived)` : chat.title
+				}))
+		)
+		.concat(
+			Array.from(deletedChatMap.entries()).map(([chatId, chatTitle]) => ({
+				value: `chat:${chatId}`,
+				label: `${chatTitle} (Deleted)`
+			}))
+		);
+
+	setSelectOptions(nodes.usageFilterChat, chatOptions, selectedChat || "active");
+
+	const chosenChat = resolveUsageChat(nodes.usageFilterChat.value, activeChatId);
+	const paneOptions = [{ value: "all", label: "All panes" }];
+	if (chosenChat) {
+		for (let paneIndex = 0; paneIndex < chosenChat.panes.length; paneIndex += 1) {
+			const pane = chosenChat.panes[paneIndex];
+			paneOptions.push({ value: pane.id, label: `Pane ${paneIndex + 1}` });
+		}
+	}
+	setSelectOptions(nodes.usageFilterPane, paneOptions, preserveSelections ? nodes.usageFilterPane.value : "all");
+
+	const records = filterUsageRecords(collectUsageRecords(), {
+		chat: nodes.usageFilterChat.value,
+		pane: nodes.usageFilterPane.value,
+		provider: "all",
+		model: "all",
+		window: "all"
+	}, activeChatId);
+
+	const providerOptions = [{ value: "all", label: "All providers" }]
+		.concat(uniqueSorted(records.map((record) => record.provider)).map((provider) => ({
+			value: provider,
+			label: providerLabelForId(provider)
+		})));
+	setSelectOptions(nodes.usageFilterProvider, providerOptions, preserveSelections ? nodes.usageFilterProvider.value : "all");
+
+	const modelOptions = [{ value: "all", label: "All models" }]
+		.concat(uniqueSorted(records.map((record) => record.model)).map((model) => ({
+			value: model,
+			label: model
+		})));
+	setSelectOptions(nodes.usageFilterModel, modelOptions, preserveSelections ? nodes.usageFilterModel.value : "all");
+}
+
+function setSelectOptions(selectNode, options, preferredValue) {
+	const fallbackValue = options[0] ? options[0].value : "";
+	const safePreferred = options.some((option) => option.value === preferredValue)
+		? preferredValue
+		: fallbackValue;
+
+	selectNode.innerHTML = options
+		.map((option) => {
+			const selected = option.value === safePreferred ? "selected" : "";
+			return `<option value="${escapeHtml(option.value)}" ${selected}>${escapeHtml(option.label)}</option>`;
+		})
+		.join("");
+}
+
+function resolveUsageChat(chatFilterValue, activeChatId) {
+	if (chatFilterValue === "all") {
+		return null;
+	}
+
+	if (chatFilterValue === "active") {
+		return activeChatId ? getChatById(activeChatId) : null;
+	}
+
+	if (chatFilterValue.indexOf("chat:") === 0) {
+		return getChatById(chatFilterValue.slice(5));
+	}
+
+	return null;
+}
+
+function renderUsageModalContent() {
+	syncUsageFilterOptions(true);
+	const activeChat = getActiveChat();
+	const activeChatId = activeChat ? activeChat.id : "";
+	const filters = {
+		chat: String(nodes.usageFilterChat.value || "active"),
+		pane: String(nodes.usageFilterPane.value || "all"),
+		provider: String(nodes.usageFilterProvider.value || "all"),
+		model: String(nodes.usageFilterModel.value || "all"),
+		window: String(nodes.usageFilterWindow.value || "all"),
+		groupBy: String(nodes.usageGroupBy.value || "model"),
+		chartType: String(nodes.usageChartType.value || "bar")
+	};
+
+	const filteredRecords = filterUsageRecords(collectUsageRecords(), filters, activeChatId);
+	const groupedRows = groupUsageRecords(filteredRecords, filters.groupBy);
+
+	const totalTokens = filteredRecords.reduce((sum, record) => sum + record.tokens, 0);
+	const responseCount = filteredRecords.length;
+	const average = responseCount > 0 ? Math.round(totalTokens / responseCount) : 0;
+
+	nodes.usageStatTotal.textContent = formatNumber(totalTokens);
+	nodes.usageStatResponses.textContent = formatNumber(responseCount);
+	nodes.usageStatAverage.textContent = formatNumber(average);
+
+	renderUsageChart(groupedRows, filters.chartType, filters.groupBy);
+	renderUsageBreakdown(groupedRows);
+}
+
+function filterUsageRecords(records, filters, activeChatId) {
+	let filtered = records.slice();
+
+	if (filters.chat === "active" && activeChatId) {
+		filtered = filtered.filter((record) => record.chat_id === activeChatId);
+	} else if (filters.chat.indexOf("chat:") === 0) {
+		const chatId = filters.chat.slice(5);
+		filtered = filtered.filter((record) => record.chat_id === chatId);
+	}
+
+	if (filters.pane && filters.pane !== "all") {
+		filtered = filtered.filter((record) => record.pane_id === filters.pane);
+	}
+
+	if (filters.provider && filters.provider !== "all") {
+		filtered = filtered.filter((record) => record.provider === filters.provider);
+	}
+
+	if (filters.model && filters.model !== "all") {
+		filtered = filtered.filter((record) => record.model === filters.model);
+	}
+
+	const windowMs = usageWindowToMs(filters.window);
+	if (windowMs > 0) {
+		const floor = Date.now() - windowMs;
+		filtered = filtered.filter((record) => record.createdAt >= floor);
+	}
+
+	return filtered;
+}
+
+function usageWindowToMs(windowValue) {
+	if (windowValue === "24h") {
+		return 24 * 60 * 60 * 1000;
+	}
+
+	if (windowValue === "7d") {
+		return 7 * 24 * 60 * 60 * 1000;
+	}
+
+	if (windowValue === "30d") {
+		return 30 * 24 * 60 * 60 * 1000;
+	}
+
+	return 0;
+}
+
+function groupUsageRecords(records, groupBy) {
+	const buckets = new Map();
+
+	for (const record of records) {
+		const grouped = usageGroupLabel(record, groupBy);
+		if (!buckets.has(grouped.key)) {
+			buckets.set(grouped.key, {
+				key: grouped.key,
+				label: grouped.label,
+				tokens: 0,
+				responses: 0
+			});
+		}
+
+		const bucket = buckets.get(grouped.key);
+		bucket.tokens += record.tokens;
+		bucket.responses += 1;
+	}
+
+	const rows = Array.from(buckets.values());
+	if (groupBy === "day") {
+		rows.sort((left, right) => left.key.localeCompare(right.key));
+		return rows;
+	}
+
+	rows.sort((left, right) => right.tokens - left.tokens);
+	return rows;
+}
+
+function usageGroupLabel(record, groupBy) {
+	if (groupBy === "provider") {
+		return { key: record.provider, label: providerLabelForId(record.provider) };
+	}
+
+	if (groupBy === "chat") {
+		const status = record.chat_deleted ? " (Deleted)" : (record.chat_archived ? " (Archived)" : "");
+		return { key: record.chat_id, label: `${record.chat_title}${status}` };
+	}
+
+	if (groupBy === "pane") {
+		const status = record.chat_deleted ? " (Deleted)" : (record.chat_archived ? " (Archived)" : "");
+		return { key: `${record.chat_id}:${record.pane_id}`, label: `${record.chat_title}${status} | ${record.pane_label}` };
+	}
+
+	if (groupBy === "day") {
+		const date = new Date(record.createdAt);
+		const key = [
+			String(date.getFullYear()),
+			String(date.getMonth() + 1).padStart(2, "0"),
+			String(date.getDate()).padStart(2, "0")
+		].join("-");
+		return { key, label: key };
+	}
+
+	return { key: record.model, label: record.model };
+}
+
+function renderUsageChart(groupedRows, chartType, groupBy) {
+	if (!nodes.usageChartCanvas) {
+		return;
+	}
+
+	const chartLibrary = window.Chart;
+	if (!chartLibrary) {
+		destroyUsageChart();
+		return;
+	}
+
+	const labels = groupedRows.map((row) => row.label);
+	const data = groupedRows.map((row) => row.tokens);
+	const palette = ["#6bf1bf", "#43c4ff", "#ffd369", "#ff8a8a", "#bb9cff", "#95f28f", "#ffa8d9", "#7be1d0", "#f7a95b", "#9bb6ff"];
+	const backgroundColors = labels.map((_, index) => palette[index % palette.length]);
+	const safeChartType = chartType === "line" || chartType === "doughnut" ? chartType : "bar";
+
+	destroyUsageChart();
+	const shouldUseAxes = safeChartType === "bar" || safeChartType === "line";
+	const dataset = {
+		label: "Tokens",
+		data,
+		borderWidth: safeChartType === "line" ? 2 : 1,
+		borderColor: safeChartType === "line" ? "#6bf1bf" : backgroundColors,
+		backgroundColor: safeChartType === "line" ? "rgba(107, 241, 191, 0.2)" : backgroundColors,
+		tension: safeChartType === "line" ? 0.25 : 0,
+		fill: safeChartType === "line"
+	};
+
+	usageChart = new chartLibrary(nodes.usageChartCanvas, {
+		type: safeChartType,
+		data: {
+			labels,
+			datasets: [dataset]
+		},
+		options: {
+			responsive: true,
+			maintainAspectRatio: false,
+			plugins: {
+				legend: {
+					display: safeChartType === "doughnut"
+				},
+				tooltip: {
+					callbacks: {
+						label: (context) => {
+							const value = usageTooltipValue(context);
+							return `${formatNumber(value)} tokens`;
+						}
+					}
+				}
+			},
+			scales: shouldUseAxes
+				? {
+					x: {
+						ticks: {
+							autoSkip: groupBy !== "day",
+							maxRotation: 0,
+							minRotation: 0
+						}
+					},
+					y: {
+						beginAtZero: true,
+						ticks: {
+							callback: (value) => formatNumber(value)
+						}
+					}
+				}
+				: undefined
+		}
+	});
+}
+
+function usageTooltipValue(context) {
+	if (!context || !Object.prototype.hasOwnProperty.call(context, "parsed")) {
+		return 0;
+	}
+
+	const parsed = context.parsed;
+	if (Number.isFinite(Number(parsed))) {
+		return Number(parsed);
+	}
+
+	if (parsed && Number.isFinite(Number(parsed.y))) {
+		return Number(parsed.y);
+	}
+
+	if (parsed && Number.isFinite(Number(parsed.r))) {
+		return Number(parsed.r);
+	}
+
+	if (parsed && Number.isFinite(Number(parsed.raw))) {
+		return Number(parsed.raw);
+	}
+
+	if (Number.isFinite(Number(context.raw))) {
+		return Number(context.raw);
+	}
+
+	return 0;
+}
+
+function destroyUsageChart() {
+	if (usageChart && typeof usageChart.destroy === "function") {
+		usageChart.destroy();
+	}
+	usageChart = null;
+}
+
+function renderUsageBreakdown(groupedRows) {
+	if (!nodes.usageBreakdown) {
+		return;
+	}
+
+	if (groupedRows.length === 0) {
+		nodes.usageBreakdown.innerHTML = "<div class=\"empty-state\">No token usage found for the selected filters.</div>";
+		return;
+	}
+
+	nodes.usageBreakdown.innerHTML = `
+		<table class="usage-table">
+			<thead>
+				<tr>
+					<th>Group</th>
+					<th>Responses</th>
+					<th>Total Tokens</th>
+					<th>Average</th>
+				</tr>
+			</thead>
+			<tbody>
+				${groupedRows.map((row) => {
+					const average = row.responses > 0 ? Math.round(row.tokens / row.responses) : 0;
+					return `<tr><td>${escapeHtml(row.label)}</td><td>${formatNumber(row.responses)}</td><td>${formatNumber(row.tokens)}</td><td>${formatNumber(average)}</td></tr>`;
+				}).join("")}
+			</tbody>
+		</table>
+	`;
+}
+
+function uniqueSorted(values) {
+	return Array.from(new Set(values.filter(Boolean))).sort((left, right) => String(left).localeCompare(String(right)));
+}
+
+function renderSearchResults() {
+	const query = String(nodes.searchModalInput.value || "").trim().toLowerCase();
+	const matches = state.chats
+		.filter((chat) => {
+			if (!query) {
+				return true;
+			}
+			return chat.title.toLowerCase().includes(query);
+		})
+		.sort((left, right) => {
+			if (left.pinned !== right.pinned) {
+				return left.pinned ? -1 : 1;
+			}
+			return right.updatedAt - left.updatedAt;
+		});
+
+	if (matches.length === 0) {
+		nodes.searchModalResults.innerHTML = "<div class=\"empty-state\">No chats found.</div>";
+		return;
+	}
+
+	nodes.searchModalResults.innerHTML = matches
+		.map((chat) => {
+			const status = chat.archived ? "Archived" : "Active";
+			const paneCount = Array.isArray(chat.panes) ? chat.panes.length : 0;
+			return `
+				<button class="search-chat-item" data-chat-id="${chat.id}">
+					<div class="search-chat-item-title">${escapeHtml(chat.title)}</div>
+					<div class="search-chat-item-meta">${status} | ${paneCount} panes</div>
+				</button>
+			`;
+		})
+		.join("");
+}
+
+function renderPluginsModal() {
+	const providerRows = summarizePluginsByProvider();
+	if (providerRows.length === 0) {
+		nodes.pluginsModalContent.innerHTML = "<div class=\"empty-state\">No provider profiles are configured yet.</div>";
+		return;
+	}
+
+	nodes.pluginsModalContent.innerHTML = providerRows
+		.map((provider) => {
+			const configuredLabel = provider.configuredCount === 1 ? "1 profile" : `${provider.configuredCount} profiles`;
+			const keyLabel = provider.profilesWithKeyCount === 1 ? "1 key saved" : `${provider.profilesWithKeyCount} keys saved`;
+			return `
+				<div class="plugin-card">
+					<div class="plugin-card-head">
+						<div class="plugin-card-title">${escapeHtml(provider.label)}</div>
+						<div class="plugin-card-badge">${escapeHtml(configuredLabel)}</div>
+					</div>
+					<div class="plugin-card-meta">${escapeHtml(keyLabel)} | ${escapeHtml(provider.modelsLabel)}</div>
+				</div>
+			`;
+		})
+		.join("");
+}
+
+function summarizePluginsByProvider() {
+	const profileList = Array.isArray(state.settings.profiles) ? state.settings.profiles : [];
+	const providerMap = new Map();
+
+	for (const profile of profileList) {
+		const providerId = String(profile.provider_id || "custom");
+		if (!providerMap.has(providerId)) {
+			providerMap.set(providerId, {
+				id: providerId,
+				label: providerLabelForId(providerId),
+				configuredCount: 0,
+				profilesWithKeyCount: 0,
+				modelSet: new Set()
+			});
+		}
+
+		const entry = providerMap.get(providerId);
+		entry.configuredCount += 1;
+		if (profile.api_key_present || String(profile.api_key || "").trim()) {
+			entry.profilesWithKeyCount += 1;
+		}
+		for (const model of profileModels(profile)) {
+			entry.modelSet.add(model);
+		}
+	}
+
+	return Array.from(providerMap.values())
+		.map((entry) => {
+			const modelCount = entry.modelSet.size;
+			const modelsLabel = modelCount === 1 ? "1 model" : `${modelCount} models`;
+			return {
+				id: entry.id,
+				label: entry.label,
+				configuredCount: entry.configuredCount,
+				profilesWithKeyCount: entry.profilesWithKeyCount,
+				modelsLabel
+			};
+		})
+		.sort((left, right) => left.label.localeCompare(right.label));
+}
+
+function providerLabelForId(providerId) {
+	if (providerId === "openai") {
+		return "OpenAI";
+	}
+
+	if (providerId === "deepseek") {
+		return "DeepSeek";
+	}
+
+	if (providerId === "openrouter") {
+		return "OpenRouter";
+	}
+
+	if (providerId === "custom") {
+		return "Custom OpenAI-Compatible";
+	}
+
+	return providerId || "Unknown Provider";
+}
+
+function runAutomationAction(action) {
+	const chat = getActiveChat();
+
+	if (action === "new-chat") {
+		createAndActivateChat();
+		closeAutomationsModal();
+		return;
+	}
+
+	if (action === "add-pane") {
+		if (!chat) {
+			return;
+		}
+
+		const firstProfile = state.settings.profiles[0] || createDefaultProfile();
+		if (state.settings.profiles.length === 0) {
+			state.settings.profiles.push(firstProfile);
+		}
+
+		chat.panes.push(createPane(firstProfile.id));
+		chat.updatedAt = Date.now();
+		schedulePersist();
+		renderAll();
+		closeAutomationsModal();
+		return;
+	}
+
+	if (action === "open-search") {
+		closeAutomationsModal();
+		openSearchModal();
+		return;
+	}
+
+	if (action === "open-settings") {
+		closeAutomationsModal();
+		openSettings();
+		return;
+	}
+
+	if (action === "toggle-broadcast") {
+		state.broadcastToAllPanes = !state.broadcastToAllPanes;
+		nodes.broadcastToggle.checked = state.broadcastToAllPanes;
+		schedulePersist();
+		closeAutomationsModal();
+		return;
+	}
+}
+
+function closeSettings() {
+	nodes.settingsModal.classList.add("hidden");
+	clearSettingsSaveIndicator();
+	if (persistTimer) {
+		void persistStateToServer();
+	}
+}
+
+function renderSettings() {
+	nodes.settingsTemperature.value = String(state.settings.temperature);
+	nodes.settingsMaxTokens.value = String(state.settings.maxTokens);
+	const tokenConfigured = hasValidApiAuthToken();
+	nodes.settingsApiToken.value = "";
+	nodes.settingsApiTokenStatus.value = tokenConfigured ? "Configured" : "Not configured";
+	nodes.settingsApiTokenStatus.classList.toggle("configured", tokenConfigured);
+	nodes.settingsApiTokenStatus.classList.toggle("not-configured", !tokenConfigured);
+	nodes.settingsApiToken.placeholder = tokenConfigured
+		? "Configured. Paste API_AUTH_TOKEN to replace it."
+		: "Paste server API_AUTH_TOKEN";
+
+	nodes.profileList.innerHTML = state.settings.profiles
+		.map((profile) => {
+			const keyStatus = profile.api_key_present
+				? "Stored key: configured"
+				: "Stored key: not configured";
+
+			return `
+				<div class="profile-card">
+					<div class="profile-grid">
+						<label>
+							<span>Name</span>
+							<input data-profile-id="${profile.id}" data-field="name" type="text" value="${escapeHtml(profile.name)}">
+						</label>
+						<label>
+							<span>Provider</span>
+							<select data-profile-id="${profile.id}" data-field="provider_id">
+								${providerOption(profile.provider_id, "openai", "OpenAI")}
+								${providerOption(profile.provider_id, "deepseek", "DeepSeek")}
+								${providerOption(profile.provider_id, "openrouter", "OpenRouter")}
+								${providerOption(profile.provider_id, "custom", "Custom OpenAI-Compatible")}
+							</select>
+						</label>
+						<label>
+							<span>API Key</span>
+							<input data-profile-id="${profile.id}" data-field="api_key" type="password" value="" placeholder="Enter a new key to update" autocomplete="off">
+						</label>
+						<label>
+							<span>Key Status</span>
+							<input type="text" value="${escapeHtml(keyStatus)}" disabled>
+						</label>
+						<label>
+							<span>Base URL (custom only)</span>
+							<input data-profile-id="${profile.id}" data-field="base_url" type="text" value="${escapeHtml(profile.base_url || "")}">
+						</label>
+						<label style="grid-column: span 2;">
+							<span>Model suggestions (comma separated)</span>
+							<input data-profile-id="${profile.id}" data-field="models_csv" type="text" value="${escapeHtml(profile.models_csv || "")}">
+						</label>
+					</div>
+					<div class="profile-actions">
+						<button class="btn ghost danger" data-action="delete-profile" data-profile-id="${profile.id}">Delete Profile</button>
+					</div>
+				</div>
+			`;
+		})
+		.join("");
+}
+
+async function saveApiTokenFromSettings(options = {}) {
+	const silentIfEmpty = Boolean(options.silentIfEmpty);
+	const token = String(nodes.settingsApiToken.value || "").trim();
+	if (!token) {
+		if (!silentIfEmpty) {
+			setSettingsSaveIndicator("error", "Token is required");
+		}
+		return false;
+	}
+
+	setSettingsSaveIndicator("pending", "Verifying token...", 0);
+	const verification = await validateApiAuthTokenCandidate(token);
+	if (!verification.ok) {
+		setSettingsSaveIndicator("error", verification.message);
+		return false;
+	}
+
+	storeApiAuthToken(token, defaultApiTokenTtlDays);
+	nodes.settingsApiToken.value = "";
+	nodes.voiceStatus.textContent = "Voice: idle";
+	setSettingsSaveIndicator("success", "Settings saved");
+	renderSettings();
+	return true;
+}
+
+async function validateApiAuthTokenCandidate(token) {
+	try {
+		const response = await fetch("/api/health", {
+			method: "GET",
+			headers: {
+				"X-API-Token": token
+			}
+		});
+
+		if (response.ok) {
+			return { ok: true, message: "" };
+		}
+
+		let message = `Token rejected (HTTP ${response.status})`;
+		try {
+			const payload = await response.json();
+			if (payload && payload.error && payload.error.message) {
+				message = `${String(payload.error.message)} (HTTP ${response.status})`;
+			}
+			if (response.status === 401) {
+				message = "Invalid app token. Use API_AUTH_TOKEN from the server environment (not provider API keys).";
+			}
+		} catch (error) {
+			// Ignore JSON parsing errors and keep fallback message.
+			if (response.status === 401) {
+				message = "Invalid app token. Use API_AUTH_TOKEN from the server environment (not provider API keys).";
+			}
+		}
+
+		return { ok: false, message };
+	} catch (error) {
+		return { ok: false, message: "Unable to verify token. Check server connectivity." };
+	}
+}
+
+async function sendFromComposer() {
+	const chat = getActiveChat();
+	if (!chat) {
+		return;
+	}
+
+	const text = nodes.composerInput.value.trim();
+	if (!text) {
+		return;
+	}
+
+	nodes.composerInput.value = "";
+	chat.updatedAt = Date.now();
+
+	const targetPanes = state.broadcastToAllPanes ? chat.panes.slice() : [chat.panes[0]];
+	await Promise.all(targetPanes.map((pane) => sendMessageToPaneStream(chat, pane, text)));
+	schedulePersist();
+	renderWorkspace();
+	renderComposerUsageSummary();
+}
+
+async function sendMessageToPaneStream(chat, pane, text) {
+	const profile = getProfileById(pane.profile_id);
+	if (!profile) {
+		pane.status = "error";
+		pane.messages.push(makeMessage("assistant", "This pane has no valid provider profile selected."));
+		return;
+	}
+	const selectedModel = modelForProfileSelection(profile, pane.model);
+	pane.model = selectedModel;
+
+	const userMessage = makeMessage("user", text);
+	const assistantMessage = makeMessage("assistant", "");
+	assistantMessage.thinking = "";
+	assistantMessage.provider = profile.provider_id;
+	assistantMessage.model = selectedModel;
+	assistantMessage.usage = null;
+	assistantMessage.streaming = true;
+	assistantMessage.continuation_passes = 0;
+
+	pane.messages.push(userMessage);
+	pane.messages.push(assistantMessage);
+	pane.status = "waiting";
+	chat.updatedAt = Date.now();
+	renderWorkspace();
+	schedulePersist();
+
+	let totalUsage = {
+		input_tokens: 0,
+		output_tokens: 0,
+		total_tokens: 0
+	};
+
+	try {
+		const maxContinuationPasses = 12;
+		const streamMetrics = {
+			policy: "strict_finish_reason",
+			passes: []
+		};
+		let continuationPass = 0;
+		let finalFinishReason = "stop";
+		let thinkingCapturePass = null;
+		let noProgressPasses = 0;
+		let streamErrorRecoveryPasses = 0;
+		let hardIncompleteRecoveryPasses = 0;
+		let safetyIncompleteRecoveryUsed = false;
+		let endedLikelyIncomplete = false;
+
+		while (continuationPass <= maxContinuationPasses) {
+			const passStartedAt = Date.now();
+			const contentBeforePass = assistantMessage.content;
+			const contentLengthBeforePass = contentBeforePass.length;
+			let passOutputText = "";
+			let streamErrorPayload = null;
+			const chatHistory = pane.messages
+				.filter((message) => message.id !== assistantMessage.id)
+				.filter((message) => message.role === "system" || message.role === "user" || message.role === "assistant")
+				.map((message) => ({ role: message.role, content: message.content }));
+
+			if (continuationPass > 0 && assistantMessage.content) {
+				chatHistory.push({ role: "assistant", content: continuationAssistantContext(assistantMessage.content) });
+				chatHistory.push({
+					role: "user",
+					content: buildContinuationPrompt(assistantMessage.content, noProgressPasses)
+				});
+			}
+
+			const requestedMaxTokens = continuationMaxTokensForPass(state.settings.maxTokens, continuationPass);
+
+			const payload = {
+				profile_id: profile.id,
+				model: selectedModel,
+				temperature: state.settings.temperature,
+				max_tokens: requestedMaxTokens,
+				messages: chatHistory
+			};
+
+			const response = await apiFetch("/api/chat/stream", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(payload)
+			});
+
+			if (!response.ok || !response.body) {
+				const httpErrorMessage = await extractHttpErrorMessage(response, "stream request failed");
+				throw new Error(httpErrorMessage);
+			}
+
+			const reader = response.body.getReader();
+			const decoder = new TextDecoder();
+			let buffer = "";
+			let currentEvent = "message";
+			let streamDonePayload = null;
+			const shouldCaptureThinkingForPass = thinkingCapturePass === null || thinkingCapturePass === continuationPass;
+
+			const consumeBufferedSseLines = (flushFinalLine = false) => {
+				const lines = buffer.split(/\r?\n/);
+				if (!flushFinalLine) {
+					buffer = lines.pop() || "";
+				} else {
+					buffer = "";
+				}
+
+				for (const line of lines) {
+					if (!line.trim()) {
+						continue;
+					}
+
+					if (line.startsWith("event:")) {
+						currentEvent = line.slice(6).trim();
+						continue;
+					}
+
+					if (!line.startsWith("data:")) {
+						continue;
+					}
+
+					const raw = line.slice(5).trim();
+					let payloadObj;
+					try {
+						payloadObj = JSON.parse(raw);
+					} catch (error) {
+						continue;
+					}
+
+					if (currentEvent === "token") {
+						passOutputText = `${passOutputText}${payloadObj.delta || ""}`;
+						const continuationText = continuationPass > 0
+							? sanitizeContinuationChunk(passOutputText)
+							: passOutputText;
+						assistantMessage.content = mergeContinuationText(contentBeforePass, continuationText);
+						pane.status = "waiting";
+						scheduleStreamingMessagePatch(chat.id, pane.id, assistantMessage.id);
+						continue;
+					}
+
+					if (currentEvent === "thinking") {
+						if (shouldCaptureThinkingForPass && payloadObj.delta) {
+							if (thinkingCapturePass === null) {
+								thinkingCapturePass = continuationPass;
+							}
+							assistantMessage.thinking = `${assistantMessage.thinking || ""}${payloadObj.delta || ""}`;
+							scheduleStreamingMessagePatch(chat.id, pane.id, assistantMessage.id);
+						}
+						continue;
+					}
+
+					if (currentEvent === "error") {
+						streamErrorPayload = payloadObj;
+						continue;
+					}
+
+					if (currentEvent === "done") {
+						streamDonePayload = payloadObj;
+					}
+				}
+			};
+
+			while (true) {
+				const { value, done } = await reader.read();
+				if (done) {
+					buffer += decoder.decode();
+					consumeBufferedSseLines(true);
+					break;
+				}
+
+				buffer += decoder.decode(value, { stream: true });
+				consumeBufferedSseLines(false);
+			}
+
+			if (streamDonePayload) {
+				assistantMessage.provider = streamDonePayload.provider || assistantMessage.provider;
+				assistantMessage.model = streamDonePayload.model || assistantMessage.model;
+				if (streamDonePayload.output_text) {
+					const finalizedPassText = continuationPass > 0
+						? sanitizeContinuationChunk(streamDonePayload.output_text)
+						: streamDonePayload.output_text;
+					assistantMessage.content = mergeContinuationText(contentBeforePass, finalizedPassText);
+					scheduleStreamingMessagePatch(chat.id, pane.id, assistantMessage.id);
+				}
+				if (!assistantMessage.thinking && streamDonePayload.thinking_text) {
+					if (thinkingCapturePass === null) {
+						thinkingCapturePass = continuationPass;
+					}
+					assistantMessage.thinking = streamDonePayload.thinking_text;
+				}
+				finalFinishReason = String(streamDonePayload.finish_reason || "stop");
+
+				if (streamDonePayload.usage && typeof streamDonePayload.usage === "object") {
+					totalUsage = {
+						input_tokens: totalUsage.input_tokens + Number(streamDonePayload.usage.input_tokens || 0),
+						output_tokens: totalUsage.output_tokens + Number(streamDonePayload.usage.output_tokens || 0),
+						total_tokens: totalUsage.total_tokens + Number(streamDonePayload.usage.total_tokens || 0)
+					};
+				}
+			}
+
+			const streamErrored = Boolean(streamErrorPayload) && !streamDonePayload;
+			if (streamErrored) {
+				finalFinishReason = "error";
+			}
+
+			const progressChars = assistantMessage.content.length - contentLengthBeforePass;
+			if (progressChars <= 0) {
+				noProgressPasses += 1;
+			} else {
+				noProgressPasses = 0;
+			}
+
+			if (streamErrored && progressChars <= 0) {
+				if (!assistantMessage.content) {
+					throw new Error(formatProviderStreamError(streamErrorPayload));
+				}
+				if (noProgressPasses >= 2) {
+					if (responseLooksIncomplete(assistantMessage.content)) {
+						endedLikelyIncomplete = true;
+					}
+					streamMetrics.passes.push({
+						pass_index: continuationPass,
+						duration_ms: Date.now() - passStartedAt,
+						finish_reason: finalFinishReason,
+						stream_error: true,
+						progress_chars: progressChars,
+						continued_for: "none"
+					});
+					break;
+				}
+			}
+
+			const reachedTokenLimit = finalFinishReason === "length" || finalFinishReason === "max_tokens";
+			const looksIncomplete = responseLooksIncomplete(assistantMessage.content);
+			const hardIncomplete = hasHardIncompleteMarkers(assistantMessage.content);
+			const shouldContinueForTokenLimit = reachedTokenLimit;
+			const shouldContinueForStreamError = streamErrored
+				&& Boolean(assistantMessage.content)
+				&& progressChars > 0
+				&& streamErrorRecoveryPasses < 2;
+			const shouldContinueForHardIncompleteClosure = !streamErrored
+				&& !reachedTokenLimit
+				&& progressChars > 0
+				&& hardIncomplete
+				&& hardIncompleteRecoveryPasses < 2;
+			const shouldContinueForMissingDoneSafety = !streamDonePayload
+				&& !streamErrored
+				&& !safetyIncompleteRecoveryUsed
+				&& continuationPass === 0
+				&& looksIncomplete;
+
+			let continueReason = "none";
+			if (shouldContinueForTokenLimit) {
+				continueReason = "token_limit";
+			} else if (shouldContinueForStreamError) {
+				continueReason = "stream_error_recovery";
+				streamErrorRecoveryPasses += 1;
+			} else if (shouldContinueForHardIncompleteClosure) {
+				continueReason = "hard_incomplete_closure";
+				hardIncompleteRecoveryPasses += 1;
+			} else if (shouldContinueForMissingDoneSafety) {
+				continueReason = "missing_done_safety";
+				safetyIncompleteRecoveryUsed = true;
+			}
+
+			streamMetrics.passes.push({
+				pass_index: continuationPass,
+				duration_ms: Date.now() - passStartedAt,
+				finish_reason: finalFinishReason,
+				stream_error: streamErrored,
+				progress_chars: progressChars,
+				requested_max_tokens: requestedMaxTokens,
+				continued_for: continueReason
+			});
+
+			if (continueReason === "none") {
+				if ((looksIncomplete || hardIncomplete) && (streamErrored || (!streamDonePayload && continuationPass > 0))) {
+					endedLikelyIncomplete = true;
+				}
+				break;
+			}
+
+			if (noProgressPasses >= 4) {
+				if (looksIncomplete) {
+					endedLikelyIncomplete = true;
+				}
+				break;
+			}
+
+			continuationPass += 1;
+			if (continuationPass > maxContinuationPasses) {
+				if (responseLooksIncomplete(assistantMessage.content)) {
+					endedLikelyIncomplete = true;
+				}
+				break;
+			}
+		}
+
+		if (hasHardIncompleteMarkers(assistantMessage.content)) {
+			const repairedTail = await requestHardCompletionRepair(profile.id, selectedModel, assistantMessage.content);
+			if (repairedTail) {
+				assistantMessage.content = mergeContinuationText(
+					assistantMessage.content,
+					sanitizeContinuationChunk(repairedTail)
+				);
+				scheduleStreamingMessagePatch(chat.id, pane.id, assistantMessage.id);
+				streamMetrics.repair_applied = true;
+				endedLikelyIncomplete = hasHardIncompleteMarkers(assistantMessage.content);
+			}
+		}
+
+		if (totalUsage.total_tokens > 0) {
+			assistantMessage.usage = totalUsage;
+		} else {
+			const estimatedTokens = estimateTokensFromText(assistantMessage.content);
+			assistantMessage.usage = estimatedTokens > 0
+				? {
+					input_tokens: 0,
+					output_tokens: estimatedTokens,
+					total_tokens: estimatedTokens,
+					estimated: true
+				}
+				: null;
+		}
+		assistantMessage.continuation_passes = continuationPass;
+		const continuationReasons = uniqueSorted(
+			streamMetrics.passes
+				.filter((pass) => pass.continued_for && pass.continued_for !== "none")
+				.map((pass) => pass.continued_for)
+		);
+		assistantMessage.stream_metrics = {
+			policy: streamMetrics.policy,
+			pass_count: streamMetrics.passes.length,
+			continuation_reasons: continuationReasons,
+			repair_applied: Boolean(streamMetrics.repair_applied)
+		};
+		assistantMessage.streaming = false;
+		const finalLooksIncomplete = responseLooksIncomplete(assistantMessage.content);
+		const shouldMarkPartial = endedLikelyIncomplete || (finalLooksIncomplete && noProgressPasses >= 2);
+		pane.status = shouldMarkPartial ? "partial" : "idle";
+		if (assistantMessage.usage && Number(assistantMessage.usage.total_tokens) > 0) {
+			appendUsageLedgerEntry({
+				message_id: assistantMessage.id,
+				chat_id: chat.id,
+				chat_title: chat.title,
+				chat_archived: Boolean(chat.archived),
+				chat_deleted: false,
+				pane_id: pane.id,
+				pane_label: paneLabelForChat(chat, pane.id),
+				provider: assistantMessage.provider || profile.provider_id,
+				model: assistantMessage.model || selectedModel,
+				role: "assistant",
+				tokens: Number(assistantMessage.usage.total_tokens || 0),
+				createdAt: Number(assistantMessage.createdAt || Date.now())
+			});
+		}
+		void maybeAutoTitleChat(chat, pane, profile, selectedModel);
+		renderComposerUsageSummary();
+		if (isUsageModalOpen()) {
+			renderUsageModalContent();
+		}
+		renderWorkspace();
+	} catch (error) {
+		if (!assistantMessage.usage) {
+			const estimatedTokens = estimateTokensFromText(assistantMessage.content);
+			if (estimatedTokens > 0) {
+				assistantMessage.usage = {
+					input_tokens: 0,
+					output_tokens: estimatedTokens,
+					total_tokens: estimatedTokens,
+					estimated: true
+				};
+				appendUsageLedgerEntry({
+					message_id: assistantMessage.id,
+					chat_id: chat.id,
+					chat_title: chat.title,
+					chat_archived: Boolean(chat.archived),
+					chat_deleted: false,
+					pane_id: pane.id,
+					pane_label: paneLabelForChat(chat, pane.id),
+					provider: assistantMessage.provider || profile.provider_id,
+					model: assistantMessage.model || selectedModel,
+					role: "assistant",
+					tokens: Number(assistantMessage.usage.total_tokens || 0),
+					createdAt: Number(assistantMessage.createdAt || Date.now())
+				});
+			}
+		}
+
+		assistantMessage.streaming = false;
+		pane.status = "error";
+		const errorMessage = (error && error.message)
+			? String(error.message)
+			: "Network or server error while streaming provider response.";
+		if (!assistantMessage.content) {
+			assistantMessage.content = `Error: ${errorMessage}`;
+		}
+		renderComposerUsageSummary();
+		if (isUsageModalOpen()) {
+			renderUsageModalContent();
+		}
+	}
+
+	chat.updatedAt = Date.now();
+	schedulePersist();
+	renderWorkspace();
+}
+
+function mergeContinuationText(existingContent, nextChunk) {
+	const base = String(existingContent || "");
+	const chunk = String(nextChunk || "");
+	if (!chunk) {
+		return base;
+	}
+	if (!base) {
+		return chunk;
+	}
+
+	if (base.endsWith(chunk)) {
+		return base;
+	}
+
+	const punctuatedMerge = mergeByNearTailPrefix(base, chunk);
+	if (punctuatedMerge) {
+		return punctuatedMerge;
+	}
+
+	const wordOverlapMerge = mergeByWordOverlap(base, chunk);
+	if (wordOverlapMerge) {
+		return wordOverlapMerge;
+	}
+
+	const maxOverlap = Math.min(base.length, chunk.length, 500);
+	for (let length = maxOverlap; length >= 8; length -= 1) {
+		if (base.slice(-length) === chunk.slice(0, length)) {
+			return `${base}${chunk.slice(length)}`;
+		}
+	}
+
+	if (chunk.length <= 200 && base.includes(chunk)) {
+		return base;
+	}
+
+	return `${base}${chunk}`;
+}
+
+function mergeByNearTailPrefix(base, chunk) {
+	const lookbackWindow = Math.min(base.length, 420);
+	if (lookbackWindow < 24 || chunk.length < 12) {
+		return "";
+	}
+
+	const tail = base.slice(-lookbackWindow);
+	const normalizedChunk = chunk.replace(/^\s+/, "");
+	const maxPrefixLength = Math.min(normalizedChunk.length, 180);
+
+	for (let length = maxPrefixLength; length >= 12; length -= 1) {
+		const prefix = normalizedChunk.slice(0, length).trimEnd();
+		if (prefix.length < 12) {
+			continue;
+		}
+
+		const localIndex = tail.lastIndexOf(prefix);
+		if (localIndex < 0) {
+			continue;
+		}
+
+		const absoluteIndex = base.length - lookbackWindow + localIndex;
+		if (absoluteIndex < base.length - 260) {
+			continue;
+		}
+
+		const trailing = base.slice(absoluteIndex + prefix.length);
+		if (trailing.length > 24 && !/^[\s.!,;:?\-–—_`*|)>\]]*$/.test(trailing)) {
+			continue;
+		}
+
+		return `${base.slice(0, absoluteIndex + prefix.length)}${normalizedChunk.slice(prefix.length)}`;
+	}
+
+	return "";
+}
+
+function mergeByWordOverlap(base, chunk) {
+	const baseTail = base.slice(-500);
+	const chunkHead = chunk.slice(0, 500);
+	if (!baseTail || !chunkHead) {
+		return "";
+	}
+
+	const baseWords = collectWordTokens(baseTail);
+	const chunkWords = collectWordTokens(chunkHead);
+	if (baseWords.length < 3 || chunkWords.length < 3) {
+		return "";
+	}
+
+	const maxOverlap = Math.min(baseWords.length, chunkWords.length, 24);
+	for (let length = maxOverlap; length >= 3; length -= 1) {
+		let matched = true;
+		for (let index = 0; index < length; index += 1) {
+			const baseWord = baseWords[baseWords.length - length + index].normalized;
+			const chunkWord = chunkWords[index].normalized;
+			if (baseWord !== chunkWord) {
+				matched = false;
+				break;
+			}
+		}
+
+		if (!matched) {
+			continue;
+		}
+
+		let cutIndex = chunkWords[length - 1].end;
+		while (cutIndex < chunk.length && /[\s.,;:!?\-–—_`*|>\]')"\]]/.test(chunk.charAt(cutIndex))) {
+			cutIndex += 1;
+		}
+
+		if (cutIndex <= 0 || cutIndex >= chunk.length) {
+			return base;
+		}
+
+		return `${base}${chunk.slice(cutIndex)}`;
+	}
+
+	return "";
+}
+
+function collectWordTokens(value) {
+	const text = String(value || "");
+	const tokens = [];
+	const pattern = /[A-Za-z0-9][A-Za-z0-9'’-]*/g;
+	let match;
+	while ((match = pattern.exec(text)) !== null) {
+		tokens.push({
+			normalized: String(match[0]).toLowerCase(),
+			start: match.index,
+			end: match.index + match[0].length
+		});
+	}
+
+	return tokens;
+}
+
+function estimateTokensFromText(value) {
+	const text = String(value || "").trim();
+	if (!text) {
+		return 0;
+	}
+
+	return Math.max(1, Math.ceil(text.length / 4));
+}
+
+async function extractHttpErrorMessage(response, fallbackMessage) {
+	const statusText = Number.isFinite(Number(response && response.status))
+		? `HTTP ${response.status}`
+		: "HTTP error";
+
+	if (!response) {
+		return fallbackMessage;
+	}
+
+	try {
+		const bodyText = await response.text();
+		if (!bodyText) {
+			return `${fallbackMessage} (${statusText})`;
+		}
+
+		let parsed;
+		try {
+			parsed = JSON.parse(bodyText);
+		} catch (error) {
+			parsed = null;
+		}
+
+		if (parsed && parsed.error && parsed.error.message) {
+			return `${parsed.error.message} (${statusText})`;
+		}
+
+		return `${fallbackMessage} (${statusText}): ${bodyText.slice(0, 240)}`;
+	} catch (error) {
+		return `${fallbackMessage} (${statusText})`;
+	}
+}
+
+function formatProviderStreamError(payloadObj) {
+	if (!payloadObj || typeof payloadObj !== "object") {
+		return "Provider stream error";
+	}
+
+	let message = String(payloadObj.message || "Provider stream error");
+	const status = Number.isFinite(Number(payloadObj.status)) ? Number(payloadObj.status) : 0;
+	const raw = payloadObj.raw;
+
+	if (raw) {
+		try {
+			const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+			if (parsed && parsed.error && parsed.error.message) {
+				message = `${message}: ${String(parsed.error.message)}`;
+			}
+		} catch (error) {
+			if (typeof raw === "string") {
+				message = `${message}: ${raw.slice(0, 220)}`;
+			}
+		}
+	}
+
+	if (status > 0) {
+		message = `${message} (HTTP ${status})`;
+	}
+
+	return message;
+}
+
+function responseLooksIncomplete(value) {
+	const text = String(value || "").trim();
+	if (!text) {
+		return false;
+	}
+
+	if (text.endsWith(":")) {
+		return true;
+	}
+
+	if (/([*_`\[])$/.test(text)) {
+		return true;
+	}
+
+	const strongMarkerCount = (text.match(/\*\*/g) || []).length;
+	if (strongMarkerCount % 2 === 1) {
+		return true;
+	}
+
+	const codeFenceCount = (text.match(/```/g) || []).length;
+	if (codeFenceCount % 2 === 1) {
+		return true;
+	}
+
+	if (text.length > 700 && /[A-Za-z0-9]$/.test(text) && !/[.!?]$/.test(text)) {
+		return true;
+	}
+
+	return false;
+}
+
+function hasHardIncompleteMarkers(value) {
+	const text = String(value || "").trim();
+	if (!text) {
+		return false;
+	}
+
+	const codeFenceCount = (text.match(/```/g) || []).length;
+	if (codeFenceCount % 2 === 1) {
+		return true;
+	}
+
+	if (/[(\[{:]$/.test(text)) {
+		return true;
+	}
+
+	const pairMap = {
+		"(": ")",
+		"[": "]",
+		"{": "}"
+	};
+	const openStack = [];
+	for (let index = 0; index < text.length; index += 1) {
+		const character = text.charAt(index);
+		if (pairMap[character]) {
+			openStack.push(pairMap[character]);
+			continue;
+		}
+
+		if (character === ")" || character === "]" || character === "}") {
+			const expected = openStack.pop();
+			if (expected && expected !== character) {
+				return true;
+			}
+		}
+	}
+
+	return openStack.length > 0;
+}
+
+function normalizeMaxTokens(value) {
+	const numeric = Number(value);
+	if (!Number.isFinite(numeric)) {
+		return 3200;
+	}
+
+	return Math.max(256, Math.round(numeric));
+}
+
+function continuationMaxTokensForPass(baseValue, continuationPass) {
+	const baseMaxTokens = normalizeMaxTokens(baseValue);
+	if (continuationPass <= 0) {
+		return baseMaxTokens;
+	}
+
+	const boostedBase = Math.max(baseMaxTokens, 3200);
+	const boostSteps = Math.min(continuationPass, 6);
+	const boosted = boostedBase + boostSteps * 600;
+	return Math.min(boosted, 12000);
+}
+
+function continuationAssistantContext(value) {
+	const text = String(value || "");
+	const maxContextChars = 9000;
+	if (text.length <= maxContextChars) {
+		return text;
+	}
+
+	return text.slice(-maxContextChars);
+}
+
+async function requestHardCompletionRepair(profileId, model, fullContent) {
+	const contentTail = continuationAssistantContext(fullContent);
+	if (!contentTail) {
+		return "";
+	}
+
+	try {
+		const response = await apiFetch("/api/chat", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({
+				profile_id: profileId,
+				model,
+				temperature: 0,
+				max_tokens: 700,
+				messages: [
+					{
+						role: "system",
+						content: "Return only the missing trailing continuation text needed to close incomplete code fences, brackets, or truncated lines. Do not repeat prior text. No preface."
+					},
+					{
+						role: "user",
+						content: `Continue only from this tail and finish any incomplete structure:\n\n${contentTail}`
+					}
+				]
+			})
+		});
+
+		if (!response.ok) {
+			return "";
+		}
+
+		const payload = await response.json();
+		if (!payload || !payload.ok || !payload.output_text) {
+			return "";
+		}
+
+		return String(payload.output_text || "");
+	} catch (error) {
+		return "";
+	}
+}
+
+function buildContinuationPrompt(existingContent, noProgressPasses) {
+	const tail = String(existingContent || "").slice(-260);
+	if (noProgressPasses <= 0) {
+		return [
+			"Continue immediately from the next token after the existing answer.",
+			"Output only continuation text.",
+			"Do not add prefaces such as 'continuing', 'resuming', or 'now where we left off'.",
+			"Do not repeat prior words.",
+			`Tail context: ${tail}`
+		].join(" ");
+	}
+
+	return [
+		"Retry continuation from the exact next token after this tail.",
+		"Output only continuation text with no lead-in sentence.",
+		"No restart, no summary, no repetition.",
+		`Tail context: ${tail}`
+	].join(" ");
+}
+
+function sanitizeContinuationChunk(value) {
+	let text = String(value || "");
+	if (!text) {
+		return text;
+	}
+
+	for (let pass = 0; pass < 3; pass += 1) {
+		const next = stripLeadingContinuationBoilerplate(text);
+		if (next === text) {
+			break;
+		}
+		text = next;
+	}
+
+	return text;
+}
+
+function stripLeadingContinuationBoilerplate(value) {
+	let text = String(value || "");
+	if (!text) {
+		return text;
+	}
+
+	const patterns = [
+		/^\s*(?:>\s*)?(?:[*_`~]+\s*)?(?:now\s+)?continu(?:e|ing)\b[^\n.!?]{0,120}(?:[.!?:\-]+\s+|\n+)/i,
+		/^\s*(?:>\s*)?(?:[*_`~]+\s*)?(?:resuming|picking\s+up|to\s+continue)\b[^\n.!?]{0,120}(?:[.!?:\-]+\s+|\n+)/i,
+		/^\s*(?:>\s*)?(?:[*_`~]+\s*)?(?:here(?:'s|\s+is)\s+(?:the\s+)?)?(?:continuation|rest\s+of\s+the\s+answer)\b[^\n.!?]{0,120}(?:[.!?:\-]+\s+|\n+)/i,
+		/^\s*(?:>\s*)?(?:[*_`~]+\s*)?as\s+i\s+was\s+saying\b[^\n.!?]{0,120}(?:[.!?:\-]+\s+|\n+)/i
+	];
+
+	for (const pattern of patterns) {
+		if (pattern.test(text)) {
+			text = text.replace(pattern, "");
+		}
+	}
+
+	return text;
+}
+
+function setupSpeechRecognition() {
+	const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+	if (!Recognition) {
+		nodes.voiceStatus.textContent = "Voice: browser speech unavailable";
+		nodes.voiceBtn.disabled = true;
+		return;
+	}
+
+	recognition = new Recognition();
+	recognition.continuous = false;
+	recognition.interimResults = false;
+	recognition.lang = "en-US";
+
+	recognition.onstart = () => {
+		isListening = true;
+		nodes.voiceStatus.textContent = "Voice: browser listening";
+		nodes.voiceBtn.classList.add("active");
+		nodes.voiceBtn.title = "Stop Voice";
+		nodes.voiceBtn.setAttribute("aria-label", "Stop Voice");
+	};
+
+	recognition.onend = () => {
+		isListening = false;
+		nodes.voiceStatus.textContent = "Voice: idle";
+		nodes.voiceBtn.classList.remove("active");
+		nodes.voiceBtn.title = "Voice";
+		nodes.voiceBtn.setAttribute("aria-label", "Voice");
+	};
+
+	recognition.onerror = () => {
+		nodes.voiceStatus.textContent = "Voice: browser error";
+	};
+
+	recognition.onresult = (event) => {
+		let transcript = "";
+		for (let index = 0; index < event.results.length; index += 1) {
+			transcript += event.results[index][0].transcript;
+		}
+		const existing = nodes.composerInput.value.trim();
+		nodes.composerInput.value = existing ? `${existing} ${transcript}` : transcript;
+		nodes.composerInput.focus();
+	};
+}
+
+function toggleVoice() {
+	if (!recognition) {
+		return;
+	}
+	if (isListening) {
+		recognition.stop();
+	} else {
+		recognition.start();
+	}
+}
+
+function setupWhisperRecorder() {
+	if (!navigator.mediaDevices || typeof MediaRecorder === "undefined") {
+		nodes.whisperBtn.disabled = true;
+		return;
+	}
+}
+
+async function toggleWhisperRecording() {
+	if (!navigator.mediaDevices || typeof MediaRecorder === "undefined") {
+		return;
+	}
+
+	if (whisperRecording && mediaRecorder) {
+		mediaRecorder.stop();
+		return;
+	}
+
+	try {
+		whisperStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+		whisperChunks = [];
+		mediaRecorder = new MediaRecorder(whisperStream);
+		mediaRecorder.ondataavailable = (event) => {
+			if (event.data && event.data.size > 0) {
+				whisperChunks.push(event.data);
+			}
+		};
+
+		mediaRecorder.onstop = async () => {
+			whisperRecording = false;
+			nodes.whisperBtn.classList.remove("active");
+			nodes.whisperBtn.title = "Record";
+			nodes.whisperBtn.setAttribute("aria-label", "Record");
+			nodes.voiceStatus.textContent = "Voice: transcribing";
+			const blob = new Blob(whisperChunks, { type: mediaRecorder.mimeType || "audio/webm" });
+			await transcribeWhisper(blob);
+			nodes.voiceStatus.textContent = "Voice: idle";
+			if (whisperStream) {
+				for (const track of whisperStream.getTracks()) {
+					track.stop();
+				}
+			}
+			whisperStream = null;
+		};
+
+		mediaRecorder.start();
+		whisperRecording = true;
+		nodes.whisperBtn.classList.add("active");
+		nodes.whisperBtn.title = "Stop Recording";
+		nodes.whisperBtn.setAttribute("aria-label", "Stop Recording");
+		nodes.voiceStatus.textContent = "Voice: whisper recording";
+	} catch (error) {
+		nodes.voiceStatus.textContent = "Voice: whisper error";
+	}
+}
+
+async function transcribeWhisper(audioBlob) {
+	const chat = getActiveChat();
+	if (!chat || chat.panes.length === 0) {
+		return;
+	}
+
+	const pane = chat.panes[0];
+	const profile = getProfileById(pane.profile_id);
+	if (!profile) {
+		return;
+	}
+
+	const form = new FormData();
+	form.append("profile_id", profile.id);
+	form.append("model", "whisper-1");
+	form.append("audio", audioBlob, "voice.webm");
+
+	try {
+		const response = await apiFetch("/api/transcribe", {
+			method: "POST",
+			body: form
+		});
+		const payload = await response.json();
+		if (!response.ok || !payload.ok) {
+			nodes.voiceStatus.textContent = "Voice: transcription failed";
+			return;
+		}
+
+		const transcript = String(payload.text || "").trim();
+		if (!transcript) {
+			nodes.voiceStatus.textContent = "Voice: no transcript";
+			return;
+		}
+
+		const existing = nodes.composerInput.value.trim();
+		nodes.composerInput.value = existing ? `${existing} ${transcript}` : transcript;
+		nodes.composerInput.focus();
+	} catch (error) {
+		nodes.voiceStatus.textContent = "Voice: transcription error";
+	}
+}
+
+function createChat(title) {
+	const firstProfile = state.settings.profiles[0] || createDefaultProfile();
+	if (state.settings.profiles.length === 0) {
+		state.settings.profiles.push(firstProfile);
+	}
+
+	return {
+		id: uid(),
+		title,
+		projectPath: "",
+		pinned: false,
+		archived: false,
+		createdAt: Date.now(),
+		updatedAt: Date.now(),
+		panes: [createPane(firstProfile.id)]
+	};
+}
+
+function createPane(profileId) {
+	const profile = getProfileById(profileId);
+	return {
+		id: uid(),
+		profile_id: profileId,
+		model: profile ? firstModelFromProfile(profile) : "",
+		messages: [],
+		status: "idle"
+	};
+}
+
+function createDefaultProfile() {
+	return {
+		id: uid(),
+		name: "New Profile",
+		provider_id: "openai",
+		api_key: "",
+		api_key_dirty: false,
+		api_key_present: false,
+		base_url: "",
+		models_csv: "gpt-4.1-mini"
+	};
+}
+
+function normalizeApiTokenTtlDays(value) {
+	if (null === value || undefined === value || "" === String(value).trim()) {
+		return defaultApiTokenTtlDays;
+	}
+
+	const parsed = Number(value);
+	if (!Number.isFinite(parsed)) {
+		return defaultApiTokenTtlDays;
+	}
+
+	const rounded = Math.floor(parsed);
+	if (rounded < 1) {
+		return 1;
+	}
+
+	if (rounded > maxApiTokenTtlDays) {
+		return maxApiTokenTtlDays;
+	}
+
+	return rounded;
+}
+
+function readStorageValue(primaryKey, legacyKey) {
+	const primaryValue = window.localStorage.getItem(primaryKey);
+	if (primaryValue !== null) {
+		return primaryValue;
+	}
+
+	if (!legacyKey) {
+		return null;
+	}
+
+	const legacyValue = window.localStorage.getItem(legacyKey);
+	if (legacyValue !== null) {
+		window.localStorage.setItem(primaryKey, legacyValue);
+		return legacyValue;
+	}
+
+	return null;
+}
+
+function loadApiAuthTokenFromStorage() {
+	const storedToken = String(readStorageValue(apiTokenStorageKey, legacyApiTokenStorageKey) || "").trim();
+	const storedExpiresAt = Number(readStorageValue(apiTokenExpiresAtStorageKey, legacyApiTokenExpiresAtStorageKey) || "0");
+
+	if (!storedToken) {
+		clearApiAuthToken();
+		return;
+	}
+
+	if (Number.isFinite(storedExpiresAt) && storedExpiresAt > Date.now()) {
+		apiAuthToken = storedToken;
+		apiAuthTokenExpiresAt = storedExpiresAt;
+		return;
+	}
+
+	if (!storedExpiresAt) {
+		storeApiAuthToken(storedToken, defaultApiTokenTtlDays);
+		return;
+	}
+
+	clearApiAuthToken();
+}
+
+function storeApiAuthToken(token, ttlDays) {
+	const normalizedToken = String(token || "").trim();
+	if (!normalizedToken) {
+		clearApiAuthToken();
+		return;
+	}
+
+	const normalizedDays = normalizeApiTokenTtlDays(ttlDays);
+	const expiresAt = Date.now() + normalizedDays * 24 * 60 * 60 * 1000;
+	apiAuthToken = normalizedToken;
+	apiAuthTokenExpiresAt = expiresAt;
+	window.localStorage.setItem(apiTokenStorageKey, normalizedToken);
+	window.localStorage.setItem(apiTokenExpiresAtStorageKey, String(expiresAt));
+}
+
+function hasValidApiAuthToken() {
+	return Boolean(apiAuthToken) && apiAuthTokenExpiresAt > Date.now();
+}
+
+function ensureApiAuthToken() {
+	return hasValidApiAuthToken();
+}
+
+function clearApiAuthToken() {
+	apiAuthToken = "";
+	apiAuthTokenExpiresAt = 0;
+	window.localStorage.removeItem(apiTokenStorageKey);
+	window.localStorage.removeItem(apiTokenExpiresAtStorageKey);
+	window.localStorage.removeItem(legacyApiTokenStorageKey);
+	window.localStorage.removeItem(legacyApiTokenExpiresAtStorageKey);
+}
+
+async function apiFetch(url, options = {}) {
+	if (!ensureApiAuthToken()) {
+		throw new Error("API token is not configured. Add it in Settings > App Access.");
+	}
+
+	const nextHeaders = new Headers(options.headers || {});
+	nextHeaders.set("X-API-Token", apiAuthToken);
+
+	let response = await fetch(url, {
+		...options,
+		headers: nextHeaders
+	});
+
+	if (response.status === 401) {
+		clearApiAuthToken();
+		throw new Error("API token was rejected. Update it in Settings > App Access.");
+	}
+
+	return response;
+}
+
+function firstModelFromProfile(profile) {
+	const models = profileModels(profile);
+	return models[0] || "";
+}
+
+function modelForProfileSelection(profile, requestedModel) {
+	const models = profileModels(profile);
+	if (models.length === 0) {
+		return "";
+	}
+
+	const normalized = String(requestedModel || "").trim();
+	if (normalized && models.includes(normalized)) {
+		return normalized;
+	}
+
+	return models[0];
+}
+
+function profileModels(profile) {
+	return String((profile && profile.models_csv) || "")
+		.split(",")
+		.map((item) => item.trim())
+		.filter(Boolean);
+}
+
+function getActiveChat() {
+	return state.chats.find((chat) => chat.id === state.activeChatId) || null;
+}
+
+function getChatById(id) {
+	return state.chats.find((chat) => chat.id === id) || null;
+}
+
+function getPaneById(id) {
+	const chat = getActiveChat();
+	if (!chat) {
+		return null;
+	}
+	return chat.panes.find((pane) => pane.id === id) || null;
+}
+
+function getProfileById(id) {
+	return state.settings.profiles.find((profile) => profile.id === id) || null;
+}
+
+function makeMessage(role, content) {
+	return {
+		id: uid(),
+		role,
+		content,
+		createdAt: Date.now()
+	};
+}
+
+function cleanTitle(next, fallback) {
+	const cleaned = String(next || "").trim();
+	return cleaned || fallback || "Untitled Chat";
+}
+
+function normalizeProjectPath(value) {
+	const normalized = String(value || "")
+		.trim()
+		.replace(/\\/g, "/")
+		.replace(/\/+/g, "/")
+		.replace(/\/$/, "");
+	return normalized;
+}
+
+function uniqueProjectFolders(paths) {
+	const deduped = new Set();
+	for (const pathValue of paths || []) {
+		const normalized = normalizeProjectPath(pathValue);
+		if (!normalized) {
+			continue;
+		}
+		deduped.add(normalized);
+	}
+
+	return Array.from(deduped.values()).sort((left, right) => left.localeCompare(right));
+}
+
+function collectProjectFoldersFromChats(chats) {
+	if (!Array.isArray(chats)) {
+		return [];
+	}
+
+	const paths = [];
+	for (const chat of chats) {
+		if (!chat || typeof chat !== "object") {
+			continue;
+		}
+		const normalized = normalizeProjectPath(chat.projectPath || chat.project_path || "");
+		if (!normalized) {
+			continue;
+		}
+		paths.push(normalized);
+	}
+
+	return uniqueProjectFolders(paths);
+}
+
+function projectFolderNameFromPath(projectPath) {
+	const normalized = normalizeProjectPath(projectPath);
+	if (!normalized) {
+		return "No Project";
+	}
+
+	const segments = normalized.split("/").filter(Boolean);
+	if (segments.length === 0) {
+		return normalized;
+	}
+
+	return segments[segments.length - 1];
+}
+
+function loadUsageLedgerFromStorage() {
+	try {
+		const raw = String(readStorageValue(usageLedgerStorageKey, legacyUsageLedgerStorageKey) || "");
+		if (!raw) {
+			return [];
+		}
+		const parsed = JSON.parse(raw);
+		if (!Array.isArray(parsed)) {
+			return [];
+		}
+		return parsed.slice(-10000);
+	} catch (error) {
+		return [];
+	}
+}
+
+function saveUsageLedgerToStorage() {
+	try {
+		window.localStorage.setItem(usageLedgerStorageKey, JSON.stringify(usageLedger.slice(-10000)));
+	} catch (error) {
+		// Ignore usage ledger storage errors.
+	}
+}
+
+function appendUsageLedgerEntry(entry) {
+	const normalized = {
+		message_id: String(entry.message_id || ""),
+		chat_id: String(entry.chat_id || "unknown-chat"),
+		chat_title: String(entry.chat_title || "Untitled Chat"),
+		chat_archived: Boolean(entry.chat_archived),
+		chat_deleted: Boolean(entry.chat_deleted),
+		pane_id: String(entry.pane_id || "unknown-pane"),
+		pane_label: String(entry.pane_label || "Pane"),
+		provider: String(entry.provider || "unknown"),
+		model: String(entry.model || "unknown"),
+		role: String(entry.role || "assistant"),
+		tokens: Number(entry.tokens || 0),
+		createdAt: Number.isFinite(Number(entry.createdAt)) ? Number(entry.createdAt) : Date.now()
+	};
+
+	if (!Number.isFinite(normalized.tokens) || normalized.tokens <= 0) {
+		return;
+	}
+
+	if (normalized.message_id) {
+		const existingIndex = usageLedger.findIndex((candidate) => String(candidate.message_id || "") === normalized.message_id);
+		if (existingIndex >= 0) {
+			usageLedger[existingIndex] = normalized;
+			saveUsageLedgerToStorage();
+			return;
+		}
+	}
+
+	usageLedger.push(normalized);
+	if (usageLedger.length > 10000) {
+		usageLedger = usageLedger.slice(-10000);
+	}
+	saveUsageLedgerToStorage();
+}
+
+function markUsageLedgerChatDeleted(chatId) {
+	let changed = false;
+	for (const entry of usageLedger) {
+		if (String(entry.chat_id || "") !== String(chatId || "")) {
+			continue;
+		}
+		if (!entry.chat_deleted) {
+			entry.chat_deleted = true;
+			changed = true;
+		}
+	}
+	if (changed) {
+		saveUsageLedgerToStorage();
+	}
+}
+
+function markUsageLedgerChatArchived(chatId, archived) {
+	let changed = false;
+	for (const entry of usageLedger) {
+		if (String(entry.chat_id || "") !== String(chatId || "")) {
+			continue;
+		}
+		if (Boolean(entry.chat_archived) !== Boolean(archived)) {
+			entry.chat_archived = Boolean(archived);
+			changed = true;
+		}
+	}
+	if (changed) {
+		saveUsageLedgerToStorage();
+	}
+}
+
+function paneLabelForChat(chat, paneId) {
+	if (!chat || !Array.isArray(chat.panes)) {
+		return "Pane";
+	}
+	for (let index = 0; index < chat.panes.length; index += 1) {
+		if (chat.panes[index].id === paneId) {
+			return `Pane ${index + 1}`;
+		}
+	}
+	return "Pane";
+}
+
+function shouldAutoGenerateTitle(chat) {
+	if (!chat) {
+		return false;
+	}
+
+	const currentTitle = String(chat.title || "").trim().toLowerCase();
+	const exchange = firstExchangeForChat(chat, null);
+	const isUntitled = currentTitle === "new chat" || currentTitle === "untitled chat";
+	const isReplaceableLowQualityTitle = !isUntitled && isLowQualityAutoTitle(currentTitle, exchange.firstUser);
+	if (!isUntitled && !isReplaceableLowQualityTitle) {
+		return false;
+	}
+
+	let userCount = 0;
+	let assistantCount = 0;
+	for (const pane of chat.panes || []) {
+		for (const message of pane.messages || []) {
+			if (message.role === "user" && String(message.content || "").trim()) {
+				userCount += 1;
+			}
+			if (message.role === "assistant" && String(message.content || "").trim()) {
+				assistantCount += 1;
+			}
+		}
+	}
+
+	return userCount >= 1 && assistantCount >= 1;
+}
+
+function firstExchangeForChat(chat, preferredPaneId) {
+	let firstUser = "";
+	let firstAssistant = "";
+	const panes = (chat.panes || []).slice();
+	panes.sort((left, right) => {
+		if (left.id === preferredPaneId) {
+			return -1;
+		}
+		if (right.id === preferredPaneId) {
+			return 1;
+		}
+		return 0;
+	});
+
+	for (const pane of panes) {
+		for (const message of pane.messages || []) {
+			if (!firstUser && message.role === "user") {
+				firstUser = String(message.content || "").trim();
+			}
+			if (!firstAssistant && message.role === "assistant") {
+				firstAssistant = String(message.content || "").trim();
+			}
+			if (firstUser && firstAssistant) {
+				break;
+			}
+		}
+		if (firstUser && firstAssistant) {
+			break;
+		}
+	}
+
+	return { firstUser, firstAssistant };
+}
+
+function autoTitleSystemPrompt() {
+	return "You generate concise chat titles. Return only a title in 3-7 words. Focus on subject and outcome. Never start with imperative phrases like Give me, I want, Write, Help, or Can you.";
+}
+
+function titlePromptForChat(chat, preferredPaneId) {
+	const exchange = firstExchangeForChat(chat, preferredPaneId);
+	const firstUser = exchange.firstUser;
+	const firstAssistant = exchange.firstAssistant;
+
+	return [
+		"Create a concise chat title in 3-7 words.",
+		"Return only title text.",
+		"Use the core subject and intended result.",
+		"Do not start with phrases like Give me, I want, Help me, Write me, or Can you.",
+		`User message: ${firstUser.slice(0, 600)}`,
+		`Assistant response: ${firstAssistant.slice(0, 600)}`
+	].join("\n");
+}
+
+function fallbackTitleFromFirstUserMessage(chat, preferredPaneId) {
+	const exchange = firstExchangeForChat(chat, preferredPaneId);
+	if (!exchange.firstUser) {
+		return "";
+	}
+
+	const candidate = deriveFallbackTitleFromPrompt(exchange.firstUser);
+	return extractCleanGeneratedTitle(candidate);
+}
+
+function deriveFallbackTitleFromPrompt(promptText) {
+	const normalized = String(promptText || "")
+		.replace(/[\r\n]+/g, " ")
+		.replace(/\s+/g, " ")
+		.trim();
+
+	if (!normalized) {
+		return "";
+	}
+
+	const subjectPatterns = [
+		/(?:strategic\s+)?(?:breakdown|analysis|summary|overview|guide|roadmap)\s+of\s+(.+?)(?:[.?!:;]|$)/i,
+		/(?:about|on)\s+(.+?)(?:[.?!:;]|$)/i
+	];
+
+	let subject = "";
+	for (const pattern of subjectPatterns) {
+		const match = normalized.match(pattern);
+		if (match && match[1]) {
+			subject = String(match[1]);
+			break;
+		}
+	}
+
+	if (!subject) {
+		subject = normalized
+			.replace(/^(please\s+)?(give|write|create|make|provide|show|help)(\s+me)?\s+/i, "")
+			.replace(/^(a|an|the)\s+/i, "")
+			.split(/[.?!:;]/)[0] || "";
+	}
+
+	subject = subject
+		.replace(/\bi want\b.*$/i, "")
+		.replace(/\s+/g, " ")
+		.trim();
+
+	if (!subject) {
+		return "";
+	}
+
+	const subjectWords = subject.split(" ").slice(0, 10);
+	let title = subjectWords.join(" ").trim();
+
+	if (!title) {
+		return "";
+	}
+
+	if (/\b(breakdown|analysis|summary|guide|overview|roadmap|framework)\b/i.test(normalized)
+		&& !/\b(breakdown|analysis|summary|guide|overview|roadmap|framework)\b/i.test(title)) {
+		title = `${title} Breakdown`;
+	}
+
+	return smartTitleCase(title);
+}
+
+function smartTitleCase(value) {
+	const minorWords = new Set(["a", "an", "and", "as", "at", "by", "for", "in", "of", "on", "or", "the", "to", "vs", "via", "with"]);
+	const words = String(value || "").split(/\s+/).filter(Boolean);
+	if (words.length === 0) {
+		return "";
+	}
+
+	const casedWords = words.map((word, wordIndex) => {
+		const hyphenParts = word.split("-");
+		const casedParts = hyphenParts.map((part, partIndex) => {
+			if (!part) {
+				return part;
+			}
+
+			if (/^[A-Z0-9]{2,6}$/.test(part)) {
+				return part;
+			}
+
+			const lowered = part.toLowerCase();
+			if (wordIndex > 0 && partIndex === 0 && minorWords.has(lowered)) {
+				return lowered;
+			}
+
+			return `${lowered.charAt(0).toUpperCase()}${lowered.slice(1)}`;
+		});
+
+		return casedParts.join("-");
+	});
+
+	return casedWords.join(" ");
+}
+
+function isLowQualityAutoTitle(title, firstUserMessage) {
+	const candidate = String(title || "")
+		.replace(/\s+/g, " ")
+		.trim();
+	if (!candidate) {
+		return true;
+	}
+
+	const candidateLower = candidate.toLowerCase();
+	if (/^(give|write|create|make|provide|show|help)\b/.test(candidateLower)) {
+		return true;
+	}
+	if (/^(i want|can you|please)\b/.test(candidateLower)) {
+		return true;
+	}
+
+	const source = String(firstUserMessage || "")
+		.replace(/[\r\n]+/g, " ")
+		.replace(/\s+/g, " ")
+		.trim()
+		.toLowerCase();
+	if (!source) {
+		return false;
+	}
+
+	const sourceWords = source.split(" ").filter(Boolean);
+	if (sourceWords.length === 0) {
+		return false;
+	}
+
+	const prefixLength = Math.min(6, sourceWords.length);
+	const sourcePrefix = sourceWords.slice(0, prefixLength).join(" ");
+	if (sourcePrefix && candidateLower.startsWith(sourcePrefix)) {
+		return true;
+	}
+
+	const shortPrefixWindow = source.slice(0, 120);
+	if (candidateLower.length <= 56 && shortPrefixWindow.includes(candidateLower)) {
+		return true;
+	}
+
+	return false;
+}
+
+function extractCleanGeneratedTitle(rawValue) {
+	let nextTitle = cleanTitle(String(rawValue || ""), "New Chat");
+	nextTitle = nextTitle.replace(/["'`]/g, "").replace(/\s+/g, " ").trim();
+	if (nextTitle.length > 70) {
+		nextTitle = `${nextTitle.slice(0, 67).trim()}...`;
+	}
+	if (!nextTitle || nextTitle.toLowerCase() === "new chat") {
+		return "";
+	}
+	return nextTitle;
+}
+
+async function requestAutoTitleViaChat(profileId, model, prompt) {
+	try {
+		const response = await apiFetch("/api/chat", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({
+				profile_id: profileId,
+				model,
+				temperature: 0.2,
+				max_tokens: 32,
+				messages: [
+					{ role: "system", content: autoTitleSystemPrompt() },
+					{ role: "user", content: prompt }
+				]
+			})
+		});
+
+		if (!response.ok) {
+			return "";
+		}
+
+		const payload = await response.json();
+		if (!payload || !payload.ok) {
+			return "";
+		}
+
+		return extractCleanGeneratedTitle(payload.output_text);
+	} catch (error) {
+		return "";
+	}
+}
+
+async function requestAutoTitleViaStream(profileId, model, prompt) {
+	try {
+		const response = await apiFetch("/api/chat/stream", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({
+				profile_id: profileId,
+				model,
+				temperature: 0.2,
+				max_tokens: 32,
+				messages: [
+					{ role: "system", content: autoTitleSystemPrompt() },
+					{ role: "user", content: prompt }
+				]
+			})
+		});
+
+		if (!response.ok || !response.body) {
+			return "";
+		}
+
+		const reader = response.body.getReader();
+		const decoder = new TextDecoder();
+		let buffer = "";
+		let currentEvent = "message";
+		let content = "";
+
+		const consumeBufferedSseLines = (flushFinalLine = false) => {
+			const lines = buffer.split(/\r?\n/);
+			if (!flushFinalLine) {
+				buffer = lines.pop() || "";
+			} else {
+				buffer = "";
+			}
+
+			for (const line of lines) {
+				if (!line.trim()) {
+					continue;
+				}
+
+				if (line.startsWith("event:")) {
+					currentEvent = line.slice(6).trim();
+					continue;
+				}
+
+				if (!line.startsWith("data:")) {
+					continue;
+				}
+
+				let payload;
+				try {
+					payload = JSON.parse(line.slice(5).trim());
+				} catch (error) {
+					continue;
+				}
+
+				if (currentEvent === "error") {
+					return "error";
+				}
+
+				if (currentEvent === "token" && payload.delta) {
+					content += String(payload.delta);
+					continue;
+				}
+
+				if (currentEvent === "done") {
+					if (!content && payload && payload.output_text) {
+						content = String(payload.output_text);
+					}
+					return "done";
+				}
+			}
+
+			return "continue";
+		};
+
+		while (true) {
+			const { value, done } = await reader.read();
+			if (done) {
+				buffer += decoder.decode();
+				const finalState = consumeBufferedSseLines(true);
+				if (finalState === "error") {
+					return "";
+				}
+				if (finalState === "done") {
+					return extractCleanGeneratedTitle(content);
+				}
+				break;
+			}
+
+			buffer += decoder.decode(value, { stream: true });
+			const stateResult = consumeBufferedSseLines(false);
+			if (stateResult === "error") {
+				return "";
+			}
+			if (stateResult === "done") {
+				return extractCleanGeneratedTitle(content);
+			}
+		}
+
+		return extractCleanGeneratedTitle(content);
+	} catch (error) {
+		return "";
+	}
+}
+
+async function maybeAutoTitleChat(chat, pane, profile, selectedModel) {
+	if (!shouldAutoGenerateTitle(chat)) {
+		return;
+	}
+
+	if (!chat || !chat.id || pendingAutoTitleChatIds.has(chat.id)) {
+		return;
+	}
+
+	pendingAutoTitleChatIds.add(chat.id);
+	try {
+		const prompt = titlePromptForChat(chat, pane && pane.id);
+		const exchange = firstExchangeForChat(chat, pane && pane.id);
+		const firstUserMessage = exchange.firstUser;
+		let nextTitle = await requestAutoTitleViaStream(profile.id, selectedModel, prompt);
+		if (nextTitle && isLowQualityAutoTitle(nextTitle, firstUserMessage)) {
+			nextTitle = "";
+		}
+		if (!nextTitle) {
+			nextTitle = await requestAutoTitleViaChat(profile.id, selectedModel, prompt);
+			if (nextTitle && isLowQualityAutoTitle(nextTitle, firstUserMessage)) {
+				nextTitle = "";
+			}
+		}
+		if (!nextTitle) {
+			nextTitle = fallbackTitleFromFirstUserMessage(chat, pane && pane.id);
+		}
+		if (!nextTitle) {
+			return;
+		}
+
+		const liveChat = getChatById(chat.id);
+		if (!liveChat) {
+			return;
+		}
+
+		const currentTitle = String(liveChat.title || "").trim().toLowerCase();
+		const isUntitled = currentTitle === "new chat" || currentTitle === "untitled chat";
+		const canReplaceLowQualityTitle = isLowQualityAutoTitle(currentTitle, firstUserMessage);
+		if (!isUntitled && !canReplaceLowQualityTitle) {
+			return;
+		}
+
+		liveChat.title = nextTitle;
+		liveChat.updatedAt = Date.now();
+		schedulePersist();
+		renderAll();
+	} catch (error) {
+		console.warn("auto_title_failed", error);
+	} finally {
+		pendingAutoTitleChatIds.delete(chat.id);
+	}
+}
+
+function renderThinkingBlock(message, paneId) {
+	if (!message || !message.thinking) {
+		return "";
+	}
+
+	const thinkingText = String(message.thinking || "");
+	const collapseThresholdLines = 10;
+	const canCollapse = estimatedThinkingLineCount(thinkingText) > collapseThresholdLines;
+	const expanded = canCollapse ? Boolean(message.thinking_expanded) : true;
+	const contentClass = expanded ? "message-thinking-content" : "message-thinking-content collapsed";
+	const toggle = canCollapse
+		? `<button class="thinking-toggle" type="button" data-action="toggle-thinking" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}" aria-expanded="${expanded ? "true" : "false"}" aria-label="${expanded ? "Collapse thinking" : "Expand thinking"}">${thinkingToggleIconSvg(expanded)}</button>`
+		: "";
+
+	return `<div class="message-thinking"><div class="message-thinking-head"><div class="thinking-label">Thinking</div>${toggle}</div><div class="${contentClass}">${escapeHtml(thinkingText).replace(/\n/g, "<br>")}</div></div>`;
+}
+
+function estimatedThinkingLineCount(value) {
+	const text = String(value || "");
+	if (!text) {
+		return 0;
+	}
+
+	const lines = text.split(/\r?\n/);
+	let count = 0;
+	for (const line of lines) {
+		count += Math.max(1, Math.ceil(String(line || "").length / 120));
+	}
+
+	return count;
+}
+
+function thinkingToggleIconSvg(expanded) {
+	if (expanded) {
+		return "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"thinking-toggle-icon\" aria-hidden=\"true\"><path d=\"m18 15-6-6-6 6\"/></svg>";
+	}
+
+	return "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"thinking-toggle-icon\" aria-hidden=\"true\"><path d=\"m6 9 6 6 6-6\"/></svg>";
+}
+
+function renderPlainText(value) {
+	return escapeHtml(String(value || "")).replace(/\n/g, "<br>");
+}
+
+function renderAssistantMarkdown(value) {
+	const markdown = getMarkdownRenderer();
+	if (markdown) {
+		try {
+			return markdown.render(String(value || ""));
+		} catch (error) {
+			// Fall through to local renderer if markdown runtime fails.
+		}
+	}
+
+	return renderAssistantMarkdownFallback(value);
+}
+
+function getMarkdownRenderer() {
+	if (markdownRenderer) {
+		return markdownRenderer;
+	}
+
+	const MarkdownIt = window.markdownit;
+	if (typeof MarkdownIt !== "function") {
+		return null;
+	}
+
+	const renderer = new MarkdownIt({
+		html: false,
+		linkify: true,
+		breaks: true,
+		typographer: false
+	});
+
+	renderer.renderer.rules.fence = (tokens, index) => {
+		const token = tokens[index];
+		const info = String(token.info || "").trim();
+		const language = info ? info.split(/\s+/)[0] : "";
+		const codeValue = String(token.content || "");
+		const languageLabel = language || "text";
+		const escapedLanguage = escapeHtml(languageLabel);
+		const escapedClass = language ? ` language-${escapeHtml(language)}` : " language-text";
+
+		return [
+			"<div class=\"code-block-wrap\">",
+			`<div class=\"code-block-head\"><span class=\"code-block-language\">${escapedLanguage}</span><button type=\"button\" class=\"code-copy-btn\" data-action=\"copy-code\" aria-label=\"Copy code\" title=\"Copy code\">${copyCodeButtonSvg}</button></div>`,
+			`<pre><code class=\"hljs ${escapedClass.trim()}\">${escapeHtml(codeValue)}</code></pre>`,
+			"</div>"
+		].join("");
+	};
+
+	markdownRenderer = renderer;
+	return markdownRenderer;
+}
+
+function renderAssistantMarkdownFallback(value) {
+	const input = String(value || "").replace(/\r\n/g, "\n");
+	const lines = input.split("\n");
+	const chunks = [];
+	let inCodeBlock = false;
+	let codeLanguage = "";
+	let codeBuffer = [];
+	let openListType = "";
+	let inBlockquote = false;
+
+	const closeList = () => {
+		if (!openListType) {
+			return;
+		}
+		chunks.push(`</${openListType}>`);
+		openListType = "";
+	};
+
+	const closeBlockquote = () => {
+		if (!inBlockquote) {
+			return;
+		}
+		chunks.push("</blockquote>");
+		inBlockquote = false;
+	};
+
+	for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
+		const rawLine = lines[lineIndex];
+		const line = String(rawLine || "");
+		const trimmed = line.trim();
+
+		if (trimmed.startsWith("```")) {
+			closeList();
+			closeBlockquote();
+
+			if (!inCodeBlock) {
+				inCodeBlock = true;
+				codeLanguage = String(trimmed.slice(3) || "").trim();
+				codeBuffer = [];
+			} else {
+				chunks.push(renderFallbackCodeBlock(codeBuffer.join("\n"), codeLanguage));
+				inCodeBlock = false;
+				codeLanguage = "";
+				codeBuffer = [];
+			}
+			continue;
+		}
+
+		if (inCodeBlock) {
+			codeBuffer.push(line);
+			continue;
+		}
+
+		if (!trimmed) {
+			closeList();
+			closeBlockquote();
+			continue;
+		}
+
+		const tableChunk = parseMarkdownTable(lines, lineIndex);
+		if (tableChunk) {
+			closeList();
+			closeBlockquote();
+			chunks.push(tableChunk.html);
+			lineIndex = tableChunk.nextLineIndex;
+			continue;
+		}
+
+		if (/^(?:-{3,}|\*{3,}|_{3,})$/.test(trimmed)) {
+			closeList();
+			closeBlockquote();
+			chunks.push("<hr>");
+			continue;
+		}
+
+		const headingMatch = trimmed.match(/^(#{1,3})\s+(.+)$/);
+		if (headingMatch) {
+			closeList();
+			closeBlockquote();
+			const level = headingMatch[1].length;
+			chunks.push(`<h${level}>${applyInlineMarkdown(headingMatch[2])}</h${level}>`);
+			continue;
+		}
+
+		const quoteMatch = trimmed.match(/^>\s?(.*)$/);
+		if (quoteMatch) {
+			closeList();
+			if (!inBlockquote) {
+				chunks.push("<blockquote>");
+				inBlockquote = true;
+			}
+			chunks.push(`<p>${applyInlineMarkdown(quoteMatch[1])}</p>`);
+			continue;
+		}
+
+		if (inBlockquote) {
+			closeBlockquote();
+		}
+
+		const listMatch = trimmed.match(/^[-*]\s+(.+)$/);
+		if (listMatch) {
+			if (openListType !== "ul") {
+				closeList();
+				openListType = "ul";
+				chunks.push("<ul>");
+			}
+			chunks.push(`<li>${applyInlineMarkdown(listMatch[1])}</li>`);
+			continue;
+		}
+
+		const orderedListMatch = trimmed.match(/^\d+\.\s+(.+)$/);
+		if (orderedListMatch) {
+			if (openListType !== "ol") {
+				closeList();
+				openListType = "ol";
+				chunks.push("<ol>");
+			}
+			chunks.push(`<li>${applyInlineMarkdown(orderedListMatch[1])}</li>`);
+			continue;
+		}
+
+		closeList();
+
+		chunks.push(`<p>${applyInlineMarkdown(trimmed)}</p>`);
+	}
+
+	if (inCodeBlock) {
+		chunks.push(renderFallbackCodeBlock(codeBuffer.join("\n"), codeLanguage));
+	}
+
+	closeList();
+	closeBlockquote();
+
+	return chunks.join("");
+}
+
+function renderFallbackCodeBlock(codeText, language) {
+	const languageLabel = String(language || "").trim() || "text";
+	const escapedClass = languageLabel === "text" ? "language-text" : `language-${escapeHtml(languageLabel)}`;
+	return [
+		"<div class=\"code-block-wrap\">",
+		`<div class=\"code-block-head\"><span class=\"code-block-language\">${escapeHtml(languageLabel)}</span><button type=\"button\" class=\"code-copy-btn\" data-action=\"copy-code\" aria-label=\"Copy code\" title=\"Copy code\">${copyCodeButtonSvg}</button></div>`,
+		`<pre><code class=\"hljs ${escapedClass.trim()}\">${escapeHtml(codeText)}</code></pre>`,
+		"</div>"
+	].join("");
+}
+
+function parseMarkdownTable(lines, startLineIndex) {
+	if (startLineIndex + 1 >= lines.length) {
+		return null;
+	}
+
+	const headerCells = splitMarkdownTableRow(lines[startLineIndex]);
+	if (!headerCells || headerCells.length < 2) {
+		return null;
+	}
+
+	const alignCells = splitMarkdownTableRow(lines[startLineIndex + 1]);
+	if (!alignCells || alignCells.length !== headerCells.length) {
+		return null;
+	}
+
+	for (const cell of alignCells) {
+		if (!/^:?-{3,}:?$/.test(cell)) {
+			return null;
+		}
+	}
+
+	const bodyRows = [];
+	let currentIndex = startLineIndex + 2;
+	while (currentIndex < lines.length) {
+		const rowCells = splitMarkdownTableRow(lines[currentIndex]);
+		if (!rowCells || rowCells.length === 0) {
+			break;
+		}
+
+		const normalizedCells = rowCells.slice(0, headerCells.length);
+		while (normalizedCells.length < headerCells.length) {
+			normalizedCells.push("");
+		}
+
+		bodyRows.push(normalizedCells);
+		currentIndex += 1;
+	}
+
+	const headHtml = `<thead><tr>${headerCells.map((cell) => `<th>${applyInlineMarkdown(cell)}</th>`).join("")}</tr></thead>`;
+	const bodyHtml = bodyRows.length > 0
+		? `<tbody>${bodyRows.map((row) => `<tr>${row.map((cell) => `<td>${applyInlineMarkdown(cell)}</td>`).join("")}</tr>`).join("")}</tbody>`
+		: "<tbody></tbody>";
+
+	return {
+		html: `<table>${headHtml}${bodyHtml}</table>`,
+		nextLineIndex: currentIndex - 1
+	};
+}
+
+function splitMarkdownTableRow(line) {
+	const text = String(line || "");
+	if (!text.includes("|")) {
+		return null;
+	}
+
+	const trimmed = text.trim();
+	if (!trimmed) {
+		return null;
+	}
+
+	let normalized = trimmed;
+	if (normalized.startsWith("|")) {
+		normalized = normalized.slice(1);
+	}
+	if (normalized.endsWith("|")) {
+		normalized = normalized.slice(0, -1);
+	}
+
+	const cells = normalized.split("|").map((cell) => cell.trim());
+	return cells.length > 0 ? cells : null;
+}
+
+function applyInlineMarkdown(value) {
+	let html = escapeHtml(String(value || ""));
+	html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
+	html = html.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+	html = html.replace(/\*([^*]+)\*/g, "<em>$1</em>");
+	html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, "<a href=\"$2\" target=\"_blank\" rel=\"noopener noreferrer\">$1</a>");
+	return html;
+}
+
+function uid() {
+	return Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-5);
+}
+
+function providerOption(current, value, label) {
+	const selected = current === value ? "selected" : "";
+	return `<option value="${value}" ${selected}>${label}</option>`;
+}
+
+function escapeHtml(value) {
+	return String(value)
+		.replace(/&/g, "&amp;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;")
+		.replace(/\"/g, "&quot;")
+		.replace(/'/g, "&#039;");
+}
+
+function formatNumber(value) {
+	const numeric = Number(value);
+	if (!Number.isFinite(numeric)) {
+		return "0";
+	}
+
+	return new Intl.NumberFormat("en-US").format(Math.round(numeric));
+}
+
+function formatMessageTime(value) {
+	const timestamp = Number(value);
+	if (!Number.isFinite(timestamp)) {
+		return "";
+	}
+
+	try {
+		return new Intl.DateTimeFormat("en-US", {
+			hour: "numeric",
+			minute: "2-digit"
+		}).format(new Date(timestamp)).toLowerCase();
+	} catch (error) {
+		return "";
+	}
+}
