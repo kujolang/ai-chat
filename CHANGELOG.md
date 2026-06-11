@@ -6,6 +6,8 @@ The format is inspired by Keep a Changelog and semantic versioning.
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-06-10
+
 ### Changed
 
 - Hardened smoke test flow to require auth and support configurable host/port/base URL targeting.
