@@ -10,7 +10,7 @@ This guide is a dedicated, end-user focused setup reference for running AI Chat 
 
 ## 2. Configure Environment
 
-Copy values from .env.example and define these variables in your shell or environment file:
+Copy values from `.env.example` and define these variables in your shell or environment file:
 
 - KUJO_BIN
 - AI_SDK_PATH
@@ -20,44 +20,60 @@ Copy values from .env.example and define these variables in your shell or enviro
 - ENCRYPTION_SECRET
 - API_AUTH_TOKEN
 
-AI_SDK_PATH must point to a directory that contains both ai_sdk.kujo and providers.kujo.
+`AI_SDK_PATH` must point to a directory that contains both `ai_sdk.kujo` and `providers.kujo`.
 
 Recommended local defaults:
 
-- AI_SDK_PATH=/path/to/ai-sdk/src
-- PORT=4173
-- DB_PATH=/absolute/path/to/ai-chat/data/ai_chat.db
-- DB_BACKUP_DIR=/absolute/path/to/ai-chat/data/backups
-- ENCRYPTION_SECRET=<long-random-secret>
-- API_AUTH_TOKEN=<long-random-token>
+```bash
+AI_SDK_PATH=/path/to/ai-sdk/src
+PORT=4173
+DB_PATH=/absolute/path/to/ai-chat/data/ai_chat.db
+DB_BACKUP_DIR=/absolute/path/to/ai-chat/data/backups
+ENCRYPTION_SECRET=<long-random-secret>
+API_AUTH_TOKEN=<long-random-token>
+```
 
 Important security behavior:
 
-- API keys are encrypted using ENCRYPTION_SECRET.
-- If you change ENCRYPTION_SECRET later, existing encrypted API keys cannot be decrypted.
-- API routes require API_AUTH_TOKEN; the web UI shows an in-app auth modal once and stores it locally with an expiry (default 30 days).
+- API keys are encrypted using `ENCRYPTION_SECRET`.
+- If you change `ENCRYPTION_SECRET` later, existing encrypted API keys cannot be decrypted.
+- API routes require `API_AUTH_TOKEN`; the web UI shows an in-app auth modal once and stores it locally with an expiry (default 30 days).
 
 ## 3. Install Dependencies
 
 From the project root:
 
+```bash
 npm install
+```
 
 ## 4. Start the Application
 
 Example launch command:
 
-ENCRYPTION_SECRET=replace_with_strong_secret API_AUTH_TOKEN=replace_with_strong_token KUJO_BIN=/absolute/path/to/kujo AI_SDK_PATH=/path/to/ai-sdk/src PORT=4173 npm run dev
+```bash
+ENCRYPTION_SECRET=replace_with_strong_secret \
+API_AUTH_TOKEN=replace_with_strong_token \
+KUJO_BIN=/absolute/path/to/kujo \
+AI_SDK_PATH=/path/to/ai-sdk/src \
+AI_CHAT_HOST=127.0.0.1 \
+PORT=4173 \
+npm run dev
+```
 
 Optional SDK shell check:
 
+```bash
 cd /path/to/ai-sdk
 
 /absolute/path/to/kujo run /absolute/path/to/ai-chat/bridge_chat.kujo --interpreter -- --payload '{"provider_id":"openai","api_key":"x","offline_fixture":true,"messages":[{"role":"user","content":"hello"}]}'
+```
 
 Open:
 
-http://localhost:4173
+```text
+http://127.0.0.1:4173
+```
 
 ## 5. First-Time In-App Setup
 
@@ -90,7 +106,9 @@ The app provides these key endpoints:
 
 Run smoke checks after server startup:
 
+```bash
 npm run smoke
+```
 
 Smoke test notes:
 
@@ -100,24 +118,32 @@ Smoke test notes:
 
 Examples:
 
+```bash
 API_AUTH_TOKEN=replace_with_strong_token PORT=4173 npm run smoke
 SMOKE_BASE_URL=http://127.0.0.1:5000 SMOKE_API_TOKEN=replace_with_strong_token npm run smoke
+```
 
 Run unit tests:
 
+```bash
 npm test
+```
 
 ## 9. Backup and Maintenance
 
 Create a backup:
 
+```bash
 npm run db:backup
+```
 
 Run SQLite VACUUM:
 
+```bash
 npm run db:vacuum
+```
 
-Backups are written to DB_BACKUP_DIR.
+Backups are written to `DB_BACKUP_DIR`.
 
 ## 10. Deployment Usage Recommendations
 
