@@ -6,6 +6,8 @@ The app boots locally, persists chats/settings in SQLite, and uses browser local
 
 It is intentionally small enough to clone, inspect, and extend without losing the thread.
 
+For agent and contributor guidance, including canonical examples and search exclusions, see `AGENTS.md`.
+
 ## Who This Is For
 
 This project is for end users and teams who want one local web app to:
@@ -52,25 +54,25 @@ Use the app as a clear boundary for chat workflows, not as a promise of correctn
 ## Project Structure
 
 - Frontend
-	- public/index.html
-	- public/app.css
-	- public/app.js
+	- `public/index.html`
+	- `public/app.css`
+	- `public/app.js`
 - Backend
-	- server.js
-	- lib/server-runtime.js
+	- `server.js`
+	- `lib/server-runtime.js`
 - Bridge files
-	- bridge_chat.kujo
-- External SDK files are loaded from AI_SDK_PATH (not vendored in this repository):
-		- ai_sdk.kujo
-		- providers.kujo
+	- `bridge_chat.kujo`
+- External SDK files are loaded from `AI_SDK_PATH` (not vendored in this repository):
+	- `ai_sdk.kujo`
+	- `providers.kujo`
 - Database utilities
-	- scripts/backup-db.js
-	- scripts/vacuum-db.js
-	- scripts/smoke-test.js
+	- `scripts/backup-db.js`
+	- `scripts/vacuum-db.js`
+	- `scripts/smoke-test.js`
 
 ## Environment Configuration
 
-Use .env.example as your baseline and set:
+Use `.env.example` as your baseline and set:
 
 - KUJO_BIN
 - AI_SDK_PATH
@@ -92,19 +94,31 @@ Security note:
 - For custom providers, set ALLOWED_CUSTOM_PROVIDER_HOSTS to an explicit host allowlist.
 - Live provider and transcription requests are optional and require the configured provider/API-key path.
 
-## Install and Run
+## Quick Start
 
 1. Install dependencies
 
+```bash
 npm install
+```
 
 2. Start the app
 
-ENCRYPTION_SECRET=replace_with_strong_secret API_AUTH_TOKEN=replace_with_strong_token KUJO_BIN=/absolute/path/to/kujo AI_SDK_PATH=/path/to/ai-sdk/src AI_CHAT_HOST=127.0.0.1 PORT=4173 npm run dev
+```bash
+ENCRYPTION_SECRET=replace_with_strong_secret \
+API_AUTH_TOKEN=replace_with_strong_token \
+KUJO_BIN=/absolute/path/to/kujo \
+AI_SDK_PATH=/path/to/ai-sdk/src \
+AI_CHAT_HOST=127.0.0.1 \
+PORT=4173 \
+npm run dev
+```
 
 3. Open in browser
 
+```text
 http://127.0.0.1:4173
+```
 
 4. Enter API_AUTH_TOKEN once in the in-app auth modal, then choose how many days to remember it.
 5. In Settings, add provider API keys and profile defaults
@@ -146,11 +160,15 @@ The offline fixture path is verified in the local smoke workflow and is the safe
 
 Create a backup:
 
+```bash
 npm run db:backup
+```
 
 Run maintenance VACUUM:
 
+```bash
 npm run db:vacuum
+```
 
 Backups are written under DB_BACKUP_DIR.
 
@@ -158,7 +176,9 @@ Backups are written under DB_BACKUP_DIR.
 
 Run smoke tests (server must already be running):
 
+```bash
 npm run smoke
+```
 
 Smoke test environment options:
 
@@ -167,17 +187,33 @@ Smoke test environment options:
 
 Example:
 
+```bash
 API_AUTH_TOKEN=replace_with_strong_token PORT=4173 npm run smoke
+```
+
+Expected smoke output:
+
+```text
+health 200
+providers 200 4
+state 200
+chat 200
+smoke checks passed against http://127.0.0.1:4173
+```
 
 Manual SDK check:
 
+```bash
 cd /path/to/ai-sdk
 
 /absolute/path/to/kujo run /absolute/path/to/ai-chat/bridge_chat.kujo --interpreter -- --payload '{"provider_id":"openai","api_key":"x","offline_fixture":true,"messages":[{"role":"user","content":"hello"}]}'
+```
 
 Unit test check:
 
+```bash
 npm test
+```
 
 CI gates on push/PR to `main`:
 
