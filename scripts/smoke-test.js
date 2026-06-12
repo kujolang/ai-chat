@@ -52,6 +52,10 @@ function assertOkResponse(step, result) {
 	}
 }
 
+function report(step, ...values) {
+	console.log(step, ...values);
+}
+
 (async () => {
 	try {
 		const health = await request("/api/health");
@@ -59,14 +63,14 @@ function assertOkResponse(step, result) {
 		if (!health.json.auth_configured) {
 			throw new Error("Health check returned auth_configured=false.");
 		}
-		console.log("health", health.status);
+		report("health", health.status);
 
 		const providers = await request("/api/providers");
 		assertOkResponse("providers", providers);
 		if (!Array.isArray(providers.json.providers) || providers.json.providers.length === 0) {
 			throw new Error("Provider catalog was empty.");
 		}
-		console.log("providers", providers.status, providers.json.providers.length);
+		report("providers", providers.status, providers.json.providers.length);
 
 		const state = await request("/api/state");
 		assertOkResponse("state", state);
@@ -80,7 +84,7 @@ function assertOkResponse(step, result) {
 		if (!firstProfile || !firstProfile.id) {
 			throw new Error("No provider profile found in state response.");
 		}
-		console.log("state", state.status);
+		report("state", state.status);
 
 		const chat = await request("/api/chat", "POST", {
 			profile_id: firstProfile.id,
@@ -94,8 +98,8 @@ function assertOkResponse(step, result) {
 		if (typeof chat.json.output_text !== "string" || !chat.json.output_text.trim()) {
 			throw new Error("Chat response did not include output_text.");
 		}
-		console.log("chat", chat.status);
-		console.log("smoke checks passed against", BASE_URL);
+		report("chat", chat.status);
+		report("smoke checks passed against", BASE_URL);
 	} catch (error) {
 		console.error("smoke checks failed:", error.message || error);
 		process.exit(1);
