@@ -35,5 +35,6 @@ Prioritize copyable examples over tests: examples should model the most token-ef
 - Keep quick starts minimal and runnable.
 - Include expected output when it helps users verify a command.
 - Prefer small local helpers for repeated CLI output, labels, and status lines.
+- Split long bridge/demo JSON payloads into named shell variables when that makes examples easier to copy.
 - Do not hide the app behavior or Kujo bridge behavior behind broad abstractions.
 - Clearly label any stale, legacy, generated, or expected-fail example that remains in the repo.
