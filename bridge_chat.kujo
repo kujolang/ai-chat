@@ -11,6 +11,13 @@ func dict_get_or(obj, key, default_value) {
 	return default_value
 }
 
+func with_requested_model(provider, model) {
+	if model != "" {
+		provider["default_model"] := model
+	}
+	return provider
+}
+
 func parse_payload_arg(raw_args) {
 	payload_text := ""
 	i := 0
@@ -31,19 +38,11 @@ func resolve_provider(payload) {
 	model := dict_get_or(payload, "model", "")
 
 	if provider_id == "openrouter" {
-		provider := openrouter_provider()
-		if model != "" {
-			provider["default_model"] := model
-		}
-		return provider
+		return with_requested_model(openrouter_provider(), model)
 	}
 
 	if provider_id == "deepseek" {
-		provider := deepseek_provider()
-		if model != "" {
-			provider["default_model"] := model
-		}
-		return provider
+		return with_requested_model(deepseek_provider(), model)
 	}
 
 	if provider_id == "custom" {
@@ -58,11 +57,7 @@ func resolve_provider(payload) {
 		return custom_openai_compatible_provider(base_url, "CUSTOM_API_KEY", default_model)
 	}
 
-	provider := openai_provider()
-	if model != "" {
-		provider["default_model"] := model
-	}
-	return provider
+	return with_requested_model(openai_provider(), model)
 }
 
 func normalize_messages(raw_messages) {

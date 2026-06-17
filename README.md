@@ -206,8 +206,13 @@ Manual SDK check:
 ```bash
 cd /path/to/ai-sdk
 
-/absolute/path/to/kujo run /absolute/path/to/ai-chat/bridge_chat.kujo --interpreter -- --payload '{"provider_id":"openai","api_key":"x","offline_fixture":true,"messages":[{"role":"user","content":"hello"}]}'
+AI_CHAT_ROOT=/absolute/path/to/ai-chat
+BRIDGE_PAYLOAD='{"provider_id":"openai","api_key":"x","offline_fixture":true,"messages":[{"role":"user","content":"hello"}]}'
+
+/absolute/path/to/kujo run "$AI_CHAT_ROOT/bridge_chat.kujo" --interpreter -- --payload "$BRIDGE_PAYLOAD"
 ```
+
+Expected result: a JSON response with `"ok": true` and non-empty `"output_text"`.
 
 Unit test check:
 
