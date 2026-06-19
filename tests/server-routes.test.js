@@ -187,6 +187,7 @@ test("GET /api/health returns runtime metadata", async () => {
 		await withServer(runtime.app, async (baseUrl) => {
 			const { response, json } = await fetchJson(baseUrl, "/api/health");
 			assert.equal(response.status, 200);
+			assert.equal(response.headers.get("cache-control"), "no-store");
 			assert.equal(json.ok, true);
 			assert.equal(typeof json.auth_configured, "boolean");
 			assert.equal(typeof json.ai_sdk_available, "boolean");
@@ -202,6 +203,43 @@ test("API routes reject requests without auth token", async () => {
 		await withServer(runtime.app, async (baseUrl) => {
 			const response = await fetch(`${baseUrl}/api/state`);
 			assert.equal(response.status, 401);
+		});
+	} finally {
+		destroy();
+	}
+});
+
+test("API routes validate auth before parsing JSON bodies", async () => {
+	const { runtime, destroy } = createIsolatedRuntime();
+	try {
+		await withServer(runtime.app, async (baseUrl) => {
+			const response = await fetch(`${baseUrl}/api/chat`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: "{"
+			});
+			const json = await response.json();
+			assert.equal(response.status, 401);
+			assert.equal(json.error.code, "unauthorized");
+		});
+	} finally {
+		destroy();
+	}
+});
+
+test("API routes return JSON envelope for malformed authenticated JSON", async () => {
+	const { runtime, destroy } = createIsolatedRuntime();
+	try {
+		await withServer(runtime.app, async (baseUrl) => {
+			const response = await fetch(`${baseUrl}/api/chat`, {
+				method: "POST",
+				headers: withAuthHeaders({ "Content-Type": "application/json" }),
+				body: "{"
+			});
+			const json = await response.json();
+			assert.equal(response.status, 400);
+			assert.equal(json.ok, false);
+			assert.equal(json.error.code, "invalid_json");
 		});
 	} finally {
 		destroy();
@@ -243,6 +281,55 @@ test("API routes enforce per-scope rate limits", async () => {
 			assert.equal(second.response.status, 429);
 			assert.equal(second.json.ok, false);
 			assert.equal(second.json.error.code, "rate_limited");
+		});
+	} finally {
+		destroy();
+	}
+});
+
+test("API routes do not trust X-Forwarded-For for rate limits by default", async () => {
+	const { runtime, destroy } = createIsolatedRuntime({
+		envMerge: {
+			RATE_LIMIT_WINDOW_MS: "60000",
+			RATE_LIMIT_API_MAX: "1"
+		}
+	});
+	try {
+		await withServer(runtime.app, async (baseUrl) => {
+			const first = await fetchJson(baseUrl, "/api/state", {
+				headers: { "X-Forwarded-For": "203.0.113.10" }
+			});
+			assert.equal(first.response.status, 200);
+
+			const second = await fetchJson(baseUrl, "/api/state", {
+				headers: { "X-Forwarded-For": "203.0.113.11" }
+			});
+			assert.equal(second.response.status, 429);
+		});
+	} finally {
+		destroy();
+	}
+});
+
+test("API routes use X-Forwarded-For for rate limits only when proxy trust is enabled", async () => {
+	const { runtime, destroy } = createIsolatedRuntime({
+		envMerge: {
+			TRUST_PROXY: "1",
+			RATE_LIMIT_WINDOW_MS: "60000",
+			RATE_LIMIT_API_MAX: "1"
+		}
+	});
+	try {
+		await withServer(runtime.app, async (baseUrl) => {
+			const first = await fetchJson(baseUrl, "/api/state", {
+				headers: { "X-Forwarded-For": "203.0.113.10" }
+			});
+			assert.equal(first.response.status, 200);
+
+			const second = await fetchJson(baseUrl, "/api/state", {
+				headers: { "X-Forwarded-For": "203.0.113.11" }
+			});
+			assert.equal(second.response.status, 200);
 		});
 	} finally {
 		destroy();
@@ -680,6 +767,7 @@ test("POST /api/chat/stream emits provider_http_error SSE on upstream failure", 
 			const events = parseSseEvents(body);
 			assert.equal(events[0].event, "error");
 			assert.equal(events[0].data.code, "provider_http_error");
+			assert.equal(Object.prototype.hasOwnProperty.call(events[0].data, "raw"), false);
 		});
 	} finally {
 		destroy();
