@@ -6,6 +6,20 @@ The format is inspired by Keep a Changelog and semantic versioning.
 
 ## [Unreleased]
 
+### Changed
+
+- Moved the security hardening checklist into `docs/` with the other release and operations references.
+- Documented explicit proxy-trust, stream-timeout, and rate-limit bucket controls in setup and release docs.
+
+### Security
+
+- Run API auth, host/origin checks, and rate limiting before JSON body parsing.
+- Added JSON error envelopes for malformed and oversized authenticated request bodies.
+- Added `Cache-Control: no-store` to API responses.
+- Disabled `X-Forwarded-*` trust by default unless `TRUST_PROXY=1` is configured.
+- Capped in-memory rate-limit bucket growth with `RATE_LIMIT_MAX_BUCKETS`.
+- Suppressed raw provider stream error bodies unless `DEBUG_API_ERRORS=1`.
+
 ## [1.0.0] - 2026-06-10
 
 ### Changed

@@ -19,6 +19,7 @@ Copy values from `.env.example` and define these variables in your shell or envi
 - DB_BACKUP_DIR
 - ENCRYPTION_SECRET
 - API_AUTH_TOKEN
+- TRUST_PROXY
 
 `AI_SDK_PATH` must point to a directory that contains both `ai_sdk.kujo` and `providers.kujo`.
 
@@ -31,6 +32,7 @@ DB_PATH=/absolute/path/to/ai-chat/data/ai_chat.db
 DB_BACKUP_DIR=/absolute/path/to/ai-chat/data/backups
 ENCRYPTION_SECRET=<long-random-secret>
 API_AUTH_TOKEN=<long-random-token>
+TRUST_PROXY=0
 ```
 
 Important security behavior:
@@ -38,6 +40,8 @@ Important security behavior:
 - API keys are encrypted using `ENCRYPTION_SECRET`.
 - If you change `ENCRYPTION_SECRET` later, existing encrypted API keys cannot be decrypted.
 - API routes require `API_AUTH_TOKEN`; the web UI shows an in-app auth modal once and stores it locally with an expiry (default 30 days).
+- API routes reject unauthenticated requests before parsing JSON bodies, return JSON error envelopes for malformed authenticated JSON, and send `Cache-Control: no-store`.
+- `TRUST_PROXY` defaults to disabled. Enable it only behind a trusted reverse proxy so rate limiting, origin checks, HSTS detection, and audit IPs may use `X-Forwarded-*` headers.
 
 ## 3. Install Dependencies
 
@@ -154,6 +158,7 @@ Backups are written to `DB_BACKUP_DIR`.
 
 - Put the app behind TLS/reverse proxy infrastructure if you deploy beyond local use.
 - Limit access to trusted users and networks.
+- Set `TRUST_PROXY=1` only when the proxy is trusted and strips untrusted client-supplied `X-Forwarded-*` headers.
 - Back up DB_PATH on a schedule.
 - Keep ENCRYPTION_SECRET stable and protected.
 - Rotate provider API keys on a regular cadence.

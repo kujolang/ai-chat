@@ -38,6 +38,8 @@ If token is missing or invalid, server returns:
 }
 ```
 
+Authentication, host/origin checks, and rate limiting run before JSON body parsing. An unauthenticated malformed JSON request still returns `unauthorized`.
+
 ## 3. Response Envelope Contract
 
 Unless noted otherwise (SSE stream), JSON responses follow this shape:
@@ -51,8 +53,27 @@ Contract guarantees:
 - `error.code` is machine-readable and stable for known error classes.
 - `error.message` is human-readable and may evolve.
 - `error.retryable` signals client retry safety.
+- API JSON responses include `Cache-Control: no-store`.
 
-## 4. State Contract
+Common transport-level errors:
+
+- `invalid_json`: authenticated JSON body could not be parsed.
+- `payload_too_large`: authenticated JSON body exceeds `MAX_JSON_BODY_BYTES`.
+- `rate_limited`: route/IP scope exceeded the configured rate limit.
+
+When `DEBUG_API_ERRORS=0`, provider raw error bodies are not included in stream error payloads.
+
+## 4. Health Contract
+
+`GET /api/health` returns:
+
+- `service`: `"ai-chat"`
+- `ai_sdk_available`: boolean
+- `auth_configured`: boolean
+- `encryption_configured`: boolean
+- `retention_days`: number
+
+## 5. State Contract
 
 `GET /api/state` returns:
 
@@ -74,7 +95,7 @@ Bridge/offline path note:
 - The bridge accepts an `offline_fixture` flag for safe local smoke validation.
 - Live provider calls remain gated behind configured API keys and the external AI SDK files.
 
-## 5. Streaming Contract (`POST /api/chat/stream`)
+## 6. Streaming Contract (`POST /api/chat/stream`)
 
 The endpoint returns `text/event-stream` with the following events:
 
@@ -90,7 +111,7 @@ Client rules:
 - Do not depend on exact token chunk boundaries.
 - Thinking deltas are optional and provider-dependent.
 
-## 6. Versioning Policy
+## 7. Versioning Policy
 
 Package version (`package.json`) follows semantic versioning for release intent.
 
@@ -107,14 +128,14 @@ Breaking changes include:
 - Removing stable response fields.
 - Changing error codes in a non-compatible way.
 
-## 7. Backward Compatibility Rules
+## 8. Backward Compatibility Rules
 
 - New response fields must be additive and optional for existing clients.
 - Existing stable error codes should be retained; new codes must be documented.
 - Deprecated behavior should be announced in release notes before removal.
 - Contract-affecting changes require test updates in `tests/server-routes.test.js`.
 
-## 8. Change Control Requirements
+## 9. Change Control Requirements
 
 Before merging API changes:
 

@@ -7,6 +7,7 @@ This checklist tracks the security hardening pass applied to the current codebas
 - [x] Require API token authentication for all `/api/*` routes (`API_AUTH_TOKEN` + `X-API-Token` or bearer token).
 - [x] Enforce constant-time token comparison to reduce timing side-channel leakage.
 - [x] Reject requests when API auth is not configured.
+- [x] Run auth, host/origin checks, and rate limiting before JSON body parsing.
 
 ## Browser and HTTP Hardening
 
@@ -19,11 +20,13 @@ This checklist tracks the security hardening pass applied to the current codebas
 - [x] Set `Cross-Origin-Resource-Policy: same-origin`.
 - [x] Set `Strict-Transport-Security` when HTTPS is detected.
 - [x] Add per-request `X-Request-Id`.
+- [x] Set `Cache-Control: no-store` on API responses.
 
 ## Origin and Host Enforcement
 
 - [x] Enforce host allowlist (`ALLOWED_HOSTS`) on API routes.
 - [x] Enforce origin checks (`ALLOWED_ORIGIN` or same-origin fallback).
+- [x] Gate `X-Forwarded-*` trust behind explicit `TRUST_PROXY`.
 
 ## Secrets and Key Handling
 
@@ -45,7 +48,9 @@ This checklist tracks the security hardening pass applied to the current codebas
 ## Abuse and DoS Controls
 
 - [x] Add per-IP rate limits with per-route scope (`api`, `chat`, `stream`, `transcribe`).
+- [x] Bound the in-memory rate-limit bucket map (`RATE_LIMIT_MAX_BUCKETS`).
 - [x] Add API JSON payload size limit (`MAX_JSON_BODY_BYTES`).
+- [x] Return JSON envelopes for malformed and oversized authenticated JSON payloads.
 - [x] Enforce chat request message-count and content-size bounds.
 - [x] Enforce upload file count and size bounds (`MAX_AUDIO_UPLOAD_BYTES`).
 

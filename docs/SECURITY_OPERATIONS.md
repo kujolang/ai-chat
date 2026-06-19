@@ -70,6 +70,7 @@ Operational notes:
 - Rotate client certificates on a fixed schedule.
 - Revoke compromised certificates immediately.
 - Use short-lived certs where possible.
+- Ensure the proxy overwrites inbound `X-Forwarded-*` headers from clients before forwarding to AI Chat.
 
 ## 4. App-Level Host and Origin Controls
 
@@ -80,9 +81,12 @@ AI_CHAT_HOST=127.0.0.1
 ALLOWED_HOSTS=ai-chat.example.com,127.0.0.1
 ALLOWED_ORIGIN=https://ai-chat.example.com
 ALLOWED_CUSTOM_PROVIDER_HOSTS=api.openai.com,openrouter.ai,api.deepseek.com
+TRUST_PROXY=1
 ```
 
 If traffic is fully internal, still set explicit allowlists rather than leaving defaults broad.
+
+Leave `TRUST_PROXY=0` when serving AI Chat directly. Enable it only behind a trusted reverse proxy so HSTS detection, origin fallback checks, audit IPs, and rate-limit keys can safely use `X-Forwarded-*` headers.
 
 ## 5. SIEM Forwarding Example
 
@@ -133,7 +137,9 @@ Use these as a baseline and tune per environment:
 - Reverse proxy terminates TLS.
 - Optional mTLS configured for trusted clients.
 - Proxy ACLs restrict source networks.
+- Proxy overwrites untrusted inbound `X-Forwarded-*` headers.
 - `API_AUTH_TOKEN` is long random and rotated.
 - `ALLOWED_HOSTS` and `ALLOWED_ORIGIN` are explicit.
+- `TRUST_PROXY` matches the actual deployment topology.
 - Audit forwarding to SIEM is active and monitored.
 - Alert thresholds are configured and tested.

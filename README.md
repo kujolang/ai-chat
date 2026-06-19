@@ -38,7 +38,7 @@ This project is for end users and teams who want one local web app to:
 
 - Not a guarantee of correct model answers or model quality
 - Not a replacement for human review
-- Not a production-certified chat platform
+- Not a production-certified chat platform or universal enterprise product out of the box
 - Not a fully audited security/release program
 - Not unrestricted live-provider access by default
 
@@ -69,6 +69,11 @@ Use the app as a clear boundary for chat workflows, not as a promise of correctn
 	- `scripts/backup-db.js`
 	- `scripts/vacuum-db.js`
 	- `scripts/smoke-test.js`
+- Review and release references
+	- `docs/API_CONTRACT.md`
+	- `docs/RELEASE_CHECKLIST.md`
+	- `docs/SECURITY_HARDENING_CHECKLIST.md`
+	- `docs/SECURITY_OPERATIONS.md`
 
 ## Environment Configuration
 
@@ -82,6 +87,7 @@ Use `.env.example` as your baseline and set:
 - DB_BACKUP_DIR
 - ENCRYPTION_SECRET
 - API_AUTH_TOKEN
+- TRUST_PROXY
 
 Offline fixture mode is supported in the bridge and smoke workflow for safe local validation without live provider credentials.
 
@@ -92,6 +98,9 @@ Security note:
 - Set API_AUTH_TOKEN and keep it secret. The browser app stores this token locally with an expiry (default 30 days) using an in-app auth modal.
 - Set AI_CHAT_HOST to `127.0.0.1` for the default reviewed showcase path; override it explicitly only if you intend to expose a broader listener.
 - For custom providers, set ALLOWED_CUSTOM_PROVIDER_HOSTS to an explicit host allowlist.
+- Set TRUST_PROXY=1 only when AI Chat runs behind a trusted reverse proxy that sets `X-Forwarded-*` headers.
+- Use RATE_LIMIT_MAX_BUCKETS to cap in-memory rate-limit tracker growth under high-cardinality traffic.
+- Use STREAM_REQUEST_TIMEOUT_MS to tune long-running upstream streaming requests.
 - Live provider and transcription requests are optional and require the configured provider/API-key path.
 
 ## Quick Start
@@ -236,6 +245,7 @@ CI gates on push/PR to `main`:
 - Confirm /api/health shows auth_configured=true before exposing the service.
 - Confirm AI_CHAT_HOST is explicitly set if you need a bind address other than `127.0.0.1`.
 - Set ALLOWED_ORIGIN and ALLOWED_HOSTS for deployment-specific origin/host enforcement.
+- Set TRUST_PROXY=1 only behind a trusted reverse proxy; leave it disabled for direct local serving.
 
 Security operations reference:
 
@@ -245,6 +255,7 @@ Contract and release governance:
 
 - docs/API_CONTRACT.md
 - docs/RELEASE_CHECKLIST.md
+- docs/SECURITY_HARDENING_CHECKLIST.md
 - CHANGELOG.md
 
 ## Additional Setup Guide

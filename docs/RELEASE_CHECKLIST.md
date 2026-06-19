@@ -21,6 +21,8 @@ Use this checklist for each release candidate and production release.
 - [ ] Confirm `AI_CHAT_HOST` is explicitly set to the intended bind host.
 - [ ] Confirm `ALLOWED_HOSTS` and `ALLOWED_ORIGIN` are explicitly set for environment.
 - [ ] Confirm `ALLOWED_CUSTOM_PROVIDER_HOSTS` is explicit if custom providers are enabled.
+- [ ] Confirm `TRUST_PROXY` matches the deployment topology and proxy header handling.
+- [ ] Confirm rate-limit settings include an appropriate `RATE_LIMIT_MAX_BUCKETS` cap.
 - [ ] Confirm audit logging path (`AUDIT_LOG_PATH`) is writable and monitored.
 
 ## 4. Deployment Readiness
