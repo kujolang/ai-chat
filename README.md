@@ -1,5 +1,9 @@
 # AI Chat
 
+[![Version](https://img.shields.io/badge/version-1.0.0-black)](https://github.com/kujolang/ai-chat)
+[![License](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
+[![built with Kujo](https://img.shields.io/badge/built%20with-Kujo-white.svg)](https://github.com/kujolang/kujo)
+
 AI Chat is a local showcase app for provider-gated chat workflows, offline fixtures, structured conversation behavior, and reviewable AI interaction boundaries.
 
 The app boots locally, persists chats/settings in SQLite, and uses browser localStorage only for client cache plus app token/session metadata.
