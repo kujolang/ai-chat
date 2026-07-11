@@ -198,6 +198,27 @@ test("thinkingDelta resolves direct and nested reasoning fields", () => {
 	}
 });
 
+test("normalizeUsage preserves input, output, and cache accounting when reported", () => {
+	const { runtime, destroy } = createIsolatedRuntime();
+	try {
+		assert.deepEqual(runtime.helpers.normalizeUsage({
+			prompt_tokens: 10,
+			completion_tokens: 5,
+			total_tokens: 15,
+			prompt_tokens_details: { cached_tokens: 4 }
+		}), {
+			input_tokens: 10,
+			output_tokens: 5,
+			total_tokens: 15,
+			cached_input_tokens: 4,
+			cache_write_input_tokens: null,
+			cache_details_reported: true
+		});
+	} finally {
+		destroy();
+	}
+});
+
 test("splitToTokenChunks keeps spaces between words", () => {
 	const { runtime, destroy } = createIsolatedRuntime();
 	try {
@@ -218,7 +239,7 @@ test("chatRequestPayload applies defaults and validates normalized messages", ()
 		);
 		assert.equal(payload.model, "gpt-4.1-mini");
 		assert.equal(payload.temperature, 0.2);
-		assert.equal(payload.max_tokens, 3200);
+		assert.equal(payload.max_tokens, 12000);
 		assert.equal(payload.offline_fixture, false);
 		assert.equal(payload.messages.length, 1);
 		assert.throws(

@@ -887,7 +887,12 @@ test("POST /api/chat/stream parses SSE upstream deltas into token/thinking/done"
 						finish_reason: "stop"
 					}
 				],
-				usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 }
+				usage: {
+					prompt_tokens: 1,
+					completion_tokens: 1,
+					total_tokens: 2,
+					prompt_tokens_details: { cached_tokens: 1 }
+				}
 			}
 		])
 	});
@@ -912,6 +917,9 @@ test("POST /api/chat/stream parses SSE upstream deltas into token/thinking/done"
 			assert.equal(tokenEvent.data.delta, "hello ");
 			assert.equal(thinkingEvent.data.delta, "thinking ");
 			assert.equal(doneEvent.data.usage.total_tokens, 2);
+			assert.equal(doneEvent.data.usage.input_tokens, 1);
+			assert.equal(doneEvent.data.usage.output_tokens, 1);
+			assert.equal(doneEvent.data.usage.cached_input_tokens, 1);
 		});
 	} finally {
 		destroy();
