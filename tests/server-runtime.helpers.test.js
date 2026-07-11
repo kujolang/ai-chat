@@ -242,6 +242,12 @@ test("chatRequestPayload applies defaults and validates normalized messages", ()
 		assert.equal(payload.max_tokens, 12000);
 		assert.equal(payload.offline_fixture, false);
 		assert.equal(payload.messages.length, 1);
+		assert.deepEqual(payload.tools, []);
+		const withTool = runtime.helpers.chatRequestPayload({
+			messages: [{ role: "user", content: "hi" }],
+			tools: [{ type: "function", function: { name: "browser-use", description: "Browse", parameters: { type: "object" } } }]
+		}, {});
+		assert.equal(withTool.tools[0].function.name, "browser-use");
 		assert.throws(
 			() => runtime.helpers.chatRequestPayload({ messages: [{ role: "tool", content: "x" }] }, {}),
 			/At least one message is required/
@@ -294,6 +300,10 @@ test("writeState persists chat title and settings values", () => {
 		assert.equal(after.settings.temperature, 0.8);
 		assert.equal(after.settings.maxTokens, 1200);
 		assert.equal(after.searchQuery, "abc");
+		state.settings.tools = [{ id: "tool-1", name: "browser_use", enabled: true, parameters_json: "{}" }];
+		state.stateVersion = after.stateVersion;
+		runtime.helpers.writeState(state);
+		assert.equal(runtime.helpers.readState().settings.tools[0].name, "browser_use");
 	} finally {
 		destroy();
 	}

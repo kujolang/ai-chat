@@ -147,6 +147,13 @@ options := {
 	"retry_delay_ms": dict_get_or(payload, "retry_delay_ms", 250)
 }
 
+tools := dict_get_or(payload, "tools", [])
+if type(tools) == "array" {
+	if len(tools) > 0 {
+		options["tools"] := tools
+	}
+}
+
 if dict_get_or(payload, "offline_fixture", false) {
 	options["offline_fixture"] := true
 }

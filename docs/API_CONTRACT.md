@@ -83,7 +83,7 @@ When `DEBUG_API_ERRORS=0`, provider raw error bodies are not included in stream 
 - `state.showArchived` boolean
 - `state.searchQuery` string
 - `state.broadcastToAllPanes` boolean compatibility field; the UI always persists this as `true` and broadcasts prompts to every pane.
-- `state.settings` object containing `temperature`, `maxTokens`, `profiles`
+- `state.settings` object containing `temperature`, `maxTokens`, `profiles`, and saved function-tool definitions in `tools`
 
 Profile key handling guarantee:
 
@@ -96,6 +96,8 @@ Bridge/offline path note:
 - Live provider calls remain gated behind configured API keys and the external AI SDK files.
 
 ## 6. Streaming Contract (`POST /api/chat/stream`)
+
+Requests may include `tools`, an array of up to 32 OpenAI-compatible function definitions. Enabled tool schemas are forwarded to the selected provider; this app stores and advertises tool definitions, while execution requires a connected tool runner.
 
 The endpoint returns `text/event-stream` with the following events:
 
