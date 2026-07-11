@@ -66,6 +66,7 @@ test("normalizeMessages keeps only supported roles and trims role", () => {
 	try {
 		const normalized = runtime.helpers.normalizeMessages([
 			{ role: " user ", content: 100 },
+			{ role: "user", content: 0 },
 			{ role: "assistant", content: "ok" },
 			{ role: "tool", content: "skip" },
 			null,
@@ -73,6 +74,7 @@ test("normalizeMessages keeps only supported roles and trims role", () => {
 		]);
 		assert.deepEqual(normalized, [
 			{ role: "user", content: "100" },
+			{ role: "user", content: "0" },
 			{ role: "assistant", content: "ok" }
 		]);
 	} finally {
@@ -87,6 +89,12 @@ test("validateStateShape throws on malformed state payload", () => {
 		assert.throws(() => runtime.helpers.validateStateShape({}), /missing chats array/);
 		assert.throws(() => runtime.helpers.validateStateShape({ chats: [] }), /missing settings object/);
 		assert.throws(() => runtime.helpers.validateStateShape({ chats: [], settings: {} }), /missing profiles array/);
+		const emptyProfileState = runtime.helpers.readState();
+		emptyProfileState.settings.profiles = [];
+		assert.throws(() => runtime.helpers.writeState(emptyProfileState), /At least one provider profile/);
+		const validState = runtime.helpers.readState();
+		validState.chats.push({ ...validState.chats[0], id: validState.chats[0].id });
+		assert.throws(() => runtime.helpers.validateStateShape(validState), /Duplicate chat id/);
 	} finally {
 		destroy();
 	}
@@ -163,6 +171,8 @@ test("flattenText supports string, array fragments, and object values", () => {
 	try {
 		assert.equal(runtime.helpers.flattenText("a"), "a");
 		assert.equal(runtime.helpers.flattenText(["a", { text: "b" }, { content: "c" }, null]), "abc");
+		assert.equal(runtime.helpers.flattenText([{ content: [{ text: "nested " }, { content: "text" }] }]), "nested text");
+		assert.equal(runtime.helpers.flattenText({ output: [{ text: "response" }] }), "response");
 		assert.equal(runtime.helpers.flattenText({ text: "d" }), "d");
 		assert.equal(runtime.helpers.flattenText({ content: "e" }), "e");
 		assert.equal(runtime.helpers.flattenText(10), "");
@@ -202,8 +212,10 @@ test("normalizeUsage preserves input, output, and cache accounting when reported
 	const { runtime, destroy } = createIsolatedRuntime();
 	try {
 		assert.deepEqual(runtime.helpers.normalizeUsage({
-			prompt_tokens: 10,
-			completion_tokens: 5,
+			prompt_tokens: null,
+			input_tokens: 10,
+			completion_tokens: "",
+			output_tokens: 5,
 			total_tokens: 15,
 			prompt_tokens_details: { cached_tokens: 4 }
 		}), {
@@ -248,9 +260,21 @@ test("chatRequestPayload applies defaults and validates normalized messages", ()
 			tools: [{ type: "function", function: { name: "browser-use", description: "Browse", parameters: { type: "object" } } }]
 		}, {});
 		assert.equal(withTool.tools[0].function.name, "browser-use");
+		const duplicateTools = runtime.helpers.chatRequestPayload({
+			messages: [{ role: "user", content: "hi" }],
+			tools: [
+				{ type: "function", function: { name: "same", parameters: {} } },
+				{ type: "function", function: { name: "same", parameters: {} } }
+			]
+		}, {});
+		assert.equal(duplicateTools.tools.length, 1);
 		assert.throws(
 			() => runtime.helpers.chatRequestPayload({ messages: [{ role: "tool", content: "x" }] }, {}),
 			/At least one message is required/
+		);
+		assert.deepEqual(
+			runtime.helpers.parseBridgeStdout("bridge log\n{\n  \"ok\": true,\n  \"output_text\": \"complete\"\n}\n"),
+			{ ok: true, output_text: "complete" }
 		);
 	} finally {
 		destroy();

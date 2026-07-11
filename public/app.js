@@ -1962,6 +1962,9 @@ function finiteUsageValue(value) {
 }
 
 function nullableUsageValue(value) {
+	if (value === null || value === undefined || (typeof value === "string" && value.trim() === "")) {
+		return null;
+	}
 	const numeric = Number(value);
 	return Number.isFinite(numeric) && numeric >= 0 ? numeric : null;
 }
@@ -2889,7 +2892,6 @@ async function sendMessageToPaneStream(chat, pane, text) {
 		let noProgressPasses = 0;
 		let streamErrorRecoveryPasses = 0;
 		let hardIncompleteRecoveryPasses = 0;
-		let safetyIncompleteRecoveryUsed = false;
 		let thinkingOnlyRecoveryPasses = 0;
 		let endedLikelyIncomplete = false;
 
@@ -3094,8 +3096,8 @@ async function sendMessageToPaneStream(chat, pane, text) {
 				&& hardIncompleteRecoveryPasses < 2;
 			const shouldContinueForIncompleteOutput = !streamErrored
 				&& !reachedTokenLimit
-				&& ((thinkingOnly && thinkingOnlyRecoveryPasses < 6)
-					|| (!safetyIncompleteRecoveryUsed && continuationPass === 0 && looksIncomplete));
+				&& thinkingOnly
+				&& thinkingOnlyRecoveryPasses < 6;
 
 			let continueReason = "none";
 			if (shouldContinueForTokenLimit) {
@@ -3107,13 +3109,8 @@ async function sendMessageToPaneStream(chat, pane, text) {
 				continueReason = "hard_incomplete_closure";
 				hardIncompleteRecoveryPasses += 1;
 			} else if (shouldContinueForIncompleteOutput) {
-				if (thinkingOnly) {
-					continueReason = "thinking_only_recovery";
-					thinkingOnlyRecoveryPasses += 1;
-				} else {
-					continueReason = "incomplete_output_safety";
-					safetyIncompleteRecoveryUsed = true;
-				}
+				continueReason = "thinking_only_recovery";
+				thinkingOnlyRecoveryPasses += 1;
 			}
 
 			streamMetrics.passes.push({
@@ -3128,13 +3125,13 @@ async function sendMessageToPaneStream(chat, pane, text) {
 			});
 
 			if (continueReason === "none") {
-				if ((looksIncomplete || hardIncomplete) && (streamErrored || continuationPass > 0)) {
+				if (hardIncomplete && (streamErrored || continuationPass > 0)) {
 					endedLikelyIncomplete = true;
 				}
 				break;
 			}
 
-			if (noProgressPasses >= 4) {
+			if (noProgressPasses >= 4 && !thinkingOnly) {
 				if (looksIncomplete) {
 					endedLikelyIncomplete = true;
 				}
@@ -3205,8 +3202,7 @@ async function sendMessageToPaneStream(chat, pane, text) {
 			repair_applied: Boolean(streamMetrics.repair_applied)
 		};
 		assistantMessage.streaming = false;
-		const finalLooksIncomplete = responseLooksIncomplete(assistantMessage.content);
-		const shouldMarkPartial = endedLikelyIncomplete || (finalLooksIncomplete && noProgressPasses >= 2) || (!assistantMessage.content && assistantMessage.thinking);
+		const shouldMarkPartial = endedLikelyIncomplete || (!assistantMessage.content && assistantMessage.thinking);
 		pane.status = shouldMarkPartial ? "partial" : "idle";
 		if (assistantMessage.usage && Number(assistantMessage.usage.total_tokens) > 0) {
 			appendUsageLedgerEntry({
@@ -4342,6 +4338,11 @@ function appendUsageLedgerEntry(entry) {
 		model: String(entry.model || "unknown"),
 		role: String(entry.role || "assistant"),
 		tokens: Number(entry.tokens || 0),
+		input_tokens: finiteUsageValue(entry.input_tokens),
+		output_tokens: finiteUsageValue(entry.output_tokens),
+		cached_input_tokens: nullableUsageValue(entry.cached_input_tokens),
+		cache_write_input_tokens: nullableUsageValue(entry.cache_write_input_tokens),
+		cache_details_reported: Boolean(entry.cache_details_reported),
 		createdAt: Number.isFinite(Number(entry.createdAt)) ? Number(entry.createdAt) : Date.now()
 	};
 
@@ -4702,6 +4703,7 @@ async function requestAutoTitleViaStream(profileId, model, prompt) {
 		let buffer = "";
 		let currentEvent = "message";
 		let content = "";
+		let streamError = false;
 
 		const consumeBufferedSseLines = (flushFinalLine = false) => {
 			const lines = buffer.split(/\r?\n/);
@@ -4733,6 +4735,7 @@ async function requestAutoTitleViaStream(profileId, model, prompt) {
 				}
 
 				if (currentEvent === "error") {
+					streamError = true;
 					return "error";
 				}
 
@@ -4757,22 +4760,16 @@ async function requestAutoTitleViaStream(profileId, model, prompt) {
 			if (done) {
 				buffer += decoder.decode();
 				const finalState = consumeBufferedSseLines(true);
-				if (finalState === "error") {
+				if (streamError || finalState === "error") {
 					return "";
-				}
-				if (finalState === "done") {
-					return extractCleanGeneratedTitle(content);
 				}
 				break;
 			}
 
 			buffer += decoder.decode(value, { stream: true });
 			const stateResult = consumeBufferedSseLines(false);
-			if (stateResult === "error") {
+			if (streamError || stateResult === "error") {
 				return "";
-			}
-			if (stateResult === "done") {
-				return extractCleanGeneratedTitle(content);
 			}
 		}
 
