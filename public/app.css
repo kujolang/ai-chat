@@ -531,9 +531,9 @@ select:focus,
 	color: inherit;
 	opacity: 0.62;
 	padding: 0;
-	width: 16px;
-	height: 16px;
-	min-width: 16px;
+	width: 14px;
+	height: 14px;
+	min-width: 14px;
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
@@ -553,8 +553,8 @@ select:focus,
 }
 
 .chat-action svg {
-	width: 16px;
-	height: 16px;
+	width: 13px;
+	height: 13px;
 }
 
 .chat-item-actions .chat-action[data-action="project"],
@@ -1383,11 +1383,69 @@ textarea {
 	z-index: 1;
 	width: min(980px, 96vw);
 	max-height: 90vh;
-	overflow: auto;
+	overflow: hidden;
 	background: #0f1114;
 	border: 1px solid var(--line);
 	border-radius: 16px;
-	padding: 16px;
+	padding: 12px 16px 16px;
+}
+
+.modal-panel,
+.modal-scroll-content,
+.usage-breakdown {
+	scrollbar-color: #3a5f55 #111519;
+	scrollbar-width: thin;
+}
+
+.modal-panel::-webkit-scrollbar,
+.modal-scroll-content::-webkit-scrollbar,
+.usage-breakdown::-webkit-scrollbar {
+	width: 8px;
+	height: 8px;
+}
+
+.modal-panel::-webkit-scrollbar-track,
+.modal-scroll-content::-webkit-scrollbar-track,
+.usage-breakdown::-webkit-scrollbar-track {
+	background: #111519;
+	border-radius: 999px;
+}
+
+.modal-panel::-webkit-scrollbar-thumb,
+.modal-scroll-content::-webkit-scrollbar-thumb,
+.usage-breakdown::-webkit-scrollbar-thumb {
+	background: #365b50;
+	border: 2px solid #111519;
+	border-radius: 999px;
+}
+
+.modal-panel::-webkit-scrollbar-thumb:hover,
+.modal-scroll-content::-webkit-scrollbar-thumb:hover,
+.usage-breakdown::-webkit-scrollbar-thumb:hover {
+	background: #4b7b6a;
+}
+
+.modal-head h2 {
+	margin: 0;
+}
+
+.modal-scroll-content {
+	min-width: 0;
+	overflow-x: hidden;
+	overflow-y: auto;
+}
+
+.settings-modal-panel {
+	padding-top: 10px;
+}
+
+.settings-modal-panel .modal-scroll-content {
+	padding-top: 0;
+}
+
+.settings-section h3,
+.settings-row-head h3 {
+	margin-top: 0;
 }
 
 .modal-head {
@@ -1438,15 +1496,21 @@ textarea {
 .usage-modal-panel {
 	width: min(1080px, 96vw);
 	max-height: 90vh;
-	padding: 16px;
-	display: grid;
+	padding: 10px 16px 16px;
+	display: flex;
+	flex-direction: column;
 	gap: 12px;
+}
+
+.usage-modal-scroll {
+	min-width: 0;
 }
 
 .usage-summary-grid {
 	display: grid;
 	grid-template-columns: repeat(3, minmax(0, 1fr));
 	gap: 10px;
+	min-width: 0;
 }
 
 .usage-stat-card {
@@ -1483,6 +1547,7 @@ textarea {
 	border: 1px solid var(--line-soft);
 	border-radius: 12px;
 	background: rgba(255, 255, 255, 0.015);
+	min-width: 0;
 }
 
 .usage-filters-grid label {
@@ -1502,18 +1567,22 @@ textarea {
 	border-radius: 12px;
 	padding: 10px;
 	background: rgba(10, 12, 15, 0.82);
+	min-width: 0;
+	overflow: hidden;
 }
 
 .usage-breakdown {
 	border: 1px solid var(--line-soft);
 	border-radius: 12px;
 	background: rgba(255, 255, 255, 0.015);
-	overflow: auto;
+	overflow-y: auto;
+	overflow-x: hidden;
 	max-height: min(30vh, 260px);
 }
 
 .usage-table {
 	width: 100%;
+	table-layout: fixed;
 	border-collapse: collapse;
 	font-size: 12px;
 }
@@ -1523,6 +1592,17 @@ textarea {
 	padding: 8px 10px;
 	border-bottom: 1px solid var(--line-soft);
 	text-align: left;
+	word-break: break-word;
+}
+
+.usage-table th:first-child,
+.usage-table td:first-child {
+	width: 48%;
+}
+
+.usage-table th:not(:first-child),
+.usage-table td:not(:first-child) {
+	width: 17.333%;
 }
 
 .usage-table th {

@@ -38,7 +38,6 @@
 				</div>
 			</div>
 
-			<div class="sidebar-subtitle">Conversations</div>
 			<div class="sidebar-filters">
 				<button id="show-active-btn" class="btn ghost active">Active</button>
 				<button id="show-archived-btn" class="btn ghost">Archived</button>
@@ -112,7 +111,7 @@
 
 	<div id="settings-modal" class="modal hidden">
 		<div class="modal-backdrop" data-close="true"></div>
-		<div class="modal-panel">
+		<div class="modal-panel settings-modal-panel">
 			<div class="modal-head">
 				<h2>Settings</h2>
 				<button id="close-settings-btn" class="modal-close-icon" aria-label="Close settings" title="Close settings">
@@ -120,6 +119,7 @@
 				</button>
 			</div>
 
+			<div class="modal-scroll-content">
 			<section class="settings-section">
 				<h3>Model Defaults</h3>
 				<div class="settings-grid">
@@ -166,6 +166,7 @@
 				<p class="settings-note">API keys are encrypted at rest in SQLite using AES-256-GCM.</p>
 				<div id="profile-list" class="profile-list"></div>
 			</section>
+			</div>
 		</div>
 	</div>
 
@@ -232,6 +233,7 @@
 				</button>
 			</div>
 
+			<div class="modal-scroll-content usage-modal-scroll">
 			<div class="usage-summary-grid">
 				<div class="usage-stat-card">
 					<div class="usage-stat-label">Total Tokens</div>
@@ -298,6 +300,7 @@
 			</div>
 
 			<div id="usage-breakdown" class="usage-breakdown"></div>
+			</div>
 		</div>
 	</div>
 
