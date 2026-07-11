@@ -10,7 +10,8 @@ const defaultState = {
 	settings: {
 		temperature: 0.2,
 		maxTokens: 12000,
-		profiles: []
+		profiles: [],
+		tools: []
 	}
 };
 
@@ -30,6 +31,9 @@ let markdownRenderer = null;
 let workspaceRenderScheduled = false;
 let streamingMessagePatchScheduled = false;
 const streamingMessagePatchQueue = new Map();
+const activeStreamControllers = new Set();
+let activeStreamCount = 0;
+let stopStreamingRequested = false;
 let codeHighlightScheduled = false;
 const pendingCodeHighlightRoots = new Set();
 const apiTokenStorageKey = "ai_chat_api_token";
@@ -40,10 +44,16 @@ const legacyApiTokenStorageKey = "kujo_ai_chat_api_token";
 const legacyApiTokenExpiresAtStorageKey = "kujo_ai_chat_api_token_expires_at";
 const legacyStateCacheStorageKey = "kujo_ai_chat_state_cache_v1";
 const legacyUsageLedgerStorageKey = "kujo_ai_chat_usage_ledger_v1";
+const sidebarCollapsedStorageKey = "ai_chat_sidebar_collapsed_v1";
 const maxVisibleProjectFolders = 5;
 const sidebarChatPageSize = 5;
 const defaultApiTokenTtlDays = 3650;
 const maxApiTokenTtlDays = 36500;
+let sidebarCollapsed = loadSidebarCollapsedPreference();
+const sendButtonSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z\"/><path d=\"m21.854 2.147-10.94 10.939\"/></svg>";
+const stopButtonSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect width=\"14\" height=\"14\" x=\"5\" y=\"5\" rx=\"2\"/></svg>";
+const collapseSidebarSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect width=\"18\" height=\"18\" x=\"3\" y=\"3\" rx=\"2\"/><path d=\"M9 3v18\"/><path d=\"m15 9-3 3 3 3\"/></svg>";
+const expandSidebarSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect width=\"18\" height=\"18\" x=\"3\" y=\"3\" rx=\"2\"/><path d=\"M9 3v18\"/><path d=\"m9 9 3 3-3 3\"/></svg>";
 const copyCodeButtonSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"code-copy-icon\" aria-hidden=\"true\"><rect width=\"14\" height=\"14\" x=\"8\" y=\"8\" rx=\"2\" ry=\"2\"/><path d=\"M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2\"/></svg>";
 let apiAuthToken = "";
 let apiAuthTokenExpiresAt = 0;
@@ -67,6 +77,7 @@ const nodes = {
 	chatTitleInput: document.getElementById("chat-title-input"),
 	addPaneBtn: document.getElementById("add-pane-btn"),
 	paneControls: document.getElementById("pane-controls"),
+	toggleSidebarBtn: document.getElementById("toggle-sidebar-btn"),
 	openUsageBtn: document.getElementById("open-usage-btn"),
 	openSettingsBtn: document.getElementById("open-settings-btn"),
 	paneGrid: document.getElementById("pane-grid"),
@@ -123,6 +134,11 @@ const nodes = {
 	settingsSaveIndicator: document.getElementById("settings-save-indicator"),
 	clearApiTokenBtn: document.getElementById("clear-api-token-btn"),
 	profileList: document.getElementById("profile-list"),
+	toolsList: document.getElementById("tools-list"),
+	addToolBtn: document.getElementById("add-tool-btn"),
+	addBrowserToolBtn: document.getElementById("add-browser-tool-btn"),
+	addWebSearchToolBtn: document.getElementById("add-web-search-tool-btn"),
+	appShell: document.getElementById("app"),
 	paneTemplate: document.getElementById("pane-template")
 };
 
@@ -222,6 +238,9 @@ function migrateState(candidate) {
 					...profile,
 					api_key_dirty: false
 				}));
+			}
+			if (Array.isArray(candidate.settings.tools)) {
+				merged.settings.tools = candidate.settings.tools.map((tool) => normalizeToolDefinition(tool)).filter(Boolean);
 			}
 		}
 	}
@@ -454,6 +473,28 @@ function wireEvents() {
 		state.settings.profiles.push(createDefaultProfile());
 		renderSettings();
 		renderAll();
+		schedulePersist();
+	});
+
+	nodes.toggleSidebarBtn.addEventListener("click", () => {
+		setSidebarCollapsed(!sidebarCollapsed);
+	});
+
+	nodes.addToolBtn.addEventListener("click", () => {
+		state.settings.tools.push(createToolDefinition());
+		renderSettings();
+		schedulePersist();
+	});
+
+	nodes.addBrowserToolBtn.addEventListener("click", () => {
+		state.settings.tools.push(createBrowserUseToolDefinition());
+		renderSettings();
+		schedulePersist();
+	});
+
+	nodes.addWebSearchToolBtn.addEventListener("click", () => {
+		state.settings.tools.push(createWebSearchToolDefinition());
+		renderSettings();
 		schedulePersist();
 	});
 
@@ -807,6 +848,37 @@ function wireEvents() {
 		renderSettings();
 		renderAll();
 	});
+
+	const onToolFieldChange = (event) => {
+		const toolId = String(event.target.getAttribute("data-tool-id") || "");
+		const field = String(event.target.getAttribute("data-tool-field") || "");
+		const tool = state.settings.tools.find((candidate) => candidate.id === toolId);
+		if (!tool || !field) {
+			return;
+		}
+
+		if (field === "enabled") {
+			tool.enabled = Boolean(event.target.checked);
+		} else {
+			tool[field] = event.target.value;
+		}
+		schedulePersist();
+	};
+
+	nodes.toolsList.addEventListener("input", onToolFieldChange);
+	nodes.toolsList.addEventListener("change", onToolFieldChange);
+	nodes.toolsList.addEventListener("click", (event) => {
+		const actionNode = event.target.closest("[data-tool-action]");
+		const action = actionNode ? actionNode.getAttribute("data-tool-action") : "";
+		if (action !== "delete") {
+			return;
+		}
+
+		const toolId = String(actionNode.getAttribute("data-tool-id") || "");
+		state.settings.tools = state.settings.tools.filter((tool) => tool.id !== toolId);
+		renderSettings();
+		schedulePersist();
+	});
 }
 
 function createAndActivateChat() {
@@ -1042,10 +1114,34 @@ function renderAll() {
 	renderComposerUsageSummary();
 	renderSidebar();
 	renderWorkspace();
+	renderSidebarToggle();
+	updateStreamingControls();
 
 	if (isUsageModalOpen()) {
 		renderUsageModalContent();
 	}
+}
+
+function renderSidebarToggle() {
+	if (!nodes.toggleSidebarBtn || !nodes.appShell) {
+		return;
+	}
+
+	nodes.appShell.classList.toggle("sidebar-collapsed", sidebarCollapsed);
+	nodes.toggleSidebarBtn.innerHTML = sidebarCollapsed ? expandSidebarSvg : collapseSidebarSvg;
+	const label = sidebarCollapsed ? "Open sidebar" : "Collapse sidebar";
+	nodes.toggleSidebarBtn.setAttribute("aria-label", label);
+	nodes.toggleSidebarBtn.title = label;
+}
+
+function setSidebarCollapsed(collapsed) {
+	sidebarCollapsed = Boolean(collapsed);
+	try {
+		window.localStorage.setItem(sidebarCollapsedStorageKey, sidebarCollapsed ? "1" : "0");
+	} catch (error) {
+		// Keep the control usable if storage is unavailable.
+	}
+	renderSidebarToggle();
 }
 
 function buildProfileModelOptions() {
@@ -2610,6 +2706,47 @@ function renderSettings() {
 			`;
 		})
 		.join("");
+	renderToolsSettings();
+}
+
+function renderToolsSettings() {
+	if (!nodes.toolsList) {
+		return;
+	}
+
+	nodes.toolsList.innerHTML = state.settings.tools.map((tool) => {
+		const schema = parseToolParameters(tool.parameters_json);
+		const schemaStatus = schema ? "Valid JSON schema" : "Invalid JSON schema";
+		return `
+			<div class="tool-card">
+				<div class="tool-card-head">
+					<div>
+						<div class="tool-card-title">${escapeHtml(tool.name)}</div>
+						<div class="tool-card-kind">${escapeHtml(tool.kind === "preset" ? "Preset" : "Custom function tool")}</div>
+					</div>
+					<label class="tool-enabled"><input data-tool-id="${escapeHtml(tool.id)}" data-tool-field="enabled" type="checkbox" ${tool.enabled ? "checked" : ""}> Enabled</label>
+				</div>
+				<div class="tool-grid">
+					<label>
+						<span>Name</span>
+						<input data-tool-id="${escapeHtml(tool.id)}" data-tool-field="name" type="text" value="${escapeHtml(tool.name)}">
+					</label>
+					<label>
+						<span>Description</span>
+						<input data-tool-id="${escapeHtml(tool.id)}" data-tool-field="description" type="text" value="${escapeHtml(tool.description)}">
+					</label>
+					<label class="tool-field-wide">
+						<span>Parameters JSON</span>
+						<textarea data-tool-id="${escapeHtml(tool.id)}" data-tool-field="parameters_json" rows="7" spellcheck="false">${escapeHtml(tool.parameters_json)}</textarea>
+						<small class="tool-schema-status ${schema ? "valid" : "invalid"}">${schemaStatus}</small>
+					</label>
+				</div>
+				<div class="profile-actions">
+					<button class="btn ghost danger" data-tool-action="delete" data-tool-id="${escapeHtml(tool.id)}">Remove Tool</button>
+				</div>
+			</div>
+		`;
+	}).join("") || `<div class="empty-state">No tools configured. Add a preset or define a custom function tool.</div>`;
 }
 
 async function saveApiTokenFromSettings(options = {}) {
@@ -2678,6 +2815,11 @@ async function validateApiAuthTokenCandidate(token) {
 }
 
 async function sendFromComposer() {
+	if (activeStreamCount > 0) {
+		stopActiveStreams();
+		return;
+	}
+
 	const chat = getActiveChat();
 	if (!chat) {
 		return;
@@ -2732,6 +2874,9 @@ async function sendMessageToPaneStream(chat, pane, text) {
 		cache_write_input_tokens: null,
 		cache_details_reported: false
 	};
+	let currentStreamController = null;
+	activeStreamCount += 1;
+	updateStreamingControls();
 
 	try {
 		const maxContinuationPasses = 12;
@@ -2777,13 +2922,19 @@ async function sendMessageToPaneStream(chat, pane, text) {
 				model: selectedModel,
 				temperature: state.settings.temperature,
 				max_tokens: requestedMaxTokens,
-				messages: chatHistory
+				messages: chatHistory,
+				tools: buildEnabledToolDefinitions()
 			};
 
+			const controller = new AbortController();
+			currentStreamController = controller;
+			activeStreamControllers.add(controller);
+			updateStreamingControls();
 			const response = await apiFetch("/api/chat/stream", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(payload)
+				body: JSON.stringify(payload),
+				signal: controller.signal
 			});
 
 			if (!response.ok || !response.body) {
@@ -2868,6 +3019,11 @@ async function sendMessageToPaneStream(chat, pane, text) {
 				buffer += decoder.decode(value, { stream: true });
 				consumeBufferedSseLines(false);
 			}
+			activeStreamControllers.delete(controller);
+			if (currentStreamController === controller) {
+				currentStreamController = null;
+			}
+			updateStreamingControls();
 
 			if (streamDonePayload) {
 				assistantMessage.provider = streamDonePayload.provider || assistantMessage.provider;
@@ -2995,7 +3151,20 @@ async function sendMessageToPaneStream(chat, pane, text) {
 		}
 
 		if (hasHardIncompleteMarkers(assistantMessage.content)) {
-			const repairedTail = await requestHardCompletionRepair(profile.id, selectedModel, assistantMessage.content);
+			const repairController = new AbortController();
+			currentStreamController = repairController;
+			activeStreamControllers.add(repairController);
+			updateStreamingControls();
+			let repairedTail = "";
+			try {
+				repairedTail = await requestHardCompletionRepair(profile.id, selectedModel, assistantMessage.content, repairController.signal);
+			} finally {
+				activeStreamControllers.delete(repairController);
+				if (currentStreamController === repairController) {
+					currentStreamController = null;
+				}
+				updateStreamingControls();
+			}
 			if (repairedTail) {
 				assistantMessage.content = mergeContinuationText(
 					assistantMessage.content,
@@ -3067,6 +3236,11 @@ async function sendMessageToPaneStream(chat, pane, text) {
 		}
 		renderWorkspace();
 	} catch (error) {
+		const intentionallyStopped = stopStreamingRequested && isAbortLikeError(error);
+		if (intentionallyStopped) {
+			assistantMessage.streaming = false;
+			pane.status = assistantMessage.content || assistantMessage.thinking ? "partial" : "idle";
+		} else {
 		if (!assistantMessage.usage) {
 			const estimatedTokens = estimateTokensFromText(assistantMessage.content);
 			if (estimatedTokens > 0) {
@@ -3113,11 +3287,46 @@ async function sendMessageToPaneStream(chat, pane, text) {
 		if (isUsageModalOpen()) {
 			renderUsageModalContent();
 		}
+		}
 	}
 
 	chat.updatedAt = Date.now();
 	schedulePersist();
 	renderWorkspace();
+	if (currentStreamController) {
+		activeStreamControllers.delete(currentStreamController);
+		currentStreamController = null;
+	}
+	activeStreamCount = Math.max(0, activeStreamCount - 1);
+	if (activeStreamCount === 0) {
+		stopStreamingRequested = false;
+	}
+	updateStreamingControls();
+}
+
+function isAbortLikeError(error) {
+	return Boolean(error && (error.name === "AbortError" || String(error.message || "").toLowerCase().includes("abort")));
+}
+
+function stopActiveStreams() {
+	stopStreamingRequested = true;
+	for (const controller of activeStreamControllers) {
+		controller.abort();
+	}
+	updateStreamingControls();
+}
+
+function updateStreamingControls() {
+	if (!nodes.sendBtn) {
+		return;
+	}
+
+	const streaming = activeStreamCount > 0;
+	nodes.sendBtn.innerHTML = streaming ? stopButtonSvg : sendButtonSvg;
+	nodes.sendBtn.setAttribute("aria-label", streaming ? "Stop streaming" : "Send");
+	nodes.sendBtn.title = streaming ? "Stop streaming" : "Send message";
+	nodes.sendBtn.classList.toggle("streaming-stop", streaming);
+	nodes.sendBtn.disabled = false;
 }
 
 function mergeUsageTotals(current, next) {
@@ -3446,7 +3655,7 @@ function continuationAssistantContext(value) {
 	return text.slice(-maxContextChars);
 }
 
-async function requestHardCompletionRepair(profileId, model, fullContent) {
+async function requestHardCompletionRepair(profileId, model, fullContent, signal) {
 	const contentTail = continuationAssistantContext(fullContent);
 	if (!contentTail) {
 		return "";
@@ -3471,7 +3680,8 @@ async function requestHardCompletionRepair(profileId, model, fullContent) {
 						content: `Continue only from this tail and finish any incomplete structure:\n\n${contentTail}`
 					}
 				]
-			})
+			}),
+			signal
 		});
 
 		if (!response.ok) {
@@ -3485,6 +3695,9 @@ async function requestHardCompletionRepair(profileId, model, fullContent) {
 
 		return String(payload.output_text || "");
 	} catch (error) {
+		if (signal && signal.aborted) {
+			throw error;
+		}
 		return "";
 	}
 }
@@ -3748,6 +3961,115 @@ function createDefaultProfile() {
 		base_url: "",
 		models_csv: "gpt-4.1-mini"
 	};
+}
+
+function sanitizeToolName(value) {
+	return String(value || "")
+		.trim()
+		.replace(/[^A-Za-z0-9_-]+/g, "_")
+		.slice(0, 64) || "custom_tool";
+}
+
+function parseToolParameters(value) {
+	try {
+		const parsed = JSON.parse(String(value || "{}"));
+		return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : null;
+	} catch (error) {
+		return null;
+	}
+}
+
+function normalizeToolDefinition(tool) {
+	if (!tool || typeof tool !== "object") {
+		return null;
+	}
+
+	const parsedParameters = tool.parameters && typeof tool.parameters === "object" && !Array.isArray(tool.parameters)
+		? tool.parameters
+		: parseToolParameters(tool.parameters_json);
+	const parameters = parsedParameters || { type: "object", properties: {}, additionalProperties: false };
+	const parametersJson = String(tool.parameters_json || "").trim() || JSON.stringify(parameters, null, 2);
+	return {
+		id: String(tool.id || uid()),
+		name: sanitizeToolName(tool.name || "custom_tool"),
+		description: String(tool.description || "").slice(0, 2000),
+		parameters_json: parametersJson,
+		enabled: tool.enabled !== false,
+		kind: tool.kind === "preset" ? "preset" : "custom"
+	};
+}
+
+function createToolDefinition(overrides = {}) {
+	return normalizeToolDefinition({
+		id: uid(),
+		name: "custom_tool",
+		description: "Describe what this tool does.",
+		parameters_json: JSON.stringify({
+			type: "object",
+			properties: {},
+			additionalProperties: false
+		}, null, 2),
+		enabled: true,
+		kind: "custom",
+		...overrides
+	});
+}
+
+function createBrowserUseToolDefinition() {
+	return createToolDefinition({
+		name: "browser_use",
+		description: "Use the connected browser-use runner to navigate, inspect, click, type, or extract page content.",
+		parameters_json: JSON.stringify({
+			type: "object",
+			properties: {
+				action: { type: "string", enum: ["navigate", "click", "type", "extract", "screenshot"] },
+				url: { type: "string" },
+				selector: { type: "string" },
+				text: { type: "string" }
+			},
+			required: ["action"],
+			additionalProperties: false
+		}, null, 2),
+		kind: "preset"
+	});
+}
+
+function createWebSearchToolDefinition() {
+	return createToolDefinition({
+		name: "web_search",
+		description: "Search the web through a connected search or browser tool runner.",
+		parameters_json: JSON.stringify({
+			type: "object",
+			properties: {
+				query: { type: "string" },
+				recency_days: { type: "integer" }
+			},
+			required: ["query"],
+			additionalProperties: false
+		}, null, 2),
+		kind: "preset"
+	});
+}
+
+function buildEnabledToolDefinitions() {
+	return state.settings.tools
+		.filter((tool) => tool.enabled)
+		.map((tool) => {
+			const parameters = parseToolParameters(tool.parameters_json);
+			if (!parameters) {
+				return null;
+			}
+			return {
+				type: "function",
+				function: {
+					name: sanitizeToolName(tool.name),
+					description: String(tool.description || "").slice(0, 2000),
+					parameters
+				}
+			};
+		})
+		.filter(Boolean)
+		.slice(0, 32);
 }
 
 function normalizeApiTokenTtlDays(value) {

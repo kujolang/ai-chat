@@ -38,6 +38,19 @@ body {
 	display: grid;
 	grid-template-columns: 258px 1fr;
 	height: 100vh;
+	transition: grid-template-columns 160ms ease;
+}
+
+.app-shell.sidebar-collapsed {
+	grid-template-columns: 0 1fr;
+}
+
+.app-shell.sidebar-collapsed .sidebar {
+	width: 0;
+	min-width: 0;
+	padding-left: 0;
+	opacity: 0;
+	pointer-events: none;
 }
 
 .sidebar {
@@ -642,6 +655,10 @@ select:focus,
 	width: 32px;
 	height: 32px;
 	padding: 0;
+}
+
+.sidebar-toggle-btn {
+	flex: 0 0 auto;
 }
 
 .pane-grid {
@@ -1362,6 +1379,12 @@ textarea {
 	height: 32px;
 }
 
+.composer-actions .btn.streaming-stop {
+	color: #ffcf85;
+	border-color: #665333;
+	background: rgba(255, 207, 133, 0.08);
+}
+
 .btn.active {
 	background: var(--accent-quiet);
 	border-color: #2f4941;
@@ -1469,6 +1492,10 @@ textarea {
 	min-width: 0;
 	overflow-x: hidden;
 	overflow-y: auto;
+}
+
+.modal-panel > .modal-scroll-content {
+	max-width: 100%;
 }
 
 .settings-modal-panel {
@@ -2102,6 +2129,16 @@ textarea {
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
+	gap: 10px;
+	flex-wrap: wrap;
+}
+
+.settings-tool-actions {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 6px;
+	flex-wrap: wrap;
 }
 
 .profile-card select[data-field="provider_id"] {
@@ -2165,6 +2202,70 @@ textarea {
 	background: rgba(255, 255, 255, 0.015);
 }
 
+.tools-list {
+	display: grid;
+	gap: 10px;
+}
+
+.tool-card {
+	padding: 10px;
+	border: 1px solid var(--line-soft);
+	border-radius: 11px;
+	background: rgba(255, 255, 255, 0.015);
+}
+
+.tool-card-head {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	gap: 12px;
+	margin-bottom: 8px;
+}
+
+.tool-card-title {
+	font-family: var(--mono);
+	font-size: 12px;
+	color: var(--text);
+}
+
+.tool-card-kind,
+.tool-schema-status {
+	font-size: 11px;
+	color: var(--text-dim);
+}
+
+.tool-schema-status.valid {
+	color: var(--accent);
+}
+
+.tool-schema-status.invalid {
+	color: #ffcf85;
+}
+
+.tool-enabled {
+	white-space: nowrap;
+	font-size: 12px;
+	color: var(--text-dim);
+}
+
+.tool-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 8px;
+}
+
+.tool-field-wide {
+	grid-column: 1 / -1;
+}
+
+.tool-grid textarea {
+	width: 100%;
+	min-height: 132px;
+	resize: vertical;
+	font-family: var(--mono);
+	font-size: 11px;
+}
+
 .profile-grid {
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2194,6 +2295,18 @@ textarea {
 		max-height: 45vh;
 	}
 
+	.app-shell.sidebar-collapsed {
+		grid-template-columns: 1fr;
+		grid-template-rows: 0 1fr;
+	}
+
+	.app-shell.sidebar-collapsed .sidebar {
+		max-height: 0;
+		border-bottom: 0;
+		padding-top: 0;
+		padding-bottom: 0;
+	}
+
 	.pane-grid.cols-2,
 	.pane-grid.cols-3 {
 		grid-template-columns: 1fr;
@@ -2205,8 +2318,13 @@ textarea {
 	}
 
 	.profile-grid,
-	.settings-grid {
+	.settings-grid,
+	.tool-grid {
 		grid-template-columns: 1fr;
+	}
+
+	.tool-field-wide {
+		grid-column: auto;
 	}
 
 	.usage-summary-grid {
