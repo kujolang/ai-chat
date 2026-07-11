@@ -82,7 +82,7 @@ When `DEBUG_API_ERRORS=0`, provider raw error bodies are not included in stream 
 - `state.activeChatId` string|null
 - `state.showArchived` boolean
 - `state.searchQuery` string
-- `state.broadcastToAllPanes` boolean
+- `state.broadcastToAllPanes` boolean compatibility field; the UI always persists this as `true` and broadcasts prompts to every pane.
 - `state.settings` object containing `temperature`, `maxTokens`, `profiles`
 
 Profile key handling guarantee:

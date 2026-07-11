@@ -205,8 +205,7 @@ button,
 a,
 .btn,
 .nav-link,
-.chat-item,
-.broadcast-toggle {
+.chat-item {
 	cursor: pointer;
 }
 
@@ -645,18 +644,6 @@ select:focus,
 	padding: 0;
 }
 
-.broadcast-toggle {
-	display: flex;
-	align-items: center;
-	gap: 6px;
-	font-size: 11px;
-	padding: 4px 8px;
-	border: 1px solid var(--line-soft);
-	border-radius: 999px;
-	background: rgba(255, 255, 255, 0.02);
-	color: var(--text-dim);
-}
-
 .pane-grid {
 	display: grid;
 	gap: 16px;
@@ -768,6 +755,50 @@ select:focus,
 	display: flex;
 	align-items: center;
 	gap: 8px;
+}
+
+.pane-card.single-pane .pane-head {
+	display: none;
+}
+
+.pane-controls {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 8px;
+	min-width: 0;
+}
+
+.pane-control-group {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	min-width: 0;
+}
+
+.pane-control-status {
+	font-size: 11px;
+	font-family: var(--mono);
+	color: var(--text-dim);
+	white-space: nowrap;
+}
+
+.pane-control-status.waiting {
+	color: #9bd6ff;
+}
+
+.pane-control-status.error {
+	color: #ff9a9a;
+}
+
+.pane-control-status.partial {
+	color: #ffcf85;
+}
+
+.pane-controls .pane-remove-btn.icon-only {
+	width: 26px;
+	height: 26px;
+	min-width: 26px;
 }
 
 .pane-remove-btn.icon-only {
@@ -1392,6 +1423,7 @@ textarea {
 
 .modal-panel,
 .modal-scroll-content,
+.search-modal-results,
 .usage-breakdown {
 	scrollbar-color: #3a5f55 #111519;
 	scrollbar-width: thin;
@@ -1399,6 +1431,7 @@ textarea {
 
 .modal-panel::-webkit-scrollbar,
 .modal-scroll-content::-webkit-scrollbar,
+.search-modal-results::-webkit-scrollbar,
 .usage-breakdown::-webkit-scrollbar {
 	width: 8px;
 	height: 8px;
@@ -1406,6 +1439,7 @@ textarea {
 
 .modal-panel::-webkit-scrollbar-track,
 .modal-scroll-content::-webkit-scrollbar-track,
+.search-modal-results::-webkit-scrollbar-track,
 .usage-breakdown::-webkit-scrollbar-track {
 	background: #111519;
 	border-radius: 999px;
@@ -1413,6 +1447,7 @@ textarea {
 
 .modal-panel::-webkit-scrollbar-thumb,
 .modal-scroll-content::-webkit-scrollbar-thumb,
+.search-modal-results::-webkit-scrollbar-thumb,
 .usage-breakdown::-webkit-scrollbar-thumb {
 	background: #365b50;
 	border: 2px solid #111519;
@@ -1421,6 +1456,7 @@ textarea {
 
 .modal-panel::-webkit-scrollbar-thumb:hover,
 .modal-scroll-content::-webkit-scrollbar-thumb:hover,
+.search-modal-results::-webkit-scrollbar-thumb:hover,
 .usage-breakdown::-webkit-scrollbar-thumb:hover {
 	background: #4b7b6a;
 }
@@ -1491,6 +1527,7 @@ textarea {
 	width: min(760px, 92vw);
 	max-height: 80vh;
 	padding: 14px;
+	overflow: hidden;
 }
 
 .usage-modal-panel {
@@ -1597,12 +1634,12 @@ textarea {
 
 .usage-table th:first-child,
 .usage-table td:first-child {
-	width: 48%;
+	width: 25%;
 }
 
 .usage-table th:not(:first-child),
 .usage-table td:not(:first-child) {
-	width: 17.333%;
+	width: 10.714%;
 }
 
 .usage-table th {
@@ -1707,7 +1744,8 @@ textarea {
 	display: grid;
 	gap: 6px;
 	max-height: 56vh;
-	overflow: auto;
+	overflow-y: auto;
+	overflow-x: hidden;
 	padding-right: 2px;
 }
 

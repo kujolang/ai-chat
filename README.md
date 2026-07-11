@@ -144,7 +144,7 @@ http://127.0.0.1:4173
 3. Enter API keys for each profile you plan to use.
 4. Set model suggestions (comma-separated) per profile.
 5. Create a new chat and add panes for side-by-side comparison.
-6. Send a prompt with broadcast enabled or disabled.
+6. Send a prompt; every pane receives the same prompt automatically.
 
 ## API Endpoints
 

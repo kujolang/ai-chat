@@ -12,6 +12,9 @@ The format is inspired by Keep a Changelog and semantic versioning.
 - Documented explicit proxy-trust, stream-timeout, and rate-limit bucket controls in setup and release docs.
 - Preserve provider message-shaped stream chunks, recover incomplete responses, and render Markdown thinking output.
 - Refined sidebar action sizing and modal scrolling/layout behavior for settings and token usage.
+- Increased the default completion budget, fixed upstream SSE line buffering, and added recovery for thinking-only continuation passes.
+- Track provider-reported input, output, and cached-input token usage in the composer summary and analytics modal.
+- Always broadcast prompts to every pane and move pane status/remove controls into the workspace header.
 
 ### Security
 

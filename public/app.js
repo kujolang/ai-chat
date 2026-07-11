@@ -9,7 +9,7 @@ const defaultState = {
 	broadcastToAllPanes: true,
 	settings: {
 		temperature: 0.2,
-		maxTokens: 3200,
+		maxTokens: 12000,
 		profiles: []
 	}
 };
@@ -66,7 +66,7 @@ const nodes = {
 	chatList: document.getElementById("chat-list"),
 	chatTitleInput: document.getElementById("chat-title-input"),
 	addPaneBtn: document.getElementById("add-pane-btn"),
-	broadcastToggle: document.getElementById("broadcast-toggle"),
+	paneControls: document.getElementById("pane-controls"),
 	openUsageBtn: document.getElementById("open-usage-btn"),
 	openSettingsBtn: document.getElementById("open-settings-btn"),
 	paneGrid: document.getElementById("pane-grid"),
@@ -102,6 +102,10 @@ const nodes = {
 	usageStatTotal: document.getElementById("usage-stat-total"),
 	usageStatResponses: document.getElementById("usage-stat-responses"),
 	usageStatAverage: document.getElementById("usage-stat-average"),
+	usageStatInput: document.getElementById("usage-stat-input"),
+	usageStatOutput: document.getElementById("usage-stat-output"),
+	usageStatCached: document.getElementById("usage-stat-cached"),
+	usageStatCacheWrite: document.getElementById("usage-stat-cache-write"),
 	usageFilterChat: document.getElementById("usage-filter-chat"),
 	usageFilterPane: document.getElementById("usage-filter-pane"),
 	usageFilterProvider: document.getElementById("usage-filter-provider"),
@@ -201,17 +205,17 @@ function migrateState(candidate) {
 		if (typeof candidate.searchQuery === "string") {
 			merged.searchQuery = candidate.searchQuery;
 		}
-		if (typeof candidate.broadcastToAllPanes === "boolean") {
-			merged.broadcastToAllPanes = candidate.broadcastToAllPanes;
-		}
+		merged.broadcastToAllPanes = true;
 		if (candidate.settings && typeof candidate.settings === "object") {
 			if (Number.isFinite(Number(candidate.settings.temperature))) {
 				merged.settings.temperature = Number(candidate.settings.temperature);
 			}
 			if (Number.isFinite(Number(candidate.settings.maxTokens))) {
-				merged.settings.maxTokens = Number(candidate.settings.maxTokens);
+				merged.settings.maxTokens = Number(candidate.settings.maxTokens) === 3200
+					? 12000
+					: Number(candidate.settings.maxTokens);
 			} else {
-				merged.settings.maxTokens = 3200;
+				merged.settings.maxTokens = 12000;
 			}
 			if (Array.isArray(candidate.settings.profiles)) {
 				merged.settings.profiles = candidate.settings.profiles.map((profile) => ({
@@ -412,11 +416,6 @@ function wireEvents() {
 		renderAll();
 	});
 
-	nodes.broadcastToggle.addEventListener("change", (event) => {
-		state.broadcastToAllPanes = event.target.checked;
-		schedulePersist();
-	});
-
 	nodes.openUsageBtn.addEventListener("click", openUsageModal);
 	nodes.closeUsageBtn.addEventListener("click", closeUsageModal);
 
@@ -496,7 +495,7 @@ function wireEvents() {
 
 	nodes.settingsMaxTokens.addEventListener("change", (event) => {
 		const value = Number(event.target.value);
-		state.settings.maxTokens = Number.isFinite(value) ? value : 3200;
+		state.settings.maxTokens = Number.isFinite(value) ? value : 12000;
 		schedulePersist();
 	});
 
@@ -690,14 +689,25 @@ function wireEvents() {
 			return;
 		}
 
-		if (action === "remove-pane" && chat.panes.length > 1) {
-			chat.panes = chat.panes.filter((pane) => pane.id !== paneId);
-			chat.updatedAt = Date.now();
-			schedulePersist();
-			renderAll();
+		if (action === "remove-pane") {
+			removePaneFromChat(chat, paneId);
 			return;
 		}
 
+	});
+
+	nodes.paneControls.addEventListener("click", (event) => {
+		const actionElement = event.target.closest("[data-action='remove-pane'][data-pane-id]");
+		if (!actionElement) {
+			return;
+		}
+
+		const chat = getActiveChat();
+		if (!chat) {
+			return;
+		}
+
+		removePaneFromChat(chat, String(actionElement.getAttribute("data-pane-id") || ""));
 	});
 
 	nodes.paneGrid.addEventListener("change", (event) => {
@@ -964,6 +974,7 @@ function loadStateFromCache() {
 
 function buildPersistPayload() {
 	const snapshot = structuredClone(state);
+	snapshot.broadcastToAllPanes = true;
 	if (!snapshot.settings || !Array.isArray(snapshot.settings.profiles)) {
 		return snapshot;
 	}
@@ -1027,7 +1038,6 @@ function handleChatAction(chat, action) {
 }
 
 function renderAll() {
-	nodes.broadcastToggle.checked = state.broadcastToAllPanes;
 	renderComposerProfileSelect();
 	renderComposerUsageSummary();
 	renderSidebar();
@@ -1278,11 +1288,13 @@ function renderWorkspace(options = {}) {
 	const chat = getActiveChat();
 	if (!chat) {
 		nodes.chatTitleInput.value = "";
+		nodes.paneControls.innerHTML = "";
 		nodes.paneGrid.innerHTML = "<div class=\"empty-state\">No active chat selected.</div>";
 		return;
 	}
 
 	nodes.chatTitleInput.value = chat.title;
+	renderPaneControls(chat);
 	const paneCount = chat.panes.length;
 	nodes.paneGrid.classList.toggle("cols-2", paneCount === 2);
 	nodes.paneGrid.classList.toggle("cols-3", paneCount >= 3);
@@ -1296,9 +1308,8 @@ function renderWorkspace(options = {}) {
 		const card = fragment.querySelector(".pane-card");
 		const paneSummary = fragment.querySelector(".pane-summary");
 		const paneModelSelect = fragment.querySelector(".pane-profile-model-select");
-		const statusNode = fragment.querySelector(".pane-status");
-		const removeBtn = fragment.querySelector(".pane-remove-btn");
 		const messageList = fragment.querySelector(".message-list");
+		card.classList.toggle("single-pane", !hasMultiplePanes);
 		messageList.setAttribute("data-pane-id", pane.id);
 		const paneProfile = getProfileById(pane.profile_id);
 		const paneModelName = paneProfile ? modelForProfileSelection(paneProfile, pane.model) : String(pane.model || "");
@@ -1325,22 +1336,6 @@ function renderWorkspace(options = {}) {
 				.join("");
 		}
 		paneModelSelect.setAttribute("data-pane-id", pane.id);
-
-		removeBtn.setAttribute("data-pane-id", pane.id);
-		removeBtn.setAttribute("data-action", "remove-pane");
-		removeBtn.disabled = chat.panes.length <= 1;
-
-		statusNode.textContent = pane.status || "idle";
-		statusNode.classList.remove("waiting", "error", "partial");
-		if (pane.status === "waiting") {
-			statusNode.classList.add("waiting");
-		}
-		if (pane.status === "error") {
-			statusNode.classList.add("error");
-		}
-		if (pane.status === "partial") {
-			statusNode.classList.add("partial");
-		}
 
 		if (pane.messages.length === 0) {
 			messageList.innerHTML = "<div class=\"empty-state\">No messages yet for this pane.</div>";
@@ -1375,6 +1370,17 @@ function renderWorkspace(options = {}) {
 		}
 		scheduleCodeHighlighting(nodes.paneGrid);
 	});
+}
+
+function renderPaneControls(chat) {
+	const paneCount = chat.panes.length;
+	nodes.paneControls.innerHTML = chat.panes.map((pane, index) => {
+		const status = String(pane.status || "idle");
+		const panePrefix = paneCount > 1 ? `Pane ${index + 1} · ` : "";
+		const statusLabel = `${panePrefix}${status}`;
+		const statusClass = ["pane-control-status", ["idle", "waiting", "partial", "error"].includes(status) ? status : ""].filter(Boolean).join(" ");
+		return `<div class="pane-control-group" data-pane-id="${escapeHtml(pane.id)}"><span class="${statusClass}" title="${escapeHtml(statusLabel)}">${escapeHtml(statusLabel)}</span><button class="pane-remove-btn btn ghost icon-only" data-action="remove-pane" data-pane-id="${escapeHtml(pane.id)}" aria-label="Remove ${escapeHtml(panePrefix || "pane")}" title="Remove ${escapeHtml(panePrefix || "pane")}"${paneCount <= 1 ? " disabled" : ""}><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash-icon lucide-trash" aria-hidden="true"><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button></div>`;
+	}).join("");
 }
 
 function renderMessageNodeHtml(message, paneId) {
@@ -1854,6 +1860,16 @@ function saveProjectFolderFromModal() {
 	}
 }
 
+function finiteUsageValue(value) {
+	const numeric = Number(value);
+	return Number.isFinite(numeric) && numeric >= 0 ? numeric : 0;
+}
+
+function nullableUsageValue(value) {
+	const numeric = Number(value);
+	return Number.isFinite(numeric) && numeric >= 0 ? numeric : null;
+}
+
 function renderComposerUsageSummary() {
 	const chat = getActiveChat();
 	if (!chat) {
@@ -1863,9 +1879,17 @@ function renderComposerUsageSummary() {
 
 	const records = collectUsageRecords().filter((record) => record.chat_id === chat.id);
 	const totalTokens = records.reduce((sum, record) => sum + record.tokens, 0);
+	const inputTokens = records.reduce((sum, record) => sum + record.input_tokens, 0);
+	const outputTokens = records.reduce((sum, record) => sum + record.output_tokens, 0);
+	const cacheReported = records.some((record) => record.cache_details_reported);
+	const cachedInputTokens = records.reduce((sum, record) => sum + (record.cached_input_tokens || 0), 0);
+	const cacheWriteInputTokens = records.reduce((sum, record) => sum + (record.cache_write_input_tokens || 0), 0);
 	const responseCount = records.length;
 	const average = responseCount > 0 ? Math.round(totalTokens / responseCount) : 0;
-	nodes.composerTokenSummary.textContent = `This chat: ${formatNumber(totalTokens)} tokens across ${formatNumber(responseCount)} responses (avg ${formatNumber(average)})`;
+	const cachedLabel = cacheReported ? formatNumber(cachedInputTokens) : "—";
+	const responseLabel = responseCount === 1 ? "response" : "responses";
+	const cacheWriteLabel = cacheReported ? formatNumber(cacheWriteInputTokens) : "—";
+	nodes.composerTokenSummary.textContent = `This chat: ${formatNumber(totalTokens)} tokens (in ${formatNumber(inputTokens)} · out ${formatNumber(outputTokens)} · cached ${cachedLabel} · cache write ${cacheWriteLabel}) across ${formatNumber(responseCount)} ${responseLabel} (avg ${formatNumber(average)})`;
 }
 
 function collectUsageRecords() {
@@ -1899,6 +1923,11 @@ function collectUsageRecords() {
 					model: String(message.model || "unknown"),
 					role: String(message.role || "assistant"),
 					tokens: tokenCount,
+					input_tokens: finiteUsageValue(message.usage.input_tokens),
+					output_tokens: finiteUsageValue(message.usage.output_tokens),
+					cached_input_tokens: nullableUsageValue(message.usage.cached_input_tokens),
+					cache_write_input_tokens: nullableUsageValue(message.usage.cache_write_input_tokens),
+					cache_details_reported: Boolean(message.usage.cache_details_reported),
 					createdAt: Number.isFinite(createdAt) ? createdAt : Number(chat.updatedAt || Date.now())
 				});
 			}
@@ -1932,6 +1961,11 @@ function collectUsageRecords() {
 			model: String(entry.model || "unknown"),
 			role: String(entry.role || "assistant"),
 			tokens: tokenCount,
+			input_tokens: finiteUsageValue(entry.input_tokens),
+			output_tokens: finiteUsageValue(entry.output_tokens),
+			cached_input_tokens: nullableUsageValue(entry.cached_input_tokens),
+			cache_write_input_tokens: nullableUsageValue(entry.cache_write_input_tokens),
+			cache_details_reported: Boolean(entry.cache_details_reported),
 			createdAt: Number.isFinite(Number(entry.createdAt)) ? Number(entry.createdAt) : Date.now()
 		});
 	}
@@ -2057,12 +2091,21 @@ function renderUsageModalContent() {
 	const groupedRows = groupUsageRecords(filteredRecords, filters.groupBy);
 
 	const totalTokens = filteredRecords.reduce((sum, record) => sum + record.tokens, 0);
+	const inputTokens = filteredRecords.reduce((sum, record) => sum + record.input_tokens, 0);
+	const outputTokens = filteredRecords.reduce((sum, record) => sum + record.output_tokens, 0);
+	const cacheReported = filteredRecords.some((record) => record.cache_details_reported);
+	const cachedInputTokens = filteredRecords.reduce((sum, record) => sum + (record.cached_input_tokens || 0), 0);
+	const cacheWriteInputTokens = filteredRecords.reduce((sum, record) => sum + (record.cache_write_input_tokens || 0), 0);
 	const responseCount = filteredRecords.length;
 	const average = responseCount > 0 ? Math.round(totalTokens / responseCount) : 0;
 
 	nodes.usageStatTotal.textContent = formatNumber(totalTokens);
 	nodes.usageStatResponses.textContent = formatNumber(responseCount);
 	nodes.usageStatAverage.textContent = formatNumber(average);
+	nodes.usageStatInput.textContent = formatNumber(inputTokens);
+	nodes.usageStatOutput.textContent = formatNumber(outputTokens);
+	nodes.usageStatCached.textContent = cacheReported ? formatNumber(cachedInputTokens) : "—";
+	nodes.usageStatCacheWrite.textContent = cacheReported ? formatNumber(cacheWriteInputTokens) : "—";
 
 	renderUsageChart(groupedRows, filters.chartType, filters.groupBy);
 	renderUsageBreakdown(groupedRows);
@@ -2125,12 +2168,22 @@ function groupUsageRecords(records, groupBy) {
 				key: grouped.key,
 				label: grouped.label,
 				tokens: 0,
+				input_tokens: 0,
+				output_tokens: 0,
+				cached_input_tokens: 0,
+				cache_write_input_tokens: 0,
+				cache_details_reported: false,
 				responses: 0
 			});
 		}
 
 		const bucket = buckets.get(grouped.key);
 		bucket.tokens += record.tokens;
+		bucket.input_tokens += record.input_tokens;
+		bucket.output_tokens += record.output_tokens;
+		bucket.cached_input_tokens += record.cached_input_tokens || 0;
+		bucket.cache_write_input_tokens += record.cache_write_input_tokens || 0;
+		bucket.cache_details_reported = bucket.cache_details_reported || record.cache_details_reported;
 		bucket.responses += 1;
 	}
 
@@ -2297,13 +2350,19 @@ function renderUsageBreakdown(groupedRows) {
 					<th>Group</th>
 					<th>Responses</th>
 					<th>Total Tokens</th>
+					<th>Input</th>
+					<th>Output</th>
+					<th>Cached Input</th>
+					<th>Cache Write</th>
 					<th>Average</th>
 				</tr>
 			</thead>
 			<tbody>
 				${groupedRows.map((row) => {
 					const average = row.responses > 0 ? Math.round(row.tokens / row.responses) : 0;
-					return `<tr><td>${escapeHtml(row.label)}</td><td>${formatNumber(row.responses)}</td><td>${formatNumber(row.tokens)}</td><td>${formatNumber(average)}</td></tr>`;
+						const cached = row.cache_details_reported ? formatNumber(row.cached_input_tokens) : "—";
+						const cacheWrite = row.cache_details_reported ? formatNumber(row.cache_write_input_tokens) : "—";
+						return `<tr><td>${escapeHtml(row.label)}</td><td>${formatNumber(row.responses)}</td><td>${formatNumber(row.tokens)}</td><td>${formatNumber(row.input_tokens)}</td><td>${formatNumber(row.output_tokens)}</td><td>${cached}</td><td>${cacheWrite}</td><td>${formatNumber(average)}</td></tr>`;
 				}).join("")}
 			</tbody>
 		</table>
@@ -2472,14 +2531,17 @@ function runAutomationAction(action) {
 		openSettings();
 		return;
 	}
+}
 
-	if (action === "toggle-broadcast") {
-		state.broadcastToAllPanes = !state.broadcastToAllPanes;
-		nodes.broadcastToggle.checked = state.broadcastToAllPanes;
-		schedulePersist();
-		closeAutomationsModal();
+function removePaneFromChat(chat, paneId) {
+	if (!chat || chat.panes.length <= 1 || !paneId) {
 		return;
 	}
+
+	chat.panes = chat.panes.filter((pane) => pane.id !== paneId);
+	chat.updatedAt = Date.now();
+	schedulePersist();
+	renderAll();
 }
 
 function closeSettings() {
@@ -2629,7 +2691,7 @@ async function sendFromComposer() {
 	nodes.composerInput.value = "";
 	chat.updatedAt = Date.now();
 
-	const targetPanes = state.broadcastToAllPanes ? chat.panes.slice() : [chat.panes[0]];
+	const targetPanes = chat.panes.slice();
 	await Promise.all(targetPanes.map((pane) => sendMessageToPaneStream(chat, pane, text)));
 	schedulePersist();
 	renderWorkspace();
@@ -2665,7 +2727,10 @@ async function sendMessageToPaneStream(chat, pane, text) {
 	let totalUsage = {
 		input_tokens: 0,
 		output_tokens: 0,
-		total_tokens: 0
+		total_tokens: 0,
+		cached_input_tokens: null,
+		cache_write_input_tokens: null,
+		cache_details_reported: false
 	};
 
 	try {
@@ -2680,12 +2745,14 @@ async function sendMessageToPaneStream(chat, pane, text) {
 		let streamErrorRecoveryPasses = 0;
 		let hardIncompleteRecoveryPasses = 0;
 		let safetyIncompleteRecoveryUsed = false;
+		let thinkingOnlyRecoveryPasses = 0;
 		let endedLikelyIncomplete = false;
 
 		while (continuationPass <= maxContinuationPasses) {
 			const passStartedAt = Date.now();
 			const contentBeforePass = assistantMessage.content;
 			const contentLengthBeforePass = contentBeforePass.length;
+			const thinkingLengthBeforePass = String(assistantMessage.thinking || "").length;
 			let passOutputText = "";
 			let streamErrorPayload = null;
 			const chatHistory = pane.messages
@@ -2818,11 +2885,7 @@ async function sendMessageToPaneStream(chat, pane, text) {
 				finalFinishReason = String(streamDonePayload.finish_reason || "stop");
 
 				if (streamDonePayload.usage && typeof streamDonePayload.usage === "object") {
-					totalUsage = {
-						input_tokens: totalUsage.input_tokens + Number(streamDonePayload.usage.input_tokens || 0),
-						output_tokens: totalUsage.output_tokens + Number(streamDonePayload.usage.output_tokens || 0),
-						total_tokens: totalUsage.total_tokens + Number(streamDonePayload.usage.total_tokens || 0)
-					};
+					totalUsage = mergeUsageTotals(totalUsage, streamDonePayload.usage);
 				}
 			}
 
@@ -2832,7 +2895,8 @@ async function sendMessageToPaneStream(chat, pane, text) {
 			}
 
 			const progressChars = assistantMessage.content.length - contentLengthBeforePass;
-			if (progressChars <= 0) {
+			const thinkingProgressChars = String(assistantMessage.thinking || "").length - thinkingLengthBeforePass;
+			if (progressChars <= 0 && thinkingProgressChars <= 0) {
 				noProgressPasses += 1;
 			} else {
 				noProgressPasses = 0;
@@ -2873,10 +2937,9 @@ async function sendMessageToPaneStream(chat, pane, text) {
 				&& hardIncomplete
 				&& hardIncompleteRecoveryPasses < 2;
 			const shouldContinueForIncompleteOutput = !streamErrored
-				&& !safetyIncompleteRecoveryUsed
-				&& continuationPass === 0
 				&& !reachedTokenLimit
-				&& (looksIncomplete || thinkingOnly);
+				&& ((thinkingOnly && thinkingOnlyRecoveryPasses < 6)
+					|| (!safetyIncompleteRecoveryUsed && continuationPass === 0 && looksIncomplete));
 
 			let continueReason = "none";
 			if (shouldContinueForTokenLimit) {
@@ -2888,8 +2951,13 @@ async function sendMessageToPaneStream(chat, pane, text) {
 				continueReason = "hard_incomplete_closure";
 				hardIncompleteRecoveryPasses += 1;
 			} else if (shouldContinueForIncompleteOutput) {
-				continueReason = "incomplete_output_safety";
-				safetyIncompleteRecoveryUsed = true;
+				if (thinkingOnly) {
+					continueReason = "thinking_only_recovery";
+					thinkingOnlyRecoveryPasses += 1;
+				} else {
+					continueReason = "incomplete_output_safety";
+					safetyIncompleteRecoveryUsed = true;
+				}
 			}
 
 			streamMetrics.passes.push({
@@ -2898,12 +2966,13 @@ async function sendMessageToPaneStream(chat, pane, text) {
 				finish_reason: finalFinishReason,
 				stream_error: streamErrored,
 				progress_chars: progressChars,
+				thinking_progress_chars: thinkingProgressChars,
 				requested_max_tokens: requestedMaxTokens,
 				continued_for: continueReason
 			});
 
 			if (continueReason === "none") {
-				if ((looksIncomplete || hardIncomplete || thinkingOnly) && (streamErrored || continuationPass > 0)) {
+				if ((looksIncomplete || hardIncomplete) && (streamErrored || continuationPass > 0)) {
 					endedLikelyIncomplete = true;
 				}
 				break;
@@ -2947,6 +3016,9 @@ async function sendMessageToPaneStream(chat, pane, text) {
 					input_tokens: 0,
 					output_tokens: estimatedTokens,
 					total_tokens: estimatedTokens,
+					cached_input_tokens: null,
+					cache_write_input_tokens: null,
+					cache_details_reported: false,
 					estimated: true
 				}
 				: null;
@@ -2980,6 +3052,11 @@ async function sendMessageToPaneStream(chat, pane, text) {
 				model: assistantMessage.model || selectedModel,
 				role: "assistant",
 				tokens: Number(assistantMessage.usage.total_tokens || 0),
+				input_tokens: Number(assistantMessage.usage.input_tokens || 0),
+				output_tokens: Number(assistantMessage.usage.output_tokens || 0),
+				cached_input_tokens: assistantMessage.usage.cached_input_tokens,
+				cache_write_input_tokens: assistantMessage.usage.cache_write_input_tokens,
+				cache_details_reported: Boolean(assistantMessage.usage.cache_details_reported),
 				createdAt: Number(assistantMessage.createdAt || Date.now())
 			});
 		}
@@ -2997,6 +3074,9 @@ async function sendMessageToPaneStream(chat, pane, text) {
 					input_tokens: 0,
 					output_tokens: estimatedTokens,
 					total_tokens: estimatedTokens,
+					cached_input_tokens: null,
+					cache_write_input_tokens: null,
+					cache_details_reported: false,
 					estimated: true
 				};
 				appendUsageLedgerEntry({
@@ -3011,6 +3091,11 @@ async function sendMessageToPaneStream(chat, pane, text) {
 					model: assistantMessage.model || selectedModel,
 					role: "assistant",
 					tokens: Number(assistantMessage.usage.total_tokens || 0),
+					input_tokens: Number(assistantMessage.usage.input_tokens || 0),
+					output_tokens: Number(assistantMessage.usage.output_tokens || 0),
+					cached_input_tokens: assistantMessage.usage.cached_input_tokens,
+					cache_write_input_tokens: assistantMessage.usage.cache_write_input_tokens,
+					cache_details_reported: Boolean(assistantMessage.usage.cache_details_reported),
 					createdAt: Number(assistantMessage.createdAt || Date.now())
 				});
 			}
@@ -3033,6 +3118,26 @@ async function sendMessageToPaneStream(chat, pane, text) {
 	chat.updatedAt = Date.now();
 	schedulePersist();
 	renderWorkspace();
+}
+
+function mergeUsageTotals(current, next) {
+	const nextInput = finiteUsageValue(next && next.input_tokens);
+	const nextOutput = finiteUsageValue(next && next.output_tokens);
+	const nextTotal = finiteUsageValue(next && next.total_tokens);
+	const nextCached = nullableUsageValue(next && next.cached_input_tokens);
+	const nextCacheWrite = nullableUsageValue(next && next.cache_write_input_tokens);
+	return {
+		input_tokens: finiteUsageValue(current.input_tokens) + nextInput,
+		output_tokens: finiteUsageValue(current.output_tokens) + nextOutput,
+		total_tokens: finiteUsageValue(current.total_tokens) + nextTotal,
+		cached_input_tokens: current.cached_input_tokens === null && nextCached === null
+			? null
+			: finiteUsageValue(current.cached_input_tokens) + (nextCached || 0),
+		cache_write_input_tokens: current.cache_write_input_tokens === null && nextCacheWrite === null
+			? null
+			: finiteUsageValue(current.cache_write_input_tokens) + (nextCacheWrite || 0),
+		cache_details_reported: Boolean(current.cache_details_reported) || Boolean(next && next.cache_details_reported)
+	};
 }
 
 function mergeContinuationText(existingContent, nextChunk) {
@@ -3313,7 +3418,7 @@ function hasHardIncompleteMarkers(value) {
 function normalizeMaxTokens(value) {
 	const numeric = Number(value);
 	if (!Number.isFinite(numeric)) {
-		return 3200;
+		return 12000;
 	}
 
 	return Math.max(256, Math.round(numeric));
@@ -3325,10 +3430,10 @@ function continuationMaxTokensForPass(baseValue, continuationPass) {
 		return baseMaxTokens;
 	}
 
-	const boostedBase = Math.max(baseMaxTokens, 3200);
+	const boostedBase = Math.max(baseMaxTokens, 12000);
 	const boostSteps = Math.min(continuationPass, 6);
-	const boosted = boostedBase + boostSteps * 600;
-	return Math.min(boosted, 12000);
+	const boosted = boostedBase + boostSteps * 1200;
+	return Math.min(boosted, 24000);
 }
 
 function continuationAssistantContext(value) {
