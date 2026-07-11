@@ -926,6 +926,80 @@ test("POST /api/chat/stream parses SSE upstream deltas into token/thinking/done"
 	}
 });
 
+test("POST /api/chat/stream consumes multiline SSE data frames without dropping content", async () => {
+	const event = {
+		model: "gpt-multiline",
+		choices: [{ delta: { content: "complete stream" }, finish_reason: "stop" }]
+	};
+	const multilineEvent = JSON.stringify(event, null, 2)
+		.split("\n")
+		.map((line) => `data: ${line}`)
+		.join("\n");
+	const { runtime, destroy } = createIsolatedRuntime({
+		fetchFn: async () => mockSseResponseFromPayload(`${multilineEvent}\n\ndata: [DONE]\n\n`)
+	});
+	try {
+		const profileId = applyProfileMutation(runtime, (profile) => {
+			profile.api_key = "stream-key";
+		});
+		await withServer(runtime.app, async (baseUrl) => {
+			const response = await fetch(`${baseUrl}/api/chat/stream`, {
+				method: "POST",
+				headers: withAuthHeaders({ "Content-Type": "application/json" }),
+				body: JSON.stringify({ profile_id: profileId, messages: [{ role: "user", content: "hello" }] })
+			});
+			const events = parseSseEvents(await response.text());
+			assert.equal(events.filter((entry) => entry.event === "token").map((entry) => entry.data.delta).join(""), "complete stream");
+			assert.equal(events.find((entry) => entry.event === "done").data.finish_reason, "stop");
+		});
+	} finally {
+		destroy();
+	}
+});
+
+test("POST /api/chat/stream keeps the timeout active while consuming the upstream body", async () => {
+	const { runtime, destroy } = createIsolatedRuntime({
+		envMerge: { STREAM_REQUEST_TIMEOUT_MS: "10" },
+		fetchFn: async (url, options) => ({
+			ok: true,
+			status: 200,
+			headers: { get: () => "text/event-stream" },
+			body: {
+				getReader() {
+					return {
+						read() {
+							return new Promise((resolve, reject) => {
+								if (options.signal.aborted) {
+									reject(Object.assign(new Error("aborted"), { name: "AbortError" }));
+									return;
+								}
+								options.signal.addEventListener("abort", () => reject(Object.assign(new Error("aborted"), { name: "AbortError" })), { once: true });
+							});
+						}
+					};
+				}
+			}
+		})
+	});
+	try {
+		const profileId = applyProfileMutation(runtime, (profile) => {
+			profile.api_key = "stream-key";
+		});
+		await withServer(runtime.app, async (baseUrl) => {
+			const response = await fetch(`${baseUrl}/api/chat/stream`, {
+				method: "POST",
+				headers: withAuthHeaders({ "Content-Type": "application/json" }),
+				body: JSON.stringify({ profile_id: profileId, messages: [{ role: "user", content: "hello" }] })
+			});
+			const events = parseSseEvents(await response.text());
+			assert.equal(events[0].event, "error");
+			assert.equal(events[0].data.code, "stream_timeout");
+		});
+	} finally {
+		destroy();
+	}
+});
+
 test("POST /api/chat/stream preserves Ollama-style message chunks and detects an unmarked close", async () => {
 	const { runtime, destroy } = createIsolatedRuntime({
 		fetchFn: async () => mockSseResponseFromPayload([

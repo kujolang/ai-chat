@@ -113,6 +113,7 @@ Client rules:
 - Do not depend on exact token chunk boundaries.
 - Thinking deltas are optional and provider-dependent.
 - `finish_reason` may be `stream_closed` when an upstream provider closes the connection without sending a terminal reason; clients should treat that as incomplete and may continue the request.
+- The server consumes the complete upstream body before emitting its terminal `done` event and supports standard multiline SSE `data:` frames.
 
 ## 7. Versioning Policy
 
