@@ -10,6 +10,8 @@ The format is inspired by Keep a Changelog and semantic versioning.
 
 - Moved the security hardening checklist into `docs/` with the other release and operations references.
 - Documented explicit proxy-trust, stream-timeout, and rate-limit bucket controls in setup and release docs.
+- Preserve provider message-shaped stream chunks, recover incomplete responses, and render Markdown thinking output.
+- Refined sidebar action sizing and modal scrolling/layout behavior for settings and token usage.
 
 ### Security
 

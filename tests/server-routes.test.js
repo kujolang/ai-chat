@@ -447,6 +447,59 @@ test("PUT /api/state persists updates and can be re-read", async () => {
 	}
 });
 
+test("PUT /api/state rejects payload without a state version", async () => {
+	const { runtime, destroy } = createIsolatedRuntime();
+	try {
+		await withServer(runtime.app, async (baseUrl) => {
+			const payload = runtime.helpers.readState();
+			delete payload.stateVersion;
+			payload.chats = [];
+			payload.settings.profiles = [];
+
+			const { response, json } = await fetchJson(baseUrl, "/api/state", {
+				method: "PUT",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(payload)
+			});
+			assert.equal(response.status, 409);
+			assert.equal(json.error.code, "state_version_conflict");
+
+			const after = await fetchJson(baseUrl, "/api/state");
+			assert.equal(after.json.state.settings.profiles.length > 0, true);
+		});
+	} finally {
+		destroy();
+	}
+});
+
+test("PUT /api/state rejects stale state version", async () => {
+	const { runtime, destroy } = createIsolatedRuntime();
+	try {
+		await withServer(runtime.app, async (baseUrl) => {
+			const payload = runtime.helpers.readState();
+
+			const first = await fetchJson(baseUrl, "/api/state", {
+				method: "PUT",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(payload)
+			});
+			assert.equal(first.response.status, 200);
+			assert.equal(first.json.stateVersion, payload.stateVersion + 1);
+
+			const second = await fetchJson(baseUrl, "/api/state", {
+				method: "PUT",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(payload)
+			});
+			assert.equal(second.response.status, 409);
+			assert.equal(second.json.error.code, "state_version_conflict");
+			assert.equal(second.json.error.current_version, payload.stateVersion + 1);
+		});
+	} finally {
+		destroy();
+	}
+});
+
 test("POST /api/chat returns invalid_request when profile_id is missing", async () => {
 	const { runtime, destroy } = createIsolatedRuntime();
 	try {
@@ -859,6 +912,37 @@ test("POST /api/chat/stream parses SSE upstream deltas into token/thinking/done"
 			assert.equal(tokenEvent.data.delta, "hello ");
 			assert.equal(thinkingEvent.data.delta, "thinking ");
 			assert.equal(doneEvent.data.usage.total_tokens, 2);
+		});
+	} finally {
+		destroy();
+	}
+});
+
+test("POST /api/chat/stream preserves Ollama-style message chunks and detects an unmarked close", async () => {
+	const { runtime, destroy } = createIsolatedRuntime({
+		fetchFn: async () => mockSseResponseFromPayload([
+			`data: ${JSON.stringify({ message: { thinking: "**plan** ", content: "hello " }, done: false })}`,
+			`data: ${JSON.stringify({ message: { content: "world" }, done: false })}`
+		].join("\n\n"))
+	});
+	try {
+		const profileId = applyProfileMutation(runtime, (profile) => {
+			profile.api_key = "stream-key";
+		});
+		await withServer(runtime.app, async (baseUrl) => {
+			const response = await fetch(`${baseUrl}/api/chat/stream`, {
+				method: "POST",
+				headers: withAuthHeaders({ "Content-Type": "application/json" }),
+				body: JSON.stringify({
+					profile_id: profileId,
+					messages: [{ role: "user", content: "hello" }]
+				})
+			});
+			const events = parseSseEvents(await response.text());
+			const doneEvent = events.find((entry) => entry.event === "done");
+			assert.equal(events.filter((entry) => entry.event === "token").map((entry) => entry.data.delta).join(""), "hello world");
+			assert.equal(events.filter((entry) => entry.event === "thinking").map((entry) => entry.data.delta).join(""), "**plan** ");
+			assert.equal(doneEvent.data.finish_reason, "stream_closed");
 		});
 	} finally {
 		destroy();

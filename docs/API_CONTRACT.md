@@ -110,6 +110,7 @@ Client rules:
 - Treat `error` as terminal failure unless your retry policy allows continuation.
 - Do not depend on exact token chunk boundaries.
 - Thinking deltas are optional and provider-dependent.
+- `finish_reason` may be `stream_closed` when an upstream provider closes the connection without sending a terminal reason; clients should treat that as incomplete and may continue the request.
 
 ## 7. Versioning Policy
 

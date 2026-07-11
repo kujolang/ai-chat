@@ -177,6 +177,7 @@ test("outputDelta selects output_text then text then flattened content", () => {
 		assert.equal(runtime.helpers.outputDelta({ output_text: "a", text: "b" }), "a");
 		assert.equal(runtime.helpers.outputDelta({ text: "b" }), "b");
 		assert.equal(runtime.helpers.outputDelta({ content: [{ text: "c" }] }), "c");
+		assert.equal(runtime.helpers.outputDelta({ response: "d" }), "d");
 		assert.equal(runtime.helpers.outputDelta(null), "");
 	} finally {
 		destroy();
@@ -190,6 +191,7 @@ test("thinkingDelta resolves direct and nested reasoning fields", () => {
 		assert.equal(runtime.helpers.thinkingDelta({ reasoning: "b" }), "b");
 		assert.equal(runtime.helpers.thinkingDelta({ thinking: "c" }), "c");
 		assert.equal(runtime.helpers.thinkingDelta({ reasoning: [{ text: "d" }] }), "d");
+		assert.equal(runtime.helpers.thinkingDelta({ think: "e" }), "e");
 		assert.equal(runtime.helpers.thinkingDelta({}), "");
 	} finally {
 		destroy();

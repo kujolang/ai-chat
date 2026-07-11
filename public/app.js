@@ -1,5 +1,6 @@
 const defaultState = {
 	chats: [],
+	stateVersion: 0,
 	projectFolders: [],
 	activeProjectPath: "",
 	activeChatId: null,
@@ -21,6 +22,7 @@ let whisperStream = null;
 let whisperChunks = [];
 let whisperRecording = false;
 let persistTimer = null;
+let stateLoadedFromServer = false;
 let settingsSaveIndicatorTimer = null;
 let suppressNextTokenBlurSave = false;
 let usageChart = null;
@@ -163,6 +165,7 @@ async function loadStateFromServer() {
 		const payload = await response.json();
 		if (payload && payload.ok && payload.state) {
 			state = migrateState(payload.state);
+			stateLoadedFromServer = true;
 			saveStateToCache();
 		}
 	} catch (error) {
@@ -175,6 +178,9 @@ async function loadStateFromServer() {
 function migrateState(candidate) {
 	const merged = structuredClone(defaultState);
 	if (candidate && typeof candidate === "object") {
+		if (Number.isFinite(Number(candidate.stateVersion))) {
+			merged.stateVersion = Number(candidate.stateVersion);
+		}
 		if (Array.isArray(candidate.chats)) {
 			merged.chats = candidate.chats
 				.map((chat) => normalizeIncomingChat(chat))
@@ -832,6 +838,10 @@ function schedulePersist() {
 
 async function persistStateToServer() {
 	persistTimer = null;
+	if (!stateLoadedFromServer) {
+		console.warn("Skipping state persist: server state has not been loaded yet.");
+		return;
+	}
 	try {
 		const payload = buildPersistPayload();
 		const response = await apiFetch("/api/state", {
@@ -840,8 +850,24 @@ async function persistStateToServer() {
 			body: JSON.stringify(payload)
 		});
 
+		if (response.status === 409) {
+			console.warn("State version conflict: reloading latest state from server.");
+			await loadStateFromServer();
+			ensureMinimumState();
+			renderAll();
+			if (isSettingsModalOpen()) {
+				setSettingsSaveIndicator("error", "State changed elsewhere - reloaded latest");
+			}
+			return;
+		}
+
 		if (!response.ok) {
 			throw new Error(`state persist failed: ${response.status}`);
+		}
+
+		const result = await response.json();
+		if (result && Number.isFinite(Number(result.stateVersion))) {
+			state.stateVersion = Number(result.stateVersion);
 		}
 
 		for (const profile of state.settings.profiles) {
@@ -2544,6 +2570,11 @@ async function saveApiTokenFromSettings(options = {}) {
 	storeApiAuthToken(token, defaultApiTokenTtlDays);
 	nodes.settingsApiToken.value = "";
 	nodes.voiceStatus.textContent = "Voice: idle";
+	if (!stateLoadedFromServer) {
+		await loadStateFromServer();
+		ensureMinimumState();
+		renderAll();
+	}
 	setSettingsSaveIndicator("success", "Settings saved");
 	renderSettings();
 	return true;
@@ -2645,7 +2676,6 @@ async function sendMessageToPaneStream(chat, pane, text) {
 		};
 		let continuationPass = 0;
 		let finalFinishReason = "stop";
-		let thinkingCapturePass = null;
 		let noProgressPasses = 0;
 		let streamErrorRecoveryPasses = 0;
 		let hardIncompleteRecoveryPasses = 0;
@@ -2663,11 +2693,13 @@ async function sendMessageToPaneStream(chat, pane, text) {
 				.filter((message) => message.role === "system" || message.role === "user" || message.role === "assistant")
 				.map((message) => ({ role: message.role, content: message.content }));
 
-			if (continuationPass > 0 && assistantMessage.content) {
-				chatHistory.push({ role: "assistant", content: continuationAssistantContext(assistantMessage.content) });
+			if (continuationPass > 0) {
+				if (assistantMessage.content) {
+					chatHistory.push({ role: "assistant", content: continuationAssistantContext(assistantMessage.content) });
+				}
 				chatHistory.push({
 					role: "user",
-					content: buildContinuationPrompt(assistantMessage.content, noProgressPasses)
+					content: buildContinuationPrompt(assistantMessage.content, noProgressPasses, assistantMessage.thinking)
 				});
 			}
 
@@ -2697,7 +2729,6 @@ async function sendMessageToPaneStream(chat, pane, text) {
 			let buffer = "";
 			let currentEvent = "message";
 			let streamDonePayload = null;
-			const shouldCaptureThinkingForPass = thinkingCapturePass === null || thinkingCapturePass === continuationPass;
 
 			const consumeBufferedSseLines = (flushFinalLine = false) => {
 				const lines = buffer.split(/\r?\n/);
@@ -2741,10 +2772,7 @@ async function sendMessageToPaneStream(chat, pane, text) {
 					}
 
 					if (currentEvent === "thinking") {
-						if (shouldCaptureThinkingForPass && payloadObj.delta) {
-							if (thinkingCapturePass === null) {
-								thinkingCapturePass = continuationPass;
-							}
+						if (payloadObj.delta) {
 							assistantMessage.thinking = `${assistantMessage.thinking || ""}${payloadObj.delta || ""}`;
 							scheduleStreamingMessagePatch(chat.id, pane.id, assistantMessage.id);
 						}
@@ -2785,9 +2813,6 @@ async function sendMessageToPaneStream(chat, pane, text) {
 					scheduleStreamingMessagePatch(chat.id, pane.id, assistantMessage.id);
 				}
 				if (!assistantMessage.thinking && streamDonePayload.thinking_text) {
-					if (thinkingCapturePass === null) {
-						thinkingCapturePass = continuationPass;
-					}
 					assistantMessage.thinking = streamDonePayload.thinking_text;
 				}
 				finalFinishReason = String(streamDonePayload.finish_reason || "stop");
@@ -2836,7 +2861,8 @@ async function sendMessageToPaneStream(chat, pane, text) {
 			const reachedTokenLimit = finalFinishReason === "length" || finalFinishReason === "max_tokens";
 			const looksIncomplete = responseLooksIncomplete(assistantMessage.content);
 			const hardIncomplete = hasHardIncompleteMarkers(assistantMessage.content);
-			const shouldContinueForTokenLimit = reachedTokenLimit;
+			const thinkingOnly = !String(assistantMessage.content || "").trim() && Boolean(String(assistantMessage.thinking || "").trim());
+			const shouldContinueForTokenLimit = reachedTokenLimit || finalFinishReason === "stream_closed";
 			const shouldContinueForStreamError = streamErrored
 				&& Boolean(assistantMessage.content)
 				&& progressChars > 0
@@ -2846,11 +2872,11 @@ async function sendMessageToPaneStream(chat, pane, text) {
 				&& progressChars > 0
 				&& hardIncomplete
 				&& hardIncompleteRecoveryPasses < 2;
-			const shouldContinueForMissingDoneSafety = !streamDonePayload
-				&& !streamErrored
+			const shouldContinueForIncompleteOutput = !streamErrored
 				&& !safetyIncompleteRecoveryUsed
 				&& continuationPass === 0
-				&& looksIncomplete;
+				&& !reachedTokenLimit
+				&& (looksIncomplete || thinkingOnly);
 
 			let continueReason = "none";
 			if (shouldContinueForTokenLimit) {
@@ -2861,8 +2887,8 @@ async function sendMessageToPaneStream(chat, pane, text) {
 			} else if (shouldContinueForHardIncompleteClosure) {
 				continueReason = "hard_incomplete_closure";
 				hardIncompleteRecoveryPasses += 1;
-			} else if (shouldContinueForMissingDoneSafety) {
-				continueReason = "missing_done_safety";
+			} else if (shouldContinueForIncompleteOutput) {
+				continueReason = "incomplete_output_safety";
 				safetyIncompleteRecoveryUsed = true;
 			}
 
@@ -2877,7 +2903,7 @@ async function sendMessageToPaneStream(chat, pane, text) {
 			});
 
 			if (continueReason === "none") {
-				if ((looksIncomplete || hardIncomplete) && (streamErrored || (!streamDonePayload && continuationPass > 0))) {
+				if ((looksIncomplete || hardIncomplete || thinkingOnly) && (streamErrored || continuationPass > 0)) {
 					endedLikelyIncomplete = true;
 				}
 				break;
@@ -2939,7 +2965,7 @@ async function sendMessageToPaneStream(chat, pane, text) {
 		};
 		assistantMessage.streaming = false;
 		const finalLooksIncomplete = responseLooksIncomplete(assistantMessage.content);
-		const shouldMarkPartial = endedLikelyIncomplete || (finalLooksIncomplete && noProgressPasses >= 2);
+		const shouldMarkPartial = endedLikelyIncomplete || (finalLooksIncomplete && noProgressPasses >= 2) || (!assistantMessage.content && assistantMessage.thinking);
 		pane.status = shouldMarkPartial ? "partial" : "idle";
 		if (assistantMessage.usage && Number(assistantMessage.usage.total_tokens) > 0) {
 			appendUsageLedgerEntry({
@@ -3358,8 +3384,16 @@ async function requestHardCompletionRepair(profileId, model, fullContent) {
 	}
 }
 
-function buildContinuationPrompt(existingContent, noProgressPasses) {
+function buildContinuationPrompt(existingContent, noProgressPasses, thinkingContent = "") {
 	const tail = String(existingContent || "").slice(-260);
+	if (!existingContent && thinkingContent) {
+		return [
+			"The previous attempt used its response budget on thinking before producing the answer.",
+			"Continue from that attempt and provide the complete user-facing answer now.",
+			"Output only the answer, with no preface and no repetition."
+		].join(" ");
+	}
+
 	if (noProgressPasses <= 0) {
 		return [
 			"Continue immediately from the next token after the existing answer.",
@@ -4389,7 +4423,8 @@ function renderThinkingBlock(message, paneId) {
 		? `<button class="thinking-toggle" type="button" data-action="toggle-thinking" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}" aria-expanded="${expanded ? "true" : "false"}" aria-label="${expanded ? "Collapse thinking" : "Expand thinking"}">${thinkingToggleIconSvg(expanded)}</button>`
 		: "";
 
-	return `<div class="message-thinking"><div class="message-thinking-head"><div class="thinking-label">Thinking</div>${toggle}</div><div class="${contentClass}">${escapeHtml(thinkingText).replace(/\n/g, "<br>")}</div></div>`;
+	const renderedThinking = renderAssistantMarkdown(thinkingText);
+	return `<div class="message-thinking"><div class="message-thinking-head"><div class="thinking-label">Thinking</div>${toggle}</div><div class="${contentClass} message-thinking-markdown"><div class="message-content-block">${renderedThinking}</div></div></div>`;
 }
 
 function estimatedThinkingLineCount(value) {
