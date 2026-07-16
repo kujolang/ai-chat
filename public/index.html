@@ -43,8 +43,6 @@
 				<button id="show-archived-btn" class="btn ghost">Archived</button>
 			</div>
 
-			<div id="chat-list" class="chat-list"></div>
-
 			<div class="sidebar-projects">
 				<div class="projects-head">
 					<div class="sidebar-subtitle">Projects</div>
@@ -54,6 +52,8 @@
 				</div>
 				<div id="project-folder-list" class="project-folder-list"></div>
 			</div>
+
+			<div id="chat-list" class="chat-list"></div>
 			</div>
 
 			<div class="sidebar-footer">
@@ -76,6 +76,9 @@
 				</div>
 				<div class="workspace-actions">
 					<div id="pane-controls" class="pane-controls" aria-label="Pane controls"></div>
+					<button id="toggle-pane-info-btn" class="btn ghost icon-only compact-toggle-btn" aria-label="Hide pane information" title="Hide pane information" aria-expanded="true">
+						<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+					</button>
 					<button id="add-pane-btn" class="btn ghost icon-only" aria-label="Add Panel" title="Add Panel">
 						<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-columns2-icon lucide-columns-2" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M12 3v18"/></svg>
 					</button>
@@ -91,10 +94,15 @@
 				<div class="composer-actions">
 					<div class="composer-status-group">
 						<div id="save-status" class="save-status pending" role="status" aria-live="polite">Loading saved chats…</div>
-						<div class="composer-status-separator save-status-separator" aria-hidden="true">|</div>
+						<button id="toggle-usage-summary-btn" class="btn ghost icon-only compact-toggle-btn" aria-label="Show token usage summary" title="Show token usage summary" aria-expanded="false">
+							<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+						</button>
 						<div id="voice-status" class="voice-status">Voice: idle</div>
 						<div class="composer-status-separator" aria-hidden="true">|</div>
-						<div id="composer-token-summary" class="composer-token-summary" aria-live="polite">0 tokens</div>
+						<div id="usage-summary-details" class="usage-summary-details hidden">
+							<div class="composer-status-separator save-status-separator" aria-hidden="true">|</div>
+							<div id="composer-token-summary" class="composer-token-summary" aria-live="polite">0 tokens</div>
+						</div>
 					</div>
 					<select id="composer-profile-select" class="composer-profile-select" aria-label="Profile"></select>
 					<button id="voice-btn" class="btn ghost icon-only" aria-label="Voice" title="Voice">

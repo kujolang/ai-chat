@@ -16,8 +16,11 @@
 	--content-max: 980px;
 }
 
-* {
+*,
+*::before,
+*::after {
 	box-sizing: border-box;
+	border-radius: 0 !important;
 }
 
 html,
@@ -791,11 +794,15 @@ select:focus,
 	min-width: 0;
 }
 
+.pane-controls.hidden {
+	display: none;
+}
+
 .pane-control-group {
 	display: inline-flex;
 	align-items: center;
-	gap: 5px;
 	min-width: 0;
+	position: relative;
 }
 
 .pane-control-status {
@@ -821,6 +828,23 @@ select:focus,
 	width: 26px;
 	height: 26px;
 	min-width: 26px;
+	position: absolute;
+	right: 0;
+	top: 50%;
+	transform: translateY(-50%);
+	opacity: 0;
+	pointer-events: none;
+}
+
+.pane-control-group.is-removable:hover .pane-control-status,
+.pane-control-group.is-removable:focus-within .pane-control-status {
+	opacity: 0;
+}
+
+.pane-control-group.is-removable:hover .pane-remove-btn,
+.pane-control-group.is-removable:focus-within .pane-remove-btn {
+	opacity: 1;
+	pointer-events: auto;
 }
 
 .pane-remove-btn.icon-only {
@@ -867,26 +891,30 @@ select:focus,
 }
 
 .pane-grid::-webkit-scrollbar,
-.message-list::-webkit-scrollbar {
+.message-list::-webkit-scrollbar,
+textarea::-webkit-scrollbar {
 	width: 8px;
 	height: 8px;
 }
 
 .pane-grid::-webkit-scrollbar-track,
-.message-list::-webkit-scrollbar-track {
+.message-list::-webkit-scrollbar-track,
+textarea::-webkit-scrollbar-track {
 	background: #111519;
 	border-radius: 999px;
 }
 
 .pane-grid::-webkit-scrollbar-thumb,
-.message-list::-webkit-scrollbar-thumb {
+.message-list::-webkit-scrollbar-thumb,
+textarea::-webkit-scrollbar-thumb {
 	background: #365b50;
 	border: 2px solid #111519;
 	border-radius: 999px;
 }
 
 .pane-grid::-webkit-scrollbar-thumb:hover,
-.message-list::-webkit-scrollbar-thumb:hover {
+.message-list::-webkit-scrollbar-thumb:hover,
+textarea::-webkit-scrollbar-thumb:hover {
 	background: #4b7b6a;
 }
 
@@ -1408,6 +1436,8 @@ textarea {
 	border-radius: 18px;
 	padding: 14px 15px;
 	background: rgba(18, 20, 23, 0.95);
+	scrollbar-color: #365b50 #111519;
+	scrollbar-width: thin;
 }
 
 .composer-actions {
@@ -1471,6 +1501,29 @@ textarea {
 	align-items: center;
 	gap: 8px;
 	min-width: 0;
+}
+
+.compact-toggle-btn.icon-only {
+	width: 24px;
+	height: 24px;
+	min-width: 24px;
+	border-color: transparent;
+}
+
+.compact-toggle-btn.icon-only svg {
+	width: 15px;
+	height: 15px;
+}
+
+.usage-summary-details {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	min-width: 0;
+}
+
+.usage-summary-details.hidden {
+	display: none;
 }
 
 .composer-status-separator {

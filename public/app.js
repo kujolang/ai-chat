@@ -50,16 +50,22 @@ const legacyApiTokenExpiresAtStorageKey = "kujo_ai_chat_api_token_expires_at";
 const legacyStateCacheStorageKey = "kujo_ai_chat_state_cache_v1";
 const legacyUsageLedgerStorageKey = "kujo_ai_chat_usage_ledger_v1";
 const sidebarCollapsedStorageKey = "ai_chat_sidebar_collapsed_v1";
+const paneInfoVisibleStorageKey = "ai_chat_pane_info_visible_v1";
+const usageSummaryVisibleStorageKey = "ai_chat_usage_summary_visible_v1";
 const stateChangesBatchBytes = 512 * 1024;
 const maxVisibleProjectFolders = 5;
 const sidebarChatPageSize = 5;
 const defaultApiTokenTtlDays = 3650;
 const maxApiTokenTtlDays = 36500;
 let sidebarCollapsed = loadSidebarCollapsedPreference();
+let paneInfoVisible = loadBooleanPreference(paneInfoVisibleStorageKey, true);
+let usageSummaryVisible = loadBooleanPreference(usageSummaryVisibleStorageKey, false);
 const sendButtonSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z\"/><path d=\"m21.854 2.147-10.94 10.939\"/></svg>";
 const stopButtonSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect width=\"14\" height=\"14\" x=\"5\" y=\"5\" rx=\"2\"/></svg>";
 const collapseSidebarSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect width=\"18\" height=\"18\" x=\"3\" y=\"3\" rx=\"2\"/><path d=\"M9 3v18\"/><path d=\"m15 9-3 3 3 3\"/></svg>";
 const expandSidebarSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect width=\"18\" height=\"18\" x=\"3\" y=\"3\" rx=\"2\"/><path d=\"M9 3v18\"/><path d=\"m9 9 3 3-3 3\"/></svg>";
+const chevronLeftSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m15 18-6-6 6-6\"/></svg>";
+const chevronRightSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m9 18 6-6-6-6\"/></svg>";
 const copyCodeButtonSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"code-copy-icon\" aria-hidden=\"true\"><rect width=\"14\" height=\"14\" x=\"8\" y=\"8\" rx=\"2\" ry=\"2\"/><path d=\"M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2\"/></svg>";
 let apiAuthToken = "";
 let apiAuthTokenExpiresAt = 0;
@@ -83,12 +89,15 @@ const nodes = {
 	chatTitleInput: document.getElementById("chat-title-input"),
 	addPaneBtn: document.getElementById("add-pane-btn"),
 	paneControls: document.getElementById("pane-controls"),
+	togglePaneInfoBtn: document.getElementById("toggle-pane-info-btn"),
 	toggleSidebarBtn: document.getElementById("toggle-sidebar-btn"),
 	openUsageBtn: document.getElementById("open-usage-btn"),
 	openSettingsBtn: document.getElementById("open-settings-btn"),
 	paneGrid: document.getElementById("pane-grid"),
 	composerInput: document.getElementById("composer-input"),
 	composerTokenSummary: document.getElementById("composer-token-summary"),
+	toggleUsageSummaryBtn: document.getElementById("toggle-usage-summary-btn"),
+	usageSummaryDetails: document.getElementById("usage-summary-details"),
 	saveStatus: document.getElementById("save-status"),
 	composerProfileSelect: document.getElementById("composer-profile-select"),
 	sendBtn: document.getElementById("send-btn"),
@@ -446,6 +455,18 @@ function wireEvents() {
 		chat.updatedAt = Date.now();
 		schedulePersist();
 		renderAll();
+	});
+
+	nodes.togglePaneInfoBtn.addEventListener("click", () => {
+		paneInfoVisible = !paneInfoVisible;
+		storeBooleanPreference(paneInfoVisibleStorageKey, paneInfoVisible);
+		renderPaneInfoToggle();
+	});
+
+	nodes.toggleUsageSummaryBtn.addEventListener("click", () => {
+		usageSummaryVisible = !usageSummaryVisible;
+		storeBooleanPreference(usageSummaryVisibleStorageKey, usageSummaryVisible);
+		renderUsageSummaryToggle();
 	});
 
 	nodes.openUsageBtn.addEventListener("click", openUsageModal);
@@ -1240,11 +1261,31 @@ function renderAll() {
 	renderSidebar();
 	renderWorkspace();
 	renderSidebarToggle();
+	renderPaneInfoToggle();
+	renderUsageSummaryToggle();
 	updateStreamingControls();
 
 	if (isUsageModalOpen()) {
 		renderUsageModalContent();
 	}
+}
+
+function renderPaneInfoToggle() {
+	nodes.paneControls.classList.toggle("hidden", !paneInfoVisible);
+	nodes.togglePaneInfoBtn.innerHTML = paneInfoVisible ? chevronRightSvg : chevronLeftSvg;
+	const label = paneInfoVisible ? "Hide pane information" : "Show pane information";
+	nodes.togglePaneInfoBtn.setAttribute("aria-label", label);
+	nodes.togglePaneInfoBtn.setAttribute("aria-expanded", paneInfoVisible ? "true" : "false");
+	nodes.togglePaneInfoBtn.title = label;
+}
+
+function renderUsageSummaryToggle() {
+	nodes.usageSummaryDetails.classList.toggle("hidden", !usageSummaryVisible);
+	nodes.toggleUsageSummaryBtn.innerHTML = usageSummaryVisible ? chevronLeftSvg : chevronRightSvg;
+	const label = usageSummaryVisible ? "Hide token usage summary" : "Show token usage summary";
+	nodes.toggleUsageSummaryBtn.setAttribute("aria-label", label);
+	nodes.toggleUsageSummaryBtn.setAttribute("aria-expanded", usageSummaryVisible ? "true" : "false");
+	nodes.toggleUsageSummaryBtn.title = label;
 }
 
 function renderSidebarToggle() {
@@ -1267,6 +1308,26 @@ function setSidebarCollapsed(collapsed) {
 		// Keep the control usable if storage is unavailable.
 	}
 	renderSidebarToggle();
+}
+
+function loadBooleanPreference(storageKey, defaultValue) {
+	try {
+		const storedValue = window.localStorage.getItem(storageKey);
+		if (storedValue === null) {
+			return Boolean(defaultValue);
+		}
+		return storedValue === "1";
+	} catch (error) {
+		return Boolean(defaultValue);
+	}
+}
+
+function storeBooleanPreference(storageKey, value) {
+	try {
+		window.localStorage.setItem(storageKey, value ? "1" : "0");
+	} catch (error) {
+		// Ignore local preference storage errors.
+	}
 }
 
 function buildProfileModelOptions() {
@@ -1600,7 +1661,7 @@ function renderPaneControls(chat) {
 		const panePrefix = paneCount > 1 ? `Pane ${index + 1} · ` : "";
 		const statusLabel = `${panePrefix}${status}`;
 		const statusClass = ["pane-control-status", ["idle", "waiting", "partial", "error"].includes(status) ? status : ""].filter(Boolean).join(" ");
-		return `<div class="pane-control-group" data-pane-id="${escapeHtml(pane.id)}"><span class="${statusClass}" title="${escapeHtml(statusLabel)}">${escapeHtml(statusLabel)}</span><button class="pane-remove-btn btn ghost icon-only" data-action="remove-pane" data-pane-id="${escapeHtml(pane.id)}" aria-label="Remove ${escapeHtml(panePrefix || "pane")}" title="Remove ${escapeHtml(panePrefix || "pane")}"${paneCount <= 1 ? " disabled" : ""}><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash-icon lucide-trash" aria-hidden="true"><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button></div>`;
+		return `<div class="pane-control-group${paneCount > 1 ? " is-removable" : ""}" data-pane-id="${escapeHtml(pane.id)}"><span class="${statusClass}" title="${escapeHtml(statusLabel)}">${escapeHtml(statusLabel)}</span><button class="pane-remove-btn btn ghost icon-only" data-action="remove-pane" data-pane-id="${escapeHtml(pane.id)}" aria-label="Remove ${escapeHtml(panePrefix || "pane")}" title="Remove ${escapeHtml(panePrefix || "pane")}"${paneCount <= 1 ? " disabled" : ""}><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash-icon lucide-trash" aria-hidden="true"><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button></div>`;
 	}).join("");
 }
 
@@ -1865,7 +1926,7 @@ function initializeProjectFolderSelect2() {
 		width: "100%",
 		placeholder,
 		allowClear: false,
-		closeOnSelect: false,
+		closeOnSelect: true,
 		dropdownParent: jquery(nodes.projectFolderModal),
 		minimumResultsForSearch: 0,
 		createTag: (params) => {
@@ -1896,12 +1957,16 @@ function initializeProjectFolderSelect2() {
 
 	$projectFolderInput.on("select2:select", () => {
 		const selected = $projectFolderInput.val();
-		if (!Array.isArray(selected) || selected.length <= 1) {
-			return;
+		if (Array.isArray(selected) && selected.length > 1) {
+			const keepValue = String(selected[selected.length - 1] || "");
+			$projectFolderInput.val(keepValue ? [keepValue] : []).trigger("change.select2");
 		}
 
-		const keepValue = String(selected[selected.length - 1] || "");
-		$projectFolderInput.val(keepValue ? [keepValue] : []).trigger("change.select2");
+		window.requestAnimationFrame(() => {
+			const selectContainer = $projectFolderInput.next(".select2-container");
+			selectContainer.find(".select2-search__field").val("").trigger("input");
+			$projectFolderInput.select2("close");
+		});
 	});
 
 	projectFolderSelect2Ready = true;
