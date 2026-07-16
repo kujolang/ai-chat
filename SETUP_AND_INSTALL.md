@@ -20,6 +20,8 @@ Copy values from `.env.example` and define these variables in your shell or envi
 - ENCRYPTION_SECRET
 - API_AUTH_TOKEN
 - TRUST_PROXY
+- WATCHDOG_PROXY_URL
+- WATCHDOG_PROXY_TOKEN_FILE
 
 `AI_SDK_PATH` must point to a directory that contains both `ai_sdk.kujo` and `providers.kujo`.
 
@@ -33,6 +35,8 @@ DB_BACKUP_DIR=/absolute/path/to/ai-chat/data/backups
 ENCRYPTION_SECRET=<long-random-secret>
 API_AUTH_TOKEN=<long-random-token>
 TRUST_PROXY=0
+WATCHDOG_PROXY_URL=http://127.0.0.1:7700/proxy/v1
+WATCHDOG_PROXY_TOKEN_FILE=/absolute/path/to/watchdog-proxy-token
 ```
 
 Important security behavior:
@@ -42,6 +46,8 @@ Important security behavior:
 - API routes require `API_AUTH_TOKEN`; the web UI shows an in-app auth modal once and stores it locally with an expiry (default 30 days).
 - API routes reject unauthenticated requests before parsing JSON bodies, return JSON error envelopes for malformed authenticated JSON, and send `Cache-Control: no-store`.
 - `TRUST_PROXY` defaults to disabled. Enable it only behind a trusted reverse proxy so rate limiting, origin checks, HSTS detection, and audit IPs may use `X-Forwarded-*` headers.
+- The Watchdog profile is the reviewed local-proxy exception to the HTTPS-only custom-provider policy. It must exactly match `WATCHDOG_PROXY_URL`, remain on loopback, and reads its bearer token from `WATCHDOG_PROXY_TOKEN_FILE`.
+- Watchdog keeps the upstream provider key; AI Chat never stores or receives that upstream key. SignalBox and AI Chat telemetry can therefore share one Watchdog database while remaining distinguishable by source and correlation fields.
 
 ## 3. Install Dependencies
 

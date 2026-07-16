@@ -92,6 +92,8 @@ Use `.env.example` as your baseline and set:
 - ENCRYPTION_SECRET
 - API_AUTH_TOKEN
 - TRUST_PROXY
+- WATCHDOG_PROXY_URL
+- WATCHDOG_PROXY_TOKEN_FILE
 
 Offline fixture mode is supported in the bridge and smoke workflow for safe local validation without live provider credentials.
 
@@ -106,6 +108,7 @@ Security note:
 - Use RATE_LIMIT_MAX_BUCKETS to cap in-memory rate-limit tracker growth under high-cardinality traffic.
 - Use STREAM_REQUEST_TIMEOUT_MS to tune long-running upstream streaming requests.
 - Live provider and transcription requests are optional and require the configured provider/API-key path.
+- The dedicated Watchdog provider accepts only the configured loopback URL. Its proxy token is read from `WATCHDOG_PROXY_TOKEN_FILE`; it does not copy the upstream Ollama key into AI Chat or its SQLite database.
 
 ## Quick Start
 
@@ -149,7 +152,7 @@ http://127.0.0.1:4173
 
 1. Open Settings.
 2. Add or edit provider profiles.
-3. Enter API keys for each profile you plan to use.
+3. Enter API keys for each direct-provider profile you plan to use. Watchdog profiles use the server-managed credential file instead.
 4. Set model suggestions (comma-separated) per profile.
 5. Create a new chat and add panes for side-by-side comparison.
 6. Send a prompt; every pane receives the same prompt automatically.

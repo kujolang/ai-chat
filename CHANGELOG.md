@@ -8,6 +8,7 @@ The format is inspired by Keep a Changelog and semantic versioning.
 
 ### Changed
 
+- Added a first-class Watchdog provider that routes AI Chat through the shared local telemetry proxy with server-managed credentials and per-chat correlation metadata.
 - Moved the security hardening checklist into `docs/` with the other release and operations references.
 - Documented explicit proxy-trust, stream-timeout, and rate-limit bucket controls in setup and release docs.
 - Preserve provider message-shaped stream chunks, recover incomplete responses, and render Markdown thinking output.

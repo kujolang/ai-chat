@@ -2625,6 +2625,10 @@ function providerLabelForId(providerId) {
 		return "Custom OpenAI-Compatible";
 	}
 
+	if (providerId === "watchdog") {
+		return "Watchdog (Ollama Cloud)";
+	}
+
 	return providerId || "Unknown Provider";
 }
 
@@ -2701,7 +2705,10 @@ function renderSettings() {
 
 	nodes.profileList.innerHTML = state.settings.profiles
 		.map((profile) => {
-			const keyStatus = profile.api_key_present
+			const managedCredential = profile.provider_id === "watchdog" || profile.credential_managed;
+			const keyStatus = managedCredential
+				? "Managed by server credential file"
+				: profile.api_key_present
 				? "Stored key: configured"
 				: "Stored key: not configured";
 
@@ -2719,11 +2726,12 @@ function renderSettings() {
 								${providerOption(profile.provider_id, "deepseek", "DeepSeek")}
 								${providerOption(profile.provider_id, "openrouter", "OpenRouter")}
 								${providerOption(profile.provider_id, "custom", "Custom OpenAI-Compatible")}
+								${providerOption(profile.provider_id, "watchdog", "Watchdog (Ollama Cloud)")}
 							</select>
 						</label>
 						<label>
 							<span>API Key</span>
-							<input data-profile-id="${profile.id}" data-field="api_key" type="password" value="" placeholder="Enter a new key to update" autocomplete="off">
+							<input data-profile-id="${profile.id}" data-field="api_key" type="password" value="" placeholder="${managedCredential ? "Managed by WATCHDOG_PROXY_TOKEN_FILE" : "Enter a new key to update"}" autocomplete="off" ${managedCredential ? "disabled" : ""}>
 						</label>
 						<label>
 							<span>Key Status</span>
@@ -2731,7 +2739,7 @@ function renderSettings() {
 						</label>
 						<label>
 							<span>Base URL (custom only)</span>
-							<input data-profile-id="${profile.id}" data-field="base_url" type="text" value="${escapeHtml(profile.base_url || "")}">
+							<input data-profile-id="${profile.id}" data-field="base_url" type="text" value="${escapeHtml(profile.base_url || "")}" placeholder="${managedCredential ? "Managed by WATCHDOG_PROXY_URL" : ""}" ${managedCredential ? "disabled" : ""}>
 						</label>
 						<label style="grid-column: span 2;">
 							<span>Model suggestions (comma separated)</span>
@@ -2964,6 +2972,10 @@ async function sendMessageToPaneStream(chat, pane, text) {
 
 			const payload = {
 				profile_id: profile.id,
+				chat_id: chat.id,
+				pane_id: pane.id,
+				session_id: chat.id,
+				correlation_id: pane.id,
 				model: selectedModel,
 				temperature: state.settings.temperature,
 				max_tokens: requestedMaxTokens,

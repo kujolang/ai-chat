@@ -147,6 +147,13 @@ options := {
 	"retry_delay_ms": dict_get_or(payload, "retry_delay_ms", 250)
 }
 
+request_headers := dict_get_or(payload, "headers", {})
+if type(request_headers) == "dict" {
+	if len(keys(request_headers)) > 0 {
+		options["headers"] := request_headers
+	}
+}
+
 tools := dict_get_or(payload, "tools", [])
 if type(tools) == "array" {
 	if len(tools) > 0 {

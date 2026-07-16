@@ -89,11 +89,13 @@ Profile key handling guarantee:
 
 - Raw API keys are never returned.
 - `api_key_present` is exposed as a boolean indicator.
+- `credential_managed` is `true` for Watchdog profiles whose proxy token comes from the server credential file.
 
 Bridge/offline path note:
 
 - The bridge accepts an `offline_fixture` flag for safe local smoke validation.
 - Live provider calls remain gated behind configured API keys and the external AI SDK files.
+- Watchdog profiles use `WATCHDOG_PROXY_TOKEN_FILE` and automatically attach `X-Observe-*` correlation headers to chat requests.
 
 ## 6. Streaming Contract (`POST /api/chat/stream`)
 

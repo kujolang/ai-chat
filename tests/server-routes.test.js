@@ -625,6 +625,48 @@ test("POST /api/chat rejects custom provider URL for local host even when allowl
 	}
 });
 
+test("POST /api/chat/stream routes Watchdog profiles through the managed local proxy", async () => {
+	const credentialDir = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-watchdog-token-"));
+	const tokenFile = path.join(credentialDir, "proxy-token");
+	fs.writeFileSync(tokenFile, "managed-watchdog-token\n", { mode: 0o600 });
+	let observed = null;
+	const { runtime, destroy } = createIsolatedRuntime({
+		envMerge: {
+			WATCHDOG_PROXY_URL: "http://127.0.0.1:7700/proxy/v1",
+			WATCHDOG_PROXY_TOKEN_FILE: tokenFile
+		},
+		fetchFn: async (url, options) => {
+			observed = { url, options };
+			return mockSseResponse([{ choices: [{ delta: { content: "ok" } }], usage: { prompt_tokens: 2, completion_tokens: 1, total_tokens: 3 } }]);
+		}
+	});
+	try {
+		const profileId = applyProfileMutation(runtime, (profile) => {
+			profile.provider_id = "watchdog";
+			profile.base_url = "";
+			profile.api_key = "";
+			profile.models_csv = "qwen3.5:397b-cloud";
+		});
+		await withServer(runtime.app, async (baseUrl) => {
+			const response = await fetch(`${baseUrl}/api/chat/stream`, {
+				method: "POST",
+				headers: withAuthHeaders({ "Content-Type": "application/json" }),
+				body: JSON.stringify({ profile_id: profileId, model: "qwen3.5:397b-cloud", chat_id: "chat_1", pane_id: "pane_1", messages: [{ role: "user", content: "hi" }] })
+			});
+			await response.text();
+			assert.equal(response.status, 200);
+		});
+		assert.equal(observed.url, "http://127.0.0.1:7700/proxy/v1/chat/completions");
+		assert.equal(observed.options.headers.Authorization, "Bearer managed-watchdog-token");
+		assert.equal(observed.options.headers["X-Observe-Project-Id"], "ai-chat");
+		assert.equal(observed.options.headers["X-Observe-Session-Id"], "chat_1");
+		assert.equal(observed.options.headers["X-Observe-Correlation-Id"], "pane_1");
+	} finally {
+		destroy();
+		fs.rmSync(credentialDir, { recursive: true, force: true });
+	}
+});
+
 test("POST /api/chat returns bridge_exec_error when spawn fails", async () => {
 	const { runtime, destroy } = createIsolatedRuntime({
 		spawnSyncFn() {
