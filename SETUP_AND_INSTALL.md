@@ -54,7 +54,7 @@ Important security behavior:
 - `TRUST_PROXY` defaults to disabled. Enable it only behind a trusted reverse proxy so rate limiting, origin checks, HSTS detection, and audit IPs may use `X-Forwarded-*` headers.
 - The Watchdog profile is the reviewed local-proxy exception to the HTTPS-only custom-provider policy. It must exactly match `WATCHDOG_PROXY_URL`, remain on loopback, and reads its bearer token from `WATCHDOG_PROXY_TOKEN_FILE`.
 - Watchdog keeps the upstream provider key; AI Chat never stores or receives that upstream key. SignalBox and AI Chat telemetry can therefore share one Watchdog database while remaining distinguishable by source and correlation fields.
-- For true live Watchdog chat streaming, keep an API-key-backed custom Ollama profile with the same model in AI Chat and leave `WATCHDOG_DIRECT_STREAMING=1`. AI Chat uses that direct connection for the stream, then posts non-content completion metrics to `WATCHDOG_TELEMETRY_URL`. Set `WATCHDOG_API_TOKEN_FILE` only when Watchdog protects `/api/*` with token auth.
+- For true live Watchdog chat streaming, keep an API-key-backed custom Ollama profile with the same model in AI Chat and leave `WATCHDOG_DIRECT_STREAMING=1`. AI Chat uses that direct connection for the stream, then posts non-content completion metrics to `WATCHDOG_TELEMETRY_URL`. When Watchdog protects `/api/*` with token auth, set `WATCHDOG_API_TOKEN_FILE` to a readable file containing `WDG_API_AUTH_TOKEN`; the proxy token file cannot replace this separate API credential unless both Watchdog roles intentionally use the same value. Rejected or unreachable telemetry produces a sanitized server warning without failing the chat.
 
 ## 3. Install Dependencies
 

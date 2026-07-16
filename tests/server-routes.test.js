@@ -711,22 +711,27 @@ test("POST /api/chat/stream routes Watchdog profiles through the managed local p
 	}
 });
 
-test("POST /api/chat/stream uses a matching direct Ollama profile for live Watchdog streams", async () => {
+test("POST /api/chat/stream authenticates direct Watchdog telemetry and reports rejection", async () => {
 	const credentialDir = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-watchdog-direct-"));
 	const tokenFile = path.join(credentialDir, "proxy-token");
+	const apiTokenFile = path.join(credentialDir, "api-token");
 	fs.writeFileSync(tokenFile, "managed-watchdog-token\n", { mode: 0o600 });
+	fs.writeFileSync(apiTokenFile, "managed-watchdog-api-token\n", { mode: 0o600 });
 	const calls = [];
+	const warnings = [];
 	const { runtime, destroy } = createIsolatedRuntime({
 		envMerge: {
 			WATCHDOG_PROXY_URL: "http://127.0.0.1:7700/proxy/v1",
 			WATCHDOG_PROXY_TOKEN_FILE: tokenFile,
+			WATCHDOG_API_TOKEN_FILE: apiTokenFile,
 			WATCHDOG_DIRECT_STREAMING: "1",
 			ALLOWED_CUSTOM_PROVIDER_HOSTS: "ollama.com"
 		},
+		warnFn: (message) => warnings.push(message),
 		fetchFn: async (url, options) => {
 			calls.push({ url, options });
 			if (url.includes("/api/telemetry/requests")) {
-				return { ok: true, status: 200 };
+				return { ok: false, status: 401 };
 			}
 			return mockChunkedResponse([
 				`${JSON.stringify({ model: "qwen3.5", message: { content: "live " }, done: false })}\n`,
@@ -775,7 +780,12 @@ test("POST /api/chat/stream uses a matching direct Ollama profile for live Watch
 		const directBody = JSON.parse(calls[0].options.body);
 		assert.equal(directBody.options.num_predict, 700);
 		assert.equal(Object.prototype.hasOwnProperty.call(directBody, "max_tokens"), false);
-		assert.equal(calls.some((call) => call.url === "http://127.0.0.1:7700/api/telemetry/requests"), true);
+		const telemetryCall = calls.find((call) => call.url === "http://127.0.0.1:7700/api/telemetry/requests");
+		assert.ok(telemetryCall);
+		assert.equal(telemetryCall.options.headers["X-Watchdog-Token"], "managed-watchdog-api-token");
+		assert.deepEqual(warnings, [
+			"[watchdog] Telemetry intake returned HTTP 401. Check WATCHDOG_API_TOKEN_FILE when Watchdog API auth is enabled."
+		]);
 	} finally {
 		destroy();
 		fs.rmSync(credentialDir, { recursive: true, force: true });
