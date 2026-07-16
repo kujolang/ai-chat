@@ -1980,7 +1980,7 @@ function nullableUsageValue(value) {
 function renderComposerUsageSummary() {
 	const chat = getActiveChat();
 	if (!chat) {
-		nodes.composerTokenSummary.textContent = "This chat: 0 tokens";
+		nodes.composerTokenSummary.textContent = "0 tokens";
 		return;
 	}
 

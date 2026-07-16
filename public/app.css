@@ -1331,7 +1331,7 @@ select:focus,
 }
 
 .composer-token-summary {
-	font-size: 12px;
+	font-size: 11px;
 	color: #b8c2ce;
 	font-family: var(--mono);
 }
