@@ -689,9 +689,9 @@ select:focus,
 
 .pane-grid.cols-3 {
 	grid-template-columns: repeat(3, minmax(0, 1fr));
-	gap: 8px;
-	padding-left: 8px;
-	padding-right: 8px;
+	gap: 12px;
+	padding-left: 14px;
+	padding-right: 14px;
 }
 
 .pane-card {
@@ -1266,9 +1266,9 @@ select:focus,
 .message-thinking {
 	margin-top: 0;
 	padding: 8px 10px;
-	border: 1px solid #2c3644;
+	border: 0;
 	border-radius: 10px;
-	background: rgba(22, 30, 40, 0.45);
+	background: transparent;
 	font-size: 12px;
 	color: #bdd6e8;
 }
