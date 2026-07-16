@@ -25,6 +25,9 @@ Copy values from `.env.example` and define these variables in your shell or envi
 - WATCHDOG_DIRECT_STREAMING
 - WATCHDOG_TELEMETRY_URL
 - WATCHDOG_API_TOKEN_FILE
+- MAX_TOOL_ROUNDS
+- MAX_TOOL_CALLS_PER_REQUEST
+- WEB_SEARCH_MAX_RESULTS
 
 `AI_SDK_PATH` must point to a directory that contains both `ai_sdk.kujo` and `providers.kujo`.
 
@@ -43,6 +46,9 @@ WATCHDOG_PROXY_TOKEN_FILE=/absolute/path/to/watchdog-proxy-token
 WATCHDOG_DIRECT_STREAMING=1
 WATCHDOG_TELEMETRY_URL=http://127.0.0.1:7700/api/telemetry/requests
 WATCHDOG_API_TOKEN_FILE=
+MAX_TOOL_ROUNDS=4
+MAX_TOOL_CALLS_PER_REQUEST=8
+WEB_SEARCH_MAX_RESULTS=5
 ```
 
 Important security behavior:
@@ -131,11 +137,11 @@ http://127.0.0.1:4173
 - The backend forwards transcription requests through POST /api/transcribe.
 - Transcript text is inserted into the composer when successful.
 
-## 8. Tool Schemas
+## 8. Tools
 
-The Browser-use and Web Search presets in Settings are function schemas for integration testing. They do not provide browser or search execution by themselves. AI Chat currently has no connected tool runner.
+The Web Search preset is executable. Add an API-key-backed custom Ollama profile in Settings, enable the preset, and AI Chat will execute model-requested searches through Ollama's Web Search API. Search calls are bounded by `MAX_TOOL_ROUNDS`, `MAX_TOOL_CALLS_PER_REQUEST`, and `WEB_SEARCH_MAX_RESULTS`; results are returned to the model as tool messages so it can produce the final answer.
 
-If a provider selects one of these functions, AI Chat returns `tool_execution_unavailable` and lists the requested tool names when available. Disable the schemas for ordinary chat until an executor is connected.
+Browser-use and custom entries remain schemas until their executors are connected. If a provider selects an unsupported function, AI Chat returns `tool_execution_unavailable` and lists its name.
 
 ## 9. Health and Smoke Validation
 

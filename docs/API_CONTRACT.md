@@ -126,7 +126,7 @@ Bridge/offline path note:
 
 ## 6. Streaming Contract (`POST /api/chat/stream`)
 
-Requests may include `tools`, an array of up to 32 OpenAI-compatible function definitions. Enabled tool schemas are forwarded to the selected provider, but schemas do not grant capabilities. AI Chat does not currently execute tool calls. If the provider requests one, the JSON route returns HTTP 422 or the streaming route emits a terminal `error` event with code `tool_execution_unavailable`; the response includes the requested `tool_names` when available. Clients must not retry that error automatically.
+Requests may include `tools`, an array of up to 32 OpenAI-compatible function definitions. The streaming route executes `web_search` through Ollama's authenticated Web Search API, appends the result as a provider-compatible tool message, and continues the conversation within bounded round/call limits. A successful final `done` payload includes `tool_calls_executed`. Other schemas do not grant capabilities: unsupported tool requests emit a terminal `tool_execution_unavailable` error containing `tool_names`. The JSON bridge route retains the explicit HTTP 422 behavior for requested tool execution. Clients must not retry terminal tool errors automatically.
 
 The endpoint returns `text/event-stream` with the following events:
 
@@ -144,7 +144,8 @@ Client rules:
 - `finish_reason` may be `stream_closed` when an upstream provider closes the connection without sending a terminal reason; clients should treat that as incomplete and may continue the request.
 - The server consumes the complete upstream body before emitting its terminal `done` event and supports standard multiline SSE `data:` frames.
 - SSE and newline-delimited JSON upstream bodies are forwarded incrementally. Provider `error` events are terminal and are never followed by a misleading `done` event.
-- Provider tool calls are terminal while no executor is connected. The server emits `tool_execution_unavailable` instead of returning an empty successful answer or repeatedly continuing the request.
+- `web_search` calls run through the bounded Ollama Web Search executor. Invalid arguments, missing Ollama credentials, upstream search failure, and tool-budget exhaustion emit explicit terminal errors.
+- Unsupported provider tool calls remain terminal. The server emits `tool_execution_unavailable` instead of returning an empty successful answer or repeatedly continuing the request.
 - Watchdog streams may use a matching direct Ollama profile and asynchronous Watchdog telemetry intake when direct streaming is enabled; otherwise they use the managed proxy fallback.
 - Direct Watchdog telemetry uses `WATCHDOG_API_TOKEN_FILE` when the Watchdog `/api/*` surface requires token authentication. Telemetry remains best effort: a rejected or unreachable intake logs a sanitized server warning but does not change the successful chat stream contract.
 
