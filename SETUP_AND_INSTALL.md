@@ -122,6 +122,8 @@ http://127.0.0.1:4173
 - Thinking/reasoning appears only when the upstream provider emits those deltas.
 - SSE and NDJSON providers are consumed incrementally; active data resets the stream idle timeout.
 - Partial responses are retained and automatically resumed after token limits, unexpected closes, and bounded transient failures.
+- Chat state is persisted independently from provider streaming through bounded incremental writes, so a large historical chat corpus is never resent as one save request.
+- The composer displays the durable-save state. Do not close the page while it says `Saving…` or `Not saved`; failed writes remain cached locally and retry automatically.
 
 ## 7. Voice and Transcription
 

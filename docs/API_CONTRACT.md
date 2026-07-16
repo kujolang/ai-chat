@@ -12,6 +12,7 @@ Current endpoints:
 - `GET /api/providers`
 - `GET /api/state`
 - `PUT /api/state`
+- `POST /api/state/changes`
 - `POST /api/chat`
 - `POST /api/chat/stream`
 - `POST /api/transcribe`
@@ -90,6 +91,32 @@ Profile key handling guarantee:
 - Raw API keys are never returned.
 - `api_key_present` is exposed as a boolean indicator.
 - `credential_managed` is `true` for Watchdog profiles whose proxy token comes from the server credential file.
+
+### Incremental state changes
+
+`POST /api/state/changes` is the preferred persistence endpoint. Its request body is:
+
+```json
+{
+  "changes": [
+    { "type": "message_upsert", "message": { "id": "message-id", "pane_id": "pane-id", "role": "assistant", "content": "...", "thinking": "", "usage": null, "created_at": 0, "sort_order": 0 } }
+  ]
+}
+```
+
+Supported additive change types are:
+
+- `app_settings_upsert`
+- `profile_upsert`, `profile_delete`
+- `chat_upsert`, `chat_delete`
+- `pane_upsert`, `pane_delete`
+- `message_upsert`, `message_delete`
+
+Clients must order dependency creation as profiles, chats, panes, then messages. Deletions must run in the reverse dependency order. A successful response contains `applied` and the new `stateVersion`.
+
+Changes are idempotent entity upserts/deletes and do not require the global state version. This prevents an unrelated concurrent client write from forcing the browser to discard unsaved local chat content. Clients should diff against their last confirmed snapshot, retry failed batches, and never advance that snapshot until every batch succeeds.
+
+`PUT /api/state` remains backward compatible for complete-snapshot clients and retains optimistic state-version checks. It is not recommended for growing conversation histories because its request size includes every message.
 
 Bridge/offline path note:
 

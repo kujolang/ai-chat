@@ -25,6 +25,7 @@ This project is for end users and teams who want one local web app to:
 
 - Chat workspace
 	- Create, rename, pin, archive, delete, and search chats
+	- Persist changed chats, panes, and messages incrementally with visible save status
 - Provider profiles
 	- Store provider profiles and model suggestions in Settings
 	- API keys are encrypted before being stored in SQLite
@@ -173,6 +174,7 @@ http://127.0.0.1:4173
 - GET /api/providers
 - GET /api/state
 - PUT /api/state
+- POST /api/state/changes
 - POST /api/chat
 - POST /api/chat/stream
 - POST /api/transcribe
@@ -191,6 +193,12 @@ If a provider/model does not emit reasoning deltas, thinking output remains empt
 The server forwards SSE and newline-delimited JSON incrementally, keeps the timeout idle-based while data is arriving, and treats provider error events as terminal. The client automatically resumes token-limited, unexpectedly closed, and transiently failed partial responses without discarding text already received.
 
 The offline fixture path is verified in the local smoke workflow and is the safest path for docs/CI-style checks.
+
+## Durable State Behavior
+
+The browser writes normalized state changes through `POST /api/state/changes` instead of resending the complete conversation corpus. Changes are dependency-ordered, split into bounded batches, idempotent when retried, and stored transactionally in SQLite. Conversation growth therefore does not make later saves exceed the global JSON request limit.
+
+The composer always shows `Saving…`, `Saved`, or an explicit `Not saved` state. Failed writes remain in the local cache and retry with bounded backoff; the page also warns before unload while changes are unsaved. `PUT /api/state` remains available for older clients, but new clients should use incremental changes.
 
 ## Database Operations
 
