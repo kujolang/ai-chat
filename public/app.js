@@ -1996,7 +1996,7 @@ function renderComposerUsageSummary() {
 	const cachedLabel = cacheReported ? formatNumber(cachedInputTokens) : "—";
 	const responseLabel = responseCount === 1 ? "response" : "responses";
 	const cacheWriteLabel = cacheReported ? formatNumber(cacheWriteInputTokens) : "—";
-	nodes.composerTokenSummary.textContent = `This chat: ${formatNumber(totalTokens)} tokens (in ${formatNumber(inputTokens)} · out ${formatNumber(outputTokens)} · cached ${cachedLabel} · cache write ${cacheWriteLabel}) across ${formatNumber(responseCount)} ${responseLabel} (avg ${formatNumber(average)})`;
+	nodes.composerTokenSummary.textContent = `${formatNumber(totalTokens)} tokens (in ${formatNumber(inputTokens)} · out ${formatNumber(outputTokens)} · cached ${cachedLabel} · cache write ${cacheWriteLabel}) across ${formatNumber(responseCount)} ${responseLabel} (avg ${formatNumber(average)})`;
 }
 
 function collectUsageRecords() {
@@ -4842,36 +4842,18 @@ async function maybeAutoTitleChat(chat, pane, profile, selectedModel) {
 }
 
 function renderThinkingBlock(message, paneId) {
-	if (!message || !message.thinking) {
+	if (!message || (!message.thinking && !message.streaming)) {
 		return "";
 	}
 
 	const thinkingText = String(message.thinking || "");
-	const collapseThresholdLines = 10;
-	const canCollapse = estimatedThinkingLineCount(thinkingText) > collapseThresholdLines;
-	const expanded = canCollapse ? Boolean(message.thinking_expanded) : true;
+	const expanded = Boolean(message.thinking_expanded);
 	const contentClass = expanded ? "message-thinking-content" : "message-thinking-content collapsed";
-	const toggle = canCollapse
-		? `<button class="thinking-toggle" type="button" data-action="toggle-thinking" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}" aria-expanded="${expanded ? "true" : "false"}" aria-label="${expanded ? "Collapse thinking" : "Expand thinking"}">${thinkingToggleIconSvg(expanded)}</button>`
-		: "";
+	const toggle = `<button class="thinking-toggle" type="button" data-action="toggle-thinking" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}" aria-expanded="${expanded ? "true" : "false"}" aria-label="${expanded ? "Collapse thinking" : "Expand thinking"}">${thinkingToggleIconSvg(expanded)}</button>`;
+	const loadingIcon = message.streaming ? thinkingLoadingIconSvg : "";
 
 	const renderedThinking = renderAssistantMarkdown(thinkingText);
-	return `<div class="message-thinking"><div class="message-thinking-head"><div class="thinking-label">Thinking</div>${toggle}</div><div class="${contentClass} message-thinking-markdown"><div class="message-content-block">${renderedThinking}</div></div></div>`;
-}
-
-function estimatedThinkingLineCount(value) {
-	const text = String(value || "");
-	if (!text) {
-		return 0;
-	}
-
-	const lines = text.split(/\r?\n/);
-	let count = 0;
-	for (const line of lines) {
-		count += Math.max(1, Math.ceil(String(line || "").length / 120));
-	}
-
-	return count;
+	return `<div class="message-thinking" role="status" aria-live="polite"><div class="message-thinking-head"><div class="thinking-label">Thinking${loadingIcon}</div>${toggle}</div><div class="${contentClass} message-thinking-markdown"><div class="message-content-block">${renderedThinking}</div></div></div>`;
 }
 
 function thinkingToggleIconSvg(expanded) {
@@ -4881,6 +4863,8 @@ function thinkingToggleIconSvg(expanded) {
 
 	return "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"thinking-toggle-icon\" aria-hidden=\"true\"><path d=\"m6 9 6 6 6-6\"/></svg>";
 }
+
+const thinkingLoadingIconSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"thinking-loading-icon\" aria-label=\"Thinking in progress\"><path d=\"M12 2v4\"/><path d=\"m16.24 3.76-2.83 2.83\"/><path d=\"M22 12h-4\"/><path d=\"m20.24 16.24-2.83-2.83\"/><path d=\"M12 22v-4\"/><path d=\"m7.76 20.24 2.83-2.83\"/><path d=\"M2 12H6\"/><path d=\"m3.76 7.76 2.83 2.83\"/></svg>";
 
 function renderPlainText(value) {
 	return escapeHtml(String(value || "")).replace(/\n/g, "<br>");

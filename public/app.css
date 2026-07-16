@@ -1250,6 +1250,17 @@ select:focus,
 	margin-bottom: 6px;
 }
 
+.thinking-loading-icon {
+	animation: thinking-spinner 900ms linear infinite;
+	color: #7de0b7;
+}
+
+@keyframes thinking-spinner {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
 .message-thinking-content {
 	white-space: pre-wrap;
 	line-height: 1.35;
