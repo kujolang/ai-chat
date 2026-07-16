@@ -239,9 +239,33 @@ test("GET /api/health returns runtime metadata", async () => {
 			assert.equal(typeof json.ai_sdk_available, "boolean");
 			assert.deepEqual(json.tool_runtime.tools, ["web_search"]);
 			assert.equal(json.tool_runtime.web_search_backend, "ollama");
+			assert.equal(json.tool_runtime.browser.available, false);
+			assert.equal(json.tool_runtime.browser.unavailable_reason, "disabled");
+			assert.equal(json.tool_runtime.schemas.some((schema) => schema.function.name === "browser_open"), false);
 		});
 	} finally {
 		destroy();
+	}
+});
+
+test("GET /api/health advertises browser schemas only when Chromium is executable", async () => {
+	const artifactDir = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-browser-health-"));
+	const { runtime, destroy } = createIsolatedRuntime({
+		envMerge: { BROWSER_ENABLED: "1" },
+		browserRuntimeOptions: { artifactDir }
+	});
+	try {
+		await withServer(runtime.app, async (baseUrl) => {
+			const { json } = await fetchJson(baseUrl, "/api/health");
+			assert.equal(json.tool_runtime.browser.available, true);
+			assert.equal(json.tool_runtime.browser.backend, "playwright-chromium");
+			assert.ok(json.tool_runtime.tools.includes("browser_open"));
+			assert.ok(json.tool_runtime.schemas.some((schema) => schema.function.name === "browser_act"));
+			assert.equal(JSON.stringify(json.tool_runtime.browser).includes(artifactDir), false);
+		});
+	} finally {
+		await destroy();
+		fs.rmSync(artifactDir, { recursive: true, force: true });
 	}
 });
 
@@ -1500,6 +1524,115 @@ test("POST /api/chat/stream keeps unsupported tool calls terminal", async () => 
 		});
 	} finally {
 		destroy();
+	}
+});
+
+test("POST /api/chat/stream executes multi-round Ollama-native browser tools and returns a final answer", async () => {
+	const fixture = http.createServer((req, res) => {
+		res.setHeader("content-type", "text/html; charset=utf-8");
+		res.end("<!doctype html><title>Browser route fixture</title><h1>Ollama browser evidence</h1><a href='/details'>Details</a>");
+	});
+	fixture.listen(0, "127.0.0.1");
+	await once(fixture, "listening");
+	const fixtureUrl = `http://127.0.0.1:${fixture.address().port}`;
+	const artifactDir = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-browser-route-"));
+	let providerRound = 0;
+	const providerBodies = [];
+	const { runtime, destroy } = createIsolatedRuntime({
+		envMerge: { ALLOWED_CUSTOM_PROVIDER_HOSTS: "ollama.com", BROWSER_ENABLED: "1" },
+		browserRuntimeOptions: { allowPrivateHosts: ["127.0.0.1"], artifactDir },
+		fetchFn: async (url, options) => {
+			providerBodies.push(JSON.parse(options.body));
+			providerRound += 1;
+			if (providerRound === 1) {
+				return mockJsonResponse({ model: "qwen", message: { tool_calls: [{ function: { name: "browser_open", arguments: { url: fixtureUrl } } }] }, done: true, done_reason: "stop" });
+			}
+			if (providerRound === 2) {
+				const prior = JSON.parse(providerBodies.at(-1).messages.at(-1).content);
+				return mockJsonResponse({ model: "qwen", message: { tool_calls: [{ function: { name: "browser_snapshot", arguments: { session_id: prior.session_id } } }] }, done: true, done_reason: "stop" });
+			}
+			return mockJsonResponse({ model: "qwen", message: { content: "Ollama used local browser evidence." }, done: true, done_reason: "stop" });
+		}
+	});
+	try {
+		const profileId = applyProfileMutation(runtime, (profile) => {
+			profile.provider_id = "custom";
+			profile.base_url = "https://ollama.com/v1";
+			profile.api_key = "ollama-key";
+		});
+		await withServer(runtime.app, async (baseUrl) => {
+			const response = await fetch(`${baseUrl}/api/chat/stream`, {
+				method: "POST",
+				headers: withAuthHeaders({ "Content-Type": "application/json" }),
+				body: JSON.stringify({
+					profile_id: profileId,
+					chat_id: "browser-chat-ollama",
+					messages: [{ role: "user", content: "Read the fixture" }],
+					tools: ["browser_open", "browser_snapshot"].map((name) => ({ type: "function", function: { name, parameters: { type: "object" } } }))
+				})
+			});
+			const events = parseSseEvents(await response.text());
+			assert.equal(events.some((entry) => entry.event === "error"), false);
+			assert.equal(events.filter((entry) => entry.event === "token").map((entry) => entry.data.delta).join(""), "Ollama used local browser evidence.");
+			assert.equal(events.find((entry) => entry.event === "done").data.tool_calls_executed, 2);
+		});
+		assert.match(providerBodies[2].messages.at(-1).content, /Ollama browser evidence/);
+		assert.equal(providerBodies[2].messages.at(-1).tool_name, "browser_snapshot");
+	} finally {
+		await destroy();
+		fixture.close();
+		await once(fixture, "close");
+		fs.rmSync(artifactDir, { recursive: true, force: true });
+	}
+});
+
+test("POST /api/chat/stream executes OpenAI-compatible browser tools with provider-neutral result messages", async () => {
+	const fixture = http.createServer((req, res) => {
+		res.setHeader("content-type", "text/html; charset=utf-8");
+		res.end("<!doctype html><title>OpenAI browser fixture</title><p>OpenAI-compatible browser evidence</p>");
+	});
+	fixture.listen(0, "127.0.0.1");
+	await once(fixture, "listening");
+	const fixtureUrl = `http://127.0.0.1:${fixture.address().port}`;
+	const artifactDir = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-browser-route-openai-"));
+	let providerRound = 0;
+	const providerBodies = [];
+	const { runtime, destroy } = createIsolatedRuntime({
+		envMerge: { ALLOWED_CUSTOM_PROVIDER_HOSTS: "api.example.com", BROWSER_ENABLED: "1" },
+		browserRuntimeOptions: { allowPrivateHosts: ["127.0.0.1"], artifactDir },
+		fetchFn: async (url, options) => {
+			const body = JSON.parse(options.body);
+			providerBodies.push(body);
+			providerRound += 1;
+			if (providerRound === 1) {
+				return mockSseResponse([{ choices: [{ delta: { tool_calls: [{ index: 0, id: "browser-call", function: { name: "browser_open", arguments: JSON.stringify({ url: fixtureUrl }) } }] }, finish_reason: "tool_calls" }] }]);
+			}
+			return mockSseResponse([{ choices: [{ delta: { content: "OpenAI-compatible browser answer." }, finish_reason: "stop" }] }]);
+		}
+	});
+	try {
+		const profileId = applyProfileMutation(runtime, (profile) => {
+			profile.provider_id = "custom";
+			profile.base_url = "https://api.example.com/v1";
+			profile.api_key = "provider-key";
+		});
+		await withServer(runtime.app, async (baseUrl) => {
+			const response = await fetch(`${baseUrl}/api/chat/stream`, {
+				method: "POST",
+				headers: withAuthHeaders({ "Content-Type": "application/json" }),
+				body: JSON.stringify({ profile_id: profileId, chat_id: "browser-chat-openai", messages: [{ role: "user", content: "Open fixture" }], tools: [{ type: "function", function: { name: "browser_open", parameters: { type: "object" } } }] })
+			});
+			const events = parseSseEvents(await response.text());
+			assert.equal(events.filter((entry) => entry.event === "token").map((entry) => entry.data.delta).join(""), "OpenAI-compatible browser answer.");
+			assert.equal(events.find((entry) => entry.event === "done").data.tool_calls_executed, 1);
+		});
+		assert.equal(providerBodies[1].messages.at(-1).tool_call_id, "browser-call");
+		assert.match(providerBodies[1].messages.at(-1).content, /OpenAI browser fixture/);
+	} finally {
+		await destroy();
+		fixture.close();
+		await once(fixture, "close");
+		fs.rmSync(artifactDir, { recursive: true, force: true });
 	}
 });
 

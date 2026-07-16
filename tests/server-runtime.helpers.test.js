@@ -268,6 +268,11 @@ test("chatRequestPayload applies defaults and validates normalized messages", ()
 			tools: [{ type: "function", function: { name: "browser-use", description: "Browse", parameters: { type: "object" } } }]
 		}, {});
 		assert.equal(withTool.tools[0].function.name, "browser-use");
+		const unavailableBrowser = runtime.helpers.chatRequestPayload({
+			messages: [{ role: "user", content: "hi" }],
+			tools: [{ type: "function", function: { name: "browser_open", parameters: {} } }]
+		}, {});
+		assert.deepEqual(unavailableBrowser.tools, []);
 		const duplicateTools = runtime.helpers.chatRequestPayload({
 			messages: [{ role: "user", content: "hi" }],
 			tools: [

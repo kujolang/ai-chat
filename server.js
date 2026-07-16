@@ -48,11 +48,21 @@ const runtime = createServerRuntime({
 });
 
 if (require.main === module) {
-	runtime.app.listen(runtime.config.port, runtime.config.host, () => {
+	const server = runtime.app.listen(runtime.config.port, runtime.config.host, () => {
 		console.log(`ai-chat running on http://${runtime.config.host}:${runtime.config.port}`);
 		console.log(`AI SDK available: ${runtime.config.aiSdkAvailable ? "yes" : "no"}`);
 		console.log(`API auth configured: ${runtime.config.apiAuthToken ? "yes" : "no"}`);
 	});
+	let shuttingDown = false;
+	const shutdown = () => {
+		if (shuttingDown) return;
+		shuttingDown = true;
+		server.close(async () => {
+			await runtime.close();
+		});
+	};
+	process.once("SIGINT", shutdown);
+	process.once("SIGTERM", shutdown);
 }
 
 module.exports = runtime;

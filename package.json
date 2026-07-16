@@ -12,6 +12,7 @@
 		"start": "node server.js",
 		"dev": "node server.js",
 		"rebuild:native": "npm rebuild better-sqlite3",
+		"browser:install": "playwright install chromium",
 		"test": "node --test tests/*.test.js",
 		"test:unit": "node --test tests/*.test.js",
 		"smoke": "node scripts/smoke-test.js",
@@ -21,6 +22,7 @@
 	"dependencies": {
 		"better-sqlite3": "^11.7.0",
 		"express": "^4.21.2",
-		"multer": "^2.0.0"
+		"multer": "^2.0.0",
+		"playwright": "^1.61.1"
 	}
 }
