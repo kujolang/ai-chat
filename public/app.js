@@ -3087,6 +3087,7 @@ async function sendMessageToPaneStream(chat, pane, text) {
 	assistantMessage.request_started_at = Date.now();
 	assistantMessage.response_time_ms = 0;
 	assistantMessage.continuation_passes = 0;
+	assistantMessage.trace_id = assistantMessage.id;
 
 	pane.messages.push(userMessage);
 	pane.messages.push(assistantMessage);
@@ -3121,6 +3122,7 @@ async function sendMessageToPaneStream(chat, pane, text) {
 		let hardIncompleteRecoveryPasses = 0;
 		let thinkingOnlyRecoveryPasses = 0;
 		let endedLikelyIncomplete = false;
+		let watchdogTraceRecorded = false;
 
 		while (continuationPass <= maxContinuationPasses) {
 			const passStartedAt = Date.now();
@@ -3153,6 +3155,9 @@ async function sendMessageToPaneStream(chat, pane, text) {
 
 			const payload = {
 				profile_id: profile.id,
+				trace_id: assistantMessage.trace_id,
+				request_id: `${assistantMessage.id}:pass:${continuationPass}`,
+				continuation_pass: continuationPass,
 				chat_id: chat.id,
 				pane_id: pane.id,
 				session_id: chat.id,
@@ -3282,6 +3287,7 @@ async function sendMessageToPaneStream(chat, pane, text) {
 			updateStreamingControls();
 
 			if (streamDonePayload) {
+				watchdogTraceRecorded = watchdogTraceRecorded || Boolean(streamDonePayload.watchdog_trace);
 				assistantMessage.provider = streamDonePayload.provider || assistantMessage.provider;
 				assistantMessage.model = streamDonePayload.model || assistantMessage.model;
 				if (streamDonePayload.output_text) {
@@ -3448,6 +3454,9 @@ async function sendMessageToPaneStream(chat, pane, text) {
 					estimated: true
 				}
 				: null;
+		}
+		if (assistantMessage.usage && watchdogTraceRecorded) {
+			assistantMessage.usage.trace_id = assistantMessage.trace_id;
 		}
 		assistantMessage.continuation_passes = continuationPass;
 		const continuationReasons = uniqueSorted(

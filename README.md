@@ -101,6 +101,7 @@ Use `.env.example` as your baseline and set:
 - WATCHDOG_DIRECT_STREAMING
 - WATCHDOG_TELEMETRY_URL
 - WATCHDOG_API_TOKEN_FILE
+- WATCHDOG_TELEMETRY_CONTENT_MODE
 - MAX_TOOL_ROUNDS
 - MAX_TOOL_CALLS_PER_REQUEST
 - WEB_SEARCH_MAX_RESULTS
@@ -125,6 +126,8 @@ Security note:
 - The dedicated Watchdog provider accepts only the configured loopback URL. Its proxy token is read from `WATCHDOG_PROXY_TOKEN_FILE`; it does not copy the upstream Ollama key into AI Chat or its SQLite database.
 - With `WATCHDOG_DIRECT_STREAMING=1`, a Watchdog pane automatically uses a matching, API-key-backed custom Ollama profile for the live provider connection and sends completion telemetry to Watchdog asynchronously. This avoids Watchdog's buffered proxy path while preserving observability. If no matching direct profile exists, the managed proxy remains the fallback.
 - When Watchdog protects `/api/*` with token auth, `WATCHDOG_API_TOKEN_FILE` must point to a readable file containing `WDG_API_AUTH_TOKEN`. This is separate from the proxy authorization token. Rejected or unreachable asynchronous telemetry is logged as a sanitized warning without failing the chat stream.
+- AI Chat emits provider-neutral trace spans/events for provider rounds, connection and first-token timing, thinking, tool execution, errors, throughput, and committed message persistence. `WATCHDOG_TELEMETRY_CONTENT_MODE` defaults to `off`; `summary` keeps bounded structural summaries, while `full` explicitly opts into bounded raw content and should be used only with an appropriate local privacy policy.
+- Watchdog remains an optional passive collector. AI Chat, SearXNG, Ollama Web Search, and every future tool adapter continue to run independently; telemetry failure never becomes a chat or tool dependency.
 
 ## Quick Start
 

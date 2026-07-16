@@ -591,6 +591,41 @@ test("POST /api/state/changes persists history larger than the per-request JSON 
 	}
 });
 
+test("POST /api/state/changes reports committed assistant persistence by trace id", async () => {
+	const telemetryCalls = [];
+	const { runtime, destroy } = createIsolatedRuntime({
+		envMerge: { WATCHDOG_TELEMETRY_URL: "http://127.0.0.1:7700/api/telemetry/requests" },
+		fetchFn: async (url, options) => {
+			telemetryCalls.push({ url, options });
+			return { ok: true, status: 200 };
+		}
+	});
+	try {
+		const seeded = runtime.helpers.readState();
+		const paneId = seeded.chats[0].panes[0].id;
+		await withServer(runtime.app, async (baseUrl) => {
+			const result = await fetchJson(baseUrl, "/api/state/changes", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ changes: [{
+					type: "message_upsert",
+					message: { id: "persisted-assistant", pane_id: paneId, role: "assistant", content: "done", thinking: "", usage: { trace_id: "trace-persist-1" }, created_at: Date.now(), sort_order: 0 }
+				}] })
+			});
+			assert.equal(result.response.status, 200);
+		});
+		await new Promise((resolve) => setImmediate(resolve));
+		assert.equal(telemetryCalls.length, 1);
+		assert.equal(telemetryCalls[0].url, "http://127.0.0.1:7700/api/telemetry/traces");
+		const payload = JSON.parse(telemetryCalls[0].options.body);
+		assert.equal(payload.trace_id, "trace-persist-1");
+		assert.equal(payload.events[0].event_name, "persistence_saved");
+		assert.equal(payload.events[0].attributes.state, "committed");
+	} finally {
+		destroy();
+	}
+});
+
 test("POST /api/state/changes rejects malformed changes without modifying state", async () => {
 	const { runtime, destroy } = createIsolatedRuntime();
 	try {
@@ -741,14 +776,14 @@ test("POST /api/chat/stream routes Watchdog profiles through the managed local p
 	const credentialDir = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-watchdog-token-"));
 	const tokenFile = path.join(credentialDir, "proxy-token");
 	fs.writeFileSync(tokenFile, "managed-watchdog-token\n", { mode: 0o600 });
-	let observed = null;
+	const observed = [];
 	const { runtime, destroy } = createIsolatedRuntime({
 		envMerge: {
 			WATCHDOG_PROXY_URL: "http://127.0.0.1:7700/proxy/v1",
 			WATCHDOG_PROXY_TOKEN_FILE: tokenFile
 		},
 		fetchFn: async (url, options) => {
-			observed = { url, options };
+			observed.push({ url, options });
 			return mockSseResponse([{ choices: [{ delta: { content: "ok" } }], usage: { prompt_tokens: 2, completion_tokens: 1, total_tokens: 3 } }]);
 		}
 	});
@@ -768,11 +803,17 @@ test("POST /api/chat/stream routes Watchdog profiles through the managed local p
 			await response.text();
 			assert.equal(response.status, 200);
 		});
-		assert.equal(observed.url, "http://127.0.0.1:7700/proxy/v1/chat/completions");
-		assert.equal(observed.options.headers.Authorization, "Bearer managed-watchdog-token");
-		assert.equal(observed.options.headers["X-Observe-Project-Id"], "ai-chat");
-		assert.equal(observed.options.headers["X-Observe-Session-Id"], "chat_1");
-		assert.equal(observed.options.headers["X-Observe-Correlation-Id"], "pane_1");
+		const proxyCall = observed.find((call) => call.url === "http://127.0.0.1:7700/proxy/v1/chat/completions");
+		const traceCall = observed.find((call) => call.url === "http://127.0.0.1:7700/api/telemetry/traces");
+		assert.ok(proxyCall);
+		assert.ok(traceCall);
+		assert.equal(proxyCall.options.headers.Authorization, "Bearer managed-watchdog-token");
+		assert.equal(proxyCall.options.headers["X-Observe-Project-Id"], "ai-chat");
+		assert.equal(proxyCall.options.headers["X-Observe-Session-Id"], "chat_1");
+		assert.equal(proxyCall.options.headers["X-Observe-Correlation-Id"], "pane_1");
+		const traceBody = JSON.parse(traceCall.options.body);
+		assert.equal(traceBody.trace.name, "interactive_chat");
+		assert.ok(traceBody.spans.some((span) => span.span_kind === "model"));
 	} finally {
 		destroy();
 		fs.rmSync(credentialDir, { recursive: true, force: true });
@@ -787,6 +828,7 @@ test("POST /api/chat/stream authenticates direct Watchdog telemetry and reports 
 	fs.writeFileSync(apiTokenFile, "managed-watchdog-api-token\n", { mode: 0o600 });
 	const calls = [];
 	const warnings = [];
+	let directProviderCalls = 0;
 	const { runtime, destroy } = createIsolatedRuntime({
 		envMerge: {
 			WATCHDOG_PROXY_URL: "http://127.0.0.1:7700/proxy/v1",
@@ -800,6 +842,13 @@ test("POST /api/chat/stream authenticates direct Watchdog telemetry and reports 
 			calls.push({ url, options });
 			if (url.includes("/api/telemetry/requests")) {
 				return { ok: false, status: 401 };
+			}
+			if (url === "https://ollama.com/api/web_search") {
+				return mockJsonResponse({ results: [{ title: "Source", url: "https://example.com/source", content: "Evidence" }] });
+			}
+			directProviderCalls += 1;
+			if (directProviderCalls === 1) {
+				return mockChunkedResponse([`${JSON.stringify({ model: "qwen3.5", message: { tool_calls: [{ function: { name: "web_search", arguments: { query: "trace tools" } } }] }, done: true, done_reason: "stop" })}\n`]);
 			}
 			return mockChunkedResponse([
 				`${JSON.stringify({ model: "qwen3.5", message: { content: "live " }, done: false })}\n`,
@@ -834,7 +883,8 @@ test("POST /api/chat/stream authenticates direct Watchdog telemetry and reports 
 					chat_id: "chat_direct",
 					pane_id: "pane_direct",
 					max_tokens: 700,
-					messages: [{ role: "user", content: "hello" }]
+					messages: [{ role: "user", content: "hello" }],
+					tools: [{ type: "function", function: { name: "web_search", parameters: { type: "object" } } }]
 				})
 			});
 			const events = parseSseEvents(await response.text());
@@ -851,6 +901,18 @@ test("POST /api/chat/stream authenticates direct Watchdog telemetry and reports 
 		const telemetryCall = calls.find((call) => call.url === "http://127.0.0.1:7700/api/telemetry/requests");
 		assert.ok(telemetryCall);
 		assert.equal(telemetryCall.options.headers["X-Watchdog-Token"], "managed-watchdog-api-token");
+		const telemetryBody = JSON.parse(telemetryCall.options.body);
+		assert.equal(telemetryBody.trace.name, "interactive_chat");
+		assert.ok(telemetryBody.spans.some((span) => span.span_kind === "workflow"));
+		assert.ok(telemetryBody.spans.some((span) => span.span_kind === "model"));
+		assert.ok(telemetryBody.events.some((event) => event.event_name === "first_token"));
+		assert.ok(telemetryBody.events.some((event) => event.event_name === "tool_started"));
+		assert.ok(telemetryBody.spans.some((span) => span.span_kind === "tool"));
+		assert.equal(telemetryBody.tool_calls[0].tool_name, "web_search");
+		assert.equal(telemetryBody.tool_calls[0].arguments.query_chars, 11);
+		assert.equal(JSON.stringify(telemetryBody.tool_calls).includes("trace tools"), false);
+		assert.equal(telemetryBody.prompt_summary.includes("hello"), false);
+		assert.equal(telemetryBody.trace.attributes.telemetry_content_mode, "off");
 		assert.deepEqual(warnings, [
 			"[watchdog] Telemetry intake returned HTTP 401. Check WATCHDOG_API_TOKEN_FILE when Watchdog API auth is enabled."
 		]);
