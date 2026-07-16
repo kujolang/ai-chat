@@ -907,6 +907,43 @@ test("POST /api/chat succeeds with offline fixture bridge response", async () =>
 	}
 });
 
+test("POST /api/chat returns 422 when the bridge requests tool execution", async () => {
+	const { runtime, destroy } = createIsolatedRuntime({
+		spawnSyncFn() {
+			return {
+				error: null,
+				stdout: JSON.stringify({
+					ok: true,
+					finish_reason: "tool_calls",
+					tool_calls: [{ id: "call-1", function: { name: "browser_use", arguments: "{\"action\":\"navigate\"}" } }]
+				}),
+				stderr: ""
+			};
+		}
+	});
+	try {
+		const profileId = applyProfileMutation(runtime, (profile) => {
+			profile.api_key = "test-key";
+		});
+		await withServer(runtime.app, async (baseUrl) => {
+			const result = await fetchJson(baseUrl, "/api/chat", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					profile_id: profileId,
+					messages: [{ role: "user", content: "open a site" }],
+					tools: [{ type: "function", function: { name: "browser_use", parameters: { type: "object" } } }]
+				})
+			});
+			assert.equal(result.response.status, 422);
+			assert.equal(result.json.error.code, "tool_execution_unavailable");
+			assert.deepEqual(result.json.error.tool_names, ["browser_use"]);
+		});
+	} finally {
+		destroy();
+	}
+});
+
 test("POST /api/chat/stream emits invalid_request SSE when profile_id is missing", async () => {
 	const { runtime, destroy } = createIsolatedRuntime();
 	try {
@@ -1174,6 +1211,44 @@ test("POST /api/chat/stream disables provider thinking for recovery requests", a
 			assert.equal(capturedRequest.reasoning_effort, "none");
 			assert.equal(capturedRequest.enable_thinking, false);
 			assert.equal(capturedRequest.thinking, false);
+		});
+	} finally {
+		destroy();
+	}
+});
+
+test("POST /api/chat/stream reports provider tool calls as an explicit terminal error", async () => {
+	const { runtime, destroy } = createIsolatedRuntime({
+		fetchFn: async () => mockSseResponse([
+			{
+				choices: [{
+					delta: { tool_calls: [{ index: 0, id: "call-1", function: { name: "web_search", arguments: "{\"query\":\"deterministic AI\"}" } }] },
+					finish_reason: null
+				}]
+			},
+			{ choices: [{ delta: {}, finish_reason: "tool_calls" }] }
+		])
+	});
+	try {
+		const profileId = applyProfileMutation(runtime, (profile) => {
+			profile.api_key = "stream-key";
+		});
+		await withServer(runtime.app, async (baseUrl) => {
+			const response = await fetch(`${baseUrl}/api/chat/stream`, {
+				method: "POST",
+				headers: withAuthHeaders({ "Content-Type": "application/json" }),
+				body: JSON.stringify({
+					profile_id: profileId,
+					messages: [{ role: "user", content: "search the web" }],
+					tools: [{ type: "function", function: { name: "web_search", parameters: { type: "object" } } }]
+				})
+			});
+			const events = parseSseEvents(await response.text());
+			assert.equal(events.some((entry) => entry.event === "done"), false);
+			const errorEvent = events.find((entry) => entry.event === "error");
+			assert.equal(errorEvent.data.code, "tool_execution_unavailable");
+			assert.deepEqual(errorEvent.data.tool_names, ["web_search"]);
+			assert.equal(errorEvent.data.retryable, false);
 		});
 	} finally {
 		destroy();

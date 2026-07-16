@@ -287,6 +287,23 @@ test("chatRequestPayload applies defaults and validates normalized messages", ()
 	}
 });
 
+test("tool execution errors name requested functions without exposing arguments", () => {
+	const { runtime, destroy } = createIsolatedRuntime();
+	try {
+		const payload = runtime.helpers.toolExecutionUnavailablePayload([
+			{ id: "call-1", function: { name: "web_search", arguments: "{\"query\":\"secret\"}" } },
+			{ id: "call-2", function: { name: "web_search" } },
+			{ name: "browser_use" }
+		]);
+		assert.equal(payload.code, "tool_execution_unavailable");
+		assert.equal(payload.retryable, false);
+		assert.deepEqual(payload.tool_names, ["web_search", "browser_use"]);
+		assert.equal(payload.message.includes("secret"), false);
+	} finally {
+		destroy();
+	}
+});
+
 test("readState contains seeded defaults on new database", () => {
 	const { runtime, destroy } = createIsolatedRuntime();
 	try {
