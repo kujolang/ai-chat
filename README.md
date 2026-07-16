@@ -94,6 +94,9 @@ Use `.env.example` as your baseline and set:
 - TRUST_PROXY
 - WATCHDOG_PROXY_URL
 - WATCHDOG_PROXY_TOKEN_FILE
+- WATCHDOG_DIRECT_STREAMING
+- WATCHDOG_TELEMETRY_URL
+- WATCHDOG_API_TOKEN_FILE
 
 Offline fixture mode is supported in the bridge and smoke workflow for safe local validation without live provider credentials.
 
@@ -109,6 +112,7 @@ Security note:
 - Use STREAM_REQUEST_TIMEOUT_MS to tune long-running upstream streaming requests.
 - Live provider and transcription requests are optional and require the configured provider/API-key path.
 - The dedicated Watchdog provider accepts only the configured loopback URL. Its proxy token is read from `WATCHDOG_PROXY_TOKEN_FILE`; it does not copy the upstream Ollama key into AI Chat or its SQLite database.
+- With `WATCHDOG_DIRECT_STREAMING=1`, a Watchdog pane automatically uses a matching, API-key-backed custom Ollama profile for the live provider connection and sends completion telemetry to Watchdog asynchronously. This avoids Watchdog's buffered proxy path while preserving observability. If no matching direct profile exists, the managed proxy remains the fallback.
 
 ## Quick Start
 
@@ -177,6 +181,8 @@ The streaming endpoint emits SSE events from POST /api/chat/stream:
 - error: stream error payload
 
 If a provider/model does not emit reasoning deltas, thinking output remains empty.
+
+The server forwards SSE and newline-delimited JSON incrementally, keeps the timeout idle-based while data is arriving, and treats provider error events as terminal. The client automatically resumes token-limited, unexpectedly closed, and transiently failed partial responses without discarding text already received.
 
 The offline fixture path is verified in the local smoke workflow and is the safest path for docs/CI-style checks.
 

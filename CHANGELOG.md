@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Stream SSE and NDJSON responses incrementally, preserve terminal provider errors, and strengthen bounded continuation recovery.
+- Route Watchdog chats through a matching direct Ollama profile when available, with asynchronous Watchdog telemetry, to avoid buffered proxy cutoffs.
+
 All notable changes to AI Chat should be documented in this file.
 
 The format is inspired by Keep a Changelog and semantic versioning.

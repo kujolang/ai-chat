@@ -105,7 +105,7 @@ The endpoint returns `text/event-stream` with the following events:
 
 - `token`: `{ "delta": "..." }`
 - `thinking`: `{ "delta": "..." }` (provider-dependent)
-- `done`: final payload with `provider`, `model`, `finish_reason`, `usage`, `output_text`, `thinking_text`
+- `done`: final payload with `provider`, `model`, `finish_reason`, `usage`, `output_text`, `thinking_text`, and `transport` (`direct` or `proxy`)
 - `error`: `{ "code": "...", "message": "..." }`
 
 Client rules:
@@ -116,6 +116,8 @@ Client rules:
 - Thinking deltas are optional and provider-dependent.
 - `finish_reason` may be `stream_closed` when an upstream provider closes the connection without sending a terminal reason; clients should treat that as incomplete and may continue the request.
 - The server consumes the complete upstream body before emitting its terminal `done` event and supports standard multiline SSE `data:` frames.
+- SSE and newline-delimited JSON upstream bodies are forwarded incrementally. Provider `error` events are terminal and are never followed by a misleading `done` event.
+- Watchdog streams may use a matching direct Ollama profile and asynchronous Watchdog telemetry intake when direct streaming is enabled; otherwise they use the managed proxy fallback.
 
 ## 7. Versioning Policy
 

@@ -22,6 +22,9 @@ Copy values from `.env.example` and define these variables in your shell or envi
 - TRUST_PROXY
 - WATCHDOG_PROXY_URL
 - WATCHDOG_PROXY_TOKEN_FILE
+- WATCHDOG_DIRECT_STREAMING
+- WATCHDOG_TELEMETRY_URL
+- WATCHDOG_API_TOKEN_FILE
 
 `AI_SDK_PATH` must point to a directory that contains both `ai_sdk.kujo` and `providers.kujo`.
 
@@ -37,6 +40,9 @@ API_AUTH_TOKEN=<long-random-token>
 TRUST_PROXY=0
 WATCHDOG_PROXY_URL=http://127.0.0.1:7700/proxy/v1
 WATCHDOG_PROXY_TOKEN_FILE=/absolute/path/to/watchdog-proxy-token
+WATCHDOG_DIRECT_STREAMING=1
+WATCHDOG_TELEMETRY_URL=http://127.0.0.1:7700/api/telemetry/requests
+WATCHDOG_API_TOKEN_FILE=
 ```
 
 Important security behavior:
@@ -48,6 +54,7 @@ Important security behavior:
 - `TRUST_PROXY` defaults to disabled. Enable it only behind a trusted reverse proxy so rate limiting, origin checks, HSTS detection, and audit IPs may use `X-Forwarded-*` headers.
 - The Watchdog profile is the reviewed local-proxy exception to the HTTPS-only custom-provider policy. It must exactly match `WATCHDOG_PROXY_URL`, remain on loopback, and reads its bearer token from `WATCHDOG_PROXY_TOKEN_FILE`.
 - Watchdog keeps the upstream provider key; AI Chat never stores or receives that upstream key. SignalBox and AI Chat telemetry can therefore share one Watchdog database while remaining distinguishable by source and correlation fields.
+- For true live Watchdog chat streaming, keep an API-key-backed custom Ollama profile with the same model in AI Chat and leave `WATCHDOG_DIRECT_STREAMING=1`. AI Chat uses that direct connection for the stream, then posts non-content completion metrics to `WATCHDOG_TELEMETRY_URL`. Set `WATCHDOG_API_TOKEN_FILE` only when Watchdog protects `/api/*` with token auth.
 
 ## 3. Install Dependencies
 
@@ -113,6 +120,8 @@ http://127.0.0.1:4173
 - The app uses POST /api/chat/stream for live responses.
 - Token updates appear incrementally in the assistant message.
 - Thinking/reasoning appears only when the upstream provider emits those deltas.
+- SSE and NDJSON providers are consumed incrementally; active data resets the stream idle timeout.
+- Partial responses are retained and automatically resumed after token limits, unexpected closes, and bounded transient failures.
 
 ## 7. Voice and Transcription
 

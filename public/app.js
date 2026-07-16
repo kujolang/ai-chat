@@ -2929,6 +2929,7 @@ async function sendMessageToPaneStream(chat, pane, text) {
 
 	try {
 		const maxContinuationPasses = 12;
+		const maxStreamErrorRecoveryPasses = 4;
 		const streamMetrics = {
 			policy: "strict_finish_reason",
 			passes: []
@@ -2968,7 +2969,7 @@ async function sendMessageToPaneStream(chat, pane, text) {
 
 			const requestedMaxTokens = forceFinalAnswer
 				? Math.min(Math.max(Number(state.settings.maxTokens) || 12000, 4000), 12000)
-				: continuationMaxTokensForPass(state.settings.maxTokens, continuationPass);
+				: continuationMaxTokensForPass(state.settings.maxTokens, continuationPass, profile.provider_id);
 
 			const payload = {
 				profile_id: profile.id,
@@ -3004,7 +3005,54 @@ async function sendMessageToPaneStream(chat, pane, text) {
 			const decoder = new TextDecoder();
 			let buffer = "";
 			let currentEvent = "message";
+			let eventDataLines = [];
 			let streamDonePayload = null;
+
+			const processSseEvent = () => {
+				if (eventDataLines.length === 0) {
+					currentEvent = "message";
+					return;
+				}
+
+				const raw = eventDataLines.join("\n");
+				const eventName = currentEvent;
+				currentEvent = "message";
+				eventDataLines = [];
+				let payloadObj;
+				try {
+					payloadObj = JSON.parse(raw);
+				} catch (error) {
+					return;
+				}
+
+				if (eventName === "token") {
+					passOutputText = `${passOutputText}${payloadObj.delta || ""}`;
+					const continuationText = continuationPass > 0
+						? sanitizeContinuationChunk(passOutputText)
+						: passOutputText;
+					assistantMessage.content = mergeContinuationText(contentBeforePass, continuationText);
+					pane.status = "waiting";
+					scheduleStreamingMessagePatch(chat.id, pane.id, assistantMessage.id);
+					return;
+				}
+
+				if (eventName === "thinking") {
+					if (payloadObj.delta) {
+						assistantMessage.thinking = `${assistantMessage.thinking || ""}${payloadObj.delta || ""}`;
+						scheduleStreamingMessagePatch(chat.id, pane.id, assistantMessage.id);
+					}
+					return;
+				}
+
+				if (eventName === "error") {
+					streamErrorPayload = payloadObj;
+					return;
+				}
+
+				if (eventName === "done") {
+					streamDonePayload = payloadObj;
+				}
+			};
 
 			const consumeBufferedSseLines = (flushFinalLine = false) => {
 				const lines = buffer.split(/\r?\n/);
@@ -3015,54 +3063,24 @@ async function sendMessageToPaneStream(chat, pane, text) {
 				}
 
 				for (const line of lines) {
-					if (!line.trim()) {
+					if (line === "") {
+						processSseEvent();
 						continue;
 					}
 
-					if (line.startsWith("event:")) {
-						currentEvent = line.slice(6).trim();
+					const field = line.trimStart();
+					if (field.startsWith("event:")) {
+						currentEvent = field.slice(6).trim();
 						continue;
 					}
 
-					if (!line.startsWith("data:")) {
-						continue;
+					if (field.startsWith("data:")) {
+						eventDataLines.push(field.slice(5).replace(/^ /, ""));
 					}
+				}
 
-					const raw = line.slice(5).trim();
-					let payloadObj;
-					try {
-						payloadObj = JSON.parse(raw);
-					} catch (error) {
-						continue;
-					}
-
-					if (currentEvent === "token") {
-						passOutputText = `${passOutputText}${payloadObj.delta || ""}`;
-						const continuationText = continuationPass > 0
-							? sanitizeContinuationChunk(passOutputText)
-							: passOutputText;
-						assistantMessage.content = mergeContinuationText(contentBeforePass, continuationText);
-						pane.status = "waiting";
-						scheduleStreamingMessagePatch(chat.id, pane.id, assistantMessage.id);
-						continue;
-					}
-
-					if (currentEvent === "thinking") {
-						if (payloadObj.delta) {
-							assistantMessage.thinking = `${assistantMessage.thinking || ""}${payloadObj.delta || ""}`;
-							scheduleStreamingMessagePatch(chat.id, pane.id, assistantMessage.id);
-						}
-						continue;
-					}
-
-					if (currentEvent === "error") {
-						streamErrorPayload = payloadObj;
-						continue;
-					}
-
-					if (currentEvent === "done") {
-						streamDonePayload = payloadObj;
-					}
+				if (flushFinalLine) {
+					processSseEvent();
 				}
 			};
 
@@ -3120,7 +3138,7 @@ async function sendMessageToPaneStream(chat, pane, text) {
 				if (!assistantMessage.content) {
 					throw new Error(formatProviderStreamError(streamErrorPayload));
 				}
-				if (noProgressPasses >= 2) {
+				if (noProgressPasses > maxStreamErrorRecoveryPasses) {
 					if (responseLooksIncomplete(assistantMessage.content)) {
 						endedLikelyIncomplete = true;
 					}
@@ -3143,13 +3161,12 @@ async function sendMessageToPaneStream(chat, pane, text) {
 			const shouldContinueForTokenLimit = reachedTokenLimit || finalFinishReason === "stream_closed";
 			const shouldContinueForStreamError = streamErrored
 				&& Boolean(assistantMessage.content)
-				&& progressChars > 0
-				&& streamErrorRecoveryPasses < 2;
+				&& streamErrorRecoveryPasses < maxStreamErrorRecoveryPasses;
 			const shouldContinueForHardIncompleteClosure = !streamErrored
 				&& !reachedTokenLimit
 				&& progressChars > 0
 				&& hardIncomplete
-				&& hardIncompleteRecoveryPasses < 2;
+				&& hardIncompleteRecoveryPasses < maxContinuationPasses;
 			const shouldContinueForIncompleteOutput = !streamErrored
 				&& !reachedTokenLimit
 				&& thinkingOnly
@@ -3200,6 +3217,9 @@ async function sendMessageToPaneStream(chat, pane, text) {
 					endedLikelyIncomplete = true;
 				}
 				break;
+			}
+			if (streamErrored) {
+				await waitForStreamRetry(streamErrorRecoveryPasses);
 			}
 		}
 
@@ -3697,9 +3717,9 @@ function normalizeMaxTokens(value) {
 	return Math.max(256, Math.round(numeric));
 }
 
-function continuationMaxTokensForPass(baseValue, continuationPass) {
+function continuationMaxTokensForPass(baseValue, continuationPass, providerId = "") {
 	const baseMaxTokens = normalizeMaxTokens(baseValue);
-	if (continuationPass <= 0) {
+	if (continuationPass <= 0 || providerId === "watchdog") {
 		return baseMaxTokens;
 	}
 
@@ -3707,6 +3727,11 @@ function continuationMaxTokensForPass(baseValue, continuationPass) {
 	const boostSteps = Math.min(continuationPass, 6);
 	const boosted = boostedBase + boostSteps * 1200;
 	return Math.min(boosted, 24000);
+}
+
+function waitForStreamRetry(retryPass) {
+	const delayMs = Math.min(4000, 500 * Math.max(1, Number(retryPass) || 1));
+	return new Promise((resolve) => window.setTimeout(resolve, delayMs));
 }
 
 function continuationAssistantContext(value) {
