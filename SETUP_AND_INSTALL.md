@@ -129,7 +129,13 @@ http://127.0.0.1:4173
 - The backend forwards transcription requests through POST /api/transcribe.
 - Transcript text is inserted into the composer when successful.
 
-## 8. Health and Smoke Validation
+## 8. Tool Schemas
+
+The Browser-use and Web Search presets in Settings are function schemas for integration testing. They do not provide browser or search execution by themselves. AI Chat currently has no connected tool runner.
+
+If a provider selects one of these functions, AI Chat returns `tool_execution_unavailable` and lists the requested tool names when available. Disable the schemas for ordinary chat until an executor is connected.
+
+## 9. Health and Smoke Validation
 
 The app provides these key endpoints:
 
@@ -162,7 +168,7 @@ Run unit tests:
 npm test
 ```
 
-## 9. Backup and Maintenance
+## 10. Backup and Maintenance
 
 Create a backup:
 
@@ -178,7 +184,7 @@ npm run db:vacuum
 
 Backups are written to `DB_BACKUP_DIR`.
 
-## 10. Deployment Usage Recommendations
+## 11. Deployment Usage Recommendations
 
 - Put the app behind TLS/reverse proxy infrastructure if you deploy beyond local use.
 - Limit access to trusted users and networks.

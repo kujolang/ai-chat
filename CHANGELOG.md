@@ -4,6 +4,7 @@
 
 - Stream SSE and NDJSON responses incrementally, preserve terminal provider errors, and strengthen bounded continuation recovery.
 - Route Watchdog chats through a matching direct Ollama profile when available, with asynchronous Watchdog telemetry, to avoid buffered proxy cutoffs.
+- Report provider tool calls as `tool_execution_unavailable` instead of returning an empty success or entering continuation recovery, and clarify that configured entries are schemas rather than executable capabilities.
 
 All notable changes to AI Chat should be documented in this file.
 

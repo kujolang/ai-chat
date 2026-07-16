@@ -37,6 +37,9 @@ This project is for end users and teams who want one local web app to:
 - Transcription support
 	- Audio upload proxy endpoint for OpenAI-compatible transcription APIs
 	- Browser recording button to send audio and insert transcript into the composer
+- Tool-schema diagnostics
+	- Store and forward OpenAI-compatible function schemas for integration work
+	- Stop with `tool_execution_unavailable` when a provider requests a tool, because this app does not yet include a tool runner
 
 ## What This Repo Is Not
 
@@ -99,6 +102,8 @@ Use `.env.example` as your baseline and set:
 - WATCHDOG_API_TOKEN_FILE
 
 Offline fixture mode is supported in the bridge and smoke workflow for safe local validation without live provider credentials.
+
+Tool note: adding the Browser-use or Web Search preset advertises a function schema only. It does not install or connect a browser/search executor. Until a runner is integrated, provider tool calls fail explicitly instead of producing an empty response or entering the continuation loop.
 
 Security note:
 

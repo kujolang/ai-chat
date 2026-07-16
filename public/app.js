@@ -4107,7 +4107,7 @@ function createToolDefinition(overrides = {}) {
 function createBrowserUseToolDefinition() {
 	return createToolDefinition({
 		name: "browser_use",
-		description: "Use the connected browser-use runner to navigate, inspect, click, type, or extract page content.",
+		description: "Request a connected browser-use runner to navigate, inspect, click, type, or extract page content. This schema does not provide the runner.",
 		parameters_json: JSON.stringify({
 			type: "object",
 			properties: {
@@ -4126,7 +4126,7 @@ function createBrowserUseToolDefinition() {
 function createWebSearchToolDefinition() {
 	return createToolDefinition({
 		name: "web_search",
-		description: "Search the web through a connected search or browser tool runner.",
+		description: "Request web search through a connected tool runner. This schema does not provide search access.",
 		parameters_json: JSON.stringify({
 			type: "object",
 			properties: {
