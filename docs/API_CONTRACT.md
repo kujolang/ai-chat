@@ -73,6 +73,8 @@ When `DEBUG_API_ERRORS=0`, provider raw error bodies are not included in stream 
 - `auth_configured`: boolean
 - `encryption_configured`: boolean
 - `retention_days`: number
+- `tool_runtime.tools`: executable provider-neutral tool names
+- `tool_runtime.web_search_backend`: resolved `searxng` or `ollama` adapter
 
 ## 5. State Contract
 
@@ -126,7 +128,9 @@ Bridge/offline path note:
 
 ## 6. Streaming Contract (`POST /api/chat/stream`)
 
-Requests may include `tools`, an array of up to 32 OpenAI-compatible function definitions. The streaming route executes `web_search` through Ollama's authenticated Web Search API, appends the result as a provider-compatible tool message, and continues the conversation within bounded round/call limits. A successful final `done` payload includes `tool_calls_executed`. Other schemas do not grant capabilities: unsupported tool requests emit a terminal `tool_execution_unavailable` error containing `tool_names`. The JSON bridge route retains the explicit HTTP 422 behavior for requested tool execution. Clients must not retry terminal tool errors automatically.
+Requests may include `tools`, an array of up to 32 OpenAI-compatible function definitions. The streaming route dispatches `web_search` through AI Chat's provider-neutral tool registry, appends the result as a provider-compatible tool message, and continues the conversation within bounded round/call limits. The runtime resolves SearXNG or Ollama Web Search independently of the active model provider. A successful final `done` payload includes `tool_calls_executed`. Other schemas do not grant capabilities: unsupported tool requests emit a terminal `tool_execution_unavailable` error containing `tool_names`. The JSON bridge route retains the explicit HTTP 422 behavior for requested tool execution. Clients must not retry terminal tool errors automatically.
+
+The stable `web_search` arguments are `query` (required), `max_results`, `domains` (up to 10 domain names), and `freshness` (`day`, `week`, `month`, or `year`). Saved legacy definitions using `recency_days` remain accepted by the runtime.
 
 The endpoint returns `text/event-stream` with the following events:
 
@@ -144,7 +148,7 @@ Client rules:
 - `finish_reason` may be `stream_closed` when an upstream provider closes the connection without sending a terminal reason; clients should treat that as incomplete and may continue the request.
 - The server consumes the complete upstream body before emitting its terminal `done` event and supports standard multiline SSE `data:` frames.
 - SSE and newline-delimited JSON upstream bodies are forwarded incrementally. Provider `error` events are terminal and are never followed by a misleading `done` event.
-- `web_search` calls run through the bounded Ollama Web Search executor. Invalid arguments, missing Ollama credentials, upstream search failure, and tool-budget exhaustion emit explicit terminal errors.
+- `web_search` calls run through the bounded tool runtime. Invalid arguments, missing adapter configuration or credentials, upstream search failure, and tool-budget exhaustion emit explicit terminal errors.
 - Unsupported provider tool calls remain terminal. The server emits `tool_execution_unavailable` instead of returning an empty successful answer or repeatedly continuing the request.
 - Watchdog streams may use a matching direct Ollama profile and asynchronous Watchdog telemetry intake when direct streaming is enabled; otherwise they use the managed proxy fallback.
 - Direct Watchdog telemetry uses `WATCHDOG_API_TOKEN_FILE` when the Watchdog `/api/*` surface requires token authentication. Telemetry remains best effort: a rejected or unreachable intake logs a sanitized server warning but does not change the successful chat stream contract.

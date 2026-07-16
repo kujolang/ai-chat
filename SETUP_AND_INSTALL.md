@@ -139,7 +139,9 @@ http://127.0.0.1:4173
 
 ## 8. Tools
 
-The Web Search preset is executable. Add an API-key-backed custom Ollama profile in Settings, enable the preset, and AI Chat will execute model-requested searches through Ollama's Web Search API. Search calls are bounded by `MAX_TOOL_ROUNDS`, `MAX_TOOL_CALLS_PER_REQUEST`, and `WEB_SEARCH_MAX_RESULTS`; results are returned to the model as tool messages so it can produce the final answer.
+The Web Search preset is executable through AI Chat's provider-neutral tool runtime. For the local-first path, run SearXNG with JSON output enabled and set `SEARXNG_BASE_URL` (loopback HTTP or HTTPS). With `WEB_SEARCH_BACKEND=auto`, AI Chat prefers that adapter; without it, the runtime uses the API key from a custom Ollama profile and Ollama Web Search. You can force `searxng` or `ollama` with `WEB_SEARCH_BACKEND`. The active chat provider only requests `web_search`; it never selects the backend.
+
+Search calls accept `query`, `max_results`, optional `domains`, and optional `freshness`, and are bounded by `MAX_TOOL_ROUNDS`, `MAX_TOOL_CALLS_PER_REQUEST`, and `WEB_SEARCH_MAX_RESULTS`. Results return to the model as provider-compatible tool messages so it can produce the final answer.
 
 Browser-use and custom entries remain schemas until their executors are connected. If a provider selects an unsupported function, AI Chat returns `tool_execution_unavailable` and lists its name.
 

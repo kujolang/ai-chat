@@ -39,7 +39,7 @@ This project is for end users and teams who want one local web app to:
 	- Audio upload proxy endpoint for OpenAI-compatible transcription APIs
 	- Browser recording button to send audio and insert transcript into the composer
 - Bounded tool execution
-	- Execute the built-in `web_search` tool with Ollama's Web Search API and return sourced results to the requesting model
+	- Execute the provider-neutral `web_search` contract with local SearXNG or Ollama Web Search and return sourced results to the requesting model
 	- Store and forward other OpenAI-compatible function schemas; unsupported calls still stop explicitly
 
 ## What This Repo Is Not
@@ -104,10 +104,12 @@ Use `.env.example` as your baseline and set:
 - MAX_TOOL_ROUNDS
 - MAX_TOOL_CALLS_PER_REQUEST
 - WEB_SEARCH_MAX_RESULTS
+- WEB_SEARCH_BACKEND
+- SEARXNG_BASE_URL
 
 Offline fixture mode is supported in the bridge and smoke workflow for safe local validation without live provider credentials.
 
-Tool note: the Web Search preset is executable when Settings contains an API-key-backed custom Ollama profile. AI Chat runs a bounded multi-turn tool loop and sends search results back to the requesting model. Browser-use and custom tools remain schemas until an executor is connected; unsupported calls fail explicitly instead of producing an empty response or entering the continuation loop.
+Tool note: the Web Search preset is executable through AI Chat's provider-neutral tool runtime. `WEB_SEARCH_BACKEND=auto` prefers `SEARXNG_BASE_URL` when configured and otherwise uses an API-key-backed custom Ollama profile. The active chat provider only requests the stable tool contract; it does not select or execute the search backend. Browser-use and custom tools remain schemas until an executor is connected.
 
 Security note:
 
@@ -195,7 +197,7 @@ If a provider/model does not emit reasoning deltas, thinking output remains empt
 
 The server forwards SSE and newline-delimited JSON incrementally, keeps the timeout idle-based while data is arriving, and treats provider error events as terminal. The client automatically resumes token-limited, unexpectedly closed, and transiently failed partial responses without discarding text already received.
 
-When a model requests `web_search`, the server calls `https://ollama.com/api/web_search` with the configured Ollama credential, appends the bounded result payload as a tool message, and continues the provider conversation until it produces a final response or reaches the configured tool budget.
+When a model requests `web_search`, the server dispatches it through a local registry and selects the configured adapter. `auto` uses SearXNG when `SEARXNG_BASE_URL` is set, otherwise it calls `https://ollama.com/api/web_search` with the configured Ollama credential. The runtime appends the bounded result payload as a provider-compatible tool message and continues until the model produces a final response or reaches the tool budget. The stable arguments are `query`, `max_results`, optional `domains`, and optional `freshness` (`day`, `week`, `month`, or `year`).
 
 The offline fixture path is verified in the local smoke workflow and is the safest path for docs/CI-style checks.
 
