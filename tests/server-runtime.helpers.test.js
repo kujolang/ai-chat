@@ -126,6 +126,12 @@ test("providerConfig returns expected endpoint mappings", () => {
 		assert.equal(runtime.helpers.providerConfig({ provider_id: "openrouter" }).base_url, "https://openrouter.ai/api/v1");
 		assert.equal(runtime.helpers.providerConfig({ provider_id: "deepseek" }).transcribe_path, null);
 		assert.equal(runtime.helpers.providerConfig({ provider_id: "custom", base_url: "https://example.com/v1" }).base_url, "https://example.com/v1");
+		assert.deepEqual(runtime.helpers.providerConfig({ provider_id: "custom", base_url: "https://ollama.com/v1" }), {
+			base_url: "https://ollama.com",
+			chat_path: "/api/chat",
+			transcribe_path: null,
+			ollama_native: true
+		});
 		assert.equal(runtime.helpers.providerConfig({ provider_id: "openai" }).base_url, "https://api.openai.com/v1");
 	} finally {
 		destroy();
