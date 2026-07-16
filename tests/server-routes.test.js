@@ -31,7 +31,9 @@ function createIsolatedRuntime(overrides = {}) {
 		DB_PATH: path.join(tempRoot, "data", "test.db"),
 		DB_BACKUP_DIR: path.join(tempRoot, "backups"),
 		PORT: "0",
-		KUJO_BIN: "/usr/bin/false"
+		KUJO_BIN: "/usr/bin/false",
+		WEB_SEARCH_BACKEND: "auto",
+		SEARXNG_BASE_URL: ""
 	};
 	const env = {
 		...baseEnv,
@@ -235,6 +237,8 @@ test("GET /api/health returns runtime metadata", async () => {
 			assert.equal(json.ok, true);
 			assert.equal(typeof json.auth_configured, "boolean");
 			assert.equal(typeof json.ai_sdk_available, "boolean");
+			assert.deepEqual(json.tool_runtime.tools, ["web_search"]);
+			assert.equal(json.tool_runtime.web_search_backend, "ollama");
 		});
 	} finally {
 		destroy();
@@ -1345,6 +1349,63 @@ test("POST /api/chat/stream executes web_search and continues to a final answer"
 		assert.equal(calls[2].body.messages.at(-1).role, "tool");
 		assert.equal(calls[2].body.messages.at(-1).tool_name, "web_search");
 		assert.match(calls[2].body.messages.at(-1).content, /Verified source/);
+	} finally {
+		destroy();
+	}
+});
+
+test("POST /api/chat/stream keeps the search backend independent of the model provider", async () => {
+	const calls = [];
+	let providerCalls = 0;
+	const { runtime, destroy } = createIsolatedRuntime({
+		envMerge: {
+			ALLOWED_CUSTOM_PROVIDER_HOSTS: "api.example.com",
+			SEARXNG_BASE_URL: "http://127.0.0.1:8080"
+		},
+		fetchFn: async (url, options) => {
+			calls.push({ url, options });
+			if (url.startsWith("http://127.0.0.1:8080/search?")) {
+				return mockJsonResponse({
+					results: [{ title: "Local result", url: "https://example.com/local", content: "Local evidence" }]
+				});
+			}
+			providerCalls += 1;
+			if (providerCalls === 1) {
+				return mockSseResponse([
+					{ choices: [{ delta: { tool_calls: [{ index: 0, id: "call-openai", function: { name: "web_search", arguments: "{\"query\":\"local search\"}" } }] }, finish_reason: "tool_calls" }] }
+				]);
+			}
+			return mockSseResponse([
+				{ choices: [{ delta: { content: "Provider-neutral answer" }, finish_reason: "stop" }] }
+			]);
+		}
+	});
+	try {
+		const profileId = applyProfileMutation(runtime, (profile) => {
+			profile.provider_id = "custom";
+			profile.base_url = "https://api.example.com/v1";
+			profile.api_key = "model-provider-key";
+		});
+		await withServer(runtime.app, async (baseUrl) => {
+			const response = await fetch(`${baseUrl}/api/chat/stream`, {
+				method: "POST",
+				headers: withAuthHeaders({ "Content-Type": "application/json" }),
+				body: JSON.stringify({
+					profile_id: profileId,
+					messages: [{ role: "user", content: "search locally" }],
+					tools: [{ type: "function", function: { name: "web_search", parameters: { type: "object" } } }]
+				})
+			});
+			const events = parseSseEvents(await response.text());
+			assert.equal(events.filter((entry) => entry.event === "token").map((entry) => entry.data.delta).join(""), "Provider-neutral answer");
+			assert.equal(events.find((entry) => entry.event === "done").data.tool_calls_executed, 1);
+		});
+		assert.equal(calls.length, 3);
+		assert.equal(calls[0].url, "https://api.example.com/v1/chat/completions");
+		assert.match(calls[1].url, /^http:\/\/127\.0\.0\.1:8080\/search\?/);
+		const finalBody = JSON.parse(calls[2].options.body);
+		assert.equal(finalBody.messages.at(-1).tool_call_id, "call-openai");
+		assert.match(finalBody.messages.at(-1).content, /Local evidence/);
 	} finally {
 		destroy();
 	}

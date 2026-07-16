@@ -20,7 +20,9 @@ function createIsolatedRuntime(overrides = {}) {
 		DB_PATH: path.join(tempRoot, "data", "test.db"),
 		DB_BACKUP_DIR: path.join(tempRoot, "backups"),
 		PORT: "0",
-		KUJO_BIN: "/usr/bin/false"
+		KUJO_BIN: "/usr/bin/false",
+		WEB_SEARCH_BACKEND: "auto",
+		SEARXNG_BASE_URL: ""
 	};
 
 	const runtime = createServerRuntime({
