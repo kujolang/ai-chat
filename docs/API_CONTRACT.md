@@ -75,6 +75,8 @@ When `DEBUG_API_ERRORS=0`, provider raw error bodies are not included in stream 
 - `retention_days`: number
 - `tool_runtime.tools`: executable provider-neutral tool names
 - `tool_runtime.web_search_backend`: resolved `searxng` or `ollama` adapter
+- `tool_runtime.browser`: sanitized `enabled`, `available`, `backend`, `headless`, `action_policy`, and `unavailable_reason` fields
+- `tool_runtime.schemas`: built-in schemas that are currently executable; browser schemas are absent when Chromium is unavailable
 
 ## 5. State Contract
 
@@ -130,6 +132,16 @@ Bridge/offline path note:
 
 Requests may include `tools`, an array of up to 32 OpenAI-compatible function definitions. The streaming route dispatches `web_search` through AI Chat's provider-neutral tool registry, appends the result as a provider-compatible tool message, and continues the conversation within bounded round/call limits. The runtime resolves SearXNG or Ollama Web Search independently of the active model provider. A successful final `done` payload includes `tool_calls_executed`. Other schemas do not grant capabilities: unsupported tool requests emit a terminal `tool_execution_unavailable` error containing `tool_names`. The JSON bridge route retains the explicit HTTP 422 behavior for requested tool execution. Clients must not retry terminal tool errors automatically.
 
+Executable browser contracts use the same provider-neutral loop:
+
+- `browser_open`: `{ "url": "https://example.com", "session_id": "optional opaque id" }`
+- `browser_snapshot`: `{ "session_id": "opaque id" }`
+- `browser_act`: `{ "session_id": "opaque id", "action": { "type": "navigate|click|type|scroll|back|screenshot|snapshot|close", "url": "optional", "target": "latest snapshot ref", "text": "optional", "direction": "up|down", "amount": 600 } }`
+- `browser_close`: `{ "session_id": "opaque id" }`
+- `browser_use`: compatibility adapter for saved schemas; selectors are not unrestricted and element actions require a latest-snapshot ref such as `e1`
+
+Browser tool errors include `browser_not_configured`, `browser_url_blocked`, `browser_dns_failed`, `browser_session_not_found`, `browser_session_expired`, `browser_session_limit`, `browser_action_limit`, `browser_target_stale`, `browser_output_limit`, and `tool_approval_required`. Errors are sanitized and never include browser process details, filesystem paths, cookies, storage, credentials, or response headers.
+
 The stable `web_search` arguments are `query` (required), `max_results`, `domains` (up to 10 domain names), and `freshness` (`day`, `week`, `month`, or `year`). Saved legacy definitions using `recency_days` remain accepted by the runtime.
 
 The endpoint returns `text/event-stream` with the following events:
@@ -149,6 +161,7 @@ Client rules:
 - The server consumes the complete upstream body before emitting its terminal `done` event and supports standard multiline SSE `data:` frames.
 - SSE and newline-delimited JSON upstream bodies are forwarded incrementally. Provider `error` events are terminal and are never followed by a misleading `done` event.
 - `web_search` calls run through the bounded tool runtime. Invalid arguments, missing adapter configuration or credentials, upstream search failure, and tool-budget exhaustion emit explicit terminal errors.
+- Browser calls may span multiple provider rounds. Sessions remain scoped to the chat/request identity, and the read-only policy blocks consequential interactions with `tool_approval_required`.
 - Unsupported provider tool calls remain terminal. The server emits `tool_execution_unavailable` instead of returning an empty successful answer or repeatedly continuing the request.
 - Watchdog streams may use a matching direct Ollama profile and asynchronous Watchdog telemetry intake when direct streaming is enabled; otherwise they use the managed proxy fallback.
 - Direct Watchdog telemetry uses `WATCHDOG_API_TOKEN_FILE` when the Watchdog `/api/*` surface requires token authentication. Telemetry remains best effort: a rejected or unreachable intake logs a sanitized server warning but does not change the successful chat stream contract.

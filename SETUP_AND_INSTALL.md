@@ -7,6 +7,7 @@ This guide is a dedicated, end-user focused setup reference for running AI Chat 
 - Node.js 18+
 - npm 9+
 - Kujo binary built and available on your machine
+- Playwright Chromium installed locally for browser tools
 
 ## 2. Configure Environment
 
@@ -49,6 +50,18 @@ WATCHDOG_API_TOKEN_FILE=
 MAX_TOOL_ROUNDS=4
 MAX_TOOL_CALLS_PER_REQUEST=8
 WEB_SEARCH_MAX_RESULTS=5
+BROWSER_ENABLED=0
+BROWSER_HEADLESS=1
+BROWSER_SESSION_TTL_MS=900000
+BROWSER_MAX_SESSIONS=4
+BROWSER_MAX_SESSIONS_PER_CHAT=2
+BROWSER_MAX_ACTIONS_PER_REQUEST=12
+BROWSER_MAX_ACTIONS_PER_SESSION=30
+BROWSER_NAVIGATION_TIMEOUT_MS=15000
+BROWSER_MAX_TEXT_CHARS=30000
+BROWSER_MAX_RESULT_BYTES=131072
+BROWSER_ARTIFACT_DIR=/absolute/path/to/ai-chat/data/tool-artifacts/browser
+BROWSER_ACTION_POLICY=read-only
 ```
 
 Important security behavior:
@@ -68,6 +81,7 @@ From the project root:
 
 ```bash
 npm install
+npx playwright install chromium
 ```
 
 `better-sqlite3` includes a native module and must be built for the active Node.js
@@ -143,7 +157,11 @@ The Web Search preset is executable through AI Chat's provider-neutral tool runt
 
 Search calls accept `query`, `max_results`, optional `domains`, and optional `freshness`, and are bounded by `MAX_TOOL_ROUNDS`, `MAX_TOOL_CALLS_PER_REQUEST`, and `WEB_SEARCH_MAX_RESULTS`. Results return to the model as provider-compatible tool messages so it can produce the final answer.
 
-Browser-use and custom entries remain schemas until their executors are connected. If a provider selects an unsupported function, AI Chat returns `tool_execution_unavailable` and lists its name.
+Set `BROWSER_ENABLED=1` after installing Chromium to enable `browser_open`, `browser_snapshot`, `browser_act`, `browser_close`, and the saved-chat compatibility adapter `browser_use`. Health and Settings show browser presets as unavailable when the executable is missing, rather than forwarding a schema that cannot run. If startup can find Playwright but a tool call cannot launch Chromium, the tool returns `browser_not_configured` with the installation command.
+
+Browser sessions use a fresh context without the user's browser profile and are scoped to the current chat. The runtime limits sessions, actions, lifetime, navigation time, extracted text, result payloads, and screenshots; expired/abandoned sessions and shutdown resources are closed automatically. Only HTTP/HTTPS public destinations are allowed. DNS results are pinned for each intercepted request, redirects are revalidated, and localhost, private/link-local/multicast, metadata, unsafe-scheme, download, file, arbitrary-JavaScript, and network-write paths fail closed.
+
+The default `BROWSER_ACTION_POLICY=read-only` automatically permits public navigation, snapshots/text extraction, scrolling, back, screenshots, and safe link traversal. Typing and potentially consequential clicks return `tool_approval_required`. `development` is a controlled local-testing switch for non-sensitive typing and controls; sensitive fields and purchase/login/delete/submit/download/permission-style targets remain approval-gated. Do not enable it globally.
 
 ## 9. Health and Smoke Validation
 

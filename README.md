@@ -40,6 +40,7 @@ This project is for end users and teams who want one local web app to:
 	- Browser recording button to send audio and insert transcript into the composer
 - Bounded tool execution
 	- Execute the provider-neutral `web_search` contract with local SearXNG or Ollama Web Search and return sourced results to the requesting model
+	- Execute provider-neutral browser tools in fresh Playwright Chromium contexts with scoped sessions, bounded artifacts, network isolation, and a read-only default policy
 	- Store and forward other OpenAI-compatible function schemas; unsupported calls still stop explicitly
 
 ## What This Repo Is Not
@@ -58,6 +59,7 @@ Use the app as a clear boundary for chat workflows, not as a promise of correctn
 - npm 9+
 - Kujo binary available locally
 - AI SDK directory available locally (for example: `/path/to/ai-sdk/src`)
+- Playwright-managed Chromium for local browser tools (`npx playwright install chromium`)
 
 ## Project Structure
 
@@ -107,10 +109,21 @@ Use `.env.example` as your baseline and set:
 - WEB_SEARCH_MAX_RESULTS
 - WEB_SEARCH_BACKEND
 - SEARXNG_BASE_URL
+- BROWSER_ENABLED
+- BROWSER_HEADLESS
+- BROWSER_SESSION_TTL_MS
+- BROWSER_MAX_SESSIONS
+- BROWSER_MAX_ACTIONS_PER_REQUEST
+- BROWSER_MAX_ACTIONS_PER_SESSION
+- BROWSER_NAVIGATION_TIMEOUT_MS
+- BROWSER_MAX_TEXT_CHARS
+- BROWSER_MAX_RESULT_BYTES
+- BROWSER_ARTIFACT_DIR
+- BROWSER_ACTION_POLICY
 
 Offline fixture mode is supported in the bridge and smoke workflow for safe local validation without live provider credentials.
 
-Tool note: the Web Search preset is executable through AI Chat's provider-neutral tool runtime. `WEB_SEARCH_BACKEND=auto` prefers `SEARXNG_BASE_URL` when configured and otherwise uses an API-key-backed custom Ollama profile. The active chat provider only requests the stable tool contract; it does not select or execute the search backend. Browser-use and custom tools remain schemas until an executor is connected.
+Tool note: Web Search and Browser presets are executable through AI Chat's provider-neutral tool runtime. `WEB_SEARCH_BACKEND=auto` prefers `SEARXNG_BASE_URL` when configured and otherwise uses an API-key-backed custom Ollama profile. With `BROWSER_ENABLED=1`, the stable browser contracts use local Playwright Chromium; the model provider never selects or sees that backend. Browser schemas are not advertised when Chromium is unavailable. Custom tools still require a registered executor.
 
 Security note:
 
@@ -135,6 +148,7 @@ Security note:
 
 ```bash
 npm install
+npx playwright install chromium
 ```
 
 If Node.js was changed after the dependencies were installed and startup reports a
@@ -202,6 +216,10 @@ The server forwards SSE and newline-delimited JSON incrementally, keeps the time
 
 When a model requests `web_search`, the server dispatches it through a local registry and selects the configured adapter. `auto` uses SearXNG when `SEARXNG_BASE_URL` is set, otherwise it calls `https://ollama.com/api/web_search` with the configured Ollama credential. The runtime appends the bounded result payload as a provider-compatible tool message and continues until the model produces a final response or reaches the tool budget. The stable arguments are `query`, `max_results`, optional `domains`, and optional `freshness` (`day`, `week`, `month`, or `year`).
 
+The stable browser tools are `browser_open(url, session_id?)`, `browser_snapshot(session_id)`, `browser_act(session_id, action)`, and `browser_close(session_id)`. The saved `browser_use` name remains available as a compatibility adapter. Sessions are isolated per chat, expire automatically, expose opaque IDs only, and are closed during shutdown. Opening public pages, snapshotting, extracting text, scrolling, and going back are automatic. The default `read-only` action policy returns `tool_approval_required` for typing and potentially consequential clicks. `BROWSER_ACTION_POLICY=development` permits controlled local testing of non-sensitive interactions but still rejects sensitive fields and purchase, login, delete, submit, download, permission, and similar actions.
+
+Browser navigation allows only HTTP/HTTPS and pins each request to a validated public DNS result. Localhost, private/link-local/multicast networks, cloud-metadata addresses, unsafe schemes, redirect pivots, network writes, downloads, user-profile access, file upload, arbitrary JavaScript, and shell/filesystem control are blocked. Page content is untrusted data. Screenshots are bounded local artifacts and tool results never expose the artifact directory. If health reports `chromium_unavailable`, run `npx playwright install chromium` with the same Node installation used to start AI Chat.
+
 The offline fixture path is verified in the local smoke workflow and is the safest path for docs/CI-style checks.
 
 ## Durable State Behavior
@@ -249,7 +267,7 @@ Expected smoke output:
 
 ```text
 health 200
-providers 200 4
+providers 200 5
 state 200
 chat 200
 smoke checks passed against http://127.0.0.1:4173

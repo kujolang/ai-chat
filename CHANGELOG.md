@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Add local Playwright Chromium execution for stable provider-neutral browser tools, with isolated scoped sessions, pinned public-network requests, bounded snapshots/artifacts/actions, read-only approval policy, health/Settings availability, compatibility routing, and deterministic fixtures.
 - Replace browser whole-state saves with dependency-ordered incremental SQLite changes, bounded request batching, retry-safe idempotent writes, an always-visible save status, and an unload warning while data is unsaved.
 - Stream SSE and NDJSON responses incrementally, preserve terminal provider errors, and strengthen bounded continuation recovery.
 - Route Watchdog chats through a matching direct Ollama profile when available, with asynchronous Watchdog telemetry, to avoid buffered proxy cutoffs.

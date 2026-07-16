@@ -29,6 +29,7 @@ let persistInFlight = false;
 let persistRequested = false;
 let lastPersistedSnapshot = null;
 let stateLoadedFromServer = false;
+let runtimeCapabilities = { loaded: false, tools: [], browser: { enabled: false, available: false, action_policy: "read-only" } };
 let settingsSaveIndicatorTimer = null;
 let suppressNextTokenBlurSave = false;
 let usageChart = null;
@@ -170,10 +171,29 @@ async function bootstrap() {
 	}
 
 	await loadStateFromServer();
+	await loadRuntimeCapabilities();
 	ensureMinimumState();
 	renderAll();
 	setupSpeechRecognition();
 	setupWhisperRecorder();
+}
+
+async function loadRuntimeCapabilities() {
+	try {
+		const response = await apiFetch("/api/health");
+		if (!response.ok) return;
+		const payload = await response.json();
+		const toolRuntime = payload && payload.tool_runtime && typeof payload.tool_runtime === "object" ? payload.tool_runtime : {};
+		runtimeCapabilities = {
+			loaded: true,
+			tools: Array.isArray(toolRuntime.tools) ? toolRuntime.tools.map(String) : [],
+			browser: toolRuntime.browser && typeof toolRuntime.browser === "object"
+				? toolRuntime.browser
+				: { enabled: false, available: false, action_policy: "read-only" }
+		};
+	} catch (error) {
+		// State loading already presents connection errors to the user.
+	}
 }
 
 function ensureMinimumState() {
@@ -521,7 +541,9 @@ function wireEvents() {
 	});
 
 	nodes.addBrowserToolBtn.addEventListener("click", () => {
-		state.settings.tools.push(createBrowserUseToolDefinition());
+		for (const definition of createBrowserToolDefinitions()) {
+			if (!state.settings.tools.some((tool) => tool.name === definition.name)) state.settings.tools.push(definition);
+		}
 		renderSettings();
 		schedulePersist();
 	});
@@ -2940,18 +2962,28 @@ function renderToolsSettings() {
 	if (!nodes.toolsList) {
 		return;
 	}
+	if (nodes.addBrowserToolBtn) {
+		const available = Boolean(runtimeCapabilities.browser && runtimeCapabilities.browser.available);
+		nodes.addBrowserToolBtn.disabled = runtimeCapabilities.loaded && !available;
+		nodes.addBrowserToolBtn.title = available
+			? `Local Playwright Chromium is available (${runtimeCapabilities.browser.action_policy || "read-only"} policy).`
+			: "Unavailable: enable the browser runtime and install Playwright Chromium.";
+	}
 
 	nodes.toolsList.innerHTML = state.settings.tools.map((tool) => {
 		const schema = parseToolParameters(tool.parameters_json);
 		const schemaStatus = schema ? "Valid JSON schema" : "Invalid JSON schema";
+		const browserUnavailable = ["browser_open", "browser_snapshot", "browser_act", "browser_close", "browser_use"].includes(tool.name)
+			&& runtimeCapabilities.loaded
+			&& !runtimeCapabilities.tools.includes(tool.name);
 		return `
 			<div class="tool-card">
 				<div class="tool-card-head">
 					<div>
 						<div class="tool-card-title">${escapeHtml(tool.name)}</div>
-						<div class="tool-card-kind">${escapeHtml(tool.kind === "preset" ? "Preset" : "Custom function tool")}</div>
+						<div class="tool-card-kind">${escapeHtml(browserUnavailable ? "Preset · Browser runtime unavailable" : (tool.kind === "preset" ? "Preset" : "Custom function tool"))}</div>
 					</div>
-					<label class="tool-enabled"><input data-tool-id="${escapeHtml(tool.id)}" data-tool-field="enabled" type="checkbox" ${tool.enabled ? "checked" : ""}> Enabled</label>
+					<label class="tool-enabled"><input data-tool-id="${escapeHtml(tool.id)}" data-tool-field="enabled" type="checkbox" ${tool.enabled ? "checked" : ""} ${browserUnavailable ? "disabled" : ""}> Enabled</label>
 				</div>
 				<div class="tool-grid">
 					<label>
@@ -4293,23 +4325,27 @@ function createToolDefinition(overrides = {}) {
 	});
 }
 
-function createBrowserUseToolDefinition() {
-	return createToolDefinition({
-		name: "browser_use",
-		description: "Request a connected browser-use runner to navigate, inspect, click, type, or extract page content. This schema does not provide the runner.",
-		parameters_json: JSON.stringify({
+function createBrowserToolDefinitions() {
+	const definitions = [
+		["browser_open", "Open or navigate an isolated local browser session to a public HTTP or HTTPS URL.", { type: "object", properties: { url: { type: "string" }, session_id: { type: "string" } }, required: ["url"], additionalProperties: false }],
+		["browser_snapshot", "Capture bounded readable text, links, and accessibility-oriented element refs from a browser session.", { type: "object", properties: { session_id: { type: "string" } }, required: ["session_id"], additionalProperties: false }],
+		["browser_act", "Perform one bounded browser action using an element ref from the latest snapshot.", {
 			type: "object",
 			properties: {
-				action: { type: "string", enum: ["navigate", "click", "type", "extract", "screenshot"] },
-				url: { type: "string" },
-				selector: { type: "string" },
-				text: { type: "string" }
+				session_id: { type: "string" },
+				action: {
+					type: "object",
+					properties: { type: { type: "string", enum: ["navigate", "click", "type", "scroll", "back", "screenshot", "snapshot", "close"] }, url: { type: "string" }, target: { type: "string" }, text: { type: "string" }, direction: { type: "string", enum: ["up", "down"] }, amount: { type: "integer" } },
+					required: ["type"],
+					additionalProperties: false
+				}
 			},
-			required: ["action"],
+			required: ["session_id", "action"],
 			additionalProperties: false
-		}, null, 2),
-		kind: "preset"
-	});
+		}],
+		["browser_close", "Idempotently close an isolated browser session.", { type: "object", properties: { session_id: { type: "string" } }, required: ["session_id"], additionalProperties: false }]
+	];
+	return definitions.map(([name, description, parameters]) => createToolDefinition({ name, description, parameters_json: JSON.stringify(parameters, null, 2), kind: "preset" }));
 }
 
 function createWebSearchToolDefinition() {
@@ -4334,6 +4370,7 @@ function createWebSearchToolDefinition() {
 function buildEnabledToolDefinitions() {
 	return state.settings.tools
 		.filter((tool) => tool.enabled)
+		.filter((tool) => !["browser_open", "browser_snapshot", "browser_act", "browser_close", "browser_use"].includes(tool.name) || !runtimeCapabilities.loaded || runtimeCapabilities.tools.includes(tool.name))
 		.map((tool) => {
 			const parameters = parseToolParameters(tool.parameters_json);
 			if (!parameters) {

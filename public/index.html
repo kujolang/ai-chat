@@ -181,7 +181,7 @@
 				<div class="settings-row-head">
 				<h3>Tools (Advanced)</h3>
 					<div class="settings-tool-actions">
-						<button id="add-browser-tool-btn" class="btn ghost">Add Browser-use Schema</button>
+						<button id="add-browser-tool-btn" class="btn ghost">Add Browser Tool Presets</button>
 						<button id="add-web-search-tool-btn" class="btn ghost">Add Web Search Schema</button>
 						<button id="add-tool-btn" class="btn ghost add-profile-btn">
 							<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
@@ -189,7 +189,7 @@
 						</button>
 					</div>
 				</div>
-				<p class="settings-note">Web Search runs through AI Chat's provider-neutral tool runtime, using configured SearXNG or an API-key-backed Ollama profile. Browser-use and custom entries remain schemas until their own executors are connected.</p>
+				<p class="settings-note">Web Search and enabled browser presets run through AI Chat's provider-neutral local tool runtime. Browser presets are available only when Playwright Chromium is configured; custom schemas still require a registered executor.</p>
 				<div id="tools-list" class="tools-list"></div>
 			</section>
 			</div>
