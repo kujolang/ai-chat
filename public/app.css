@@ -669,6 +669,8 @@ select:focus,
 	overflow: auto;
 	align-items: start;
 	background: linear-gradient(180deg, rgba(0, 0, 0, 0.08), transparent 180px);
+	scrollbar-color: #365b50 #111519;
+	scrollbar-width: thin;
 }
 
 .pane-grid:not(.cols-2):not(.cols-3) .pane-card {
@@ -687,6 +689,9 @@ select:focus,
 
 .pane-grid.cols-3 {
 	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 8px;
+	padding-left: 8px;
+	padding-right: 8px;
 }
 
 .pane-card {
@@ -857,6 +862,32 @@ select:focus,
 	gap: 9px;
 	max-height: none;
 	min-height: 0;
+	scrollbar-color: #365b50 #111519;
+	scrollbar-width: thin;
+}
+
+.pane-grid::-webkit-scrollbar,
+.message-list::-webkit-scrollbar {
+	width: 8px;
+	height: 8px;
+}
+
+.pane-grid::-webkit-scrollbar-track,
+.message-list::-webkit-scrollbar-track {
+	background: #111519;
+	border-radius: 999px;
+}
+
+.pane-grid::-webkit-scrollbar-thumb,
+.message-list::-webkit-scrollbar-thumb {
+	background: #365b50;
+	border: 2px solid #111519;
+	border-radius: 999px;
+}
+
+.pane-grid::-webkit-scrollbar-thumb:hover,
+.message-list::-webkit-scrollbar-thumb:hover {
+	background: #4b7b6a;
 }
 
 .pane-grid.cols-2 .message-list {
@@ -864,7 +895,7 @@ select:focus,
 }
 
 .pane-grid.cols-3 .message-list {
-	max-width: min(100%, calc((var(--content-max) - 32px) / 3));
+	max-width: 100%;
 }
 
 .message {
@@ -1268,18 +1299,7 @@ select:focus,
 }
 
 .message-thinking-content.collapsed {
-	max-height: 12.2em;
-	overflow: hidden;
-}
-
-.message-thinking-content.collapsed::after {
-	content: "";
-	position: absolute;
-	left: 0;
-	right: 0;
-	bottom: 0;
-	height: 2.6em;
-	background: linear-gradient(180deg, rgba(22, 30, 40, 0), rgba(22, 30, 40, 1));
+	display: none;
 }
 
 .thinking-toggle {
@@ -1313,11 +1333,15 @@ select:focus,
 }
 
 .thinking-label {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
 	font-size: 10px;
 	letter-spacing: 0.06em;
 	text-transform: uppercase;
 	color: #88b9d8;
 	margin-bottom: 0;
+	line-height: 1;
 }
 
 .empty-state {
@@ -1672,12 +1696,12 @@ textarea {
 
 .usage-table th:first-child,
 .usage-table td:first-child {
-	width: 25%;
+	width: 22%;
 }
 
 .usage-table th:not(:first-child),
 .usage-table td:not(:first-child) {
-	width: 10.714%;
+	width: 8.666%;
 }
 
 .usage-table th {
