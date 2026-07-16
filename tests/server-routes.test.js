@@ -86,6 +86,9 @@ async function fetchJson(baseUrl, endpoint, options = {}) {
 }
 
 function mockJsonResponse(data, status = 200, contentType = "application/json") {
+	const payload = JSON.stringify(data);
+	const encoder = new TextEncoder();
+	let consumed = false;
 	return {
 		ok: status >= 200 && status < 300,
 		status,
@@ -97,8 +100,49 @@ function mockJsonResponse(data, status = 200, contentType = "application/json") 
 				return null;
 			}
 		},
+		body: {
+			getReader() {
+				return {
+					async read() {
+						if (consumed) {
+							return { done: true, value: undefined };
+						}
+						consumed = true;
+						return { done: false, value: encoder.encode(payload) };
+					}
+				};
+			}
+		},
 		async text() {
-			return JSON.stringify(data);
+			return payload;
+		}
+	};
+}
+
+function mockChunkedResponse(chunks, contentType = "application/x-ndjson") {
+	const encoder = new TextEncoder();
+	let index = 0;
+	return {
+		ok: true,
+		status: 200,
+		headers: {
+			get(name) {
+				return String(name).toLowerCase() === "content-type" ? contentType : null;
+			}
+		},
+		body: {
+			getReader() {
+				return {
+					async read() {
+						if (index >= chunks.length) {
+							return { done: true, value: undefined };
+						}
+						const value = encoder.encode(chunks[index]);
+						index += 1;
+						return { done: false, value };
+					}
+				};
+			}
 		}
 	};
 }
@@ -667,6 +711,77 @@ test("POST /api/chat/stream routes Watchdog profiles through the managed local p
 	}
 });
 
+test("POST /api/chat/stream uses a matching direct Ollama profile for live Watchdog streams", async () => {
+	const credentialDir = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-watchdog-direct-"));
+	const tokenFile = path.join(credentialDir, "proxy-token");
+	fs.writeFileSync(tokenFile, "managed-watchdog-token\n", { mode: 0o600 });
+	const calls = [];
+	const { runtime, destroy } = createIsolatedRuntime({
+		envMerge: {
+			WATCHDOG_PROXY_URL: "http://127.0.0.1:7700/proxy/v1",
+			WATCHDOG_PROXY_TOKEN_FILE: tokenFile,
+			WATCHDOG_DIRECT_STREAMING: "1",
+			ALLOWED_CUSTOM_PROVIDER_HOSTS: "ollama.com"
+		},
+		fetchFn: async (url, options) => {
+			calls.push({ url, options });
+			if (url.includes("/api/telemetry/requests")) {
+				return { ok: true, status: 200 };
+			}
+			return mockChunkedResponse([
+				`${JSON.stringify({ model: "qwen3.5", message: { content: "live " }, done: false })}\n`,
+				`${JSON.stringify({ message: { content: "stream" }, done: true, done_reason: "stop", prompt_eval_count: 2, eval_count: 2 })}\n`
+			]);
+		}
+	});
+	try {
+		const state = runtime.helpers.readState();
+		const watchdogProfile = state.settings.profiles[0];
+		watchdogProfile.provider_id = "watchdog";
+		watchdogProfile.base_url = "";
+		watchdogProfile.api_key = "";
+		watchdogProfile.models_csv = "qwen3.5";
+		state.settings.profiles.push({
+			id: "direct-ollama-test",
+			name: "Direct Ollama",
+			provider_id: "custom",
+			base_url: "https://ollama.com/v1",
+			models_csv: "qwen3.5",
+			api_key: "direct-ollama-key"
+		});
+		runtime.helpers.writeState(state);
+
+		await withServer(runtime.app, async (baseUrl) => {
+			const response = await fetch(`${baseUrl}/api/chat/stream`, {
+				method: "POST",
+				headers: withAuthHeaders({ "Content-Type": "application/json" }),
+				body: JSON.stringify({
+					profile_id: watchdogProfile.id,
+					model: "qwen3.5",
+					chat_id: "chat_direct",
+					pane_id: "pane_direct",
+					max_tokens: 700,
+					messages: [{ role: "user", content: "hello" }]
+				})
+			});
+			const events = parseSseEvents(await response.text());
+			assert.equal(events.filter((entry) => entry.event === "token").map((entry) => entry.data.delta).join(""), "live stream");
+			assert.equal(events.find((entry) => entry.event === "done").data.transport, "direct");
+		});
+
+		await new Promise((resolve) => setImmediate(resolve));
+		assert.equal(calls[0].url, "https://ollama.com/api/chat");
+		assert.equal(calls[0].options.headers.Authorization, "Bearer direct-ollama-key");
+		const directBody = JSON.parse(calls[0].options.body);
+		assert.equal(directBody.options.num_predict, 700);
+		assert.equal(Object.prototype.hasOwnProperty.call(directBody, "max_tokens"), false);
+		assert.equal(calls.some((call) => call.url === "http://127.0.0.1:7700/api/telemetry/requests"), true);
+	} finally {
+		destroy();
+		fs.rmSync(credentialDir, { recursive: true, force: true });
+	}
+});
+
 test("POST /api/chat returns bridge_exec_error when spawn fails", async () => {
 	const { runtime, destroy } = createIsolatedRuntime({
 		spawnSyncFn() {
@@ -904,6 +1019,62 @@ test("POST /api/chat/stream emits token and done for non-SSE upstream responses"
 			assert.equal(names.includes("token"), true);
 			assert.equal(names.includes("thinking"), true);
 			assert.equal(names[names.length - 1], "done");
+		});
+	} finally {
+		destroy();
+	}
+});
+
+test("POST /api/chat/stream forwards NDJSON chunks as they arrive", async () => {
+	const first = JSON.stringify({ model: "ollama-test", message: { content: "hello " }, done: false });
+	const second = JSON.stringify({ message: { content: "world" }, done: true, done_reason: "stop", prompt_eval_count: 2, eval_count: 2 });
+	const { runtime, destroy } = createIsolatedRuntime({
+		fetchFn: async () => mockChunkedResponse([`${first}\n`, `${second}\n`])
+	});
+	try {
+		const profileId = applyProfileMutation(runtime, (profile) => {
+			profile.api_key = "stream-key";
+		});
+		await withServer(runtime.app, async (baseUrl) => {
+			const response = await fetch(`${baseUrl}/api/chat/stream`, {
+				method: "POST",
+				headers: withAuthHeaders({ "Content-Type": "application/json" }),
+				body: JSON.stringify({ profile_id: profileId, messages: [{ role: "user", content: "hello" }] })
+			});
+			const events = parseSseEvents(await response.text());
+			assert.equal(events.filter((entry) => entry.event === "token").map((entry) => entry.data.delta).join(""), "hello world");
+			const doneEvent = events.find((entry) => entry.event === "done");
+			assert.equal(doneEvent.data.finish_reason, "stop");
+			assert.equal(doneEvent.data.usage.total_tokens, 4);
+		});
+	} finally {
+		destroy();
+	}
+});
+
+test("POST /api/chat/stream treats provider error events as terminal", async () => {
+	const payload = [
+		`data: ${JSON.stringify({ choices: [{ delta: { content: "partial" }, finish_reason: null }] })}`,
+		`event: error\ndata: ${JSON.stringify({ error: { message: "upstream disconnected" } })}`,
+		"data: [DONE]"
+	].join("\n\n") + "\n\n";
+	const { runtime, destroy } = createIsolatedRuntime({
+		fetchFn: async () => mockSseResponseFromPayload(payload)
+	});
+	try {
+		const profileId = applyProfileMutation(runtime, (profile) => {
+			profile.api_key = "stream-key";
+		});
+		await withServer(runtime.app, async (baseUrl) => {
+			const response = await fetch(`${baseUrl}/api/chat/stream`, {
+				method: "POST",
+				headers: withAuthHeaders({ "Content-Type": "application/json" }),
+				body: JSON.stringify({ profile_id: profileId, messages: [{ role: "user", content: "hello" }] })
+			});
+			const events = parseSseEvents(await response.text());
+			assert.equal(events.some((entry) => entry.event === "token"), true);
+			assert.equal(events.some((entry) => entry.event === "error"), true);
+			assert.equal(events.some((entry) => entry.event === "done"), false);
 		});
 	} finally {
 		destroy();
