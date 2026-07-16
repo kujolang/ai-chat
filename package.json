@@ -11,6 +11,7 @@
 	"scripts": {
 		"start": "node server.js",
 		"dev": "node server.js",
+		"rebuild:native": "npm rebuild better-sqlite3",
 		"test": "node --test tests/*.test.js",
 		"test:unit": "node --test tests/*.test.js",
 		"smoke": "node scripts/smoke-test.js",

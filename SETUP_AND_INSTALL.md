@@ -51,6 +51,15 @@ From the project root:
 npm install
 ```
 
+`better-sqlite3` includes a native module and must be built for the active Node.js
+runtime. If you switch Node.js versions with `nvm` or see a
+`NODE_MODULE_VERSION` mismatch when starting the app, run this while that version
+is active:
+
+```bash
+npm run rebuild:native
+```
+
 ## 4. Start the Application
 
 Example launch command:

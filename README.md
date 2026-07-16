@@ -115,6 +115,14 @@ Security note:
 npm install
 ```
 
+If Node.js was changed after the dependencies were installed and startup reports a
+`NODE_MODULE_VERSION` mismatch for `better-sqlite3`, rebuild its native module with
+the Node.js version you will use to run the app:
+
+```bash
+npm run rebuild:native
+```
+
 2. Start the app
 
 ```bash
