@@ -304,6 +304,58 @@ test("tool execution errors name requested functions without exposing arguments"
 	}
 });
 
+test("mergeToolCallChunks joins streamed JSON arguments and formats Ollama tool messages", () => {
+	const { runtime, destroy } = createIsolatedRuntime();
+	try {
+		const calls = runtime.helpers.mergeToolCallChunks([
+			{ index: 0, id: "call-1", function: { name: "web_search", arguments: "{\"query\":" } },
+			{ index: 0, function: { arguments: "\"Kujo\"}" } }
+		], 2);
+		assert.equal(calls.length, 1);
+		assert.deepEqual(calls[0].function.arguments, { query: "Kujo" });
+		assert.deepEqual(runtime.helpers.providerToolCallMessage(calls, "", "plan", true), {
+			role: "assistant",
+			content: "",
+			thinking: "plan",
+			tool_calls: [{
+				type: "function",
+				function: { index: 0, name: "web_search", arguments: { query: "Kujo" } }
+			}]
+		});
+		assert.equal(runtime.helpers.providerToolResultMessage(calls[0], { results: [] }, true).tool_name, "web_search");
+	} finally {
+		destroy();
+	}
+});
+
+test("executeWebSearchTool validates arguments and bounds Ollama results", async () => {
+	let observed = null;
+	const { runtime, destroy } = createIsolatedRuntime({
+		fetchFn: async (url, options) => {
+			observed = { url, options };
+			return {
+				ok: true,
+				status: 200,
+				async text() {
+					return JSON.stringify({ results: [{ title: "Result", url: "https://example.com", content: "Evidence" }] });
+				}
+			};
+		}
+	});
+	try {
+		const result = await runtime.helpers.executeWebSearchTool({ query: "Kujo", max_results: 3 }, "key", new AbortController().signal);
+		assert.equal(observed.url, "https://ollama.com/api/web_search");
+		assert.equal(JSON.parse(observed.options.body).max_results, 3);
+		assert.equal(result.results[0].content, "Evidence");
+		await assert.rejects(
+			() => runtime.helpers.executeWebSearchTool({}, "key", new AbortController().signal),
+			/query must contain/
+		);
+	} finally {
+		destroy();
+	}
+});
+
 test("readState contains seeded defaults on new database", () => {
 	const { runtime, destroy } = createIsolatedRuntime();
 	try {

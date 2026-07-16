@@ -179,7 +179,7 @@
 
 			<section class="settings-section settings-section-tools">
 				<div class="settings-row-head">
-					<h3>Tool Schemas (Advanced)</h3>
+				<h3>Tools (Advanced)</h3>
 					<div class="settings-tool-actions">
 						<button id="add-browser-tool-btn" class="btn ghost">Add Browser-use Schema</button>
 						<button id="add-web-search-tool-btn" class="btn ghost">Add Web Search Schema</button>
@@ -189,7 +189,7 @@
 						</button>
 					</div>
 				</div>
-				<p class="settings-note">These entries only advertise function schemas to providers; they do not add web search or browser access. AI Chat currently has no tool runner, so a provider tool call stops with an explicit error. Enable a schema only when an executor is connected.</p>
+				<p class="settings-note">Web Search is executable through a configured API-key-backed Ollama profile. Browser-use and custom entries remain schemas until their own executors are connected.</p>
 				<div id="tools-list" class="tools-list"></div>
 			</section>
 			</div>

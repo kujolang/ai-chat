@@ -1291,21 +1291,38 @@ test("POST /api/chat/stream disables provider thinking for recovery requests", a
 	}
 });
 
-test("POST /api/chat/stream reports provider tool calls as an explicit terminal error", async () => {
+test("POST /api/chat/stream executes web_search and continues to a final answer", async () => {
+	const calls = [];
 	const { runtime, destroy } = createIsolatedRuntime({
-		fetchFn: async () => mockSseResponse([
-			{
-				choices: [{
-					delta: { tool_calls: [{ index: 0, id: "call-1", function: { name: "web_search", arguments: "{\"query\":\"deterministic AI\"}" } }] },
-					finish_reason: null
-				}]
-			},
-			{ choices: [{ delta: {}, finish_reason: "tool_calls" }] }
-		])
+		envMerge: { ALLOWED_CUSTOM_PROVIDER_HOSTS: "ollama.com" },
+		fetchFn: async (url, options) => {
+			calls.push({ url, body: JSON.parse(options.body) });
+			if (url === "https://ollama.com/api/web_search") {
+				return mockJsonResponse({
+					results: [{ title: "Deterministic AI", url: "https://example.com/result", content: "Verified source" }]
+				});
+			}
+			if (calls.filter((call) => call.url === "https://ollama.com/api/chat").length === 1) {
+				return mockSseResponse([
+					{
+						choices: [{
+							delta: { tool_calls: [{ index: 0, id: "call-1", function: { name: "web_search", arguments: "{\"query\":\"deterministic AI\"}" } }] },
+							finish_reason: null
+						}]
+					},
+					{ choices: [{ delta: {}, finish_reason: "tool_calls" }] }
+				]);
+			}
+			return mockSseResponse([
+				{ choices: [{ delta: { content: "Sourced final answer" }, finish_reason: "stop" }] }
+			]);
+		}
 	});
 	try {
 		const profileId = applyProfileMutation(runtime, (profile) => {
-			profile.api_key = "stream-key";
+			profile.provider_id = "custom";
+			profile.base_url = "https://ollama.com/v1";
+			profile.api_key = "ollama-key";
 		});
 		await withServer(runtime.app, async (baseUrl) => {
 			const response = await fetch(`${baseUrl}/api/chat/stream`, {
@@ -1318,11 +1335,45 @@ test("POST /api/chat/stream reports provider tool calls as an explicit terminal 
 				})
 			});
 			const events = parseSseEvents(await response.text());
-			assert.equal(events.some((entry) => entry.event === "done"), false);
+			assert.equal(events.some((entry) => entry.event === "error"), false);
+			assert.equal(events.filter((entry) => entry.event === "token").map((entry) => entry.data.delta).join(""), "Sourced final answer");
+			assert.equal(events.find((entry) => entry.event === "done").data.tool_calls_executed, 1);
+		});
+		assert.equal(calls.length, 3);
+		assert.equal(calls[1].url, "https://ollama.com/api/web_search");
+		assert.equal(calls[1].body.query, "deterministic AI");
+		assert.equal(calls[2].body.messages.at(-1).role, "tool");
+		assert.equal(calls[2].body.messages.at(-1).tool_name, "web_search");
+		assert.match(calls[2].body.messages.at(-1).content, /Verified source/);
+	} finally {
+		destroy();
+	}
+});
+
+test("POST /api/chat/stream keeps unsupported tool calls terminal", async () => {
+	const { runtime, destroy } = createIsolatedRuntime({
+		fetchFn: async () => mockSseResponse([
+			{ choices: [{ delta: { tool_calls: [{ index: 0, id: "call-1", function: { name: "browser_use", arguments: "{}" } }] }, finish_reason: "tool_calls" }] }
+		])
+	});
+	try {
+		const profileId = applyProfileMutation(runtime, (profile) => {
+			profile.api_key = "stream-key";
+		});
+		await withServer(runtime.app, async (baseUrl) => {
+			const response = await fetch(`${baseUrl}/api/chat/stream`, {
+				method: "POST",
+				headers: withAuthHeaders({ "Content-Type": "application/json" }),
+				body: JSON.stringify({
+					profile_id: profileId,
+					messages: [{ role: "user", content: "open a site" }],
+					tools: [{ type: "function", function: { name: "browser_use", parameters: { type: "object" } } }]
+				})
+			});
+			const events = parseSseEvents(await response.text());
 			const errorEvent = events.find((entry) => entry.event === "error");
 			assert.equal(errorEvent.data.code, "tool_execution_unavailable");
-			assert.deepEqual(errorEvent.data.tool_names, ["web_search"]);
-			assert.equal(errorEvent.data.retryable, false);
+			assert.deepEqual(errorEvent.data.tool_names, ["browser_use"]);
 		});
 	} finally {
 		destroy();

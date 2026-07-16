@@ -4306,12 +4306,13 @@ function createBrowserUseToolDefinition() {
 function createWebSearchToolDefinition() {
 	return createToolDefinition({
 		name: "web_search",
-		description: "Request web search through a connected tool runner. This schema does not provide search access.",
+		description: "Search the live web through AI Chat's Ollama Web Search executor and return sourced results.",
 		parameters_json: JSON.stringify({
 			type: "object",
 			properties: {
 				query: { type: "string" },
-				recency_days: { type: "integer" }
+				recency_days: { type: "integer", minimum: 1, maximum: 3650 },
+				max_results: { type: "integer", minimum: 1, maximum: 10 }
 			},
 			required: ["query"],
 			additionalProperties: false
