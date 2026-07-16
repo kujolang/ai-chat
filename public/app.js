@@ -1023,6 +1023,14 @@ function buildCachePayload() {
 	return snapshot;
 }
 
+function loadSidebarCollapsedPreference() {
+	try {
+		return window.localStorage.getItem(sidebarCollapsedStorageKey) === "1";
+	} catch (error) {
+		return false;
+	}
+}
+
 function saveStateToCache() {
 	try {
 		const payload = buildCachePayload();
