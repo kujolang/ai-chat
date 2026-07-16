@@ -117,6 +117,8 @@ const nodes = {
 	usageStatOutput: document.getElementById("usage-stat-output"),
 	usageStatCached: document.getElementById("usage-stat-cached"),
 	usageStatCacheWrite: document.getElementById("usage-stat-cache-write"),
+	usageStatResponseTime: document.getElementById("usage-stat-response-time"),
+	usageStatSlowestResponse: document.getElementById("usage-stat-slowest-response"),
 	usageFilterChat: document.getElementById("usage-filter-chat"),
 	usageFilterPane: document.getElementById("usage-filter-pane"),
 	usageFilterProvider: document.getElementById("usage-filter-provider"),
@@ -1503,6 +1505,9 @@ function renderMessageNodeHtml(message, paneId) {
 	if (message.usage && Number.isFinite(Number(message.usage.total_tokens))) {
 		metaBits.push(`tokens ${message.usage.total_tokens}`);
 	}
+	if (Number(message.response_time_ms) > 0) {
+		metaBits.push(`response ${formatDurationMs(message.response_time_ms)}`);
+	}
 	if (Number(message.continuation_passes) > 0) {
 		metaBits.push(`continued ${message.continuation_passes}x`);
 	}
@@ -1996,7 +2001,13 @@ function renderComposerUsageSummary() {
 	const cachedLabel = cacheReported ? formatNumber(cachedInputTokens) : "—";
 	const responseLabel = responseCount === 1 ? "response" : "responses";
 	const cacheWriteLabel = cacheReported ? formatNumber(cacheWriteInputTokens) : "—";
-	nodes.composerTokenSummary.textContent = `${formatNumber(totalTokens)} tokens (in ${formatNumber(inputTokens)} · out ${formatNumber(outputTokens)} · cached ${cachedLabel} · cache write ${cacheWriteLabel}) across ${formatNumber(responseCount)} ${responseLabel} (avg ${formatNumber(average)})`;
+	const responseTimes = records.map((record) => record.response_time_ms).filter((value) => value > 0);
+	const averageResponseTime = responseTimes.length > 0 ? responseTimes.reduce((sum, value) => sum + value, 0) / responseTimes.length : 0;
+	const slowestResponseTime = responseTimes.length > 0 ? Math.max(...responseTimes) : 0;
+	const timingLabel = responseTimes.length > 0
+		? ` · avg ${formatDurationMs(averageResponseTime)} · slowest ${formatDurationMs(slowestResponseTime)}`
+		: "";
+	nodes.composerTokenSummary.textContent = `${formatNumber(totalTokens)} tokens (in ${formatNumber(inputTokens)} · out ${formatNumber(outputTokens)} · cached ${cachedLabel} · cache write ${cacheWriteLabel}) across ${formatNumber(responseCount)} ${responseLabel}${timingLabel}`;
 }
 
 function collectUsageRecords() {
@@ -2008,7 +2019,8 @@ function collectUsageRecords() {
 			const pane = chat.panes[paneIndex];
 			for (const message of pane.messages) {
 				const tokenCount = Number(message && message.usage && message.usage.total_tokens);
-				if (!Number.isFinite(tokenCount) || tokenCount <= 0) {
+				const responseTime = Number(message && message.response_time_ms);
+				if ((!Number.isFinite(tokenCount) || tokenCount <= 0) && (!Number.isFinite(responseTime) || responseTime <= 0)) {
 					continue;
 				}
 
@@ -2029,7 +2041,8 @@ function collectUsageRecords() {
 					provider: String(message.provider || "unknown"),
 					model: String(message.model || "unknown"),
 					role: String(message.role || "assistant"),
-					tokens: tokenCount,
+					tokens: Number.isFinite(tokenCount) && tokenCount > 0 ? tokenCount : 0,
+					response_time_ms: Number.isFinite(responseTime) && responseTime > 0 ? responseTime : 0,
 					input_tokens: finiteUsageValue(message.usage.input_tokens),
 					output_tokens: finiteUsageValue(message.usage.output_tokens),
 					cached_input_tokens: nullableUsageValue(message.usage.cached_input_tokens),
@@ -2047,7 +2060,8 @@ function collectUsageRecords() {
 		}
 
 		const tokenCount = Number(entry.tokens);
-		if (!Number.isFinite(tokenCount) || tokenCount <= 0) {
+		const responseTime = Number(entry.response_time_ms);
+		if ((!Number.isFinite(tokenCount) || tokenCount <= 0) && (!Number.isFinite(responseTime) || responseTime <= 0)) {
 			continue;
 		}
 
@@ -2067,7 +2081,8 @@ function collectUsageRecords() {
 			provider: String(entry.provider || "unknown"),
 			model: String(entry.model || "unknown"),
 			role: String(entry.role || "assistant"),
-			tokens: tokenCount,
+			tokens: Number.isFinite(tokenCount) && tokenCount > 0 ? tokenCount : 0,
+			response_time_ms: Number.isFinite(responseTime) && responseTime > 0 ? responseTime : 0,
 			input_tokens: finiteUsageValue(entry.input_tokens),
 			output_tokens: finiteUsageValue(entry.output_tokens),
 			cached_input_tokens: nullableUsageValue(entry.cached_input_tokens),
@@ -2200,6 +2215,9 @@ function renderUsageModalContent() {
 	const totalTokens = filteredRecords.reduce((sum, record) => sum + record.tokens, 0);
 	const inputTokens = filteredRecords.reduce((sum, record) => sum + record.input_tokens, 0);
 	const outputTokens = filteredRecords.reduce((sum, record) => sum + record.output_tokens, 0);
+	const responseTimes = filteredRecords.map((record) => record.response_time_ms).filter((value) => value > 0);
+	const averageResponseTime = responseTimes.length > 0 ? responseTimes.reduce((sum, value) => sum + value, 0) / responseTimes.length : 0;
+	const slowestResponseTime = responseTimes.length > 0 ? Math.max(...responseTimes) : 0;
 	const cacheReported = filteredRecords.some((record) => record.cache_details_reported);
 	const cachedInputTokens = filteredRecords.reduce((sum, record) => sum + (record.cached_input_tokens || 0), 0);
 	const cacheWriteInputTokens = filteredRecords.reduce((sum, record) => sum + (record.cache_write_input_tokens || 0), 0);
@@ -2213,6 +2231,8 @@ function renderUsageModalContent() {
 	nodes.usageStatOutput.textContent = formatNumber(outputTokens);
 	nodes.usageStatCached.textContent = cacheReported ? formatNumber(cachedInputTokens) : "—";
 	nodes.usageStatCacheWrite.textContent = cacheReported ? formatNumber(cacheWriteInputTokens) : "—";
+	nodes.usageStatResponseTime.textContent = formatDurationMs(averageResponseTime);
+	nodes.usageStatSlowestResponse.textContent = formatDurationMs(slowestResponseTime);
 
 	renderUsageChart(groupedRows, filters.chartType, filters.groupBy);
 	renderUsageBreakdown(groupedRows);
@@ -2280,6 +2300,9 @@ function groupUsageRecords(records, groupBy) {
 				cached_input_tokens: 0,
 				cache_write_input_tokens: 0,
 				cache_details_reported: false,
+				response_time_ms: 0,
+				total_response_time_ms: 0,
+				max_response_time_ms: 0,
 				responses: 0
 			});
 		}
@@ -2291,6 +2314,8 @@ function groupUsageRecords(records, groupBy) {
 		bucket.cached_input_tokens += record.cached_input_tokens || 0;
 		bucket.cache_write_input_tokens += record.cache_write_input_tokens || 0;
 		bucket.cache_details_reported = bucket.cache_details_reported || record.cache_details_reported;
+		bucket.response_time_ms += record.response_time_ms || 0;
+		bucket.max_response_time_ms = Math.max(bucket.max_response_time_ms, record.response_time_ms || 0);
 		bucket.responses += 1;
 	}
 
@@ -2461,7 +2486,9 @@ function renderUsageBreakdown(groupedRows) {
 					<th>Output</th>
 					<th>Cached Input</th>
 					<th>Cache Write</th>
-					<th>Average</th>
+					<th>Average Tokens</th>
+					<th>Avg Time</th>
+					<th>Slowest</th>
 				</tr>
 			</thead>
 			<tbody>
@@ -2469,7 +2496,8 @@ function renderUsageBreakdown(groupedRows) {
 					const average = row.responses > 0 ? Math.round(row.tokens / row.responses) : 0;
 						const cached = row.cache_details_reported ? formatNumber(row.cached_input_tokens) : "—";
 						const cacheWrite = row.cache_details_reported ? formatNumber(row.cache_write_input_tokens) : "—";
-						return `<tr><td>${escapeHtml(row.label)}</td><td>${formatNumber(row.responses)}</td><td>${formatNumber(row.tokens)}</td><td>${formatNumber(row.input_tokens)}</td><td>${formatNumber(row.output_tokens)}</td><td>${cached}</td><td>${cacheWrite}</td><td>${formatNumber(average)}</td></tr>`;
+						const averageResponseTime = row.responses > 0 && row.response_time_ms > 0 ? row.response_time_ms / row.responses : 0;
+						return `<tr><td>${escapeHtml(row.label)}</td><td>${formatNumber(row.responses)}</td><td>${formatNumber(row.tokens)}</td><td>${formatNumber(row.input_tokens)}</td><td>${formatNumber(row.output_tokens)}</td><td>${cached}</td><td>${cacheWrite}</td><td>${formatNumber(average)}</td><td>${formatDurationMs(averageResponseTime)}</td><td>${formatDurationMs(row.max_response_time_ms)}</td></tr>`;
 				}).join("")}
 			</tbody>
 		</table>
@@ -2868,6 +2896,8 @@ async function sendMessageToPaneStream(chat, pane, text) {
 	assistantMessage.model = selectedModel;
 	assistantMessage.usage = null;
 	assistantMessage.streaming = true;
+	assistantMessage.request_started_at = Date.now();
+	assistantMessage.response_time_ms = 0;
 	assistantMessage.continuation_passes = 0;
 
 	pane.messages.push(userMessage);
@@ -3209,6 +3239,7 @@ async function sendMessageToPaneStream(chat, pane, text) {
 			continuation_reasons: continuationReasons,
 			repair_applied: Boolean(streamMetrics.repair_applied)
 		};
+		assistantMessage.response_time_ms = Math.max(0, Date.now() - Number(assistantMessage.request_started_at || Date.now()));
 		assistantMessage.streaming = false;
 		const shouldMarkPartial = endedLikelyIncomplete || (!assistantMessage.content && assistantMessage.thinking);
 		pane.status = shouldMarkPartial ? "partial" : "idle";
@@ -3230,6 +3261,7 @@ async function sendMessageToPaneStream(chat, pane, text) {
 				cached_input_tokens: assistantMessage.usage.cached_input_tokens,
 				cache_write_input_tokens: assistantMessage.usage.cache_write_input_tokens,
 				cache_details_reported: Boolean(assistantMessage.usage.cache_details_reported),
+				response_time_ms: assistantMessage.response_time_ms,
 				createdAt: Number(assistantMessage.createdAt || Date.now())
 			});
 		}
@@ -3242,9 +3274,11 @@ async function sendMessageToPaneStream(chat, pane, text) {
 	} catch (error) {
 		const intentionallyStopped = stopStreamingRequested && isAbortLikeError(error);
 		if (intentionallyStopped) {
+			assistantMessage.response_time_ms = Math.max(0, Date.now() - Number(assistantMessage.request_started_at || Date.now()));
 			assistantMessage.streaming = false;
 			pane.status = assistantMessage.content || assistantMessage.thinking ? "partial" : "idle";
 		} else {
+		assistantMessage.response_time_ms = Math.max(0, Date.now() - Number(assistantMessage.request_started_at || Date.now()));
 		if (!assistantMessage.usage) {
 			const estimatedTokens = estimateTokensFromText(assistantMessage.content);
 			if (estimatedTokens > 0) {
@@ -3274,6 +3308,7 @@ async function sendMessageToPaneStream(chat, pane, text) {
 					cached_input_tokens: assistantMessage.usage.cached_input_tokens,
 					cache_write_input_tokens: assistantMessage.usage.cache_write_input_tokens,
 					cache_details_reported: Boolean(assistantMessage.usage.cache_details_reported),
+					response_time_ms: assistantMessage.response_time_ms,
 					createdAt: Number(assistantMessage.createdAt || Date.now())
 				});
 			}
@@ -3300,6 +3335,9 @@ async function sendMessageToPaneStream(chat, pane, text) {
 	if (currentStreamController) {
 		activeStreamControllers.delete(currentStreamController);
 		currentStreamController = null;
+	}
+	if (!Number(assistantMessage.response_time_ms)) {
+		assistantMessage.response_time_ms = Math.max(0, Date.now() - Number(assistantMessage.request_started_at || Date.now()));
 	}
 	activeStreamCount = Math.max(0, activeStreamCount - 1);
 	if (activeStreamCount === 0) {
@@ -5174,6 +5212,20 @@ function formatNumber(value) {
 	}
 
 	return new Intl.NumberFormat("en-US").format(Math.round(numeric));
+}
+
+function formatDurationMs(value) {
+	const numeric = Number(value);
+	if (!Number.isFinite(numeric) || numeric <= 0) {
+		return "—";
+	}
+
+	if (numeric < 1000) {
+		return `${Math.round(numeric)}ms`;
+	}
+
+	const seconds = numeric / 1000;
+	return `${seconds >= 10 ? seconds.toFixed(0) : seconds.toFixed(1)}s`;
 }
 
 function formatMessageTime(value) {
