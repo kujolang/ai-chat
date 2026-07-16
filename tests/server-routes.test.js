@@ -926,6 +926,42 @@ test("POST /api/chat/stream parses SSE upstream deltas into token/thinking/done"
 	}
 });
 
+test("POST /api/chat/stream disables provider thinking for recovery requests", async () => {
+	let capturedRequest = null;
+	const { runtime, destroy } = createIsolatedRuntime({
+		fetchFn: async (_url, options) => {
+			capturedRequest = JSON.parse(options.body);
+			return mockSseResponse([
+				{
+					choices: [{ delta: { content: "final answer" }, finish_reason: "stop" }]
+				}
+			]);
+		}
+	});
+	try {
+		const profileId = applyProfileMutation(runtime, (profile) => {
+			profile.api_key = "stream-key";
+		});
+		await withServer(runtime.app, async (baseUrl) => {
+			const response = await fetch(`${baseUrl}/api/chat/stream`, {
+				method: "POST",
+				headers: withAuthHeaders({ "Content-Type": "application/json" }),
+				body: JSON.stringify({
+					profile_id: profileId,
+					model: "kimi-k2.7-code:cloud",
+					disable_thinking: true,
+					messages: [{ role: "user", content: "hello" }]
+				})
+			});
+			await response.text();
+			assert.equal(capturedRequest.think, false);
+			assert.equal(capturedRequest.reasoning_effort, "none");
+		});
+	} finally {
+		destroy();
+	}
+});
+
 test("POST /api/chat/stream consumes multiline SSE data frames without dropping content", async () => {
 	const event = {
 		model: "gpt-multiline",

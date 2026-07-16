@@ -2945,6 +2945,9 @@ async function sendMessageToPaneStream(chat, pane, text) {
 				.filter((message) => message.role === "system" || message.role === "user" || message.role === "assistant")
 				.map((message) => ({ role: message.role, content: message.content }));
 
+			const forceFinalAnswer = !String(assistantMessage.content || "").trim()
+				&& Boolean(String(assistantMessage.thinking || "").trim())
+				&& thinkingOnlyRecoveryPasses > 0;
 			if (continuationPass > 0) {
 				if (assistantMessage.content) {
 					chatHistory.push({ role: "assistant", content: continuationAssistantContext(assistantMessage.content) });
@@ -2955,7 +2958,9 @@ async function sendMessageToPaneStream(chat, pane, text) {
 				});
 			}
 
-			const requestedMaxTokens = continuationMaxTokensForPass(state.settings.maxTokens, continuationPass);
+			const requestedMaxTokens = forceFinalAnswer
+				? Math.min(Math.max(Number(state.settings.maxTokens) || 12000, 4000), 12000)
+				: continuationMaxTokensForPass(state.settings.maxTokens, continuationPass);
 
 			const payload = {
 				profile_id: profile.id,
@@ -2963,7 +2968,8 @@ async function sendMessageToPaneStream(chat, pane, text) {
 				temperature: state.settings.temperature,
 				max_tokens: requestedMaxTokens,
 				messages: chatHistory,
-				tools: buildEnabledToolDefinitions()
+				tools: buildEnabledToolDefinitions(),
+				disable_thinking: forceFinalAnswer
 			};
 
 			const controller = new AbortController();
@@ -3135,7 +3141,7 @@ async function sendMessageToPaneStream(chat, pane, text) {
 			const shouldContinueForIncompleteOutput = !streamErrored
 				&& !reachedTokenLimit
 				&& thinkingOnly
-				&& thinkingOnlyRecoveryPasses < 6;
+				&& thinkingOnlyRecoveryPasses < 2;
 
 			let continueReason = "none";
 			if (shouldContinueForTokenLimit) {
@@ -3209,6 +3215,10 @@ async function sendMessageToPaneStream(chat, pane, text) {
 				streamMetrics.repair_applied = true;
 				endedLikelyIncomplete = hasHardIncompleteMarkers(assistantMessage.content);
 			}
+		}
+
+		if (!String(assistantMessage.content || "").trim()) {
+			throw new Error("The model returned reasoning without a final answer after recovery attempts. Please retry the request.");
 		}
 
 		if (totalUsage.total_tokens > 0) {
@@ -3749,7 +3759,7 @@ function buildContinuationPrompt(existingContent, noProgressPasses, thinkingCont
 	if (!existingContent && thinkingContent) {
 		return [
 			"The previous attempt used its response budget on thinking before producing the answer.",
-			"Continue from that attempt and provide the complete user-facing answer now.",
+			"Provide the complete user-facing answer now without more reasoning or hidden analysis.",
 			"Output only the answer, with no preface and no repetition."
 		].join(" ");
 	}
