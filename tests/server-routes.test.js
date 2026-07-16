@@ -929,6 +929,7 @@ test("POST /api/chat/stream parses SSE upstream deltas into token/thinking/done"
 test("POST /api/chat/stream disables provider thinking for recovery requests", async () => {
 	let capturedRequest = null;
 	const { runtime, destroy } = createIsolatedRuntime({
+		envMerge: { ALLOWED_CUSTOM_PROVIDER_HOSTS: "api.example.com" },
 		fetchFn: async (_url, options) => {
 			capturedRequest = JSON.parse(options.body);
 			return mockSseResponse([
@@ -940,6 +941,8 @@ test("POST /api/chat/stream disables provider thinking for recovery requests", a
 	});
 	try {
 		const profileId = applyProfileMutation(runtime, (profile) => {
+			profile.provider_id = "custom";
+			profile.base_url = "https://api.example.com/v1";
 			profile.api_key = "stream-key";
 		});
 		await withServer(runtime.app, async (baseUrl) => {
@@ -956,6 +959,8 @@ test("POST /api/chat/stream disables provider thinking for recovery requests", a
 			await response.text();
 			assert.equal(capturedRequest.think, false);
 			assert.equal(capturedRequest.reasoning_effort, "none");
+			assert.equal(capturedRequest.enable_thinking, false);
+			assert.equal(capturedRequest.thinking, false);
 		});
 	} finally {
 		destroy();
