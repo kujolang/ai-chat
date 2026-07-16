@@ -1371,6 +1371,36 @@ select:focus,
 	font-family: var(--mono);
 }
 
+.save-status {
+	font-size: 11px;
+	font-family: var(--mono);
+	color: var(--text-dim);
+	white-space: nowrap;
+}
+
+.save-status::before {
+	content: "";
+	display: inline-block;
+	width: 6px;
+	height: 6px;
+	margin-right: 6px;
+	border-radius: 999px;
+	background: currentColor;
+	vertical-align: 1px;
+}
+
+.save-status.pending {
+	color: #ffcf85;
+}
+
+.save-status.saved {
+	color: var(--accent);
+}
+
+.save-status.error {
+	color: #ff9f9f;
+}
+
 textarea {
 	resize: none;
 	min-height: 58px;
@@ -1431,7 +1461,7 @@ textarea {
 }
 
 .voice-status,
-.composer-status-separator {
+.composer-status-separator:not(.save-status-separator) {
 	display: none;
 }
 

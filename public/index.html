@@ -90,6 +90,8 @@
 				</div>
 				<div class="composer-actions">
 					<div class="composer-status-group">
+						<div id="save-status" class="save-status pending" role="status" aria-live="polite">Loading saved chats…</div>
+						<div class="composer-status-separator save-status-separator" aria-hidden="true">|</div>
 						<div id="voice-status" class="voice-status">Voice: idle</div>
 						<div class="composer-status-separator" aria-hidden="true">|</div>
 						<div id="composer-token-summary" class="composer-token-summary" aria-live="polite">0 tokens</div>
@@ -381,6 +383,7 @@
 	<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+	<script src="/state-sync.js"></script>
 	<script src="/app.js"></script>
 </body>
 </html>

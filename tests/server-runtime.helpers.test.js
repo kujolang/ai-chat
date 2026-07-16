@@ -355,3 +355,65 @@ test("writeState persists chat title and settings values", () => {
 		destroy();
 	}
 });
+
+test("applyStateChanges upserts messages without replacing unrelated state", () => {
+	const { runtime, destroy } = createIsolatedRuntime();
+	try {
+		const before = runtime.helpers.readState();
+		const chat = before.chats[0];
+		const pane = chat.panes[0];
+		const version = runtime.helpers.applyStateChanges({
+			changes: [{
+				type: "message_upsert",
+				message: {
+					id: "incremental-message",
+					pane_id: pane.id,
+					role: "assistant",
+					content: "durable response",
+					provider: "openai",
+					model: "gpt-4.1",
+					thinking: "",
+					usage: { total_tokens: 4 },
+					created_at: Date.now(),
+					sort_order: 0
+				}
+			}]
+		});
+		const after = runtime.helpers.readState();
+		assert.equal(version, before.stateVersion + 1);
+		assert.equal(after.chats.length, before.chats.length);
+		assert.equal(after.chats[0].panes[0].messages[0].content, "durable response");
+	} finally {
+		destroy();
+	}
+});
+
+test("applyStateChanges preserves an encrypted profile key when metadata changes", () => {
+	const { runtime, destroy } = createIsolatedRuntime();
+	try {
+		const state = runtime.helpers.readState();
+		const profile = state.settings.profiles[0];
+		profile.api_key = "stored-secret";
+		runtime.helpers.writeState(state);
+
+		runtime.helpers.applyStateChanges({
+			changes: [{
+				type: "profile_upsert",
+				profile: {
+					id: profile.id,
+					name: "Renamed",
+					provider_id: profile.provider_id,
+					base_url: profile.base_url,
+					models_csv: profile.models_csv,
+					sort_order: 0
+				}
+			}]
+		});
+
+		const row = runtime.db.prepare("SELECT * FROM profiles WHERE id = ?").get(profile.id);
+		assert.equal(runtime.helpers.decryptValue(row.api_key_cipher, row.api_key_iv, row.api_key_tag), "stored-secret");
+		assert.equal(row.name, "Renamed");
+	} finally {
+		destroy();
+	}
+});

@@ -544,6 +544,70 @@ test("PUT /api/state rejects stale state version", async () => {
 	}
 });
 
+test("POST /api/state/changes persists history larger than the per-request JSON limit", async () => {
+	const { runtime, destroy } = createIsolatedRuntime({
+		envMerge: {
+			MAX_JSON_BODY_BYTES: "2048"
+		}
+	});
+	try {
+		const seeded = runtime.helpers.readState();
+		const paneId = seeded.chats[0].panes[0].id;
+		await withServer(runtime.app, async (baseUrl) => {
+			for (let index = 0; index < 12; index += 1) {
+				const result = await fetchJson(baseUrl, "/api/state/changes", {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({
+						changes: [{
+							type: "message_upsert",
+							message: {
+								id: `large-history-${index}`,
+								pane_id: paneId,
+								role: "assistant",
+								content: `${index}:`.padEnd(700, "x"),
+								thinking: "",
+								usage: { total_tokens: 175 },
+								created_at: Date.now() + index,
+								sort_order: index
+							}
+						}]
+					})
+				});
+				assert.equal(result.response.status, 200);
+			}
+
+			const stateResult = await fetchJson(baseUrl, "/api/state");
+			const messages = stateResult.json.state.chats[0].panes[0].messages;
+			assert.equal(messages.length, 12);
+			assert.equal(JSON.stringify(stateResult.json.state).length > 2048, true);
+		});
+	} finally {
+		destroy();
+	}
+});
+
+test("POST /api/state/changes rejects malformed changes without modifying state", async () => {
+	const { runtime, destroy } = createIsolatedRuntime();
+	try {
+		const before = runtime.helpers.readState();
+		await withServer(runtime.app, async (baseUrl) => {
+			const result = await fetchJson(baseUrl, "/api/state/changes", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ changes: [{ type: "message_upsert", message: { id: "bad" } }] })
+			});
+			assert.equal(result.response.status, 400);
+			assert.equal(result.json.error.code, "state_changes_failed");
+		});
+		const after = runtime.helpers.readState();
+		assert.equal(after.stateVersion, before.stateVersion);
+		assert.equal(after.chats[0].panes[0].messages.length, 0);
+	} finally {
+		destroy();
+	}
+});
+
 test("POST /api/chat returns invalid_request when profile_id is missing", async () => {
 	const { runtime, destroy } = createIsolatedRuntime();
 	try {

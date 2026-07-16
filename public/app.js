@@ -23,6 +23,11 @@ let whisperStream = null;
 let whisperChunks = [];
 let whisperRecording = false;
 let persistTimer = null;
+let persistRetryTimer = null;
+let persistRetryDelayMs = 1000;
+let persistInFlight = false;
+let persistRequested = false;
+let lastPersistedSnapshot = null;
 let stateLoadedFromServer = false;
 let settingsSaveIndicatorTimer = null;
 let suppressNextTokenBlurSave = false;
@@ -45,6 +50,7 @@ const legacyApiTokenExpiresAtStorageKey = "kujo_ai_chat_api_token_expires_at";
 const legacyStateCacheStorageKey = "kujo_ai_chat_state_cache_v1";
 const legacyUsageLedgerStorageKey = "kujo_ai_chat_usage_ledger_v1";
 const sidebarCollapsedStorageKey = "ai_chat_sidebar_collapsed_v1";
+const stateChangesBatchBytes = 512 * 1024;
 const maxVisibleProjectFolders = 5;
 const sidebarChatPageSize = 5;
 const defaultApiTokenTtlDays = 3650;
@@ -83,6 +89,7 @@ const nodes = {
 	paneGrid: document.getElementById("pane-grid"),
 	composerInput: document.getElementById("composer-input"),
 	composerTokenSummary: document.getElementById("composer-token-summary"),
+	saveStatus: document.getElementById("save-status"),
 	composerProfileSelect: document.getElementById("composer-profile-select"),
 	sendBtn: document.getElementById("send-btn"),
 	voiceBtn: document.getElementById("voice-btn"),
@@ -188,12 +195,16 @@ async function loadStateFromServer() {
 		if (payload && payload.ok && payload.state) {
 			state = migrateState(payload.state);
 			stateLoadedFromServer = true;
+			lastPersistedSnapshot = createPersistenceSnapshot(state);
 			saveStateToCache();
+			setSaveStatus("saved", "Saved");
 		}
 	} catch (error) {
 		console.error(error);
 		const cachedState = loadStateFromCache();
 		state = cachedState || structuredClone(defaultState);
+		lastPersistedSnapshot = null;
+		setSaveStatus("error", cachedState ? "Offline — changes kept locally" : "Not connected");
 	}
 }
 
@@ -881,6 +892,21 @@ function wireEvents() {
 		renderSettings();
 		schedulePersist();
 	});
+
+	window.addEventListener("online", () => {
+		if (hasUnsavedChanges()) {
+			setSaveStatus("pending", "Saving…");
+			void persistStateToServer();
+		}
+	});
+
+	window.addEventListener("beforeunload", (event) => {
+		if (!persistInFlight && !persistRequested && !hasUnsavedChanges()) {
+			return;
+		}
+		event.preventDefault();
+		event.returnValue = "";
+	});
 }
 
 function createAndActivateChat() {
@@ -908,6 +934,8 @@ function focusComposerInput() {
 
 function schedulePersist() {
 	saveStateToCache();
+	persistRequested = true;
+	setSaveStatus("pending", "Saving…");
 	if (isSettingsModalOpen()) {
 		setSettingsSaveIndicator("pending", "Saving settings...", 0);
 	}
@@ -924,54 +952,159 @@ async function persistStateToServer() {
 	persistTimer = null;
 	if (!stateLoadedFromServer) {
 		console.warn("Skipping state persist: server state has not been loaded yet.");
+		setSaveStatus("error", "Not saved — app access required");
 		return;
 	}
+	if (persistInFlight) {
+		persistRequested = true;
+		return;
+	}
+	if (!window.AIChatStateSync) {
+		setSaveStatus("error", "Not saved — sync component unavailable");
+		return;
+	}
+
+	persistInFlight = true;
 	try {
-		const payload = buildPersistPayload();
-		const response = await apiFetch("/api/state", {
-			method: "PUT",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify(payload)
-		});
-
-		if (response.status === 409) {
-			console.warn("State version conflict: reloading latest state from server.");
-			await loadStateFromServer();
-			ensureMinimumState();
-			renderAll();
-			if (isSettingsModalOpen()) {
-				setSettingsSaveIndicator("error", "State changed elsewhere - reloaded latest");
+		do {
+			persistRequested = false;
+			const snapshot = createPersistenceSnapshot(state);
+			const changes = window.AIChatStateSync.buildChanges(lastPersistedSnapshot, snapshot);
+			if (changes.length === 0) {
+				break;
 			}
-			return;
-		}
 
-		if (!response.ok) {
-			throw new Error(`state persist failed: ${response.status}`);
-		}
-
-		const result = await response.json();
-		if (result && Number.isFinite(Number(result.stateVersion))) {
-			state.stateVersion = Number(result.stateVersion);
-		}
-
-		for (const profile of state.settings.profiles) {
-			if (profile.api_key_dirty) {
-				profile.api_key = "";
-				profile.api_key_dirty = false;
-				profile.api_key_present = true;
+			const batches = window.AIChatStateSync.batchChanges(changes, stateChangesBatchBytes);
+			for (const batch of batches) {
+				const response = await apiFetch("/api/state/changes", {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({ changes: batch })
+				});
+				const result = await readPersistenceResponse(response);
+				if (result && Number.isFinite(Number(result.stateVersion))) {
+					state.stateVersion = Number(result.stateVersion);
+				}
 			}
-		}
 
-		saveStateToCache();
+			clearSavedProfileKeys(snapshot);
+			lastPersistedSnapshot = snapshotWithoutProfileKeys(snapshot);
+			saveStateToCache();
+		} while (persistRequested || hasUnsavedChanges());
+
+		persistRetryDelayMs = 1000;
+		if (persistRetryTimer) {
+			clearTimeout(persistRetryTimer);
+			persistRetryTimer = null;
+		}
+		setSaveStatus("saved", "Saved");
 		if (isSettingsModalOpen()) {
 			setSettingsSaveIndicator("success", "Settings saved");
 		}
 	} catch (error) {
 		console.error(error);
+		const oversized = error && error.code === "payload_too_large";
+		const retryable = !oversized && (!error || error.retryable !== false);
+		persistRequested = retryable;
+		setSaveStatus(
+			"error",
+			oversized ? "Not saved — one item is too large" : (retryable ? "Not saved — retrying" : "Not saved — action required")
+		);
 		if (isSettingsModalOpen()) {
 			setSettingsSaveIndicator("error", "Settings failed to save");
 		}
+		if (retryable) {
+			schedulePersistRetry();
+		}
+	} finally {
+		persistInFlight = false;
+		if (persistRequested && !persistRetryTimer && !persistTimer) {
+			persistTimer = setTimeout(() => {
+				void persistStateToServer();
+			}, 0);
+		}
 	}
+}
+
+function createPersistenceSnapshot(source) {
+	return window.AIChatStateSync
+		? window.AIChatStateSync.persistenceSnapshot(source)
+		: null;
+}
+
+async function readPersistenceResponse(response) {
+	let payload = null;
+	try {
+		payload = await response.json();
+	} catch (error) {
+		payload = null;
+	}
+	if (!response.ok || !payload || payload.ok !== true) {
+		const persistError = new Error(payload && payload.error && payload.error.message
+			? String(payload.error.message)
+			: `state persist failed: ${response.status}`);
+		persistError.code = payload && payload.error ? String(payload.error.code || "") : "";
+		persistError.retryable = response.status >= 500
+			|| !payload
+			|| !payload.error
+			|| payload.error.retryable !== false;
+		throw persistError;
+	}
+	return payload;
+}
+
+function clearSavedProfileKeys(savedSnapshot) {
+	const savedProfiles = new Map(
+		(savedSnapshot && Array.isArray(savedSnapshot.profiles) ? savedSnapshot.profiles : [])
+			.filter((profile) => Object.prototype.hasOwnProperty.call(profile, "api_key"))
+			.map((profile) => [String(profile.id), String(profile.api_key || "")])
+	);
+	for (const profile of state.settings.profiles) {
+		const savedKey = savedProfiles.get(String(profile.id || ""));
+		if (savedKey === undefined || !profile.api_key_dirty || String(profile.api_key || "") !== savedKey) {
+			continue;
+		}
+		profile.api_key = "";
+		profile.api_key_dirty = false;
+		profile.api_key_present = true;
+	}
+}
+
+function snapshotWithoutProfileKeys(snapshot) {
+	const clean = structuredClone(snapshot);
+	for (const profile of clean.profiles || []) {
+		delete profile.api_key;
+	}
+	return clean;
+}
+
+function hasUnsavedChanges() {
+	if (!stateLoadedFromServer || !window.AIChatStateSync) {
+		return false;
+	}
+	const snapshot = createPersistenceSnapshot(state);
+	return window.AIChatStateSync.buildChanges(lastPersistedSnapshot, snapshot).length > 0;
+}
+
+function schedulePersistRetry() {
+	if (persistRetryTimer) {
+		return;
+	}
+	const delay = persistRetryDelayMs;
+	persistRetryDelayMs = Math.min(persistRetryDelayMs * 2, 30000);
+	persistRetryTimer = setTimeout(() => {
+		persistRetryTimer = null;
+		void persistStateToServer();
+	}, delay);
+}
+
+function setSaveStatus(status, message) {
+	if (!nodes.saveStatus) {
+		return;
+	}
+	nodes.saveStatus.classList.remove("pending", "saved", "error");
+	nodes.saveStatus.classList.add(status);
+	nodes.saveStatus.textContent = String(message || "");
 }
 
 function isSettingsModalOpen() {
@@ -1052,24 +1185,6 @@ function loadStateFromCache() {
 	} catch (error) {
 		return null;
 	}
-}
-
-function buildPersistPayload() {
-	const snapshot = structuredClone(state);
-	snapshot.broadcastToAllPanes = true;
-	if (!snapshot.settings || !Array.isArray(snapshot.settings.profiles)) {
-		return snapshot;
-	}
-
-	for (const profile of snapshot.settings.profiles) {
-		if (!profile.api_key_dirty) {
-			delete profile.api_key;
-		}
-		delete profile.api_key_dirty;
-		delete profile.api_key_present;
-	}
-
-	return snapshot;
 }
 
 function handleChatAction(chat, action) {
@@ -4259,7 +4374,9 @@ function clearApiAuthToken() {
 
 async function apiFetch(url, options = {}) {
 	if (!ensureApiAuthToken()) {
-		throw new Error("API token is not configured. Add it in Settings > App Access.");
+		const error = new Error("API token is not configured. Add it in Settings > App Access.");
+		error.retryable = false;
+		throw error;
 	}
 
 	const nextHeaders = new Headers(options.headers || {});
@@ -4272,7 +4389,9 @@ async function apiFetch(url, options = {}) {
 
 	if (response.status === 401) {
 		clearApiAuthToken();
-		throw new Error("API token was rejected. Update it in Settings > App Access.");
+		const error = new Error("API token was rejected. Update it in Settings > App Access.");
+		error.retryable = false;
+		throw error;
 	}
 
 	return response;
