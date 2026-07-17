@@ -974,6 +974,21 @@ textarea::-webkit-scrollbar-thumb:hover {
 	margin-top: 10px;
 }
 
+.message-tool-error {
+	display: grid;
+	gap: 3px;
+	margin-top: 10px;
+	padding: 9px 10px;
+	border: 1px solid rgba(255, 114, 114, 0.7);
+	background: rgba(255, 114, 114, 0.08);
+	color: #ffd2d2;
+	font-size: 12px;
+}
+
+.message-tool-error strong {
+	color: #ff9a9a;
+}
+
 .message-tool-artifact {
 	margin: 0;
 	max-width: min(100%, 760px);

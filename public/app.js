@@ -1936,6 +1936,7 @@ function renderMessageNodeHtml(message, paneId) {
 
 	const meta = metaBits.length > 0 ? `<div class=\"message-meta\">${escapeHtml(metaBits.join(" | "))}</div>` : "";
 	const thinking = renderThinkingBlock(message, paneId);
+	const toolError = renderToolErrorBlock(message);
 	const contentBody = message.role === "assistant"
 		? renderAssistantMarkdown(message.content)
 		: renderPlainText(message.content);
@@ -1948,10 +1949,22 @@ function renderMessageNodeHtml(message, paneId) {
 		const metaFooter = meta || footer
 			? `<div class="message-meta-footer">${meta}${footer}</div>`
 			: "";
-		return `<div class="${messageClasses.join(" ")}" data-message-id="${escapeHtml(message.id)}" data-pane-id="${escapeHtml(paneId)}">${thinking}${content}${screenshots}${metaFooter}</div>`;
+		return `<div class="${messageClasses.join(" ")}" data-message-id="${escapeHtml(message.id)}" data-pane-id="${escapeHtml(paneId)}">${thinking}${content}${toolError}${screenshots}${metaFooter}</div>`;
 	}
 
 	return `<div class="${messageClasses.join(" ")}" data-message-id="${escapeHtml(message.id)}" data-pane-id="${escapeHtml(paneId)}"><div class="message-bubble">${content}${meta}</div>${footer}</div>`;
+}
+
+function renderToolErrorBlock(message) {
+	const error = message && message.usage && message.usage.tool_error && typeof message.usage.tool_error === "object"
+		? message.usage.tool_error
+		: null;
+	if (!error || !error.message) return "";
+	const code = String(error.code || "tool_execution_failed");
+	const tools = Array.isArray(error.tool_names) && error.tool_names.length > 0
+		? ` Tool: ${error.tool_names.map((name) => String(name)).join(", ")}.`
+		: "";
+	return `<div class="message-tool-error" role="alert"><strong>Tool run stopped (${escapeHtml(code)})</strong><span>${escapeHtml(String(error.message))}${escapeHtml(tools)}</span></div>`;
 }
 
 function renderBrowserScreenshotArtifacts(message) {
@@ -1970,6 +1983,17 @@ function uniqueBrowserScreenshotArtifacts(artifacts) {
 		seen.add(artifactId);
 		return true;
 	}).map((artifact) => ({ artifact_id: String(artifact.artifact_id), media_type: "image/png" }));
+}
+
+function normalizeStreamErrorPayload(payload) {
+	const source = payload && typeof payload === "object" ? payload : {};
+	return {
+		code: String(source.code || "stream_error").slice(0, 120),
+		message: String(source.message || "The tool run stopped before a final response was available.").slice(0, 1000),
+		tool_names: Array.isArray(source.tool_names)
+			? source.tool_names.map((name) => String(name).slice(0, 120)).filter(Boolean).slice(0, 32)
+			: []
+	};
 }
 
 function hydrateBrowserArtifactImages(rootNode) {
@@ -3500,6 +3524,7 @@ async function sendMessageToPaneStream(chat, pane, text) {
 		let thinkingOnlyRecoveryPasses = 0;
 		let endedLikelyIncomplete = false;
 		let watchdogTraceRecorded = false;
+		let terminalStreamError = null;
 
 		while (continuationPass <= maxContinuationPasses) {
 			const passStartedAt = Date.now();
@@ -3701,6 +3726,7 @@ async function sendMessageToPaneStream(chat, pane, text) {
 			const streamErrored = Boolean(streamErrorPayload) && !streamDonePayload;
 			if (streamErrored) {
 				finalFinishReason = "error";
+				terminalStreamError = normalizeStreamErrorPayload(streamErrorPayload);
 			}
 
 			const progressChars = assistantMessage.content.length - contentLengthBeforePass;
@@ -3738,6 +3764,7 @@ async function sendMessageToPaneStream(chat, pane, text) {
 			const shouldContinueForTokenLimit = reachedTokenLimit || finalFinishReason === "stream_closed";
 			const shouldContinueForStreamError = streamErrored
 				&& Boolean(assistantMessage.content)
+				&& streamErrorPayload.retryable !== false
 				&& streamErrorRecoveryPasses < maxStreamErrorRecoveryPasses;
 			const shouldContinueForHardIncompleteClosure = !streamErrored
 				&& !reachedTokenLimit
@@ -3850,6 +3877,9 @@ async function sendMessageToPaneStream(chat, pane, text) {
 		if (assistantMessage.usage && watchdogTraceRecorded) {
 			assistantMessage.usage.trace_id = assistantMessage.trace_id;
 		}
+		if (assistantMessage.usage && terminalStreamError) {
+			assistantMessage.usage.tool_error = terminalStreamError;
+		}
 		if (assistantMessage.usage && Array.isArray(assistantMessage.tool_artifacts) && assistantMessage.tool_artifacts.length > 0) {
 			assistantMessage.usage.tool_artifacts = assistantMessage.tool_artifacts;
 		}
@@ -3868,7 +3898,7 @@ async function sendMessageToPaneStream(chat, pane, text) {
 		assistantMessage.response_time_ms = Math.max(0, Date.now() - Number(assistantMessage.request_started_at || Date.now()));
 		assistantMessage.streaming = false;
 		const shouldMarkPartial = endedLikelyIncomplete || (!assistantMessage.content && assistantMessage.thinking);
-		pane.status = shouldMarkPartial ? "partial" : "idle";
+		pane.status = terminalStreamError ? "error" : (shouldMarkPartial ? "partial" : "idle");
 		if (assistantMessage.usage && Number(assistantMessage.usage.total_tokens) > 0) {
 			appendUsageLedgerEntry({
 				message_id: assistantMessage.id,

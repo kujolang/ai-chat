@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Show terminal tool-execution failures in assistant messages and avoid retrying explicitly non-retryable tool errors.
 - Permit same-origin browser screenshot blob URLs under the content-security policy.
 - Move Pane Profiles to the right of Add Pane in the chat header.
 - Display browser-tool screenshots in the assistant response and expose them through an authenticated, opaque artifact endpoint.
