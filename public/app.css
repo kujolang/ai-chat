@@ -685,7 +685,6 @@ select:focus,
 	grid-template-columns: repeat(1, minmax(0, 1fr));
 	overflow: auto;
 	align-items: start;
-	min-height: 0;
 	background: linear-gradient(180deg, rgba(0, 0, 0, 0.08), transparent 180px);
 	scrollbar-color: #365b50 #111519;
 	scrollbar-width: thin;
@@ -714,11 +713,13 @@ select:focus,
 	overflow-x: auto;
 	overflow-y: hidden;
 	align-items: stretch;
+	min-height: 0;
 }
 
 .pane-grid.cols-3 .pane-card {
 	flex: 0 0 calc((100% - 24px) / 3);
 	width: calc((100% - 24px) / 3);
+	height: 100%;
 }
 
 .pane-card {
@@ -726,7 +727,6 @@ select:focus,
 	border-radius: 0;
 	background: transparent;
 	min-height: 0;
-	height: 100%;
 	display: grid;
 	grid-template-rows: auto 1fr;
 	overflow: hidden;
