@@ -105,8 +105,7 @@ Use `.env.example` as your baseline and set:
 - TRUST_PROXY
 - WATCHDOG_PROXY_URL
 - WATCHDOG_PROXY_TOKEN_FILE
-- WATCHDOG_OPENROUTER_PROXY_URL
-- WATCHDOG_OPENROUTER_PROXY_TOKEN_FILE
+- WATCHDOG_OPENROUTER_UPSTREAM_PROFILE
 - WATCHDOG_DIRECT_STREAMING
 - WATCHDOG_TELEMETRY_URL
 - WATCHDOG_API_TOKEN_FILE
@@ -144,7 +143,7 @@ Security note:
 - Use STREAM_REQUEST_TIMEOUT_MS to tune long-running upstream streaming requests.
 - Live provider and transcription requests are optional and require the configured provider/API-key path.
 - The dedicated Watchdog provider accepts only the configured loopback URL. Its proxy token is read from `WATCHDOG_PROXY_TOKEN_FILE`; it does not copy the upstream Ollama key into AI Chat or its SQLite database.
-- OpenRouter through Watchdog uses a second Watchdog instance because each proxy instance has one upstream provider. Configure its loopback URL and proxy-token file with `WATCHDOG_OPENROUTER_PROXY_URL` and `WATCHDOG_OPENROUTER_PROXY_TOKEN_FILE`; the OpenRouter key remains server-side in that Watchdog instance.
+- OpenRouter through Watchdog uses the same Watchdog proxy, database, and dashboard as Ollama. Set `WATCHDOG_OPENROUTER_UPSTREAM_PROFILE` to the named upstream configured in Watchdog; the OpenRouter key remains server-side in Watchdog.
 
 To create the two local credential files without putting the OpenRouter key in AI Chat's SQLite database or `.env`, run:
 
@@ -178,8 +177,7 @@ WDG_PROXY_AUTHZ_TOKEN="$(<"$AI_CHAT_SECRETS_DIR/watchdog-openrouter-proxy-token"
 Then point AI Chat at that managed proxy and restart AI Chat:
 
 ```bash
-echo 'WATCHDOG_OPENROUTER_PROXY_URL=http://127.0.0.1:7701/proxy/v1' >> .env
-echo "WATCHDOG_OPENROUTER_PROXY_TOKEN_FILE=${HOME}/.config/ai-chat/watchdog-openrouter-proxy-token" >> .env
+echo 'WATCHDOG_OPENROUTER_UPSTREAM_PROFILE=openrouter-work' >> .env
 ```
 - With `WATCHDOG_DIRECT_STREAMING=1`, a Watchdog pane automatically uses a matching, API-key-backed custom Ollama profile for the live provider connection and sends completion telemetry to Watchdog asynchronously. This avoids Watchdog's buffered proxy path while preserving observability. If no matching direct profile exists, the managed proxy remains the fallback.
 - When Watchdog protects `/api/*` with token auth, `WATCHDOG_API_TOKEN_FILE` must point to a readable file containing `WDG_API_AUTH_TOKEN`. This is separate from the proxy authorization token. Rejected or unreachable asynchronous telemetry is logged as a sanitized warning without failing the chat stream.
