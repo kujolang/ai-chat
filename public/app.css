@@ -1725,6 +1725,28 @@ textarea {
 	margin: 14px 0 6px;
 }
 
+#pane-profile-name-input {
+	width: 100%;
+	min-width: 0;
+	padding: 10px 11px;
+	background: var(--bg-soft);
+	color: var(--text);
+	border: 1px solid var(--line);
+	outline: none;
+	font-family: var(--sans);
+	font-size: 13px;
+}
+
+#pane-profile-name-input:focus {
+	border-color: #3a5f55;
+	box-shadow: 0 0 0 3px rgba(107, 241, 191, 0.12);
+}
+
+#pane-profile-name-input::placeholder {
+	color: var(--text-dim);
+	opacity: 1;
+}
+
 .pane-profile-error {
 	min-height: 18px;
 	font-size: 12px;
@@ -1739,7 +1761,7 @@ textarea {
 
 .pane-profile-card {
 	display: flex;
-	align-items: center;
+	align-items: flex-start;
 	justify-content: space-between;
 	gap: 16px;
 	padding: 12px;
@@ -1749,20 +1771,22 @@ textarea {
 }
 
 .pane-profile-card-main {
+	flex: 1 1 auto;
 	min-width: 0;
 }
 
 .pane-profile-card-name {
 	font-weight: 600;
+	overflow-wrap: anywhere;
 }
 
 .pane-profile-card-summary {
 	margin-top: 5px;
 	font-size: 12px;
 	color: var(--text-dim);
-	white-space: nowrap;
-	overflow: hidden;
-	text-overflow: ellipsis;
+	line-height: 1.45;
+	white-space: normal;
+	overflow-wrap: anywhere;
 }
 
 .pane-profile-card-actions {
