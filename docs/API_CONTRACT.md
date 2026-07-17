@@ -88,7 +88,9 @@ When `DEBUG_API_ERRORS=0`, provider raw error bodies are not included in stream 
 - `state.showArchived` boolean
 - `state.searchQuery` string
 - `state.broadcastToAllPanes` boolean compatibility field; the UI always persists this as `true` and broadcasts prompts to every pane.
-- `state.settings` object containing `temperature`, `maxTokens`, `profiles`, and saved function-tool definitions in `tools`
+- `state.settings` object containing `temperature`, `maxTokens`, provider `profiles`, reusable `paneProfiles`, and saved function-tool definitions in `tools`
+
+Each pane profile stores a name plus an ordered `panes` array of provider-profile/model selections. It contains no messages or provider credentials. The normal new-chat action remains a single-pane chat; clients may explicitly create a new chat or replace the current chat's panes from a saved pane profile. The browser asks for confirmation before replacing panes that contain messages.
 
 Profile key handling guarantee:
 

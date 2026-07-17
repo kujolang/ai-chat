@@ -137,7 +137,10 @@ http://127.0.0.1:4173
 3. Enter API keys for the providers you want to use.
 4. Set model suggestions for each profile (comma-separated).
 5. Create a chat and add panes if you want side-by-side comparisons.
-6. Send prompts using broadcast mode or a single pane.
+6. Optionally open Pane Profiles in the chat header, name the current pane/model arrangement, and save it for future chats.
+7. Send prompts to all panes.
+
+Regular New Chat continues to create one pane. To reuse a saved arrangement, open Pane Profiles and choose New Chat for that profile. Apply Here replaces the current chat's panes; if they contain messages, the app asks for confirmation first.
 
 ## 6. How Streaming Works
 

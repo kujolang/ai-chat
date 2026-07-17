@@ -32,6 +32,7 @@ This project is for end users and teams who want one local web app to:
 - Multi-pane comparisons
 	- Add multiple panes per chat with per-pane profile/model selection
 	- Broadcast one prompt to all panes
+	- Save an ordered pane/model arrangement as a reusable pane profile and start new chats from it
 - Streaming and thinking UI
 	- Live assistant text streaming via SSE
 	- Thinking/reasoning deltas shown when available
@@ -193,7 +194,8 @@ http://127.0.0.1:4173
 3. Enter API keys for each direct-provider profile you plan to use. Watchdog profiles use the server-managed credential file instead.
 4. Set model suggestions (comma-separated) per profile.
 5. Create a new chat and add panes for side-by-side comparison.
-6. Send a prompt; every pane receives the same prompt automatically.
+6. Open Pane Profiles in the chat header to save the current pane/model arrangement for later benchmarks or repeated workflows.
+7. Send a prompt; every pane receives the same prompt automatically.
 
 ## API Endpoints
 
