@@ -29,6 +29,7 @@ This project is for end users and teams who want one local web app to:
 - Provider profiles
 	- Store provider profiles and model suggestions in Settings
 	- API keys are encrypted before being stored in SQLite
+	- Seed OpenRouter and Ollama Cloud (Watchdog) with the July 17, 2026 catalog snapshot; existing profiles receive any newly cataloged suggestions without replacing their current models
 - Multi-pane comparisons
 	- Add multiple panes per chat with per-pane profile/model selection
 	- Broadcast one prompt to all panes
@@ -186,6 +187,11 @@ http://127.0.0.1:4173
 4. Enter API_AUTH_TOKEN once in the in-app auth modal, then choose how many days to remember it.
 5. In Settings, add provider API keys and profile defaults
 6. If you want a safe provider-free smoke path, use offline fixture mode in the bridge/smoke workflow.
+
+The OpenRouter and Ollama Cloud suggestion lists are a static catalog snapshot, so a
+selectable model is not proof that the configured key can use it. The app preserves
+your existing model suggestions and adds the catalog candidates on startup. Refresh
+account-visible inventory before relying on a newly added or marked-retired model.
 
 ## First-Run User Setup
 

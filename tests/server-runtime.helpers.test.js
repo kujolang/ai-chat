@@ -63,6 +63,67 @@ test("decryptValue returns empty for incomplete encrypted values", () => {
 	}
 });
 
+test("seeds and upgrades OpenRouter and Watchdog model suggestions from the static catalog", () => {
+	const { runtime, destroy } = createIsolatedRuntime();
+	try {
+		const state = runtime.helpers.readState();
+		const openRouter = state.settings.profiles.find((profile) => profile.provider_id === "openrouter");
+		const watchdog = state.settings.profiles.find((profile) => profile.provider_id === "watchdog");
+		assert.ok(openRouter);
+		assert.ok(watchdog);
+		assert.match(openRouter.models_csv, /moonshotai\/kimi-k2\.7-code/);
+		assert.match(openRouter.models_csv, /openai\/gpt-4\.1-mini/);
+		assert.match(watchdog.models_csv, /gemma4:31b/);
+		assert.match(watchdog.models_csv, /mistral-large-3:675b/);
+	} finally {
+		destroy();
+	}
+});
+
+test("catalog migration keeps existing model suggestions while appending new candidates", () => {
+	const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-catalog-migration-"));
+	const sdkPath = path.join(tempRoot, "ai-sdk");
+	fs.mkdirSync(sdkPath, { recursive: true });
+	fs.writeFileSync(path.join(sdkPath, "ai_sdk.kujo"), "# test sdk placeholder\n");
+	fs.writeFileSync(path.join(sdkPath, "providers.kujo"), "# test providers placeholder\n");
+	const env = {
+		...process.env,
+		ENCRYPTION_SECRET: "unit-test-secret",
+		API_AUTH_TOKEN: "unit-test-token",
+		AI_SDK_PATH: sdkPath,
+		DB_PATH: path.join(tempRoot, "data", "test.db"),
+		DB_BACKUP_DIR: path.join(tempRoot, "backups"),
+		PORT: "0",
+		KUJO_BIN: "/usr/bin/false"
+	};
+
+	const firstRuntime = createServerRuntime({ env, projectRoot: path.resolve(__dirname, "..") });
+	try {
+		const state = firstRuntime.helpers.readState();
+		const openRouter = state.settings.profiles.find((profile) => profile.provider_id === "openrouter");
+		const watchdog = state.settings.profiles.find((profile) => profile.provider_id === "watchdog");
+		openRouter.models_csv = "custom/openrouter-model";
+		watchdog.models_csv = "qwen3.5:397b-cloud";
+		firstRuntime.helpers.writeState(state);
+	} finally {
+		firstRuntime.close();
+	}
+
+	const upgradedRuntime = createServerRuntime({ env, projectRoot: path.resolve(__dirname, "..") });
+	try {
+		const state = upgradedRuntime.helpers.readState();
+		const openRouter = state.settings.profiles.find((profile) => profile.provider_id === "openrouter");
+		const watchdog = state.settings.profiles.find((profile) => profile.provider_id === "watchdog");
+		assert.match(openRouter.models_csv, /custom\/openrouter-model/);
+		assert.match(openRouter.models_csv, /moonshotai\/kimi-k2\.7-code/);
+		assert.match(watchdog.models_csv, /qwen3\.5:397b-cloud/);
+		assert.match(watchdog.models_csv, /gemma4:31b/);
+	} finally {
+		upgradedRuntime.close();
+		fs.rmSync(tempRoot, { recursive: true, force: true });
+	}
+});
+
 test("normalizeMessages keeps only supported roles and trims role", () => {
 	const { runtime, destroy } = createIsolatedRuntime();
 	try {
