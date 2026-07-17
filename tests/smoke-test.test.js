@@ -24,12 +24,12 @@ function jsonResponse(response, payload) {
 	response.end(JSON.stringify(payload));
 }
 
-async function withSmokeServer(callback) {
+async function withSmokeServer(callback, health = { ok: true, auth_configured: true }) {
 	const server = http.createServer(async (request, response) => {
 		assert.equal(request.headers["x-api-token"], API_TOKEN);
 
 		if (request.url === "/api/health") {
-			jsonResponse(response, { ok: true, auth_configured: true });
+			jsonResponse(response, health);
 			return;
 		}
 
@@ -96,4 +96,45 @@ test("smoke script emits stable compact status output", async () => {
 			""
 		].join("\n"));
 	});
+});
+
+test("browser smoke mode requires an available Playwright Chromium runtime", async () => {
+	await withSmokeServer(async (baseUrl) => {
+		await assert.rejects(
+			execFileAsync(process.execPath, [path.join(PROJECT_ROOT, "scripts", "smoke-test.js")], {
+				cwd: PROJECT_ROOT,
+				env: {
+					...process.env,
+					BROWSER_EXPECTED: "1",
+					SMOKE_BASE_URL: baseUrl,
+					SMOKE_API_TOKEN: API_TOKEN
+				}
+			}),
+			(error) => /available Playwright Chromium browser runtime/.test(String(error.stderr))
+		);
+	});
+});
+
+test("browser smoke mode accepts an advertised Playwright Chromium runtime", async () => {
+	const health = {
+		ok: true,
+		auth_configured: true,
+		tool_runtime: {
+			tools: ["web_search", "browser_open"],
+			browser: { available: true, backend: "playwright-chromium" }
+		}
+	};
+	await withSmokeServer(async (baseUrl) => {
+		const { stdout, stderr } = await execFileAsync(process.execPath, [path.join(PROJECT_ROOT, "scripts", "smoke-test.js")], {
+			cwd: PROJECT_ROOT,
+			env: {
+				...process.env,
+				BROWSER_EXPECTED: "1",
+				SMOKE_BASE_URL: baseUrl,
+				SMOKE_API_TOKEN: API_TOKEN
+			}
+		});
+		assert.equal(stderr, "");
+		assert.match(stdout, /smoke checks passed against/);
+	}, health);
 });

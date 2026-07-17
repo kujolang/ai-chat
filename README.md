@@ -267,6 +267,13 @@ Run smoke tests (server must already be running):
 npm run smoke
 ```
 
+When the server was started with `BROWSER_ENABLED=1`, verify that Playwright
+Chromium is advertised as executable:
+
+```bash
+npm run smoke:browser
+```
+
 Smoke test environment options:
 
 - Uses `API_AUTH_TOKEN` by default for auth, or `SMOKE_API_TOKEN` if set

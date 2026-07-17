@@ -1,4 +1,5 @@
 const API_TOKEN = String(process.env.SMOKE_API_TOKEN || process.env.API_AUTH_TOKEN || "").trim();
+const BROWSER_EXPECTED = String(process.env.BROWSER_EXPECTED || "").trim() === "1";
 const BASE_URL = resolveBaseUrl();
 
 function resolveBaseUrl() {
@@ -62,6 +63,13 @@ function report(step, ...values) {
 		assertOkResponse("health", health);
 		if (!health.json.auth_configured) {
 			throw new Error("Health check returned auth_configured=false.");
+		}
+		if (BROWSER_EXPECTED) {
+			const browser = health.json.tool_runtime && health.json.tool_runtime.browser;
+			const tools = health.json.tool_runtime && health.json.tool_runtime.tools;
+			if (!browser || !browser.available || browser.backend !== "playwright-chromium" || !Array.isArray(tools) || !tools.includes("browser_open")) {
+				throw new Error("Health check did not report an available Playwright Chromium browser runtime.");
+			}
 		}
 		report("health", health.status);
 

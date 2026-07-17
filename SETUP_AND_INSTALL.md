@@ -184,6 +184,13 @@ Run smoke checks after server startup:
 npm run smoke
 ```
 
+For a server started with `BROWSER_ENABLED=1`, verify the Playwright Chromium
+runtime with:
+
+```bash
+npm run smoke:browser
+```
+
 Smoke test notes:
 
 - Requires app token auth; uses `API_AUTH_TOKEN` by default, or `SMOKE_API_TOKEN`
