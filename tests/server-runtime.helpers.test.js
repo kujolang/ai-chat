@@ -375,6 +375,29 @@ test("tool execution errors name requested functions without exposing arguments"
 	}
 });
 
+test("browser_use always advertises the compatibility session contract", () => {
+	const { runtime, destroy } = createIsolatedRuntime({
+		browserRuntime: {
+			canExecute: () => true,
+			status: () => ({ enabled: true, available: true, backend: "playwright-chromium", headless: true, action_policy: "read-only", unavailable_reason: null }),
+			execute: async () => ({}),
+			close: async () => {}
+		}
+	});
+	try {
+		const payload = runtime.helpers.chatRequestPayload({
+			messages: [{ role: "user", content: "hi" }],
+			tools: [{ type: "function", function: { name: "browser_use", parameters: { type: "object", properties: { action: { type: "string" } } } } }]
+		}, {});
+		const parameters = payload.tools[0].function.parameters;
+		assert.ok(parameters.properties.session_id);
+		assert.ok(parameters.properties.url);
+		assert.ok(parameters.properties.action.enum.includes("screenshot"));
+	} finally {
+		destroy();
+	}
+});
+
 test("mergeToolCallChunks joins streamed JSON arguments and formats Ollama tool messages", () => {
 	const { runtime, destroy } = createIsolatedRuntime();
 	try {
@@ -464,6 +487,7 @@ test("writeState persists chat title and settings values", () => {
 		state.settings.temperature = 0.8;
 		state.settings.maxTokens = 1200;
 		state.settings.agentInstructions = "Use concise responses and finish with a durable note.";
+		state.settings.agentInstructionProfiles = [{ id: "coding-models", models_csv: "gpt-4.1", instructions: "Use code-focused instructions." }];
 		state.searchQuery = "abc";
 		runtime.helpers.writeState(state);
 		const after = runtime.helpers.readState();
@@ -471,6 +495,7 @@ test("writeState persists chat title and settings values", () => {
 		assert.equal(after.settings.temperature, 0.8);
 		assert.equal(after.settings.maxTokens, 1200);
 		assert.equal(after.settings.agentInstructions, "Use concise responses and finish with a durable note.");
+		assert.deepEqual(after.settings.agentInstructionProfiles, state.settings.agentInstructionProfiles);
 		assert.equal(after.searchQuery, "abc");
 		state.settings.tools = [{ id: "tool-1", name: "browser_use", enabled: true, parameters_json: "{}" }];
 		state.stateVersion = after.stateVersion;

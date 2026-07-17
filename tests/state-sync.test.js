@@ -13,6 +13,7 @@ function baseState() {
 			temperature: 0.2,
 			maxTokens: 12000,
 			agentInstructions: "Be concise.",
+			agentInstructionProfiles: [],
 			paneProfiles: [],
 			tools: [],
 			profiles: [{
@@ -112,4 +113,18 @@ test("state sync persists agent instructions as app settings", () => {
 
 	assert.deepEqual(changes.map((change) => change.type), ["app_settings_upsert"]);
 	assert.equal(changes[0].settings.agentInstructions, state.settings.agentInstructions);
+});
+
+test("state sync persists model-specific agent instructions", () => {
+	const state = baseState();
+	const before = stateSync.persistenceSnapshot(state);
+	state.settings.agentInstructionProfiles.push({
+		id: "coding-models",
+		models_csv: "gpt-4.1, claude-sonnet-4.6",
+		instructions: "Prioritize concise implementation notes."
+	});
+	const changes = stateSync.buildChanges(before, stateSync.persistenceSnapshot(state));
+
+	assert.deepEqual(changes.map((change) => change.type), ["app_settings_upsert"]);
+	assert.deepEqual(changes[0].settings.agentInstructionProfiles, state.settings.agentInstructionProfiles);
 });

@@ -90,7 +90,7 @@ When `DEBUG_API_ERRORS=0`, provider raw error bodies are not included in stream 
 - `state.broadcastToAllPanes` boolean compatibility field; the UI always persists this as `true` and broadcasts prompts to every pane.
 - `state.settings` object containing `temperature`, `maxTokens`, persistent `agentInstructions`, provider `profiles`, reusable `paneProfiles`, and saved function-tool definitions in `tools`
 
-`agentInstructions` is a bounded (24,000-character) app-wide instruction document. The browser prepends it as the first system message for each pane request, so it applies consistently across providers and models. It is intended to be compatible with concise `AGENTS.md` guidance; it must not contain credentials or other secrets.
+`agentInstructions` is a bounded (24,000-character) app-wide instruction document. `agentInstructionProfiles` is an optional array of bounded `{id, models_csv, instructions}` entries; matching comma-separated model names append their instructions. The browser prepends the combined text as the first system message for each pane request. These fields are intended to be compatible with concise `AGENTS.md` guidance and must not contain credentials or other secrets.
 
 Each pane profile stores a name plus an ordered `panes` array of provider-profile/model selections. It contains no messages or provider credentials. The normal new-chat action remains a single-pane chat; clients may explicitly create a new chat or replace the current chat's panes from a saved pane profile. The browser asks for confirmation before replacing panes that contain messages.
 

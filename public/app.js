@@ -11,6 +11,7 @@ const defaultState = {
 		temperature: 0.2,
 		maxTokens: 12000,
 		agentInstructions: "",
+		agentInstructionProfiles: [],
 		profiles: [],
 		paneProfiles: [],
 		tools: []
@@ -159,6 +160,8 @@ const nodes = {
 	settingsMaxTokens: document.getElementById("settings-max-tokens"),
 	settingsAgentInstructions: document.getElementById("settings-agent-instructions"),
 	insertStrataInstructionsBtn: document.getElementById("insert-strata-instructions-btn"),
+	addModelInstructionBtn: document.getElementById("add-model-instruction-btn"),
+	modelInstructionList: document.getElementById("model-instruction-list"),
 	settingsApiToken: document.getElementById("settings-api-token"),
 	settingsApiTokenStatus: document.getElementById("settings-api-token-status"),
 	settingsSaveIndicator: document.getElementById("settings-save-indicator"),
@@ -291,6 +294,11 @@ function migrateState(candidate) {
 			}
 			if (typeof candidate.settings.agentInstructions === "string") {
 				merged.settings.agentInstructions = candidate.settings.agentInstructions.slice(0, 24000);
+			}
+			if (Array.isArray(candidate.settings.agentInstructionProfiles)) {
+				merged.settings.agentInstructionProfiles = candidate.settings.agentInstructionProfiles
+					.map((profile) => normalizeAgentInstructionProfile(profile))
+					.filter(Boolean);
 			}
 			if (Array.isArray(candidate.settings.profiles)) {
 				merged.settings.profiles = candidate.settings.profiles.map((profile) => ({
@@ -665,6 +673,29 @@ function wireEvents() {
 		schedulePersist();
 	});
 
+	nodes.addModelInstructionBtn.addEventListener("click", () => {
+		state.settings.agentInstructionProfiles.push(createAgentInstructionProfile());
+		renderModelInstructionProfiles();
+		schedulePersist();
+	});
+
+	nodes.modelInstructionList.addEventListener("input", (event) => {
+		const profile = getAgentInstructionProfile(event.target.getAttribute("data-agent-instruction-id"));
+		const field = String(event.target.getAttribute("data-agent-instruction-field") || "");
+		if (!profile || !["models_csv", "instructions"].includes(field)) return;
+		profile[field] = String(event.target.value || "").slice(0, field === "models_csv" ? 2000 : 24000);
+		schedulePersist();
+	});
+
+	nodes.modelInstructionList.addEventListener("click", (event) => {
+		const removeButton = event.target.closest("[data-agent-instruction-action='delete']");
+		if (!removeButton) return;
+		const id = String(removeButton.getAttribute("data-agent-instruction-id") || "");
+		state.settings.agentInstructionProfiles = state.settings.agentInstructionProfiles.filter((profile) => profile.id !== id);
+		renderModelInstructionProfiles();
+		schedulePersist();
+	});
+
 	nodes.settingsModal.addEventListener("click", (event) => {
 		const tab = event.target.closest("[data-settings-tab]");
 		if (tab) setSettingsTab(String(tab.getAttribute("data-settings-tab") || "general"));
@@ -1006,6 +1037,15 @@ function wireEvents() {
 	nodes.toolsList.addEventListener("input", onToolFieldChange);
 	nodes.toolsList.addEventListener("change", onToolFieldChange);
 	nodes.toolsList.addEventListener("click", (event) => {
+		const toggleButton = event.target.closest("[data-tool-action='toggle-parameters']");
+		if (toggleButton) {
+			const card = toggleButton.closest(".tool-card");
+			if (!card) return;
+			const expanded = card.classList.toggle("parameters-expanded");
+			toggleButton.setAttribute("aria-expanded", expanded ? "true" : "false");
+			toggleButton.setAttribute("title", expanded ? "Hide parameters JSON" : "Show parameters JSON");
+			return;
+		}
 		const actionNode = event.target.closest("[data-tool-action]");
 		const action = actionNode ? actionNode.getAttribute("data-tool-action") : "";
 		if (action !== "delete") {
@@ -3084,6 +3124,7 @@ function renderSettings() {
 	nodes.settingsTemperature.value = String(state.settings.temperature);
 	nodes.settingsMaxTokens.value = String(state.settings.maxTokens);
 	nodes.settingsAgentInstructions.value = String(state.settings.agentInstructions || "");
+	renderModelInstructionProfiles();
 	const tokenConfigured = hasValidApiAuthToken();
 	nodes.settingsApiToken.value = "";
 	nodes.settingsApiTokenStatus.value = tokenConfigured ? "Configured" : "Not configured";
@@ -3147,6 +3188,43 @@ function renderSettings() {
 	renderToolsSettings();
 }
 
+function normalizeAgentInstructionProfile(profile) {
+	if (!profile || typeof profile !== "object") return null;
+	const modelsCsv = String(profile.models_csv || "").slice(0, 2000);
+	const instructions = String(profile.instructions || "").slice(0, 24000);
+	if (!modelsCsv && !instructions) return null;
+	return { id: String(profile.id || uid()), models_csv: modelsCsv, instructions };
+}
+
+function createAgentInstructionProfile() {
+	return { id: uid(), models_csv: "", instructions: "" };
+}
+
+function getAgentInstructionProfile(id) {
+	return state.settings.agentInstructionProfiles.find((profile) => profile.id === String(id || "")) || null;
+}
+
+function renderModelInstructionProfiles() {
+	if (!nodes.modelInstructionList) return;
+	const profiles = Array.isArray(state.settings.agentInstructionProfiles) ? state.settings.agentInstructionProfiles : [];
+	nodes.modelInstructionList.innerHTML = profiles.map((profile) => `
+		<div class="model-instruction-card">
+			<div class="settings-row-head">
+				<strong>Model-specific instructions</strong>
+				<button class="btn ghost danger" type="button" data-agent-instruction-action="delete" data-agent-instruction-id="${escapeHtml(profile.id)}">Remove</button>
+			</div>
+			<label>
+				<span>Models (comma separated)</span>
+				<input data-agent-instruction-id="${escapeHtml(profile.id)}" data-agent-instruction-field="models_csv" type="text" value="${escapeHtml(profile.models_csv)}" placeholder="gpt-4.1, claude-sonnet-4.6">
+			</label>
+			<label>
+				<span>Instructions for these models</span>
+				<textarea data-agent-instruction-id="${escapeHtml(profile.id)}" data-agent-instruction-field="instructions" rows="7" maxlength="24000" spellcheck="false" placeholder="Give these models their role-specific workflow.">${escapeHtml(profile.instructions)}</textarea>
+			</label>
+		</div>
+	`).join("") || '<p class="settings-note model-instruction-empty">No model-specific overrides. The chat-wide instructions apply to every model.</p>';
+}
+
 function setSettingsTab(tabName) {
 	const selected = ["general", "instructions", "providers", "tools"].includes(tabName) ? tabName : "general";
 	for (const tab of nodes.settingsModal.querySelectorAll("[data-settings-tab]")) {
@@ -3195,11 +3273,14 @@ function renderToolsSettings() {
 						<span>Description</span>
 						<input data-tool-id="${escapeHtml(tool.id)}" data-tool-field="description" type="text" value="${escapeHtml(tool.description)}">
 					</label>
-					<label class="tool-field-wide">
-						<span>Parameters JSON</span>
+					<div class="tool-field-wide tool-parameters-field">
+						<button class="tool-parameters-toggle" type="button" data-tool-action="toggle-parameters" data-tool-id="${escapeHtml(tool.id)}" aria-expanded="false" title="Show parameters JSON">
+							<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+							<span>Parameters JSON</span>
+							<small class="tool-schema-status ${schema ? "valid" : "invalid"}">${schemaStatus}</small>
+						</button>
 						<textarea data-tool-id="${escapeHtml(tool.id)}" data-tool-field="parameters_json" rows="7" spellcheck="false">${escapeHtml(tool.parameters_json)}</textarea>
-						<small class="tool-schema-status ${schema ? "valid" : "invalid"}">${schemaStatus}</small>
-					</label>
+					</div>
 				</div>
 				<div class="profile-actions">
 					<button class="btn ghost danger" data-tool-action="delete" data-tool-id="${escapeHtml(tool.id)}">Remove Tool</button>
@@ -3375,7 +3456,7 @@ async function sendMessageToPaneStream(chat, pane, text) {
 				.filter((message) => message.id !== assistantMessage.id)
 				.filter((message) => message.role === "system" || message.role === "user" || message.role === "assistant")
 				.map((message) => ({ role: message.role, content: message.content }));
-			const agentInstructions = String(state.settings.agentInstructions || "").trim();
+			const agentInstructions = agentInstructionsForModel(selectedModel);
 			if (agentInstructions) {
 				chatHistory.unshift({ role: "system", content: agentInstructions });
 			}
@@ -3827,6 +3908,21 @@ async function sendMessageToPaneStream(chat, pane, text) {
 		stopStreamingRequested = false;
 	}
 	updateStreamingControls();
+}
+
+function agentInstructionsForModel(model) {
+	const instructions = [String(state.settings.agentInstructions || "").trim()];
+	const normalizedModel = String(model || "").trim().toLowerCase();
+	for (const profile of state.settings.agentInstructionProfiles || []) {
+		const matchesModel = String(profile.models_csv || "").split(",")
+			.map((entry) => entry.trim().toLowerCase())
+			.filter(Boolean)
+			.some((entry) => entry === normalizedModel);
+		if (matchesModel && String(profile.instructions || "").trim()) {
+			instructions.push(String(profile.instructions).trim());
+		}
+	}
+	return instructions.filter(Boolean).join("\n\n");
 }
 
 function isAbortLikeError(error) {

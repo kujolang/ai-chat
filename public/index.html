@@ -197,14 +197,18 @@
 			<section class="settings-section settings-tab-panel hidden" data-settings-panel="instructions" role="tabpanel">
 				<div class="settings-row-head">
 					<h3>Agent Instructions</h3>
-					<button id="insert-strata-instructions-btn" class="btn ghost" type="button">Insert Strata Note Template</button>
+					<div class="settings-tool-actions">
+						<button id="insert-strata-instructions-btn" class="btn ghost" type="button">Insert Strata Note Template</button>
+						<button id="add-model-instruction-btn" class="btn ghost" type="button">Add Model Instructions</button>
+					</div>
 				</div>
 				<p class="settings-note">These instructions are added as the first system message for every model and pane. Use this for response style, required end-of-chat steps, and your local workflow.</p>
 				<label class="agent-instructions-field">
 					<span>Custom instructions (AGENTS.md-compatible Markdown)</span>
 					<textarea id="settings-agent-instructions" rows="18" maxlength="24000" spellcheck="false" placeholder="Example: Be concise. At the end of a completed task, create a concise Strata note through the configured local tool."></textarea>
 				</label>
-				<p class="settings-note">Tip: keep a copy in an <code>AGENTS.md</code> file for coding agents. This editor is the chat-wide source of truth and stays active until you change it.</p>
+				<p class="settings-note">Tip: keep a copy in an <code>AGENTS.md</code> file for coding agents. This editor is the chat-wide default; matching model instructions are appended below it.</p>
+				<div id="model-instruction-list" class="model-instruction-list"></div>
 			</section>
 
 			<section class="settings-section settings-section-profiles settings-tab-panel hidden" data-settings-panel="providers" role="tabpanel">

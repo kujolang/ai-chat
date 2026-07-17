@@ -187,6 +187,9 @@ test("browser_use compatibility routing and result-size limits remain bounded", 
 			assert.ok(extracted.text.length <= 1000);
 			assert.ok(Buffer.byteLength(JSON.stringify(extracted)) <= 4096);
 			assert.match(extracted.text, /bounded-text/);
+			const screenshot = await runtime.execute("browser_use", { action: "screenshot", url }, { scopeId: "chat-b", requestState: {} });
+			assert.equal(screenshot.media_type, "image/png");
+			assert.ok(screenshot.session_id);
 		} finally {
 			await destroy();
 		}
