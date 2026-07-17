@@ -174,6 +174,25 @@ test("read-only policy permits safe link clicks but requires approval for typing
 	});
 });
 
+test("browser navigation remains usable when a page emits blocked background writes", async () => {
+	await withFixture((req, res) => {
+		if (req.method === "POST") {
+			res.end("telemetry");
+			return;
+		}
+		res.setHeader("content-type", "text/html; charset=utf-8");
+		res.end("<!doctype html><title>Read-only page</title><p>Visible page</p><script>fetch('/telemetry', { method: 'POST', body: 'ignored' }).catch(() => {});</script>");
+	}, async ({ url }) => {
+		const { runtime, destroy } = createRuntime();
+		try {
+			const result = await runtime.execute("browser_use", { action: "screenshot", url }, { scopeId: "chat-a", requestState: {} });
+			assert.equal(result.media_type, "image/png");
+		} finally {
+			await destroy();
+		}
+	});
+});
+
 test("browser_use compatibility routing and result-size limits remain bounded", async () => {
 	await withFixture((req, res) => {
 		res.setHeader("content-type", "text/html; charset=utf-8");
