@@ -3117,6 +3117,8 @@ async function sendMessageToPaneStream(chat, pane, text) {
 	assistantMessage.usage = null;
 	assistantMessage.streaming = true;
 	assistantMessage.request_started_at = Date.now();
+	assistantMessage.thinking_started_at = 0;
+	assistantMessage.thinking_duration_ms = 0;
 	assistantMessage.response_time_ms = 0;
 	assistantMessage.continuation_passes = 0;
 	assistantMessage.trace_id = assistantMessage.id;
@@ -3137,6 +3139,11 @@ async function sendMessageToPaneStream(chat, pane, text) {
 		cache_details_reported: false
 	};
 	let currentStreamController = null;
+	const completeThinkingTiming = () => {
+		if (Number(assistantMessage.thinking_started_at) > 0 && Number(assistantMessage.thinking_duration_ms) <= 0) {
+			assistantMessage.thinking_duration_ms = Math.max(0, Date.now() - Number(assistantMessage.thinking_started_at));
+		}
+	};
 	activeStreamCount += 1;
 	updateStreamingControls();
 
@@ -3243,6 +3250,7 @@ async function sendMessageToPaneStream(chat, pane, text) {
 				}
 
 				if (eventName === "token") {
+					completeThinkingTiming();
 					passOutputText = `${passOutputText}${payloadObj.delta || ""}`;
 					const continuationText = continuationPass > 0
 						? sanitizeContinuationChunk(passOutputText)
@@ -3255,6 +3263,9 @@ async function sendMessageToPaneStream(chat, pane, text) {
 
 				if (eventName === "thinking") {
 					if (payloadObj.delta) {
+						if (!Number(assistantMessage.thinking_started_at)) {
+							assistantMessage.thinking_started_at = Date.now();
+						}
 						assistantMessage.thinking = `${assistantMessage.thinking || ""}${payloadObj.delta || ""}`;
 						scheduleStreamingMessagePatch(chat.id, pane.id, assistantMessage.id);
 					}
@@ -3470,6 +3481,7 @@ async function sendMessageToPaneStream(chat, pane, text) {
 		if (!String(assistantMessage.content || "").trim()) {
 			throw new Error("The model returned reasoning without a final answer after recovery attempts. Please retry the request.");
 		}
+		completeThinkingTiming();
 
 		if (totalUsage.total_tokens > 0) {
 			assistantMessage.usage = totalUsage;
@@ -3537,10 +3549,12 @@ async function sendMessageToPaneStream(chat, pane, text) {
 	} catch (error) {
 		const intentionallyStopped = stopStreamingRequested && isAbortLikeError(error);
 		if (intentionallyStopped) {
+			completeThinkingTiming();
 			assistantMessage.response_time_ms = Math.max(0, Date.now() - Number(assistantMessage.request_started_at || Date.now()));
 			assistantMessage.streaming = false;
 			pane.status = assistantMessage.content || assistantMessage.thinking ? "partial" : "idle";
 		} else {
+		completeThinkingTiming();
 		assistantMessage.response_time_ms = Math.max(0, Date.now() - Number(assistantMessage.request_started_at || Date.now()));
 		if (!assistantMessage.usage) {
 			const estimatedTokens = estimateTokensFromText(assistantMessage.content);
@@ -3593,6 +3607,7 @@ async function sendMessageToPaneStream(chat, pane, text) {
 	}
 
 	chat.updatedAt = Date.now();
+	completeThinkingTiming();
 	schedulePersist();
 	renderWorkspace();
 	if (currentStreamController) {
@@ -5168,9 +5183,14 @@ function renderThinkingBlock(message, paneId) {
 	const contentClass = expanded ? "message-thinking-content" : "message-thinking-content collapsed";
 	const toggle = `<button class="thinking-toggle" type="button" data-action="toggle-thinking" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}" aria-expanded="${expanded ? "true" : "false"}" aria-label="${expanded ? "Collapse thinking" : "Expand thinking"}">${thinkingToggleIconSvg(expanded)}</button>`;
 	const loadingIcon = message.streaming ? thinkingLoadingIconSvg : "";
+	const thinkingLabel = message.streaming
+		? "Thinking"
+		: Number(message.thinking_duration_ms) > 0
+			? `Thought for ${formatThinkingDurationMs(message.thinking_duration_ms)}`
+			: "Thought";
 
 	const renderedThinking = renderAssistantMarkdown(thinkingText);
-	return `<div class="message-thinking" role="status" aria-live="polite"><div class="message-thinking-head"><div class="thinking-label">Thinking${loadingIcon}</div>${toggle}</div><div class="${contentClass} message-thinking-markdown"><div class="message-content-block">${renderedThinking}</div></div></div>`;
+	return `<div class="message-thinking" role="status" aria-live="polite"><div class="message-thinking-head"><div class="thinking-label">${thinkingLabel}${loadingIcon}</div>${toggle}</div><div class="${contentClass} message-thinking-markdown"><div class="message-content-block">${renderedThinking}</div></div></div>`;
 }
 
 function thinkingToggleIconSvg(expanded) {
@@ -5505,6 +5525,18 @@ function formatDurationMs(value) {
 
 	const seconds = numeric / 1000;
 	return `${seconds >= 10 ? seconds.toFixed(0) : seconds.toFixed(1)}s`;
+}
+
+function formatThinkingDurationMs(value) {
+	const numeric = Number(value);
+	if (!Number.isFinite(numeric) || numeric <= 0) {
+		return "0s";
+	}
+
+	const totalSeconds = Math.max(1, Math.round(numeric / 1000));
+	const minutes = Math.floor(totalSeconds / 60);
+	const seconds = totalSeconds % 60;
+	return minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
 }
 
 function formatMessageTime(value) {
