@@ -142,6 +142,42 @@ Security note:
 - Live provider and transcription requests are optional and require the configured provider/API-key path.
 - The dedicated Watchdog provider accepts only the configured loopback URL. Its proxy token is read from `WATCHDOG_PROXY_TOKEN_FILE`; it does not copy the upstream Ollama key into AI Chat or its SQLite database.
 - OpenRouter through Watchdog uses a second Watchdog instance because each proxy instance has one upstream provider. Configure its loopback URL and proxy-token file with `WATCHDOG_OPENROUTER_PROXY_URL` and `WATCHDOG_OPENROUTER_PROXY_TOKEN_FILE`; the OpenRouter key remains server-side in that Watchdog instance.
+
+To create the two local credential files without putting the OpenRouter key in AI Chat's SQLite database or `.env`, run:
+
+```bash
+AI_CHAT_SECRETS_DIR="${HOME}/.config/ai-chat"
+install -d -m 700 "$AI_CHAT_SECRETS_DIR"
+read -rsp "OpenRouter API key: " OPENROUTER_API_KEY; printf '\n'
+printf '%s\n' "$OPENROUTER_API_KEY" > "$AI_CHAT_SECRETS_DIR/openrouter-api-key"
+unset OPENROUTER_API_KEY
+openssl rand -hex 32 > "$AI_CHAT_SECRETS_DIR/watchdog-openrouter-proxy-token"
+chmod 600 "$AI_CHAT_SECRETS_DIR/openrouter-api-key" "$AI_CHAT_SECRETS_DIR/watchdog-openrouter-proxy-token"
+```
+
+Start a second loopback Watchdog instance for OpenRouter (the existing instance stays configured for Ollama Cloud):
+
+```bash
+WATCHDOG_ROOT=/Users/robertdevore/2026/Kujolang/kujo-repos/watchdog
+AI_CHAT_SECRETS_DIR="${HOME}/.config/ai-chat"
+KUJO_BIN="${KUJO_BIN:-kujo}"
+OPENROUTER_API_KEY="$(<"$AI_CHAT_SECRETS_DIR/openrouter-api-key")" \
+WDG_PORT=7701 \
+WDG_DB_PATH="$WATCHDOG_ROOT/data/watchdog-openrouter.db" \
+WDG_UPSTREAM_BASE_URL=https://openrouter.ai/api/v1 \
+WDG_PROXY_AUTH_MODE=override \
+WDG_UPSTREAM_API_KEY_ENV=OPENROUTER_API_KEY \
+WDG_PROXY_AUTHZ_MODE=token \
+WDG_PROXY_AUTHZ_TOKEN="$(<"$AI_CHAT_SECRETS_DIR/watchdog-openrouter-proxy-token")" \
+"$KUJO_BIN" run --interpreter "$WATCHDOG_ROOT/dashboard_server.kujo"
+```
+
+Then point AI Chat at that managed proxy and restart AI Chat:
+
+```bash
+echo 'WATCHDOG_OPENROUTER_PROXY_URL=http://127.0.0.1:7701/proxy/v1' >> .env
+echo "WATCHDOG_OPENROUTER_PROXY_TOKEN_FILE=${HOME}/.config/ai-chat/watchdog-openrouter-proxy-token" >> .env
+```
 - With `WATCHDOG_DIRECT_STREAMING=1`, a Watchdog pane automatically uses a matching, API-key-backed custom Ollama profile for the live provider connection and sends completion telemetry to Watchdog asynchronously. This avoids Watchdog's buffered proxy path while preserving observability. If no matching direct profile exists, the managed proxy remains the fallback.
 - When Watchdog protects `/api/*` with token auth, `WATCHDOG_API_TOKEN_FILE` must point to a readable file containing `WDG_API_AUTH_TOKEN`. This is separate from the proxy authorization token. Rejected or unreachable asynchronous telemetry is logged as a sanitized warning without failing the chat stream.
 - AI Chat emits provider-neutral trace spans/events for provider rounds, connection and first-token timing, thinking, tool execution, errors, throughput, and committed message persistence. `WATCHDOG_TELEMETRY_CONTENT_MODE` defaults to `off`; `summary` keeps bounded structural summaries, while `full` explicitly opts into bounded raw content and should be used only with an appropriate local privacy policy.
