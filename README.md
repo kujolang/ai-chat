@@ -55,7 +55,7 @@ Use the app as a clear boundary for chat workflows, not as a promise of correctn
 
 ## Requirements
 
-- Node.js 18+
+- Node.js 22.17.0 (use `nvm use`; this repo includes `.nvmrc`)
 - npm 9+
 - Kujo binary available locally
 - AI SDK directory available locally (for example: `/path/to/ai-sdk/src`)
@@ -147,6 +147,7 @@ Security note:
 1. Install dependencies
 
 ```bash
+nvm use
 npm install
 npx playwright install chromium
 ```
@@ -158,6 +159,10 @@ the Node.js version you will use to run the app:
 ```bash
 npm run rebuild:native
 ```
+
+`npm run dev` and `npm start` also check `better-sqlite3` before booting and rebuild
+it automatically when the installed native binary was compiled for a different
+Node.js runtime.
 
 2. Start the app
 

@@ -4,7 +4,7 @@ This guide is a dedicated, end-user focused setup reference for running AI Chat 
 
 ## 1. Prerequisites
 
-- Node.js 18+
+- Node.js 22.17.0 through `nvm use` from this repository
 - npm 9+
 - Kujo binary built and available on your machine
 - Playwright Chromium installed locally for browser tools
@@ -80,6 +80,7 @@ Important security behavior:
 From the project root:
 
 ```bash
+nvm use
 npm install
 npx playwright install chromium
 ```
@@ -92,6 +93,9 @@ is active:
 ```bash
 npm run rebuild:native
 ```
+
+The normal startup commands run the same compatibility check first and automatically
+rebuild `better-sqlite3` when the installed binary targets a different Node.js ABI.
 
 ## 4. Start the Application
 
