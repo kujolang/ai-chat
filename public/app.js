@@ -11,6 +11,7 @@ const defaultState = {
 		temperature: 0.2,
 		maxTokens: 12000,
 		profiles: [],
+		paneProfiles: [],
 		tools: []
 	}
 };
@@ -89,6 +90,7 @@ const nodes = {
 	chatList: document.getElementById("chat-list"),
 	chatTitleInput: document.getElementById("chat-title-input"),
 	addPaneBtn: document.getElementById("add-pane-btn"),
+	openPaneProfilesBtn: document.getElementById("open-pane-profiles-btn"),
 	paneControls: document.getElementById("pane-controls"),
 	togglePaneInfoBtn: document.getElementById("toggle-pane-info-btn"),
 	toggleSidebarBtn: document.getElementById("toggle-sidebar-btn"),
@@ -106,6 +108,12 @@ const nodes = {
 	whisperBtn: document.getElementById("whisper-btn"),
 	voiceStatus: document.getElementById("voice-status"),
 	settingsModal: document.getElementById("settings-modal"),
+	paneProfilesModal: document.getElementById("pane-profiles-modal"),
+	closePaneProfilesBtn: document.getElementById("close-pane-profiles-btn"),
+	paneProfileNameInput: document.getElementById("pane-profile-name-input"),
+	savePaneProfileBtn: document.getElementById("save-pane-profile-btn"),
+	paneProfileError: document.getElementById("pane-profile-error"),
+	paneProfileList: document.getElementById("pane-profile-list"),
 	closeSettingsBtn: document.getElementById("close-settings-btn"),
 	searchModal: document.getElementById("search-modal"),
 	closeSearchBtn: document.getElementById("close-search-btn"),
@@ -200,6 +208,9 @@ function ensureMinimumState() {
 	if (!Array.isArray(state.settings.profiles)) {
 		state.settings.profiles = [];
 	}
+	if (!Array.isArray(state.settings.paneProfiles)) {
+		state.settings.paneProfiles = [];
+	}
 
 	if (state.chats.length === 0) {
 		const created = createChat("New Chat");
@@ -281,6 +292,11 @@ function migrateState(candidate) {
 					api_key_dirty: false
 				}));
 			}
+			if (Array.isArray(candidate.settings.paneProfiles)) {
+				merged.settings.paneProfiles = candidate.settings.paneProfiles
+					.map((paneProfile) => normalizePaneProfile(paneProfile))
+					.filter(Boolean);
+			}
 			if (Array.isArray(candidate.settings.tools)) {
 				merged.settings.tools = candidate.settings.tools.map((tool) => normalizeToolDefinition(tool)).filter(Boolean);
 			}
@@ -309,6 +325,25 @@ function normalizeIncomingChat(chat) {
 	};
 }
 
+function normalizePaneProfile(paneProfile) {
+	if (!paneProfile || typeof paneProfile !== "object") return null;
+	const name = String(paneProfile.name || "").trim().slice(0, 120);
+	const panes = Array.isArray(paneProfile.panes)
+		? paneProfile.panes.slice(0, 12).map((pane) => ({
+			profile_id: String((pane && pane.profile_id) || ""),
+			model: String((pane && pane.model) || "").slice(0, 500)
+		})).filter((pane) => pane.profile_id)
+		: [];
+	if (!name || panes.length === 0) return null;
+	return {
+		id: String(paneProfile.id || uid()),
+		name,
+		panes,
+		createdAt: Number(paneProfile.createdAt || Date.now()),
+		updatedAt: Number(paneProfile.updatedAt || Date.now())
+	};
+}
+
 function wireEvents() {
 	nodes.newChatBtn.addEventListener("click", () => {
 		createAndActivateChat();
@@ -332,6 +367,21 @@ function wireEvents() {
 	nodes.openPluginsBtn.addEventListener("click", openPluginsModal);
 	nodes.closePluginsBtn.addEventListener("click", closePluginsModal);
 	nodes.openAutomationsBtn.addEventListener("click", openAutomationsModal);
+	nodes.openPaneProfilesBtn.addEventListener("click", openPaneProfilesModal);
+	nodes.closePaneProfilesBtn.addEventListener("click", closePaneProfilesModal);
+	nodes.paneProfilesModal.addEventListener("click", (event) => {
+		if (event.target.getAttribute("data-close-pane-profiles") === "true") {
+			closePaneProfilesModal();
+		}
+	});
+	nodes.savePaneProfileBtn.addEventListener("click", saveCurrentPaneProfile);
+	nodes.paneProfileNameInput.addEventListener("keydown", (event) => {
+		if (event.key === "Enter") {
+			event.preventDefault();
+			saveCurrentPaneProfile();
+		}
+	});
+	nodes.paneProfileList.addEventListener("click", handlePaneProfileAction);
 	nodes.closeAutomationsBtn.addEventListener("click", closeAutomationsModal);
 
 	nodes.searchModal.addEventListener("click", (event) => {
@@ -899,6 +949,14 @@ function wireEvents() {
 				}
 			}
 		}
+		for (const paneProfile of state.settings.paneProfiles) {
+			for (const pane of paneProfile.panes) {
+				if (pane.profile_id === profileId) {
+					pane.profile_id = fallback.id;
+					pane.model = firstModelFromProfile(fallback);
+				}
+			}
+		}
 
 		schedulePersist();
 		renderSettings();
@@ -959,6 +1017,106 @@ function createAndActivateChat() {
 	schedulePersist();
 	renderAll();
 	focusComposerInput();
+}
+
+function openPaneProfilesModal() {
+	nodes.paneProfileNameInput.value = "";
+	nodes.paneProfileError.textContent = "";
+	renderPaneProfiles();
+	nodes.paneProfilesModal.classList.remove("hidden");
+	window.requestAnimationFrame(() => nodes.paneProfileNameInput.focus());
+}
+
+function closePaneProfilesModal() {
+	nodes.paneProfilesModal.classList.add("hidden");
+}
+
+function saveCurrentPaneProfile() {
+	const chat = getActiveChat();
+	const name = String(nodes.paneProfileNameInput.value || "").trim();
+	if (!chat || !Array.isArray(chat.panes) || chat.panes.length === 0) {
+		nodes.paneProfileError.textContent = "The active chat has no panes to save.";
+		return;
+	}
+	if (!name) {
+		nodes.paneProfileError.textContent = "Enter a pane profile name.";
+		return;
+	}
+	if (state.settings.paneProfiles.some((profile) => profile.name.toLowerCase() === name.toLowerCase())) {
+		nodes.paneProfileError.textContent = "A pane profile with that name already exists.";
+		return;
+	}
+
+	state.settings.paneProfiles.push({
+		id: uid(),
+		name: name.slice(0, 120),
+		panes: chat.panes.map((pane) => ({
+			profile_id: String(pane.profile_id || ""),
+			model: String(pane.model || "")
+		})),
+		createdAt: Date.now(),
+		updatedAt: Date.now()
+	});
+	nodes.paneProfileNameInput.value = "";
+	nodes.paneProfileError.textContent = "";
+	schedulePersist();
+	renderPaneProfiles();
+}
+
+function handlePaneProfileAction(event) {
+	const actionNode = event.target.closest("[data-pane-profile-action][data-pane-profile-id]");
+	if (!actionNode) return;
+	const paneProfile = state.settings.paneProfiles.find((profile) => profile.id === actionNode.getAttribute("data-pane-profile-id"));
+	if (!paneProfile) return;
+	const action = actionNode.getAttribute("data-pane-profile-action");
+	if (action === "new-chat") {
+		const chat = createChatFromPaneProfile(paneProfile);
+		state.chats.push(chat);
+		state.activeChatId = chat.id;
+		schedulePersist();
+		closePaneProfilesModal();
+		renderAll();
+		focusComposerInput();
+		return;
+	}
+	if (action === "apply") {
+		const chat = getActiveChat();
+		if (!chat) return;
+		const hasMessages = chat.panes.some((pane) => Array.isArray(pane.messages) && pane.messages.length > 0);
+		if (hasMessages && !window.confirm("Replace the current panes and their messages with this pane profile?")) return;
+		chat.panes = panesFromPaneProfile(paneProfile);
+		chat.updatedAt = Date.now();
+		schedulePersist();
+		closePaneProfilesModal();
+		renderAll();
+		return;
+	}
+	if (action === "delete" && window.confirm(`Delete pane profile “${paneProfile.name}”?`)) {
+		state.settings.paneProfiles = state.settings.paneProfiles.filter((profile) => profile.id !== paneProfile.id);
+		schedulePersist();
+		renderPaneProfiles();
+	}
+}
+
+function renderPaneProfiles() {
+	const paneProfiles = Array.isArray(state.settings.paneProfiles) ? state.settings.paneProfiles : [];
+	nodes.paneProfileList.innerHTML = paneProfiles.map((paneProfile) => {
+		const summary = paneProfile.panes.map((pane) => {
+			const profile = getProfileById(pane.profile_id);
+			return profile ? `${profile.name} · ${pane.model || firstModelFromProfile(profile)}` : "Missing provider profile";
+		}).join(" | ");
+		return `<div class="pane-profile-card">
+			<div class="pane-profile-card-main">
+				<div class="pane-profile-card-name">${escapeHtml(paneProfile.name)}</div>
+				<div class="pane-profile-card-summary" title="${escapeHtml(summary)}">${escapeHtml(`${paneProfile.panes.length} panes · ${summary}`)}</div>
+			</div>
+			<div class="pane-profile-card-actions">
+				<button class="btn" data-pane-profile-action="new-chat" data-pane-profile-id="${escapeHtml(paneProfile.id)}">New Chat</button>
+				<button class="btn ghost" data-pane-profile-action="apply" data-pane-profile-id="${escapeHtml(paneProfile.id)}">Apply Here</button>
+				<button class="btn ghost danger" data-pane-profile-action="delete" data-pane-profile-id="${escapeHtml(paneProfile.id)}">Delete</button>
+			</div>
+		</div>`;
+	}).join("") || `<div class="empty-state">No pane profiles saved yet. Arrange the active chat's panes, name the layout, and save it here.</div>`;
 }
 
 function focusComposerInput() {
@@ -4262,6 +4420,23 @@ function createChat(title) {
 		updatedAt: Date.now(),
 		panes: [createPane(firstProfile.id)]
 	};
+}
+
+function createChatFromPaneProfile(paneProfile) {
+	const chat = createChat("New Chat");
+	chat.panes = panesFromPaneProfile(paneProfile);
+	return chat;
+}
+
+function panesFromPaneProfile(paneProfile) {
+	const fallback = state.settings.profiles[0] || createDefaultProfile();
+	if (state.settings.profiles.length === 0) state.settings.profiles.push(fallback);
+	return paneProfile.panes.map((savedPane) => {
+		const profile = getProfileById(savedPane.profile_id) || fallback;
+		const pane = createPane(profile.id);
+		pane.model = modelForProfileSelection(profile, savedPane.model);
+		return pane;
+	});
 }
 
 function createPane(profileId) {

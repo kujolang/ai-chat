@@ -470,7 +470,57 @@ test("GET /api/state returns seeded state", async () => {
 			assert.equal(response.status, 200);
 			assert.equal(json.ok, true);
 			assert.equal(Array.isArray(json.state.chats), true);
+			assert.deepEqual(json.state.settings.paneProfiles, []);
 			assert.equal(Object.prototype.hasOwnProperty.call(json.state.settings.profiles[0], "api_key"), false);
+		});
+	} finally {
+		destroy();
+	}
+});
+
+test("POST /api/state/changes persists reusable pane profiles", async () => {
+	const { runtime, destroy } = createIsolatedRuntime();
+	try {
+		const seeded = runtime.helpers.readState();
+		const providerProfileId = seeded.settings.profiles[0].id;
+		await withServer(runtime.app, async (baseUrl) => {
+			const settings = {
+				temperature: seeded.settings.temperature,
+				maxTokens: seeded.settings.maxTokens,
+				activeChatId: seeded.activeChatId,
+				projectFolders: seeded.projectFolders,
+				tools: seeded.settings.tools,
+				paneProfiles: [{
+					id: "content-benchmark",
+					name: "Content Benchmark",
+					panes: [
+						{ profile_id: providerProfileId, model: "gpt-4.1" },
+						{ profile_id: providerProfileId, model: "gpt-4.1-mini" }
+					]
+				}],
+				showArchived: false,
+				searchQuery: ""
+			};
+			const result = await fetchJson(baseUrl, "/api/state/changes", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ changes: [{ type: "app_settings_upsert", settings }] })
+			});
+			assert.equal(result.response.status, 200);
+
+			const getResult = await fetchJson(baseUrl, "/api/state");
+			assert.deepEqual(getResult.json.state.settings.paneProfiles, settings.paneProfiles);
+
+			const legacySnapshot = getResult.json.state;
+			delete legacySnapshot.settings.paneProfiles;
+			const putResult = await fetchJson(baseUrl, "/api/state", {
+				method: "PUT",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(legacySnapshot)
+			});
+			assert.equal(putResult.response.status, 200);
+			const afterLegacyPut = await fetchJson(baseUrl, "/api/state");
+			assert.deepEqual(afterLegacyPut.json.state.settings.paneProfiles, settings.paneProfiles);
 		});
 	} finally {
 		destroy();

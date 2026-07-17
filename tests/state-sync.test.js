@@ -12,6 +12,7 @@ function baseState() {
 		settings: {
 			temperature: 0.2,
 			maxTokens: 12000,
+			paneProfiles: [],
 			tools: [],
 			profiles: [{
 				id: "profile-1",
@@ -85,4 +86,19 @@ test("state sync batches a large history independently of total history size", (
 	assert.equal(batches.length > 8, true);
 	assert.equal(batches.flat().length, changes.length);
 	assert.equal(batches.every((batch) => batch.length === 1 || stateSync.jsonByteLength({ changes: batch }) <= 64 * 1024), true);
+});
+
+test("state sync persists pane profiles as app settings", () => {
+	const state = baseState();
+	const before = stateSync.persistenceSnapshot(state);
+	state.settings.paneProfiles.push({
+		id: "benchmark",
+		name: "Benchmark",
+		panes: [{ profile_id: "profile-1", model: "gpt-4.1" }]
+	});
+	const after = stateSync.persistenceSnapshot(state);
+	const changes = stateSync.buildChanges(before, after);
+
+	assert.deepEqual(changes.map((change) => change.type), ["app_settings_upsert"]);
+	assert.deepEqual(changes[0].settings.paneProfiles, state.settings.paneProfiles);
 });

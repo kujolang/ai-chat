@@ -19,6 +19,7 @@
 				broadcastToAllPanes: true,
 				activeChatId: source.activeChatId ? String(source.activeChatId) : null,
 				projectFolders: arrayClone(source.projectFolders),
+				paneProfiles: arrayClone(settings.paneProfiles),
 				tools: arrayClone(settings.tools),
 				showArchived: Boolean(source.showArchived),
 				searchQuery: String(source.searchQuery || "")

@@ -76,6 +76,9 @@
 				</div>
 				<div class="workspace-actions">
 					<div id="pane-controls" class="pane-controls" aria-label="Pane controls"></div>
+					<button id="open-pane-profiles-btn" class="btn ghost icon-only" aria-label="Pane Profiles" title="Pane Profiles">
+						<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/></svg>
+					</button>
 					<button id="toggle-pane-info-btn" class="btn ghost icon-only compact-toggle-btn" aria-label="Hide pane information" title="Hide pane information" aria-expanded="true">
 						<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
 					</button>
@@ -117,6 +120,25 @@
 				</div>
 			</footer>
 		</main>
+	</div>
+
+	<div id="pane-profiles-modal" class="modal hidden">
+		<div class="modal-backdrop" data-close-pane-profiles="true"></div>
+		<div class="modal-panel pane-profiles-modal-panel">
+			<div class="modal-head">
+				<h2>Pane Profiles</h2>
+				<button id="close-pane-profiles-btn" class="modal-close-icon" aria-label="Close pane profiles" title="Close pane profiles">
+					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>
+				</button>
+			</div>
+			<p class="settings-note">Save the current ordered pane and model selections, then reuse them in a new chat. Regular New Chat still starts with one pane.</p>
+			<div class="pane-profile-create">
+				<input id="pane-profile-name-input" type="text" maxlength="120" placeholder="Profile name, e.g. Content benchmark">
+				<button id="save-pane-profile-btn" class="btn">Save Current Panes</button>
+			</div>
+			<div id="pane-profile-error" class="pane-profile-error" aria-live="polite"></div>
+			<div id="pane-profile-list" class="pane-profile-list"></div>
+		</div>
 	</div>
 
 	<div id="settings-modal" class="modal hidden">
