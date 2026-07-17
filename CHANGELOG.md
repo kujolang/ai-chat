@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Display browser-tool screenshots in the assistant response and expose them through an authenticated, opaque artifact endpoint.
 - Add reusable pane profiles that preserve ordered provider/model selections, with create, apply, new-chat, and delete management while retaining the single-pane default for normal new chats.
 - Add local Playwright Chromium execution for stable provider-neutral browser tools, with isolated scoped sessions, pinned public-network requests, bounded snapshots/artifacts/actions, read-only approval policy, health/Settings availability, compatibility routing, and deterministic fixtures.
 - Replace browser whole-state saves with dependency-ordered incremental SQLite changes, bounded request batching, retry-safe idempotent writes, an always-visible save status, and an unload warning while data is unsaved.

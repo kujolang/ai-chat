@@ -16,6 +16,7 @@ Current endpoints:
 - `POST /api/chat`
 - `POST /api/chat/stream`
 - `POST /api/transcribe`
+- `GET /api/browser/artifacts/:artifactId`
 
 ## 2. Authentication Contract
 
@@ -152,7 +153,7 @@ The endpoint returns `text/event-stream` with the following events:
 
 - `token`: `{ "delta": "..." }`
 - `thinking`: `{ "delta": "..." }` (provider-dependent)
-- `done`: final payload with `provider`, `model`, `finish_reason`, `usage`, `output_text`, `thinking_text`, `transport` (`direct` or `proxy`), stable `trace_id`, and best-effort `watchdog_trace`
+- `done`: final payload with `provider`, `model`, `finish_reason`, `usage`, `output_text`, `thinking_text`, `tool_artifacts`, `transport` (`direct` or `proxy`), stable `trace_id`, and best-effort `watchdog_trace`. Each browser screenshot artifact has an opaque `artifact_id` and `media_type: "image/png"`.
 - `error`: `{ "code": "...", "message": "..." }`
 
 Client rules:
@@ -166,6 +167,7 @@ Client rules:
 - SSE and newline-delimited JSON upstream bodies are forwarded incrementally. Provider `error` events are terminal and are never followed by a misleading `done` event.
 - `web_search` calls run through the bounded tool runtime. Invalid arguments, missing adapter configuration or credentials, upstream search failure, and tool-budget exhaustion emit explicit terminal errors.
 - Browser calls may span multiple provider rounds. Sessions remain scoped to the requesting pane when supplied, otherwise to the chat/request identity; the read-only policy blocks consequential interactions with `tool_approval_required`.
+- Browser screenshot artifacts in `done.tool_artifacts` are fetched from the authenticated artifact endpoint. Clients should render supported image artifacts alongside the assistant response and retain their opaque IDs in persisted message metadata.
 - Unsupported provider tool calls remain terminal. The server emits `tool_execution_unavailable` instead of returning an empty successful answer or repeatedly continuing the request.
 - Watchdog streams may use a matching direct Ollama profile and asynchronous Watchdog telemetry intake when direct streaming is enabled; otherwise they use the managed proxy fallback.
 - Direct Watchdog telemetry uses `WATCHDOG_API_TOKEN_FILE` when the Watchdog `/api/*` surface requires token authentication. Telemetry remains best effort: a rejected or unreachable intake logs a sanitized server warning but does not change the successful chat stream contract.

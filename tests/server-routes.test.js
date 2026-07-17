@@ -1686,6 +1686,61 @@ test("POST /api/chat/stream executes OpenAI-compatible browser tools with provid
 	}
 });
 
+test("POST /api/chat/stream returns browser_use screenshots as authenticated chat artifacts", async () => {
+	const fixture = http.createServer((req, res) => {
+		res.setHeader("content-type", "text/html; charset=utf-8");
+		res.end("<!doctype html><title>Screenshot fixture</title><main><h1>Screenshot evidence</h1></main>");
+	});
+	fixture.listen(0, "127.0.0.1");
+	await once(fixture, "listening");
+	const fixtureUrl = `http://127.0.0.1:${fixture.address().port}`;
+	const artifactDir = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-browser-screenshot-route-"));
+	let providerRound = 0;
+	const { runtime, destroy } = createIsolatedRuntime({
+		envMerge: {
+			ALLOWED_CUSTOM_PROVIDER_HOSTS: "api.example.com",
+			BROWSER_ENABLED: "1",
+			BROWSER_ARTIFACT_DIR: artifactDir
+		},
+		browserRuntimeOptions: { allowPrivateHosts: ["127.0.0.1"] },
+		fetchFn: async () => {
+			providerRound += 1;
+			if (providerRound === 1) {
+				return mockSseResponse([{ choices: [{ delta: { tool_calls: [{ index: 0, id: "browser-screenshot", function: { name: "browser_use", arguments: JSON.stringify({ action: "screenshot", url: fixtureUrl }) } }] }, finish_reason: "tool_calls" }] }]);
+			}
+			return mockSseResponse([{ choices: [{ delta: { content: "I captured the screenshot." }, finish_reason: "stop" }] }]);
+		}
+	});
+	try {
+		const profileId = applyProfileMutation(runtime, (profile) => {
+			profile.provider_id = "custom";
+			profile.base_url = "https://api.example.com/v1";
+			profile.api_key = "provider-key";
+		});
+		await withServer(runtime.app, async (baseUrl) => {
+			const response = await fetch(`${baseUrl}/api/chat/stream`, {
+				method: "POST",
+				headers: withAuthHeaders({ "Content-Type": "application/json" }),
+				body: JSON.stringify({ profile_id: profileId, chat_id: "browser-screenshot-chat", messages: [{ role: "user", content: "Show me a screenshot" }], tools: [{ type: "function", function: { name: "browser_use", parameters: { type: "object" } } }] })
+			});
+			const events = parseSseEvents(await response.text());
+			const done = events.find((entry) => entry.event === "done").data;
+			assert.deepEqual(done.tool_artifacts.map((artifact) => artifact.media_type), ["image/png"]);
+			assert.match(done.tool_artifacts[0].artifact_id, /^browser-shot_[A-Za-z0-9_-]+$/);
+
+			const artifactResponse = await fetch(`${baseUrl}/api/browser/artifacts/${done.tool_artifacts[0].artifact_id}`, { headers: withAuthHeaders() });
+			assert.equal(artifactResponse.status, 200);
+			assert.match(artifactResponse.headers.get("content-type"), /^image\/png/);
+			assert.deepEqual([...new Uint8Array(await artifactResponse.arrayBuffer()).slice(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
+		});
+	} finally {
+		await destroy();
+		fixture.close();
+		await once(fixture, "close");
+		fs.rmSync(artifactDir, { recursive: true, force: true });
+	}
+});
+
 test("POST /api/chat/stream gives side-by-side panes independent browser session allowances", async () => {
 	const fixture = http.createServer((req, res) => {
 		res.setHeader("content-type", "text/html; charset=utf-8");

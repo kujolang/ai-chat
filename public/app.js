@@ -45,6 +45,7 @@ let activeStreamCount = 0;
 let stopStreamingRequested = false;
 let codeHighlightScheduled = false;
 const pendingCodeHighlightRoots = new Set();
+const browserArtifactImageUrls = new Map();
 const apiTokenStorageKey = "ai_chat_api_token";
 const apiTokenExpiresAtStorageKey = "ai_chat_api_token_expires_at";
 const stateCacheStorageKey = "ai_chat_state_cache_v1";
@@ -1874,6 +1875,7 @@ function renderWorkspace(options = {}) {
 		card.appendChild(messageList);
 		nodes.paneGrid.appendChild(fragment);
 	}
+	hydrateBrowserArtifactImages(nodes.paneGrid);
 
 	window.requestAnimationFrame(() => {
 		if (preserveScroll) {
@@ -1938,6 +1940,7 @@ function renderMessageNodeHtml(message, paneId) {
 		? renderAssistantMarkdown(message.content)
 		: renderPlainText(message.content);
 	const content = `<div class="message-content-block">${contentBody}</div>`;
+	const screenshots = renderBrowserScreenshotArtifacts(message);
 	const timestamp = formatMessageTime(message.createdAt);
 	const footer = `<div class="message-footer"><span class="message-time">${escapeHtml(timestamp)}</span><button type="button" class="message-copy-btn" data-action="copy-message" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}" aria-label="Copy message" title="Copy message">${copyCodeButtonSvg}</button></div>`;
 
@@ -1945,10 +1948,62 @@ function renderMessageNodeHtml(message, paneId) {
 		const metaFooter = meta || footer
 			? `<div class="message-meta-footer">${meta}${footer}</div>`
 			: "";
-		return `<div class="${messageClasses.join(" ")}" data-message-id="${escapeHtml(message.id)}" data-pane-id="${escapeHtml(paneId)}">${thinking}${content}${metaFooter}</div>`;
+		return `<div class="${messageClasses.join(" ")}" data-message-id="${escapeHtml(message.id)}" data-pane-id="${escapeHtml(paneId)}">${thinking}${content}${screenshots}${metaFooter}</div>`;
 	}
 
 	return `<div class="${messageClasses.join(" ")}" data-message-id="${escapeHtml(message.id)}" data-pane-id="${escapeHtml(paneId)}"><div class="message-bubble">${content}${meta}</div>${footer}</div>`;
+}
+
+function renderBrowserScreenshotArtifacts(message) {
+	const screenshots = uniqueBrowserScreenshotArtifacts(message && message.usage && Array.isArray(message.usage.tool_artifacts)
+		? message.usage.tool_artifacts
+		: []);
+	if (screenshots.length === 0) return "";
+	return `<div class="message-tool-artifacts" aria-label="Browser screenshots">${screenshots.map((artifact, index) => `<figure class="message-tool-artifact"><img class="message-tool-screenshot" data-browser-artifact-id="${escapeHtml(artifact.artifact_id)}" alt="Browser screenshot ${index + 1}"/><figcaption>Browser screenshot</figcaption></figure>`).join("")}</div>`;
+}
+
+function uniqueBrowserScreenshotArtifacts(artifacts) {
+	const seen = new Set();
+	return (Array.isArray(artifacts) ? artifacts : []).filter((artifact) => {
+		const artifactId = artifact && artifact.media_type === "image/png" ? String(artifact.artifact_id || "") : "";
+		if (!/^browser-shot_[A-Za-z0-9_-]+$/.test(artifactId) || seen.has(artifactId)) return false;
+		seen.add(artifactId);
+		return true;
+	}).map((artifact) => ({ artifact_id: String(artifact.artifact_id), media_type: "image/png" }));
+}
+
+function hydrateBrowserArtifactImages(rootNode) {
+	const root = rootNode || nodes.paneGrid;
+	if (!root) return;
+	for (const image of root.querySelectorAll("img[data-browser-artifact-id]")) {
+		if (image.dataset.loaded === "true" || image.dataset.loading === "true") continue;
+		const artifactId = String(image.dataset.browserArtifactId || "");
+		if (!/^browser-shot_[A-Za-z0-9_-]+$/.test(artifactId)) continue;
+		image.dataset.loading = "true";
+		const existingUrl = browserArtifactImageUrls.get(artifactId);
+		const loadImage = existingUrl
+			? Promise.resolve(existingUrl)
+			: apiFetch(`/api/browser/artifacts/${encodeURIComponent(artifactId)}`)
+				.then((response) => {
+					if (!response.ok) throw new Error("Browser screenshot is unavailable.");
+					return response.blob();
+				})
+				.then((blob) => {
+					const objectUrl = URL.createObjectURL(blob);
+					browserArtifactImageUrls.set(artifactId, objectUrl);
+					return objectUrl;
+				});
+		loadImage.then((objectUrl) => {
+			if (!image.isConnected) return;
+			image.src = objectUrl;
+			image.dataset.loaded = "true";
+			delete image.dataset.loading;
+		}).catch(() => {
+			if (!image.isConnected) return;
+			image.alt = "Browser screenshot unavailable";
+			delete image.dataset.loading;
+		});
+	}
 }
 
 function scheduleWorkspaceRender() {
@@ -2048,6 +2103,7 @@ function applyStreamingMessagePatches(patches) {
 		}
 
 		scheduleCodeHighlighting(messageList);
+		hydrateBrowserArtifactImages(messageList);
 	}
 
 	if (shouldFallbackToFullRender) {
@@ -3634,6 +3690,12 @@ async function sendMessageToPaneStream(chat, pane, text) {
 				if (streamDonePayload.usage && typeof streamDonePayload.usage === "object") {
 					totalUsage = mergeUsageTotals(totalUsage, streamDonePayload.usage);
 				}
+				if (Array.isArray(streamDonePayload.tool_artifacts)) {
+					assistantMessage.tool_artifacts = uniqueBrowserScreenshotArtifacts([
+						...(assistantMessage.tool_artifacts || []),
+						...streamDonePayload.tool_artifacts
+					]);
+				}
 			}
 
 			const streamErrored = Boolean(streamErrorPayload) && !streamDonePayload;
@@ -3787,6 +3849,9 @@ async function sendMessageToPaneStream(chat, pane, text) {
 		}
 		if (assistantMessage.usage && watchdogTraceRecorded) {
 			assistantMessage.usage.trace_id = assistantMessage.trace_id;
+		}
+		if (assistantMessage.usage && Array.isArray(assistantMessage.tool_artifacts) && assistantMessage.tool_artifacts.length > 0) {
+			assistantMessage.usage.tool_artifacts = assistantMessage.tool_artifacts;
 		}
 		assistantMessage.continuation_passes = continuationPass;
 		const continuationReasons = uniqueSorted(

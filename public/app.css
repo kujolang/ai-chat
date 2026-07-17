@@ -968,6 +968,33 @@ textarea::-webkit-scrollbar-thumb:hover {
 	line-height: 1.55;
 }
 
+.message-tool-artifacts {
+	display: grid;
+	gap: 8px;
+	margin-top: 10px;
+}
+
+.message-tool-artifact {
+	margin: 0;
+	max-width: min(100%, 760px);
+	border: 1px solid var(--line);
+	background: var(--bg-soft);
+}
+
+.message-tool-screenshot {
+	display: block;
+	width: 100%;
+	height: auto;
+	min-height: 80px;
+	background: var(--bg-elev);
+}
+
+.message-tool-artifact figcaption {
+	padding: 6px 8px;
+	font-size: 11px;
+	color: var(--text-dim);
+}
+
 .message-content-block h1,
 .message-content-block h2,
 .message-content-block h3 {
