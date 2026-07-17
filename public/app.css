@@ -685,6 +685,7 @@ select:focus,
 	grid-template-columns: repeat(1, minmax(0, 1fr));
 	overflow: auto;
 	align-items: start;
+	min-height: 0;
 	background: linear-gradient(180deg, rgba(0, 0, 0, 0.08), transparent 180px);
 	scrollbar-color: #365b50 #111519;
 	scrollbar-width: thin;
@@ -705,10 +706,19 @@ select:focus,
 }
 
 .pane-grid.cols-3 {
-	grid-template-columns: repeat(3, minmax(0, 1fr));
+	display: flex;
+	flex-wrap: nowrap;
 	gap: 12px;
 	padding-left: 14px;
 	padding-right: 14px;
+	overflow-x: auto;
+	overflow-y: hidden;
+	align-items: stretch;
+}
+
+.pane-grid.cols-3 .pane-card {
+	flex: 0 0 calc((100% - 24px) / 3);
+	width: calc((100% - 24px) / 3);
 }
 
 .pane-card {
@@ -716,6 +726,7 @@ select:focus,
 	border-radius: 0;
 	background: transparent;
 	min-height: 0;
+	height: 100%;
 	display: grid;
 	grid-template-rows: auto 1fr;
 	overflow: hidden;
@@ -2444,6 +2455,7 @@ textarea {
 
 	.pane-grid.cols-2,
 	.pane-grid.cols-3 {
+		display: grid;
 		grid-template-columns: 1fr;
 	}
 
