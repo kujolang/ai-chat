@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Move Pane Profiles to the right of Add Pane in the chat header.
 - Display browser-tool screenshots in the assistant response and expose them through an authenticated, opaque artifact endpoint.
 - Add reusable pane profiles that preserve ordered provider/model selections, with create, apply, new-chat, and delete management while retaining the single-pane default for normal new chats.
 - Add local Playwright Chromium execution for stable provider-neutral browser tools, with isolated scoped sessions, pinned public-network requests, bounded snapshots/artifacts/actions, read-only approval policy, health/Settings availability, compatibility routing, and deterministic fixtures.
