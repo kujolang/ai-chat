@@ -165,7 +165,7 @@ Client rules:
 - The server consumes the complete upstream body before emitting its terminal `done` event and supports standard multiline SSE `data:` frames.
 - SSE and newline-delimited JSON upstream bodies are forwarded incrementally. Provider `error` events are terminal and are never followed by a misleading `done` event.
 - `web_search` calls run through the bounded tool runtime. Invalid arguments, missing adapter configuration or credentials, upstream search failure, and tool-budget exhaustion emit explicit terminal errors.
-- Browser calls may span multiple provider rounds. Sessions remain scoped to the chat/request identity, and the read-only policy blocks consequential interactions with `tool_approval_required`.
+- Browser calls may span multiple provider rounds. Sessions remain scoped to the requesting pane when supplied, otherwise to the chat/request identity; the read-only policy blocks consequential interactions with `tool_approval_required`.
 - Unsupported provider tool calls remain terminal. The server emits `tool_execution_unavailable` instead of returning an empty successful answer or repeatedly continuing the request.
 - Watchdog streams may use a matching direct Ollama profile and asynchronous Watchdog telemetry intake when direct streaming is enabled; otherwise they use the managed proxy fallback.
 - Direct Watchdog telemetry uses `WATCHDOG_API_TOKEN_FILE` when the Watchdog `/api/*` surface requires token authentication. Telemetry remains best effort: a rejected or unreachable intake logs a sanitized server warning but does not change the successful chat stream contract.
