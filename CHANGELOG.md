@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Permit same-origin browser screenshot blob URLs under the content-security policy.
 - Move Pane Profiles to the right of Add Pane in the chat header.
 - Display browser-tool screenshots in the assistant response and expose them through an authenticated, opaque artifact endpoint.
 - Add reusable pane profiles that preserve ordered provider/model selections, with create, apply, new-chat, and delete management while retaining the single-pane default for normal new chats.
