@@ -12,6 +12,7 @@ function baseState() {
 		settings: {
 			temperature: 0.2,
 			maxTokens: 12000,
+			agentInstructions: "Be concise.",
 			paneProfiles: [],
 			tools: [],
 			profiles: [{
@@ -101,4 +102,14 @@ test("state sync persists pane profiles as app settings", () => {
 
 	assert.deepEqual(changes.map((change) => change.type), ["app_settings_upsert"]);
 	assert.deepEqual(changes[0].settings.paneProfiles, state.settings.paneProfiles);
+});
+
+test("state sync persists agent instructions as app settings", () => {
+	const state = baseState();
+	const before = stateSync.persistenceSnapshot(state);
+	state.settings.agentInstructions = "End completed tasks with a Strata note.";
+	const changes = stateSync.buildChanges(before, stateSync.persistenceSnapshot(state));
+
+	assert.deepEqual(changes.map((change) => change.type), ["app_settings_upsert"]);
+	assert.equal(changes[0].settings.agentInstructions, state.settings.agentInstructions);
 });

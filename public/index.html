@@ -151,8 +151,15 @@
 				</button>
 			</div>
 
-			<div class="modal-scroll-content">
-			<section class="settings-section">
+			<div class="settings-layout">
+				<nav class="settings-tabs" aria-label="Settings sections" role="tablist">
+					<button class="settings-tab active" type="button" role="tab" aria-selected="true" data-settings-tab="general">General</button>
+					<button class="settings-tab" type="button" role="tab" aria-selected="false" data-settings-tab="instructions">Agent Instructions</button>
+					<button class="settings-tab" type="button" role="tab" aria-selected="false" data-settings-tab="providers">Providers</button>
+					<button class="settings-tab" type="button" role="tab" aria-selected="false" data-settings-tab="tools">Tools</button>
+				</nav>
+				<div class="modal-scroll-content settings-tab-panels">
+			<section class="settings-section settings-tab-panel" data-settings-panel="general" role="tabpanel">
 				<h3>Model Defaults</h3>
 				<div class="settings-grid">
 					<label>
@@ -166,7 +173,7 @@
 				</div>
 			</section>
 
-			<section class="settings-section settings-section-app-access">
+			<section class="settings-section settings-section-app-access settings-tab-panel" data-settings-panel="general" role="tabpanel">
 				<div class="settings-row-head">
 					<h3>App Access</h3>
 				</div>
@@ -187,7 +194,20 @@
 				<div id="settings-save-indicator" class="settings-save-indicator" aria-live="polite"></div>
 			</section>
 
-			<section class="settings-section settings-section-profiles">
+			<section class="settings-section settings-tab-panel hidden" data-settings-panel="instructions" role="tabpanel">
+				<div class="settings-row-head">
+					<h3>Agent Instructions</h3>
+					<button id="insert-strata-instructions-btn" class="btn ghost" type="button">Insert Strata Note Template</button>
+				</div>
+				<p class="settings-note">These instructions are added as the first system message for every model and pane. Use this for response style, required end-of-chat steps, and your local workflow.</p>
+				<label class="agent-instructions-field">
+					<span>Custom instructions (AGENTS.md-compatible Markdown)</span>
+					<textarea id="settings-agent-instructions" rows="18" maxlength="24000" spellcheck="false" placeholder="Example: Be concise. At the end of a completed task, create a concise Strata note through the configured local tool."></textarea>
+				</label>
+				<p class="settings-note">Tip: keep a copy in an <code>AGENTS.md</code> file for coding agents. This editor is the chat-wide source of truth and stays active until you change it.</p>
+			</section>
+
+			<section class="settings-section settings-section-profiles settings-tab-panel hidden" data-settings-panel="providers" role="tabpanel">
 				<div class="settings-row-head">
 					<h3>Provider Profiles</h3>
 					<button id="add-profile-btn" class="btn ghost add-profile-btn">
@@ -199,7 +219,7 @@
 				<div id="profile-list" class="profile-list"></div>
 			</section>
 
-			<section class="settings-section settings-section-tools">
+			<section class="settings-section settings-section-tools settings-tab-panel hidden" data-settings-panel="tools" role="tabpanel">
 				<div class="settings-row-head">
 				<h3>Tools (Advanced)</h3>
 					<div class="settings-tool-actions">
@@ -214,6 +234,7 @@
 				<p class="settings-note">Web Search and enabled browser presets run through AI Chat's provider-neutral local tool runtime. Browser presets are available only when Playwright Chromium is configured; custom schemas still require a registered executor.</p>
 				<div id="tools-list" class="tools-list"></div>
 			</section>
+				</div>
 			</div>
 		</div>
 	</div>

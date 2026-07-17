@@ -1686,6 +1686,53 @@ test("POST /api/chat/stream executes OpenAI-compatible browser tools with provid
 	}
 });
 
+test("POST /api/chat/stream gives side-by-side panes independent browser session allowances", async () => {
+	const fixture = http.createServer((req, res) => {
+		res.setHeader("content-type", "text/html; charset=utf-8");
+		res.end("<!doctype html><title>Pane browser fixture</title><p>Pane evidence</p>");
+	});
+	fixture.listen(0, "127.0.0.1");
+	await once(fixture, "listening");
+	const fixtureUrl = `http://127.0.0.1:${fixture.address().port}`;
+	const artifactDir = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-browser-pane-scope-"));
+	const { runtime, destroy } = createIsolatedRuntime({
+		envMerge: { ALLOWED_CUSTOM_PROVIDER_HOSTS: "api.example.com", BROWSER_ENABLED: "1" },
+		browserRuntimeOptions: { allowPrivateHosts: ["127.0.0.1"], artifactDir, maxSessions: 2, maxSessionsPerScope: 1 },
+		fetchFn: async (url, options) => {
+			const body = JSON.parse(options.body);
+			const hasToolResult = body.messages.some((message) => message.role === "tool");
+			if (hasToolResult) {
+				return mockSseResponse([{ choices: [{ delta: { content: "Pane browser answer." }, finish_reason: "stop" }] }]);
+			}
+			return mockSseResponse([{ choices: [{ delta: { tool_calls: [{ index: 0, id: "pane-browser-call", function: { name: "browser_open", arguments: JSON.stringify({ url: fixtureUrl }) } }] }, finish_reason: "tool_calls" }] }]);
+		}
+	});
+	try {
+		const profileId = applyProfileMutation(runtime, (profile) => {
+			profile.provider_id = "custom";
+			profile.base_url = "https://api.example.com/v1";
+			profile.api_key = "provider-key";
+		});
+		await withServer(runtime.app, async (baseUrl) => {
+			for (const paneId of ["pane-left", "pane-right"]) {
+				const response = await fetch(`${baseUrl}/api/chat/stream`, {
+					method: "POST",
+					headers: withAuthHeaders({ "Content-Type": "application/json" }),
+					body: JSON.stringify({ profile_id: profileId, chat_id: "shared-chat", pane_id: paneId, messages: [{ role: "user", content: "Open fixture" }], tools: [{ type: "function", function: { name: "browser_open", parameters: { type: "object" } } }] })
+				});
+				const events = parseSseEvents(await response.text());
+				assert.equal(events.some((entry) => entry.event === "error"), false);
+				assert.equal(events.find((entry) => entry.event === "done").data.tool_calls_executed, 1);
+			}
+		});
+	} finally {
+		await destroy();
+		fixture.close();
+		await once(fixture, "close");
+		fs.rmSync(artifactDir, { recursive: true, force: true });
+	}
+});
+
 test("POST /api/chat/stream consumes multiline SSE data frames without dropping content", async () => {
 	const event = {
 		model: "gpt-multiline",

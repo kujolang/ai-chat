@@ -37,6 +37,9 @@ This project is for end users and teams who want one local web app to:
 - Streaming and thinking UI
 	- Live assistant text streaming via SSE
 	- Thinking/reasoning deltas shown when available
+- Agent instructions
+	- Set persistent, AGENTS.md-compatible custom instructions once in Settings; they are sent as the first system message to every pane
+	- Use the built-in concise Strata handoff template as a starting point for end-of-task workflow requirements
 - Transcription support
 	- Audio upload proxy endpoint for OpenAI-compatible transcription APIs
 	- Browser recording button to send audio and insert transcript into the composer

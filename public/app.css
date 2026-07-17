@@ -1652,6 +1652,48 @@ textarea {
 	padding-top: 0;
 }
 
+.settings-layout {
+	display: grid;
+	grid-template-columns: 172px minmax(0, 1fr);
+	flex: 1 1 auto;
+	min-height: 0;
+	gap: 14px;
+}
+
+.settings-tabs {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	padding: 4px 0;
+	border-right: 1px solid var(--line-soft);
+}
+
+.settings-tab {
+	border: 1px solid transparent;
+	background: transparent;
+	color: var(--text-dim);
+	font: inherit;
+	font-size: 13px;
+	text-align: left;
+	padding: 9px 10px;
+	cursor: pointer;
+}
+
+.settings-tab:hover,
+.settings-tab.active {
+	background: var(--accent-quiet);
+	border-color: #2f4941;
+	color: var(--text);
+}
+
+.settings-tab-panels {
+	padding-right: 2px;
+}
+
+.settings-tab-panel.hidden {
+	display: none;
+}
+
 .settings-section h3,
 .settings-row-head h3 {
 	margin-top: 0;
@@ -2432,6 +2474,27 @@ textarea {
 .settings-note {
 	font-size: 12px;
 	color: var(--text-dim);
+}
+
+.agent-instructions-field {
+	display: flex;
+	flex-direction: column;
+	gap: 7px;
+	font-size: 12px;
+	color: var(--text-dim);
+}
+
+.agent-instructions-field textarea {
+	min-height: 320px;
+	resize: vertical;
+	font-family: var(--mono);
+	line-height: 1.5;
+}
+
+@media (max-width: 680px) {
+	.settings-layout { grid-template-columns: 1fr; }
+	.settings-tabs { flex-direction: row; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--line-soft); }
+	.settings-tab { white-space: nowrap; }
 }
 
 .profile-list {

@@ -463,12 +463,14 @@ test("writeState persists chat title and settings values", () => {
 		state.chats[0].title = "Renamed Chat";
 		state.settings.temperature = 0.8;
 		state.settings.maxTokens = 1200;
+		state.settings.agentInstructions = "Use concise responses and finish with a durable note.";
 		state.searchQuery = "abc";
 		runtime.helpers.writeState(state);
 		const after = runtime.helpers.readState();
 		assert.equal(after.chats[0].title, "Renamed Chat");
 		assert.equal(after.settings.temperature, 0.8);
 		assert.equal(after.settings.maxTokens, 1200);
+		assert.equal(after.settings.agentInstructions, "Use concise responses and finish with a durable note.");
 		assert.equal(after.searchQuery, "abc");
 		state.settings.tools = [{ id: "tool-1", name: "browser_use", enabled: true, parameters_json: "{}" }];
 		state.stateVersion = after.stateVersion;

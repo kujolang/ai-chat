@@ -10,6 +10,7 @@ const defaultState = {
 	settings: {
 		temperature: 0.2,
 		maxTokens: 12000,
+		agentInstructions: "",
 		profiles: [],
 		paneProfiles: [],
 		tools: []
@@ -156,6 +157,8 @@ const nodes = {
 	addProfileBtn: document.getElementById("add-profile-btn"),
 	settingsTemperature: document.getElementById("settings-temperature"),
 	settingsMaxTokens: document.getElementById("settings-max-tokens"),
+	settingsAgentInstructions: document.getElementById("settings-agent-instructions"),
+	insertStrataInstructionsBtn: document.getElementById("insert-strata-instructions-btn"),
 	settingsApiToken: document.getElementById("settings-api-token"),
 	settingsApiTokenStatus: document.getElementById("settings-api-token-status"),
 	settingsSaveIndicator: document.getElementById("settings-save-indicator"),
@@ -285,6 +288,9 @@ function migrateState(candidate) {
 					: Number(candidate.settings.maxTokens);
 			} else {
 				merged.settings.maxTokens = 12000;
+			}
+			if (typeof candidate.settings.agentInstructions === "string") {
+				merged.settings.agentInstructions = candidate.settings.agentInstructions.slice(0, 24000);
 			}
 			if (Array.isArray(candidate.settings.profiles)) {
 				merged.settings.profiles = candidate.settings.profiles.map((profile) => ({
@@ -644,6 +650,24 @@ function wireEvents() {
 		const value = Number(event.target.value);
 		state.settings.maxTokens = Number.isFinite(value) ? value : 12000;
 		schedulePersist();
+	});
+
+	nodes.settingsAgentInstructions.addEventListener("input", (event) => {
+		state.settings.agentInstructions = String(event.target.value || "").slice(0, 24000);
+		schedulePersist();
+	});
+
+	nodes.insertStrataInstructionsBtn.addEventListener("click", () => {
+		const template = "Be concise and do not narrate routine work. After completing a meaningful task, write a short factual handoff note to my local Strata app using the configured Strata tool. Include what changed, verification, and unresolved blockers. Do not store secrets or private reasoning.";
+		const current = String(state.settings.agentInstructions || "").trim();
+		state.settings.agentInstructions = current ? `${current}\n\n${template}` : template;
+		nodes.settingsAgentInstructions.value = state.settings.agentInstructions;
+		schedulePersist();
+	});
+
+	nodes.settingsModal.addEventListener("click", (event) => {
+		const tab = event.target.closest("[data-settings-tab]");
+		if (tab) setSettingsTab(String(tab.getAttribute("data-settings-tab") || "general"));
 	});
 
 	nodes.sendBtn.addEventListener("click", () => {
@@ -2036,6 +2060,7 @@ function applyCodeHighlighting(rootNode) {
 
 function openSettings() {
 	renderSettings();
+	setSettingsTab("general");
 	clearSettingsSaveIndicator();
 	nodes.settingsModal.classList.remove("hidden");
 }
@@ -3058,6 +3083,7 @@ function closeSettings() {
 function renderSettings() {
 	nodes.settingsTemperature.value = String(state.settings.temperature);
 	nodes.settingsMaxTokens.value = String(state.settings.maxTokens);
+	nodes.settingsAgentInstructions.value = String(state.settings.agentInstructions || "");
 	const tokenConfigured = hasValidApiAuthToken();
 	nodes.settingsApiToken.value = "";
 	nodes.settingsApiTokenStatus.value = tokenConfigured ? "Configured" : "Not configured";
@@ -3119,6 +3145,18 @@ function renderSettings() {
 		})
 		.join("");
 	renderToolsSettings();
+}
+
+function setSettingsTab(tabName) {
+	const selected = ["general", "instructions", "providers", "tools"].includes(tabName) ? tabName : "general";
+	for (const tab of nodes.settingsModal.querySelectorAll("[data-settings-tab]")) {
+		const active = tab.getAttribute("data-settings-tab") === selected;
+		tab.classList.toggle("active", active);
+		tab.setAttribute("aria-selected", active ? "true" : "false");
+	}
+	for (const panel of nodes.settingsModal.querySelectorAll("[data-settings-panel]")) {
+		panel.classList.toggle("hidden", panel.getAttribute("data-settings-panel") !== selected);
+	}
 }
 
 function renderToolsSettings() {
@@ -3337,6 +3375,10 @@ async function sendMessageToPaneStream(chat, pane, text) {
 				.filter((message) => message.id !== assistantMessage.id)
 				.filter((message) => message.role === "system" || message.role === "user" || message.role === "assistant")
 				.map((message) => ({ role: message.role, content: message.content }));
+			const agentInstructions = String(state.settings.agentInstructions || "").trim();
+			if (agentInstructions) {
+				chatHistory.unshift({ role: "system", content: agentInstructions });
+			}
 
 			const forceFinalAnswer = !String(assistantMessage.content || "").trim()
 				&& Boolean(String(assistantMessage.thinking || "").trim())
