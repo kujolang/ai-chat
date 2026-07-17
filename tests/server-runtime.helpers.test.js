@@ -69,12 +69,15 @@ test("seeds and upgrades OpenRouter and Watchdog model suggestions from the stat
 		const state = runtime.helpers.readState();
 		const openRouter = state.settings.profiles.find((profile) => profile.provider_id === "openrouter");
 		const watchdog = state.settings.profiles.find((profile) => profile.provider_id === "watchdog");
+		const watchdogOpenRouter = state.settings.profiles.find((profile) => profile.provider_id === "watchdog_openrouter");
 		assert.ok(openRouter);
 		assert.ok(watchdog);
+		assert.ok(watchdogOpenRouter);
 		assert.match(openRouter.models_csv, /moonshotai\/kimi-k2\.7-code/);
 		assert.match(openRouter.models_csv, /openai\/gpt-4\.1-mini/);
 		assert.match(watchdog.models_csv, /gemma4:31b/);
 		assert.match(watchdog.models_csv, /mistral-large-3:675b/);
+		assert.match(watchdogOpenRouter.models_csv, /moonshotai\/kimi-k2\.7-code/);
 	} finally {
 		destroy();
 	}
