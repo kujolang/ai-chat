@@ -9,6 +9,7 @@ const baseUrl = String(args.baseUrl || process.env.BENCHMARK_BASE_URL || `http:/
 const apiToken = String(args.apiToken || process.env.BENCHMARK_API_TOKEN || process.env.API_AUTH_TOKEN || "").trim();
 const testFile = String(args.tests || "").trim();
 const paneProfileName = String(args.paneProfile || "OpenRouter (TUD)").trim();
+const titlePrefix = args.titlePrefix ? String(args.titlePrefix).trim() : "Benchmark ";
 const outputDirectory = path.resolve(args.outputDir || "data/benchmark-runs");
 const concurrency = Math.max(1, Math.min(20, Number(args.concurrency || 1) || 1));
 const maxAttempts = Math.max(1, Math.min(5, Number(args.maxAttempts || 3) || 3));
@@ -27,6 +28,7 @@ const run = {
 	duration_ms: null,
 	base_url: baseUrl,
 	pane_profile: paneProfileName,
+	title_prefix: titlePrefix,
 	tests: [],
 	summary: { total: 0, completed: 0, failed: 0 }
 };
@@ -132,7 +134,8 @@ function createChat(benchmark) {
 }
 
 function benchmarkTitle(benchmark) {
-	return `Benchmark ${String(benchmark.number).padStart(2, "0")} — ${benchmark.title}`;
+	const sequence = String(benchmark.number).padStart(3, "0");
+	return `${titlePrefix}${sequence} — ${benchmark.title}`;
 }
 
 function hydrateChat(chat) {

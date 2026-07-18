@@ -348,7 +348,8 @@ and writes the exact start time, finish time, and per-response duration under
 ```bash
 API_AUTH_TOKEN=your_app_token npm run benchmark:run -- \
   --tests "/absolute/path/Benchmark Tests.md" \
-  --pane-profile "OpenRouter (TUD)"
+  --pane-profile "OpenRouter (TUD)" \
+  --title-prefix "RND005TST"
 ```
 
 The app server must already be running. Re-run with `--run-id <id>` to keep
@@ -359,6 +360,9 @@ Benchmark runs default to one request at a time and retry transient or empty
 responses up to three times. This is intentional for shared work keys; use
 `--concurrency 4` only after a stable baseline, and do not increase it merely
 to shorten a run.
+
+Use `--title-prefix` when benchmark chats need a sortable run identifier; the
+runner appends a three-digit test number, for example `RND005TST001`.
 
 Run smoke tests (server must already be running):
 
