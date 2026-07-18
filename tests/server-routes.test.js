@@ -478,40 +478,54 @@ test("GET /api/state returns seeded state", async () => {
 	}
 });
 
-test("POST /api/state/changes persists reusable pane profiles", async () => {
+test("POST /api/state/changes persists reusable pane profiles independently", async () => {
 	const { runtime, destroy } = createIsolatedRuntime();
 	try {
 		const seeded = runtime.helpers.readState();
 		const providerProfileId = seeded.settings.profiles[0].id;
 		await withServer(runtime.app, async (baseUrl) => {
-			const settings = {
-				temperature: seeded.settings.temperature,
-				maxTokens: seeded.settings.maxTokens,
-				activeChatId: seeded.activeChatId,
-				projectFolders: seeded.projectFolders,
-				tools: seeded.settings.tools,
-				paneProfiles: [{
+			const paneProfiles = [{
 					id: "content-benchmark",
 					name: "Content Benchmark",
 					panes: [
 						{ profile_id: providerProfileId, model: "gpt-4.1" },
 						{ profile_id: providerProfileId, model: "gpt-4.1-mini" }
 					]
-				}],
-				showArchived: false,
-				searchQuery: ""
-			};
+				}];
 			const result = await fetchJson(baseUrl, "/api/state/changes", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ changes: [{ type: "app_settings_upsert", settings }] })
+				body: JSON.stringify({ changes: [{ type: "pane_profiles_upsert", paneProfiles }] })
 			});
 			assert.equal(result.response.status, 200);
 
 			const getResult = await fetchJson(baseUrl, "/api/state");
-			assert.deepEqual(getResult.json.state.settings.paneProfiles, settings.paneProfiles);
+			assert.deepEqual(getResult.json.state.settings.paneProfiles, paneProfiles);
 
-			const legacySnapshot = getResult.json.state;
+			const unrelatedSettings = getResult.json.state.settings;
+			const settingsResult = await fetchJson(baseUrl, "/api/state/changes", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ changes: [{
+					type: "app_settings_upsert",
+					settings: {
+						temperature: unrelatedSettings.temperature,
+						maxTokens: unrelatedSettings.maxTokens,
+						activeChatId: getResult.json.state.activeChatId,
+						projectFolders: getResult.json.state.projectFolders,
+						tools: unrelatedSettings.tools,
+						agentInstructions: unrelatedSettings.agentInstructions,
+						agentInstructionProfiles: unrelatedSettings.agentInstructionProfiles,
+						showArchived: getResult.json.state.showArchived,
+						searchQuery: getResult.json.state.searchQuery
+					}
+				}] })
+			});
+			assert.equal(settingsResult.response.status, 200);
+			const afterUnrelatedSettings = await fetchJson(baseUrl, "/api/state");
+			assert.deepEqual(afterUnrelatedSettings.json.state.settings.paneProfiles, paneProfiles);
+
+			const legacySnapshot = afterUnrelatedSettings.json.state;
 			delete legacySnapshot.settings.paneProfiles;
 			const putResult = await fetchJson(baseUrl, "/api/state", {
 				method: "PUT",
@@ -520,7 +534,7 @@ test("POST /api/state/changes persists reusable pane profiles", async () => {
 			});
 			assert.equal(putResult.response.status, 200);
 			const afterLegacyPut = await fetchJson(baseUrl, "/api/state");
-			assert.deepEqual(afterLegacyPut.json.state.settings.paneProfiles, settings.paneProfiles);
+			assert.deepEqual(afterLegacyPut.json.state.settings.paneProfiles, paneProfiles);
 		});
 	} finally {
 		destroy();

@@ -116,6 +116,7 @@ Profile key handling guarantee:
 Supported additive change types are:
 
 - `app_settings_upsert`
+- `pane_profiles_upsert` with the complete `paneProfiles` array
 - `profile_upsert`, `profile_delete`
 - `chat_upsert`, `chat_delete`
 - `pane_upsert`, `pane_delete`

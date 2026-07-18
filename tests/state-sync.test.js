@@ -90,7 +90,7 @@ test("state sync batches a large history independently of total history size", (
 	assert.equal(batches.every((batch) => batch.length === 1 || stateSync.jsonByteLength({ changes: batch }) <= 64 * 1024), true);
 });
 
-test("state sync persists pane profiles as app settings", () => {
+test("state sync persists pane profiles independently of unrelated app settings", () => {
 	const state = baseState();
 	const before = stateSync.persistenceSnapshot(state);
 	state.settings.paneProfiles.push({
@@ -101,8 +101,8 @@ test("state sync persists pane profiles as app settings", () => {
 	const after = stateSync.persistenceSnapshot(state);
 	const changes = stateSync.buildChanges(before, after);
 
-	assert.deepEqual(changes.map((change) => change.type), ["app_settings_upsert"]);
-	assert.deepEqual(changes[0].settings.paneProfiles, state.settings.paneProfiles);
+	assert.deepEqual(changes.map((change) => change.type), ["pane_profiles_upsert"]);
+	assert.deepEqual(changes[0].paneProfiles, state.settings.paneProfiles);
 });
 
 test("state sync persists agent instructions as app settings", () => {

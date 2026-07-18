@@ -21,11 +21,11 @@
 				broadcastToAllPanes: true,
 				activeChatId: source.activeChatId ? String(source.activeChatId) : null,
 				projectFolders: arrayClone(source.projectFolders),
-				paneProfiles: arrayClone(settings.paneProfiles),
 				tools: arrayClone(settings.tools),
 				showArchived: Boolean(source.showArchived),
 				searchQuery: String(source.searchQuery || "")
 			},
+			paneProfiles: arrayClone(settings.paneProfiles),
 			profiles: [],
 			chats: [],
 			panes: [],
@@ -112,6 +112,10 @@
 		appendDeletes(changes, "chat_delete", previous.chats, next.chats, "chat_id");
 		appendDeletes(changes, "profile_delete", previous.profiles, next.profiles, "profile_id");
 
+		if (!sameValue(previous.paneProfiles, next.paneProfiles)) {
+			changes.push({ type: "pane_profiles_upsert", paneProfiles: cloneJson(next.paneProfiles) });
+		}
+
 		if (!sameValue(previous.appSettings, next.appSettings)) {
 			changes.push({ type: "app_settings_upsert", settings: cloneJson(next.appSettings) });
 		}
@@ -166,7 +170,7 @@
 	}
 
 	function emptySnapshot() {
-		return { appSettings: {}, profiles: [], chats: [], panes: [], messages: [] };
+		return { appSettings: {}, paneProfiles: [], profiles: [], chats: [], panes: [], messages: [] };
 	}
 
 	function mapById(list) {
