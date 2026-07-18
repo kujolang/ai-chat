@@ -230,6 +230,41 @@ test("browser allowlist and approval denial fail closed", async () => {
 	});
 });
 
+test("browser approvals expire, reject scope mismatches, and are single-use", async () => {
+	let clock = 1000;
+	await withFixture((req, res) => {
+		res.setHeader("content-type", "text/html; charset=utf-8");
+		res.end("<!doctype html><title>Approve</title><input aria-label='Query'>");
+	}, async ({ url }) => {
+		const { runtime, destroy } = createRuntime({ nowMs: () => clock, approvalTtlMs: 1000 });
+		try {
+			const opened = await runtime.execute("browser_open", { url }, { scopeId: "chat-a", requestState: {} });
+			const input = opened.elements.find((entry) => entry.name === "Query");
+
+			let approvalError = null;
+			await assert.rejects(() => runtime.execute("browser_act", { session_id: opened.session_id, action: { type: "type", target: input.ref, text: "hello" } }, { scopeId: "chat-a", requestState: {} }), (error) => {
+				approvalError = error;
+				return error.code === "tool_approval_required";
+			});
+			await assert.rejects(() => runtime.approveAction({ requestId: approvalError.approval_request.request_id, scopeId: "chat-b", decision: "approve" }), (error) => error.code === "browser_approval_scope_mismatch");
+
+			clock += 1001;
+			await assert.rejects(() => runtime.approveAction({ requestId: approvalError.approval_request.request_id, scopeId: "chat-a", decision: "approve" }), (error) => error.code === "tool_approval_expired");
+
+			let secondApprovalError = null;
+			await assert.rejects(() => runtime.execute("browser_act", { session_id: opened.session_id, action: { type: "type", target: input.ref, text: "hello" } }, { scopeId: "chat-a", requestState: {} }), (error) => {
+				secondApprovalError = error;
+				return error.code === "tool_approval_required";
+			});
+			await runtime.approveAction({ requestId: secondApprovalError.approval_request.request_id, scopeId: "chat-a", decision: "approve" });
+			await runtime.execute("browser_act", { session_id: opened.session_id, action: { type: "type", target: input.ref, text: "hello" } }, { scopeId: "chat-a", requestState: {} });
+			await assert.rejects(() => runtime.execute("browser_act", { session_id: opened.session_id, action: { type: "type", target: input.ref, text: "world" } }, { scopeId: "chat-a", requestState: {} }), (error) => error.code === "tool_approval_required");
+		} finally {
+			await destroy();
+		}
+	});
+});
+
 test("browser navigation remains usable when a page emits blocked background writes", async () => {
 	await withFixture((req, res) => {
 		if (req.method === "POST") {
