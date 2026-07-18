@@ -2035,6 +2035,18 @@ textarea {
 	letter-spacing: 0.05em;
 }
 
+.usage-filter-custom-range {
+	display: grid;
+	grid-column: span 2;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 10px;
+	min-width: 0;
+}
+
+.usage-filter-custom-range label {
+	min-width: 0;
+}
+
 .heading-controls {
 	width: 6px;
 }
@@ -2836,6 +2848,11 @@ textarea {
 	}
 
 	.usage-filters-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.usage-filter-custom-range {
+		grid-column: span 1;
 		grid-template-columns: 1fr;
 	}
 

@@ -161,6 +161,7 @@ const nodes = {
 	usageFilterProvider: document.getElementById("usage-filter-provider"),
 	usageFilterModel: document.getElementById("usage-filter-model"),
 	usageFilterWindow: document.getElementById("usage-filter-window"),
+	usageFilterCustomRange: document.getElementById("usage-filter-custom-range"),
 	usageFilterStartWrap: document.getElementById("usage-filter-start-wrap"),
 	usageFilterEndWrap: document.getElementById("usage-filter-end-wrap"),
 	usageFilterStart: document.getElementById("usage-filter-start"),
@@ -3007,8 +3008,7 @@ function usageGroupLabel(record, groupBy) {
 function syncUsageWindowInputs() {
 	const windowValue = String(nodes.usageFilterWindow.value || "30d");
 	const customVisible = windowValue === "custom";
-	nodes.usageFilterStartWrap.classList.toggle("hidden", !customVisible);
-	nodes.usageFilterEndWrap.classList.toggle("hidden", !customVisible);
+	nodes.usageFilterCustomRange.classList.toggle("hidden", !customVisible);
 	if (!customVisible) {
 		return;
 	}
