@@ -261,8 +261,10 @@ function applyEvent(event, raw, result) {
 	if (event === "thinking") result.thinking += payload.delta || "";
 	if (event === "error") { result.ok = false; result.error = payload.message || payload.error || "Provider stream failed."; }
 	if (event === "done") {
-		result.content = payload.output_text || result.content;
-		result.thinking = payload.thinking_text || result.thinking;
+		// Some compatible upstreams stream token deltas but omit output_text in the
+		// final event. Do not replace a valid streamed response with that empty field.
+		if (String(payload.output_text || "").trim()) result.content = payload.output_text;
+		if (String(payload.thinking_text || "").trim()) result.thinking = payload.thinking_text;
 		result.usage = payload.usage || null;
 		result.provider = payload.provider || null;
 		result.model = payload.model || null;
