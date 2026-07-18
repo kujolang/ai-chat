@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
-import crypto from "node:crypto";
-import fs from "node:fs/promises";
-import path from "node:path";
+const crypto = require("node:crypto");
+const fs = require("node:fs/promises");
+const path = require("node:path");
 
 const args = parseArgs(process.argv.slice(2));
 const baseUrl = String(args.baseUrl || process.env.BENCHMARK_BASE_URL || `http://127.0.0.1:${process.env.PORT || "4174"}`).replace(/\/$/, "");
@@ -10,6 +10,7 @@ const apiToken = String(args.apiToken || process.env.BENCHMARK_API_TOKEN || proc
 const testFile = String(args.tests || "").trim();
 const paneProfileName = String(args.paneProfile || "OpenRouter (TUD)").trim();
 const outputDirectory = path.resolve(args.outputDir || "data/benchmark-runs");
+const concurrency = Math.max(1, Math.min(20, Number(args.concurrency || 4) || 4));
 let currentPaneProfile;
 
 if (!apiToken) fail("Missing API_AUTH_TOKEN (or --api-token).");
@@ -28,7 +29,12 @@ const run = {
 	summary: { total: 0, completed: 0, failed: 0 }
 };
 
+void main();
+
+async function main() {
 try {
+	const priorRun = await readPriorRun();
+	if (priorRun?.started_at && !priorRun.finished_at) run.started_at = priorRun.started_at;
 	const tests = parseBenchmarkTests(await fs.readFile(testFile, "utf8"));
 	const state = await requestJson("/api/state");
 	const paneProfile = (state.state?.settings?.paneProfiles || []).find((profile) => profile.name === paneProfileName);
@@ -41,21 +47,31 @@ try {
 	run.summary.total = tests.length * paneProfile.panes.length;
 	console.log(`Benchmark run ${runId}`);
 	console.log(`Started: ${run.started_at}`);
-	console.log(`${tests.length} tests × ${paneProfile.panes.length} panes = ${run.summary.total} responses`);
+	console.log(`${tests.length} tests × ${paneProfile.panes.length} panes = ${run.summary.total} responses (concurrency ${concurrency})`);
 
 	for (const benchmark of tests) {
-		const chat = createChat(benchmark);
-		await persistInitialChat(chat, benchmark.prompt);
+		const existingChat = (state.state?.chats || []).find((chat) => chat.title === benchmarkTitle(benchmark));
+		const chat = existingChat ? hydrateChat(existingChat) : createChat(benchmark);
+		if (!existingChat) await persistInitialChat(chat, benchmark.prompt);
 		const testResult = { number: benchmark.number, title: benchmark.title, chat_id: chat.id, panes: [] };
 		run.tests.push(testResult);
-
+		const pending = [];
 		for (const pane of chat.panes) {
+			const completed = pane.messages?.find((message) => message.role === "assistant" && !String(message.content || "").startsWith("Error:"));
+			if (completed) {
+				testResult.panes.push({ model: pane.model, profile_id: pane.profile_id, ok: true, reused: true, duration_ms: null, usage: completed.usage || null });
+				run.summary.completed += 1;
+			} else {
+				pending.push(pane);
+			}
+		}
+		await mapWithConcurrency(pending, concurrency, async (pane) => {
 			const paneResult = await runPane({ chat, pane, benchmark, maxTokens, temperature });
 			testResult.panes.push(paneResult);
 			run.summary[paneResult.ok ? "completed" : "failed"] += 1;
 			await writeRun();
 			console.log(`[${run.summary.completed + run.summary.failed}/${run.summary.total}] Test ${benchmark.number} · ${pane.model} · ${paneResult.ok ? "ok" : "failed"} · ${paneResult.duration_ms}ms`);
-		}
+		});
 	}
 } catch (error) {
 	run.fatal_error = error instanceof Error ? error.message : String(error);
@@ -68,6 +84,7 @@ try {
 	console.log(`Finished: ${run.finished_at}`);
 	console.log(`Duration: ${formatDuration(run.duration_ms)}`);
 	console.log(`Completed: ${run.summary.completed}; failed: ${run.summary.failed}`);
+}
 }
 
 function parseArgs(values) {
@@ -98,11 +115,31 @@ function createChat(benchmark) {
 	const id = crypto.randomUUID();
 	return {
 		id,
-		title: `Benchmark ${String(benchmark.number).padStart(2, "0")} — ${benchmark.title}`,
+		title: benchmarkTitle(benchmark),
 		created_at: now,
 		updated_at: now,
 		panes: currentPaneProfile.panes.map((savedPane, index) => ({
 			id: crypto.randomUUID(), chat_id: id, profile_id: String(savedPane.profile_id), model: String(savedPane.model), status: "waiting", sort_order: index
+		}))
+	};
+}
+
+function benchmarkTitle(benchmark) {
+	return `Benchmark ${String(benchmark.number).padStart(2, "0")} — ${benchmark.title}`;
+}
+
+function hydrateChat(chat) {
+	return {
+		id: chat.id,
+		title: chat.title,
+		panes: (chat.panes || []).map((pane, index) => ({
+			id: pane.id,
+			chat_id: chat.id,
+			profile_id: pane.profile_id,
+			model: pane.model,
+			status: pane.status || "idle",
+			sort_order: index,
+			messages: pane.messages || []
 		}))
 	};
 }
@@ -218,6 +255,24 @@ async function requestJson(endpoint, options = {}) {
 async function writeRun() {
 	await fs.mkdir(outputDirectory, { recursive: true });
 	await fs.writeFile(path.join(outputDirectory, `${runId}.json`), `${JSON.stringify(run, null, 2)}\n`);
+}
+
+async function readPriorRun() {
+	try {
+		return JSON.parse(await fs.readFile(path.join(outputDirectory, `${runId}.json`), "utf8"));
+	} catch {
+		return null;
+	}
+}
+
+async function mapWithConcurrency(items, limit, iteratee) {
+	let next = 0;
+	await Promise.all(Array.from({ length: Math.min(limit, items.length) }, async () => {
+		while (next < items.length) {
+			const item = items[next++];
+			await iteratee(item);
+		}
+	}));
 }
 
 function formatDuration(milliseconds) {
