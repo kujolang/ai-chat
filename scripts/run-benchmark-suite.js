@@ -270,14 +270,19 @@ function applyEvent(event, raw, result) {
 }
 
 async function requestJson(endpoint, options = {}) {
-	const response = await fetch(`${baseUrl}${endpoint}`, {
-		method: options.method || "GET",
-		headers: { "X-API-Token": apiToken, ...(options.body ? { "Content-Type": "application/json" } : {}) },
-		body: options.body ? JSON.stringify(options.body) : undefined
-	});
-	const payload = await response.json().catch(() => null);
-	if (!response.ok || !payload?.ok) throw new Error(`${endpoint} failed: HTTP ${response.status} ${payload?.error?.message || ""}`.trim());
-	return payload;
+	for (let attempt = 1; attempt <= 5; attempt += 1) {
+		const response = await fetch(`${baseUrl}${endpoint}`, {
+			method: options.method || "GET",
+			headers: { "X-API-Token": apiToken, ...(options.body ? { "Content-Type": "application/json" } : {}) },
+			body: options.body ? JSON.stringify(options.body) : undefined
+		});
+		const payload = await response.json().catch(() => null);
+		if (response.ok && payload?.ok) return payload;
+		const message = `${endpoint} failed: HTTP ${response.status} ${payload?.error?.message || ""}`.trim();
+		if (attempt >= 5 || !/database is locked|SQLITE_BUSY/i.test(message)) throw new Error(message);
+		await delay(250 * 2 ** (attempt - 1));
+	}
+	throw new Error(`${endpoint} failed after retrying persistence.`);
 }
 
 async function writeRun() {
