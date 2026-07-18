@@ -57,10 +57,13 @@ try {
 		run.tests.push(testResult);
 		const pending = [];
 		for (const pane of chat.panes) {
-			const completed = pane.messages?.find((message) => message.role === "assistant" && !String(message.content || "").startsWith("Error:"));
-			if (completed) {
-				testResult.panes.push({ model: pane.model, profile_id: pane.profile_id, ok: true, reused: true, duration_ms: null, usage: completed.usage || null });
-				run.summary.completed += 1;
+			const priorResponse = pane.messages?.find((message) => message.role === "assistant");
+			if (priorResponse) {
+				const priorError = String(priorResponse.content || "").startsWith("Error:")
+					? String(priorResponse.content).slice("Error:".length).trim()
+					: null;
+				testResult.panes.push({ model: pane.model, profile_id: pane.profile_id, ok: !priorError, reused: true, error: priorError, duration_ms: null, usage: priorResponse.usage || null });
+				run.summary[priorError ? "failed" : "completed"] += 1;
 			} else {
 				pending.push(pane);
 			}
