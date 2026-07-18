@@ -487,10 +487,10 @@ test("POST /api/state/changes persists reusable pane profiles independently", as
 			const paneProfiles = [{
 					id: "content-benchmark",
 					name: "Content Benchmark",
-					panes: [
-						{ profile_id: providerProfileId, model: "gpt-4.1" },
-						{ profile_id: providerProfileId, model: "gpt-4.1-mini" }
-					]
+					panes: Array.from({ length: 20 }, (_, index) => ({
+						profile_id: providerProfileId,
+						model: `benchmark-model-${index + 1}`
+					}))
 				}];
 			const result = await fetchJson(baseUrl, "/api/state/changes", {
 				method: "POST",
