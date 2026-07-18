@@ -11,6 +11,7 @@ const testFile = String(args.tests || "").trim();
 const paneProfileName = String(args.paneProfile || "OpenRouter (TUD)").trim();
 const outputDirectory = path.resolve(args.outputDir || "data/benchmark-runs");
 const concurrency = Math.max(1, Math.min(20, Number(args.concurrency || 4) || 4));
+const retryFailures = args.retryFailures === true || args.retryFailures === "true";
 let currentPaneProfile;
 
 if (!apiToken) fail("Missing API_AUTH_TOKEN (or --api-token).");
@@ -58,14 +59,15 @@ try {
 		const pending = [];
 		for (const pane of chat.panes) {
 			const priorResponse = pane.messages?.find((message) => message.role === "assistant");
-			if (priorResponse) {
+			const retryPriorFailure = retryFailures && priorResponse && String(priorResponse.content || "").startsWith("Error:") && !/HTTP 404/.test(String(priorResponse.content));
+			if (priorResponse && !retryPriorFailure) {
 				const priorError = String(priorResponse.content || "").startsWith("Error:")
 					? String(priorResponse.content).slice("Error:".length).trim()
 					: null;
 				testResult.panes.push({ model: pane.model, profile_id: pane.profile_id, ok: !priorError, reused: true, error: priorError, duration_ms: null, usage: priorResponse.usage || null });
 				run.summary[priorError ? "failed" : "completed"] += 1;
 			} else {
-				pending.push(pane);
+				pending.push({ ...pane, retry_message_id: priorResponse?.id || null });
 			}
 		}
 		await mapWithConcurrency(pending, concurrency, async (pane) => {
@@ -96,7 +98,8 @@ function parseArgs(values) {
 		const value = values[index];
 		if (!value.startsWith("--")) continue;
 		const [key, inlineValue] = value.slice(2).split("=", 2);
-		result[key.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase())] = inlineValue ?? values[++index];
+		const nextValue = values[index + 1];
+		result[key.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase())] = inlineValue ?? (nextValue && !nextValue.startsWith("--") ? values[++index] : true);
 	}
 	return result;
 }
@@ -187,7 +190,7 @@ async function runPane({ chat, pane, benchmark, maxTokens, temperature }) {
 	const content = result.ok ? result.content : `Error: ${result.error}`;
 	await requestJson("/api/state/changes", { method: "POST", body: { changes: [
 		{ type: "message_upsert", message: {
-			id: crypto.randomUUID(), pane_id: pane.id, role: "assistant", content, thinking: result.thinking || "", usage: result.usage || null,
+			id: pane.retry_message_id || crypto.randomUUID(), pane_id: pane.id, role: "assistant", content, thinking: result.thinking || "", usage: result.usage || null,
 			provider: result.provider || null, model: result.model || pane.model, created_at: Date.now(), sort_order: 1
 		} },
 		{ type: "pane_upsert", pane: { ...pane, status: "idle" } }
