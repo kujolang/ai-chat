@@ -1194,7 +1194,10 @@ function saveCurrentPaneProfile() {
 	});
 	nodes.paneProfileNameInput.value = "";
 	nodes.paneProfileError.textContent = "";
-	schedulePersist();
+	// Pane profiles are intentional, reusable configuration. Start their save
+	// immediately so a page refresh right after clicking Save cannot outrun the
+	// normal debounced state sync.
+	schedulePersist({ immediate: true });
 	renderPaneProfiles();
 }
 
@@ -1268,7 +1271,7 @@ function focusComposerInput() {
 	});
 }
 
-function schedulePersist() {
+function schedulePersist({ immediate = false } = {}) {
 	saveStateToCache();
 	persistRequested = true;
 	setSaveStatus("pending", "Saving…");
@@ -1278,6 +1281,11 @@ function schedulePersist() {
 
 	if (persistTimer) {
 		clearTimeout(persistTimer);
+		persistTimer = null;
+	}
+	if (immediate) {
+		void persistStateToServer();
+		return;
 	}
 	persistTimer = setTimeout(() => {
 		void persistStateToServer();
