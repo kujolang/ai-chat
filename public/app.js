@@ -353,7 +353,7 @@ function normalizePaneProfile(paneProfile) {
 	if (!paneProfile || typeof paneProfile !== "object") return null;
 	const name = String(paneProfile.name || "").trim().slice(0, 120);
 	const panes = Array.isArray(paneProfile.panes)
-		? paneProfile.panes.slice(0, 12).map((pane) => ({
+		? paneProfile.panes.slice(0, 32).map((pane) => ({
 			profile_id: String((pane && pane.profile_id) || ""),
 			model: String((pane && pane.model) || "").slice(0, 500)
 		})).filter((pane) => pane.profile_id)

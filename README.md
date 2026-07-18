@@ -340,6 +340,21 @@ Backups are written under DB_BACKUP_DIR.
 
 ## Validation
 
+Run a saved pane profile across every test in a benchmark Markdown document. The
+runner creates one chat per test, persists each pane response as it completes,
+and writes the exact start time, finish time, and per-response duration under
+`data/benchmark-runs/`:
+
+```bash
+API_AUTH_TOKEN=your_app_token npm run benchmark:run -- \
+  --tests "/absolute/path/Benchmark Tests.md" \
+  --pane-profile "OpenRouter (TUD)"
+```
+
+The app server must already be running. Re-run with `--run-id <id>` to keep
+the run artifact under a predictable name; completed pane responses remain in
+their benchmark chats if a later provider request fails.
+
 Run smoke tests (server must already be running):
 
 ```bash
