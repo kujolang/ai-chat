@@ -133,6 +133,45 @@ test("catalog migration keeps existing model suggestions while appending new can
 	}
 });
 
+test("catalog migration preserves the curated Watchdog OpenRouter TUD model list", () => {
+	const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-tud-catalog-migration-"));
+	const sdkPath = path.join(tempRoot, "ai-sdk");
+	fs.mkdirSync(sdkPath, { recursive: true });
+	fs.writeFileSync(path.join(sdkPath, "ai_sdk.kujo"), "# test sdk placeholder\n");
+	fs.writeFileSync(path.join(sdkPath, "providers.kujo"), "# test providers placeholder\n");
+	const env = {
+		...process.env,
+		ENCRYPTION_SECRET: "unit-test-secret",
+		API_AUTH_TOKEN: "unit-test-token",
+		AI_SDK_PATH: sdkPath,
+		DB_PATH: path.join(tempRoot, "data", "test.db"),
+		DB_BACKUP_DIR: path.join(tempRoot, "backups"),
+		PORT: "0",
+		KUJO_BIN: "/usr/bin/false"
+	};
+
+	const firstRuntime = createServerRuntime({ env, projectRoot: path.resolve(__dirname, "..") });
+	try {
+		const state = firstRuntime.helpers.readState();
+		const profile = state.settings.profiles.find((entry) => entry.provider_id === "watchdog_openrouter");
+		profile.name = "Watchdog / OpenRouter (TUD)";
+		profile.models_csv = "openai/gpt-5.4,anthropic/claude-sonnet-5";
+		firstRuntime.helpers.writeState(state);
+	} finally {
+		firstRuntime.close();
+	}
+
+	const upgradedRuntime = createServerRuntime({ env, projectRoot: path.resolve(__dirname, "..") });
+	try {
+		const state = upgradedRuntime.helpers.readState();
+		const profile = state.settings.profiles.find((entry) => entry.provider_id === "watchdog_openrouter");
+		assert.equal(profile.models_csv, "openai/gpt-5.4,anthropic/claude-sonnet-5");
+	} finally {
+		upgradedRuntime.close();
+		fs.rmSync(tempRoot, { recursive: true, force: true });
+	}
+});
+
 test("normalizeMessages keeps only supported roles and trims role", () => {
 	const { runtime, destroy } = createIsolatedRuntime();
 	try {
