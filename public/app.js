@@ -46,6 +46,8 @@ let stopStreamingRequested = false;
 let codeHighlightScheduled = false;
 const pendingCodeHighlightRoots = new Set();
 const browserArtifactImageUrls = new Map();
+let screenshotGalleryArtifacts = [];
+let screenshotGalleryIndex = 0;
 const apiTokenStorageKey = "ai_chat_api_token";
 const apiTokenExpiresAtStorageKey = "ai_chat_api_token_expires_at";
 const stateCacheStorageKey = "ai_chat_state_cache_v1";
@@ -113,6 +115,13 @@ const nodes = {
 	settingsModal: document.getElementById("settings-modal"),
 	paneProfilesModal: document.getElementById("pane-profiles-modal"),
 	closePaneProfilesBtn: document.getElementById("close-pane-profiles-btn"),
+	screenshotGalleryModal: document.getElementById("screenshot-gallery-modal"),
+	closeScreenshotGalleryBtn: document.getElementById("close-screenshot-gallery-btn"),
+	screenshotGalleryImage: document.getElementById("screenshot-gallery-image"),
+	screenshotGalleryPreviousBtn: document.getElementById("screenshot-gallery-previous-btn"),
+	screenshotGalleryNextBtn: document.getElementById("screenshot-gallery-next-btn"),
+	screenshotGalleryCount: document.getElementById("screenshot-gallery-count"),
+	screenshotGalleryThumbnails: document.getElementById("screenshot-gallery-thumbnails"),
 	paneProfileNameInput: document.getElementById("pane-profile-name-input"),
 	savePaneProfileBtn: document.getElementById("save-pane-profile-btn"),
 	paneProfileError: document.getElementById("pane-profile-error"),
@@ -387,6 +396,19 @@ function wireEvents() {
 	nodes.paneProfilesModal.addEventListener("click", (event) => {
 		if (event.target.getAttribute("data-close-pane-profiles") === "true") {
 			closePaneProfilesModal();
+		}
+	});
+	nodes.closeScreenshotGalleryBtn.addEventListener("click", closeScreenshotGallery);
+	nodes.screenshotGalleryPreviousBtn.addEventListener("click", () => moveScreenshotGallery(-1));
+	nodes.screenshotGalleryNextBtn.addEventListener("click", () => moveScreenshotGallery(1));
+	nodes.screenshotGalleryModal.addEventListener("click", (event) => {
+		if (event.target.getAttribute("data-close-screenshot-gallery") === "true") {
+			closeScreenshotGallery();
+			return;
+		}
+		const thumbnail = event.target.closest("[data-screenshot-gallery-index]");
+		if (thumbnail) {
+			showScreenshotGalleryItem(Number(thumbnail.getAttribute("data-screenshot-gallery-index")));
 		}
 	});
 	nodes.savePaneProfileBtn.addEventListener("click", saveCurrentPaneProfile);
@@ -783,6 +805,12 @@ function wireEvents() {
 	});
 
 	nodes.paneGrid.addEventListener("click", (event) => {
+		const screenshotButton = event.target.closest("[data-action='open-screenshot-gallery'][data-browser-artifact-id]");
+		if (screenshotButton) {
+			openScreenshotGallery(String(screenshotButton.getAttribute("data-browser-artifact-id") || ""));
+			return;
+		}
+
 		const copyCodeButton = event.target.closest("[data-action='copy-code']");
 		if (copyCodeButton) {
 			const codeWrap = copyCodeButton.closest(".code-block-wrap");
@@ -1094,6 +1122,48 @@ function openPaneProfilesModal() {
 
 function closePaneProfilesModal() {
 	nodes.paneProfilesModal.classList.add("hidden");
+}
+
+function openScreenshotGallery(artifactId) {
+	const chat = getActiveChat();
+	screenshotGalleryArtifacts = browserScreenshotArtifactsForChat(chat);
+	if (screenshotGalleryArtifacts.length === 0) return;
+	const requestedIndex = screenshotGalleryArtifacts.findIndex((artifact) => artifact.artifact_id === artifactId);
+	screenshotGalleryIndex = requestedIndex >= 0 ? requestedIndex : 0;
+	nodes.screenshotGalleryPreviousBtn.innerHTML = chevronLeftSvg;
+	nodes.screenshotGalleryNextBtn.innerHTML = chevronRightSvg;
+	nodes.screenshotGalleryModal.classList.remove("hidden");
+	showScreenshotGalleryItem(screenshotGalleryIndex);
+	window.requestAnimationFrame(() => nodes.closeScreenshotGalleryBtn.focus());
+}
+
+function closeScreenshotGallery() {
+	nodes.screenshotGalleryModal.classList.add("hidden");
+	nodes.screenshotGalleryImage.removeAttribute("src");
+}
+
+function moveScreenshotGallery(delta) {
+	if (screenshotGalleryArtifacts.length < 2) return;
+	const count = screenshotGalleryArtifacts.length;
+	showScreenshotGalleryItem((screenshotGalleryIndex + delta + count) % count);
+}
+
+function showScreenshotGalleryItem(index) {
+	if (!Number.isInteger(index) || index < 0 || index >= screenshotGalleryArtifacts.length) return;
+	screenshotGalleryIndex = index;
+	const artifact = screenshotGalleryArtifacts[index];
+	nodes.screenshotGalleryImage.dataset.browserArtifactId = artifact.artifact_id;
+	delete nodes.screenshotGalleryImage.dataset.loaded;
+	delete nodes.screenshotGalleryImage.dataset.loading;
+	nodes.screenshotGalleryImage.removeAttribute("src");
+	nodes.screenshotGalleryImage.alt = `Browser screenshot ${index + 1}`;
+	nodes.screenshotGalleryCount.textContent = `Screenshot ${index + 1} of ${screenshotGalleryArtifacts.length}`;
+	nodes.screenshotGalleryPreviousBtn.disabled = screenshotGalleryArtifacts.length < 2;
+	nodes.screenshotGalleryNextBtn.disabled = screenshotGalleryArtifacts.length < 2;
+	nodes.screenshotGalleryThumbnails.innerHTML = screenshotGalleryArtifacts.map((item, thumbnailIndex) => `<button type="button" class="screenshot-gallery-thumbnail${thumbnailIndex === index ? " selected" : ""}" data-screenshot-gallery-index="${thumbnailIndex}" aria-label="View browser screenshot ${thumbnailIndex + 1}" aria-current="${thumbnailIndex === index ? "true" : "false"}"><img data-browser-artifact-id="${escapeHtml(item.artifact_id)}" alt="Browser screenshot ${thumbnailIndex + 1}"></button>`).join("");
+	hydrateBrowserArtifactImages(nodes.screenshotGalleryModal);
+	const selectedThumbnail = nodes.screenshotGalleryThumbnails.querySelector(".selected");
+	if (selectedThumbnail) selectedThumbnail.scrollIntoView({ block: "nearest", inline: "center" });
 }
 
 function saveCurrentPaneProfile() {
@@ -1972,7 +2042,18 @@ function renderBrowserScreenshotArtifacts(message) {
 		? message.usage.tool_artifacts
 		: []);
 	if (screenshots.length === 0) return "";
-	return `<div class="message-tool-artifacts" aria-label="Browser screenshots">${screenshots.map((artifact, index) => `<figure class="message-tool-artifact"><img class="message-tool-screenshot" data-browser-artifact-id="${escapeHtml(artifact.artifact_id)}" alt="Browser screenshot ${index + 1}"/><figcaption>Browser screenshot</figcaption></figure>`).join("")}</div>`;
+	return `<div class="message-tool-artifacts" aria-label="Browser screenshots">${screenshots.map((artifact, index) => `<button type="button" class="message-tool-artifact" data-action="open-screenshot-gallery" data-browser-artifact-id="${escapeHtml(artifact.artifact_id)}" aria-label="Open browser screenshot ${index + 1}"><img class="message-tool-screenshot" data-browser-artifact-id="${escapeHtml(artifact.artifact_id)}" alt="Browser screenshot ${index + 1}"/><span class="message-tool-artifact-caption">Screenshot ${index + 1}</span></button>`).join("")}</div>`;
+}
+
+function browserScreenshotArtifactsForChat(chat) {
+	if (!chat || !Array.isArray(chat.panes)) return [];
+	const artifacts = [];
+	for (const pane of chat.panes) {
+		for (const message of Array.isArray(pane.messages) ? pane.messages : []) {
+			artifacts.push(...uniqueBrowserScreenshotArtifacts(message && message.usage && message.usage.tool_artifacts));
+		}
+	}
+	return uniqueBrowserScreenshotArtifacts(artifacts);
 }
 
 function uniqueBrowserScreenshotArtifacts(artifacts) {

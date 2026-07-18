@@ -141,6 +141,25 @@
 		</div>
 	</div>
 
+	<div id="screenshot-gallery-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="screenshot-gallery-title">
+		<div class="modal-backdrop" data-close-screenshot-gallery="true"></div>
+		<div class="modal-panel screenshot-gallery-modal-panel">
+			<div class="modal-head">
+				<h2 id="screenshot-gallery-title">Browser screenshots</h2>
+				<button id="close-screenshot-gallery-btn" class="modal-close-icon" aria-label="Close browser screenshots" title="Close browser screenshots">
+					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>
+				</button>
+			</div>
+			<div class="screenshot-gallery-viewer">
+				<button id="screenshot-gallery-previous-btn" class="btn ghost icon-only screenshot-gallery-nav" aria-label="Previous screenshot" title="Previous screenshot"></button>
+				<img id="screenshot-gallery-image" class="screenshot-gallery-image" alt="Browser screenshot">
+				<button id="screenshot-gallery-next-btn" class="btn ghost icon-only screenshot-gallery-nav" aria-label="Next screenshot" title="Next screenshot"></button>
+			</div>
+			<div id="screenshot-gallery-count" class="screenshot-gallery-count" aria-live="polite"></div>
+			<div id="screenshot-gallery-thumbnails" class="screenshot-gallery-thumbnails" aria-label="Browser screenshot thumbnails"></div>
+		</div>
+	</div>
+
 	<div id="settings-modal" class="modal hidden">
 		<div class="modal-backdrop" data-close="true"></div>
 		<div class="modal-panel settings-modal-panel">
