@@ -107,9 +107,17 @@ unless it appears in the supplied evidence."
 
 ## Next benchmark run
 
-1. Replace the seven unavailable model IDs after obtaining the provider's
-   accessible-model list.
-2. Run at a conservative concurrency (four or fewer) to avoid the transient
-   terminated/fetch-failed batch observed here.
-3. Separate quality from availability in the final scorecard and rerun Tests 2
-   and 3 for the affected models.
+The profile was corrected after this review. The seven unavailable IDs were
+replaced with these individually verified stream targets:
+
+- `openai/gpt-5.6-terra`
+- `openai/gpt-5.5`
+- `google/gemini-3.1-flash-lite`
+- `~anthropic/claude-haiku-latest`
+- `moonshotai/kimi-k2.6`
+- `mistralai/mistral-medium-3-5`
+- `openai/gpt-5.4-mini`
+
+The runner now defaults to sequential requests and up to three retries for
+transient or empty responses. The next full run should be a fresh run ID using
+this corrected 20-model profile; Tests 2 and 3 should then be scored normally.

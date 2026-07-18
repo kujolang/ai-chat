@@ -10,7 +10,8 @@ const apiToken = String(args.apiToken || process.env.BENCHMARK_API_TOKEN || proc
 const testFile = String(args.tests || "").trim();
 const paneProfileName = String(args.paneProfile || "OpenRouter (TUD)").trim();
 const outputDirectory = path.resolve(args.outputDir || "data/benchmark-runs");
-const concurrency = Math.max(1, Math.min(20, Number(args.concurrency || 4) || 4));
+const concurrency = Math.max(1, Math.min(20, Number(args.concurrency || 1) || 1));
+const maxAttempts = Math.max(1, Math.min(5, Number(args.maxAttempts || 3) || 3));
 const retryFailures = args.retryFailures === true || args.retryFailures === "true";
 let currentPaneProfile;
 
@@ -48,7 +49,7 @@ try {
 	run.summary.total = tests.length * paneProfile.panes.length;
 	console.log(`Benchmark run ${runId}`);
 	console.log(`Started: ${run.started_at}`);
-	console.log(`${tests.length} tests × ${paneProfile.panes.length} panes = ${run.summary.total} responses (concurrency ${concurrency})`);
+	console.log(`${tests.length} tests × ${paneProfile.panes.length} panes = ${run.summary.total} responses (concurrency ${concurrency}, max attempts ${maxAttempts})`);
 
 	for (const benchmark of tests) {
 		const existingChat = (state.state?.chats || []).find((chat) => chat.title === benchmarkTitle(benchmark));
@@ -167,24 +168,34 @@ async function persistInitialChat(chat, prompt) {
 
 async function runPane({ chat, pane, benchmark, maxTokens, temperature }) {
 	const started = Date.now();
-	let result;
-	try {
-		result = await streamChat({
-			profile_id: pane.profile_id,
-			trace_id: crypto.randomUUID(),
-			request_id: crypto.randomUUID(),
-			chat_id: chat.id,
-			pane_id: pane.id,
-			session_id: chat.id,
-			correlation_id: pane.id,
-			model: pane.model,
-			temperature: Number.isFinite(temperature) ? temperature : 0.2,
-			max_tokens: maxTokens,
-			messages: [{ role: "user", content: benchmark.prompt }],
-			tools: []
-		});
-	} catch (error) {
-		result = { ok: false, error: error instanceof Error ? error.message : String(error), content: "", thinking: "", usage: null };
+	let result = null;
+	let attempts = 0;
+	while (attempts < maxAttempts) {
+		attempts += 1;
+		try {
+			const streamed = await streamChat({
+				profile_id: pane.profile_id,
+				trace_id: crypto.randomUUID(),
+				request_id: crypto.randomUUID(),
+				chat_id: chat.id,
+				pane_id: pane.id,
+				session_id: chat.id,
+				correlation_id: pane.id,
+				model: pane.model,
+				temperature: Number.isFinite(temperature) ? temperature : 0.2,
+				max_tokens: maxTokens,
+				messages: [{ role: "user", content: benchmark.prompt }],
+				tools: []
+			});
+			if (!String(streamed.content || "").trim()) throw new Error("Provider returned an empty response.");
+			result = streamed;
+			break;
+		} catch (error) {
+			const message = error instanceof Error ? error.message : String(error);
+			result = { ok: false, error: message, content: "", thinking: "", usage: null };
+			if (attempts >= maxAttempts || !isRetryableBenchmarkError(message)) break;
+			await delay(1000 * 2 ** (attempts - 1));
+		}
 	}
 	const duration = Date.now() - started;
 	const content = result.ok ? result.content : `Error: ${result.error}`;
@@ -195,7 +206,15 @@ async function runPane({ chat, pane, benchmark, maxTokens, temperature }) {
 		} },
 		{ type: "pane_upsert", pane: { ...pane, status: "idle" } }
 	] } });
-	return { model: pane.model, profile_id: pane.profile_id, ok: result.ok, error: result.error || null, duration_ms: duration, usage: result.usage || null };
+	return { model: pane.model, profile_id: pane.profile_id, ok: result.ok, error: result.error || null, attempts, duration_ms: duration, usage: result.usage || null };
+}
+
+function isRetryableBenchmarkError(message) {
+	return !/(HTTP 4(00|01|03|04|22|29)|missing an API key|invalid_request|auth_error)/i.test(String(message || ""));
+}
+
+function delay(milliseconds) {
+	return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
 async function streamChat(payload) {

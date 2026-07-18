@@ -355,6 +355,11 @@ The app server must already be running. Re-run with `--run-id <id>` to keep
 the run artifact under a predictable name; completed pane responses remain in
 their benchmark chats if a later provider request fails.
 
+Benchmark runs default to one request at a time and retry transient or empty
+responses up to three times. This is intentional for shared work keys; use
+`--concurrency 4` only after a stable baseline, and do not increase it merely
+to shorten a run.
+
 Run smoke tests (server must already be running):
 
 ```bash
