@@ -161,6 +161,10 @@ const nodes = {
 	usageFilterProvider: document.getElementById("usage-filter-provider"),
 	usageFilterModel: document.getElementById("usage-filter-model"),
 	usageFilterWindow: document.getElementById("usage-filter-window"),
+	usageFilterStartWrap: document.getElementById("usage-filter-start-wrap"),
+	usageFilterEndWrap: document.getElementById("usage-filter-end-wrap"),
+	usageFilterStart: document.getElementById("usage-filter-start"),
+	usageFilterEnd: document.getElementById("usage-filter-end"),
 	usageGroupBy: document.getElementById("usage-group-by"),
 	usageChartType: document.getElementById("usage-chart-type"),
 	usageChartCanvas: document.getElementById("usage-chart-canvas"),
@@ -597,6 +601,15 @@ function wireEvents() {
 
 	for (const usageFilterNode of usageFilterNodes) {
 		usageFilterNode.addEventListener("change", () => {
+			if (usageFilterNode === nodes.usageFilterWindow) {
+				syncUsageWindowInputs();
+			}
+			renderUsageModalContent();
+		});
+	}
+
+	for (const usageDateNode of [nodes.usageFilterStart, nodes.usageFilterEnd]) {
+		usageDateNode.addEventListener("change", () => {
 			renderUsageModalContent();
 		});
 	}
@@ -2304,6 +2317,7 @@ function closeAutomationsModal() {
 function openUsageModal() {
 	nodes.usageModal.classList.remove("hidden");
 	window.requestAnimationFrame(() => {
+		syncUsageWindowInputs();
 		syncUsageFilterOptions(false);
 		renderUsageModalContent();
 	});
@@ -2568,6 +2582,40 @@ function finiteUsageValue(value) {
 	return Number.isFinite(numeric) && numeric >= 0 ? numeric : 0;
 }
 
+function parseUsageTimestamp(value, fallback = Date.now()) {
+	if (Number.isFinite(Number(value))) {
+		return Number(value);
+	}
+
+	if (typeof value === "string") {
+		const parsed = Date.parse(value);
+		if (Number.isFinite(parsed)) {
+			return parsed;
+		}
+	}
+
+	return fallback;
+}
+
+function usageTokenCount(entry) {
+	if (!entry || typeof entry !== "object") {
+		return 0;
+	}
+
+	const directTotal = Number(entry.tokens);
+	if (Number.isFinite(directTotal) && directTotal > 0) {
+		return directTotal;
+	}
+
+	const aliasedTotal = Number(entry.total_tokens);
+	if (Number.isFinite(aliasedTotal) && aliasedTotal > 0) {
+		return aliasedTotal;
+	}
+
+	const derivedTotal = finiteUsageValue(entry.input_tokens) + finiteUsageValue(entry.output_tokens);
+	return derivedTotal > 0 ? derivedTotal : 0;
+}
+
 function nullableUsageValue(value) {
 	if (value === null || value === undefined || (typeof value === "string" && value.trim() === "")) {
 		return null;
@@ -2618,7 +2666,7 @@ function collectUsageRecords() {
 					continue;
 				}
 
-				const createdAt = Number(message.createdAt);
+				const createdAt = parseUsageTimestamp(message.createdAt, Number(chat.updatedAt || Date.now()));
 				const messageId = String(message.id || "");
 				if (messageId) {
 					liveMessageIds.add(messageId);
@@ -2642,7 +2690,7 @@ function collectUsageRecords() {
 					cached_input_tokens: nullableUsageValue(message.usage.cached_input_tokens),
 					cache_write_input_tokens: nullableUsageValue(message.usage.cache_write_input_tokens),
 					cache_details_reported: Boolean(message.usage.cache_details_reported),
-					createdAt: Number.isFinite(createdAt) ? createdAt : Number(chat.updatedAt || Date.now())
+					createdAt
 				});
 			}
 		}
@@ -2653,7 +2701,7 @@ function collectUsageRecords() {
 			continue;
 		}
 
-		const tokenCount = Number(entry.tokens);
+		const tokenCount = usageTokenCount(entry);
 		const responseTime = Number(entry.response_time_ms);
 		if ((!Number.isFinite(tokenCount) || tokenCount <= 0) && (!Number.isFinite(responseTime) || responseTime <= 0)) {
 			continue;
@@ -2682,7 +2730,7 @@ function collectUsageRecords() {
 			cached_input_tokens: nullableUsageValue(entry.cached_input_tokens),
 			cache_write_input_tokens: nullableUsageValue(entry.cache_write_input_tokens),
 			cache_details_reported: Boolean(entry.cache_details_reported),
-			createdAt: Number.isFinite(Number(entry.createdAt)) ? Number(entry.createdAt) : Date.now()
+			createdAt: parseUsageTimestamp(entry.createdAt)
 		});
 	}
 
@@ -2791,6 +2839,7 @@ function resolveUsageChat(chatFilterValue, activeChatId) {
 
 function renderUsageModalContent() {
 	syncUsageFilterOptions(true);
+	syncUsageWindowInputs();
 	const activeChat = getActiveChat();
 	const activeChatId = activeChat ? activeChat.id : "";
 	const filters = {
@@ -2798,13 +2847,16 @@ function renderUsageModalContent() {
 		pane: String(nodes.usageFilterPane.value || "all"),
 		provider: String(nodes.usageFilterProvider.value || "all"),
 		model: String(nodes.usageFilterModel.value || "all"),
-		window: String(nodes.usageFilterWindow.value || "all"),
+		window: String(nodes.usageFilterWindow.value || "30d"),
+		windowStart: String(nodes.usageFilterStart.value || ""),
+		windowEnd: String(nodes.usageFilterEnd.value || ""),
 		groupBy: String(nodes.usageGroupBy.value || "model"),
 		chartType: String(nodes.usageChartType.value || "bar")
 	};
 
-	const filteredRecords = filterUsageRecords(collectUsageRecords(), filters, activeChatId);
-	const groupedRows = groupUsageRecords(filteredRecords, filters.groupBy);
+	const usageWindow = resolveUsageWindow(filters.window, filters.windowStart, filters.windowEnd);
+	const filteredRecords = filterUsageRecords(collectUsageRecords(), filters, activeChatId, usageWindow);
+	const groupedRows = groupUsageRecords(filteredRecords, filters.groupBy, usageWindow);
 
 	const totalTokens = filteredRecords.reduce((sum, record) => sum + record.tokens, 0);
 	const inputTokens = filteredRecords.reduce((sum, record) => sum + record.input_tokens, 0);
@@ -2832,7 +2884,7 @@ function renderUsageModalContent() {
 	renderUsageBreakdown(groupedRows);
 }
 
-function filterUsageRecords(records, filters, activeChatId) {
+function filterUsageRecords(records, filters, activeChatId, usageWindow = null) {
 	let filtered = records.slice();
 
 	if (filters.chat === "active" && activeChatId) {
@@ -2854,32 +2906,14 @@ function filterUsageRecords(records, filters, activeChatId) {
 		filtered = filtered.filter((record) => record.model === filters.model);
 	}
 
-	const windowMs = usageWindowToMs(filters.window);
-	if (windowMs > 0) {
-		const floor = Date.now() - windowMs;
-		filtered = filtered.filter((record) => record.createdAt >= floor);
+	if (usageWindow) {
+		filtered = filtered.filter((record) => record.createdAt >= usageWindow.startMs && record.createdAt <= usageWindow.endMs);
 	}
 
 	return filtered;
 }
 
-function usageWindowToMs(windowValue) {
-	if (windowValue === "24h") {
-		return 24 * 60 * 60 * 1000;
-	}
-
-	if (windowValue === "7d") {
-		return 7 * 24 * 60 * 60 * 1000;
-	}
-
-	if (windowValue === "30d") {
-		return 30 * 24 * 60 * 60 * 1000;
-	}
-
-	return 0;
-}
-
-function groupUsageRecords(records, groupBy) {
+function groupUsageRecords(records, groupBy, usageWindow = null) {
 	const buckets = new Map();
 
 	for (const record of records) {
@@ -2915,6 +2949,29 @@ function groupUsageRecords(records, groupBy) {
 
 	const rows = Array.from(buckets.values());
 	if (groupBy === "day") {
+		if (usageWindow) {
+			for (const key of enumerateDayKeys(usageWindow.startMs, usageWindow.endMs)) {
+				if (!buckets.has(key)) {
+					rows.push({
+						key,
+						label: formatUsageDayLabel(key),
+						tokens: 0,
+						input_tokens: 0,
+						output_tokens: 0,
+						cached_input_tokens: 0,
+						cache_write_input_tokens: 0,
+						cache_details_reported: false,
+						response_time_ms: 0,
+						total_response_time_ms: 0,
+						max_response_time_ms: 0,
+						responses: 0
+					});
+				}
+			}
+		}
+		for (const row of rows) {
+			row.label = formatUsageDayLabel(row.key);
+		}
 		rows.sort((left, right) => left.key.localeCompare(right.key));
 		return rows;
 	}
@@ -2940,15 +2997,125 @@ function usageGroupLabel(record, groupBy) {
 
 	if (groupBy === "day") {
 		const date = new Date(record.createdAt);
-		const key = [
-			String(date.getFullYear()),
-			String(date.getMonth() + 1).padStart(2, "0"),
-			String(date.getDate()).padStart(2, "0")
-		].join("-");
-		return { key, label: key };
+		const key = formatDayKey(date);
+		return { key, label: formatUsageDayLabel(key) };
 	}
 
 	return { key: record.model, label: record.model };
+}
+
+function syncUsageWindowInputs() {
+	const windowValue = String(nodes.usageFilterWindow.value || "30d");
+	const customVisible = windowValue === "custom";
+	nodes.usageFilterStartWrap.classList.toggle("hidden", !customVisible);
+	nodes.usageFilterEndWrap.classList.toggle("hidden", !customVisible);
+	if (!customVisible) {
+		return;
+	}
+	if (!nodes.usageFilterEnd.value) {
+		nodes.usageFilterEnd.value = formatDateInputValue(Date.now());
+	}
+	if (!nodes.usageFilterStart.value) {
+		nodes.usageFilterStart.value = formatDateInputValue(subtractDays(Date.now(), 29));
+	}
+	if (nodes.usageFilterStart.value > nodes.usageFilterEnd.value) {
+		nodes.usageFilterStart.value = nodes.usageFilterEnd.value;
+	}
+}
+
+function resolveUsageWindow(windowValue, customStart, customEnd) {
+	const endMs = endOfDay(Date.now());
+	if (windowValue === "7d") {
+		return { startMs: startOfDay(subtractDays(Date.now(), 6)), endMs };
+	}
+	if (windowValue === "30d") {
+		return { startMs: startOfDay(subtractDays(Date.now(), 29)), endMs };
+	}
+	if (windowValue === "6m") {
+		return { startMs: startOfDay(addDays(subtractMonths(Date.now(), 6), 1)), endMs };
+	}
+	if (windowValue === "1y") {
+		return { startMs: startOfDay(addDays(subtractYears(Date.now(), 1), 1)), endMs };
+	}
+	if (windowValue === "custom") {
+		const parsedStart = parseDateInputValue(customStart);
+		const parsedEnd = parseDateInputValue(customEnd);
+		if (parsedStart === null || parsedEnd === null) {
+			return { startMs: startOfDay(subtractDays(Date.now(), 29)), endMs };
+		}
+		return {
+			startMs: startOfDay(Math.min(parsedStart, parsedEnd)),
+			endMs: endOfDay(Math.max(parsedStart, parsedEnd))
+		};
+	}
+	return null;
+}
+
+function enumerateDayKeys(startMs, endMs) {
+	const keys = [];
+	for (let cursor = startOfDay(startMs); cursor <= endMs; cursor += 24 * 60 * 60 * 1000) {
+		keys.push(formatDayKey(new Date(cursor)));
+	}
+	return keys;
+}
+
+function formatUsageDayLabel(dayKey) {
+	const [year, month, day] = String(dayKey || "").split("-").map(Number);
+	const date = new Date(year, (month || 1) - 1, day || 1);
+	return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+function formatDayKey(date) {
+	return [
+		String(date.getFullYear()),
+		String(date.getMonth() + 1).padStart(2, "0"),
+		String(date.getDate()).padStart(2, "0")
+	].join("-");
+}
+
+function formatDateInputValue(timestamp) {
+	return formatDayKey(new Date(timestamp));
+}
+
+function parseDateInputValue(value) {
+	const text = String(value || "").trim();
+	if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return null;
+	const [year, month, day] = text.split("-").map(Number);
+	return new Date(year, month - 1, day).getTime();
+}
+
+function startOfDay(timestamp) {
+	const date = new Date(timestamp);
+	date.setHours(0, 0, 0, 0);
+	return date.getTime();
+}
+
+function endOfDay(timestamp) {
+	const date = new Date(timestamp);
+	date.setHours(23, 59, 59, 999);
+	return date.getTime();
+}
+
+function addDays(timestamp, days) {
+	const date = new Date(timestamp);
+	date.setDate(date.getDate() + days);
+	return date.getTime();
+}
+
+function subtractDays(timestamp, days) {
+	return addDays(timestamp, -days);
+}
+
+function subtractMonths(timestamp, months) {
+	const date = new Date(timestamp);
+	date.setMonth(date.getMonth() - months);
+	return date.getTime();
+}
+
+function subtractYears(timestamp, years) {
+	const date = new Date(timestamp);
+	date.setFullYear(date.getFullYear() - years);
+	return date.getTime();
 }
 
 function renderUsageChart(groupedRows, chartType, groupBy) {
@@ -2963,7 +3130,9 @@ function renderUsageChart(groupedRows, chartType, groupBy) {
 	}
 
 	const labels = groupedRows.map((row) => row.label);
-	const data = groupedRows.map((row) => row.tokens);
+	const metricKey = groupBy === "day" ? "responses" : "tokens";
+	const metricLabel = metricKey === "responses" ? "Requests" : "Tokens";
+	const data = groupedRows.map((row) => Number(row[metricKey] || 0));
 	const palette = ["#6bf1bf", "#43c4ff", "#ffd369", "#ff8a8a", "#bb9cff", "#95f28f", "#ffa8d9", "#7be1d0", "#f7a95b", "#9bb6ff"];
 	const backgroundColors = labels.map((_, index) => palette[index % palette.length]);
 	const safeChartType = chartType === "line" || chartType === "doughnut" ? chartType : "bar";
@@ -2971,7 +3140,7 @@ function renderUsageChart(groupedRows, chartType, groupBy) {
 	destroyUsageChart();
 	const shouldUseAxes = safeChartType === "bar" || safeChartType === "line";
 	const dataset = {
-		label: "Tokens",
+		label: metricLabel,
 		data,
 		borderWidth: safeChartType === "line" ? 2 : 1,
 		borderColor: safeChartType === "line" ? "#6bf1bf" : backgroundColors,
@@ -2997,7 +3166,9 @@ function renderUsageChart(groupedRows, chartType, groupBy) {
 					callbacks: {
 						label: (context) => {
 							const value = usageTooltipValue(context);
-							return `${formatNumber(value)} tokens`;
+							return metricKey === "responses"
+								? `${formatNumber(value)} requests`
+								: `${formatNumber(value)} tokens`;
 						}
 					}
 				}
@@ -5158,7 +5329,12 @@ function loadUsageLedgerFromStorage() {
 		if (!Array.isArray(parsed)) {
 			return [];
 		}
-		return parsed.slice(-10000);
+		return parsed.slice(-10000).map((entry) => ({
+			...entry,
+			tokens: usageTokenCount(entry),
+			response_time_ms: finiteUsageValue(entry && entry.response_time_ms),
+			createdAt: parseUsageTimestamp(entry && entry.createdAt)
+		}));
 	} catch (error) {
 		return [];
 	}
@@ -5184,13 +5360,14 @@ function appendUsageLedgerEntry(entry) {
 		provider: String(entry.provider || "unknown"),
 		model: String(entry.model || "unknown"),
 		role: String(entry.role || "assistant"),
-		tokens: Number(entry.tokens || 0),
+		tokens: usageTokenCount(entry),
 		input_tokens: finiteUsageValue(entry.input_tokens),
 		output_tokens: finiteUsageValue(entry.output_tokens),
 		cached_input_tokens: nullableUsageValue(entry.cached_input_tokens),
 		cache_write_input_tokens: nullableUsageValue(entry.cache_write_input_tokens),
 		cache_details_reported: Boolean(entry.cache_details_reported),
-		createdAt: Number.isFinite(Number(entry.createdAt)) ? Number(entry.createdAt) : Date.now()
+		response_time_ms: finiteUsageValue(entry.response_time_ms),
+		createdAt: parseUsageTimestamp(entry.createdAt)
 	};
 
 	if (!Number.isFinite(normalized.tokens) || normalized.tokens <= 0) {

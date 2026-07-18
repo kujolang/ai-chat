@@ -384,11 +384,20 @@
 				<label>
 					<span>Time Window</span>
 					<select id="usage-filter-window">
-						<option value="all">All time</option>
-						<option value="24h">Last 24 hours</option>
 						<option value="7d">Last 7 days</option>
-						<option value="30d">Last 30 days</option>
+						<option value="30d" selected>Last 30 days</option>
+						<option value="6m">Last 6 months</option>
+						<option value="1y">Last 1 year</option>
+						<option value="custom">Custom</option>
 					</select>
+				</label>
+				<label id="usage-filter-start-wrap" class="hidden">
+					<span>Start Date</span>
+					<input id="usage-filter-start" type="date">
+				</label>
+				<label id="usage-filter-end-wrap" class="hidden">
+					<span>End Date</span>
+					<input id="usage-filter-end" type="date">
 				</label>
 				<label>
 					<span>Group By</span>

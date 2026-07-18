@@ -2035,6 +2035,10 @@ textarea {
 	letter-spacing: 0.05em;
 }
 
+.heading-controls {
+	width: 6px;
+}
+
 .usage-chart-wrap {
 	height: min(44vh, 360px);
 	border: 1px solid var(--line-soft);
