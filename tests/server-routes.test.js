@@ -894,15 +894,16 @@ test("POST /api/chat/stream routes Watchdog profiles through the managed local p
 	}
 });
 
-test("POST /api/chat/stream routes the Ollama TUD profile through its isolated proxy", async () => {
+test("POST /api/chat/stream routes the Ollama TUD profile through the shared proxy upstream", async () => {
 	const credentialDir = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-watchdog-ollama-tud-token-"));
 	const tokenFile = path.join(credentialDir, "proxy-token");
 	fs.writeFileSync(tokenFile, "tud-watchdog-token\n", { mode: 0o600 });
 	const observed = [];
 	const { runtime, destroy } = createIsolatedRuntime({
 		envMerge: {
-			WATCHDOG_OLLAMA_TUD_PROXY_URL: "http://127.0.0.1:7702/proxy/v1",
-			WATCHDOG_OLLAMA_TUD_PROXY_TOKEN_FILE: tokenFile,
+			WATCHDOG_PROXY_URL: "http://127.0.0.1:7700/proxy/v1",
+			WATCHDOG_PROXY_TOKEN_FILE: tokenFile,
+			WATCHDOG_OLLAMA_TUD_UPSTREAM_PROFILE: "ollama-tud-work",
 			WATCHDOG_DIRECT_STREAMING: "1",
 			ALLOWED_CUSTOM_PROVIDER_HOSTS: "ollama.com"
 		},
@@ -936,8 +937,9 @@ test("POST /api/chat/stream routes the Ollama TUD profile through its isolated p
 			assert.equal(response.status, 200);
 		});
 		assert.equal(observed.length, 1);
-		assert.equal(observed[0].url, "http://127.0.0.1:7702/proxy/v1/chat/completions");
+		assert.equal(observed[0].url, "http://127.0.0.1:7700/proxy/v1/chat/completions");
 		assert.equal(observed[0].options.headers.Authorization, "Bearer tud-watchdog-token");
+		assert.equal(observed[0].options.headers["X-Watchdog-Upstream-Profile"], "ollama-tud-work");
 	} finally {
 		destroy();
 		fs.rmSync(credentialDir, { recursive: true, force: true });

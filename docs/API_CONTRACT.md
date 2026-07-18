@@ -131,7 +131,7 @@ Bridge/offline path note:
 
 - The bridge accepts an `offline_fixture` flag for safe local smoke validation.
 - Live provider calls remain gated behind configured API keys and the external AI SDK files.
-- Watchdog profiles automatically attach `X-Observe-*` correlation headers to chat requests. The primary and OpenRouter profiles use `WATCHDOG_PROXY_TOKEN_FILE`; `watchdog_ollama_tud` uses `WATCHDOG_OLLAMA_TUD_PROXY_TOKEN_FILE` and is restricted to `WATCHDOG_OLLAMA_TUD_PROXY_URL` on loopback.
+- Watchdog profiles automatically attach `X-Observe-*` correlation headers to chat requests. They use `WATCHDOG_PROXY_TOKEN_FILE`; `watchdog_ollama_tud` selects the configured `WATCHDOG_OLLAMA_TUD_UPSTREAM_PROFILE` through the trusted Watchdog upstream-profile header.
 
 ## 6. Streaming Contract (`POST /api/chat/stream`)
 

@@ -106,8 +106,7 @@ Use `.env.example` as your baseline and set:
 - WATCHDOG_PROXY_URL
 - WATCHDOG_PROXY_TOKEN_FILE
 - WATCHDOG_OPENROUTER_UPSTREAM_PROFILE
-- WATCHDOG_OLLAMA_TUD_PROXY_URL
-- WATCHDOG_OLLAMA_TUD_PROXY_TOKEN_FILE
+- WATCHDOG_OLLAMA_TUD_UPSTREAM_PROFILE
 - WATCHDOG_DIRECT_STREAMING
 - WATCHDOG_TELEMETRY_URL
 - WATCHDOG_API_TOKEN_FILE
@@ -146,7 +145,7 @@ Security note:
 - Live provider and transcription requests are optional and require the configured provider/API-key path.
 - The dedicated Watchdog provider accepts only the configured loopback URL. Its proxy token is read from `WATCHDOG_PROXY_TOKEN_FILE`; it does not copy the upstream Ollama key into AI Chat or its SQLite database.
 - OpenRouter through Watchdog uses the same Watchdog proxy, database, and dashboard as Ollama. Set `WATCHDOG_OPENROUTER_UPSTREAM_PROFILE` to the named upstream configured in Watchdog; the OpenRouter key remains server-side in Watchdog.
-- `Watchdog / Ollama (TUD)` is a separate loopback Watchdog instance intended for a work-owned Ollama key. It always streams through that managed proxy, so it cannot select a personal direct Ollama credential.
+- `Watchdog / Ollama (TUD)` uses the existing Watchdog proxy with a dedicated named upstream profile. Its work Ollama key remains server-side in Watchdog, and it cannot select a personal direct Ollama credential.
 
 To create the two local credential files without putting the OpenRouter key in AI Chat's SQLite database or `.env`, run:
 
@@ -185,46 +184,38 @@ echo 'WATCHDOG_OPENROUTER_UPSTREAM_PROFILE=openrouter-work' >> .env
 
 ### Work Ollama Watchdog setup (TUD)
 
-Create a separate upstream-key file and proxy token. Do not put the work key in `.env`, the AI Chat settings UI, or the AI Chat SQLite database:
+Create a separate work-key file. Do not put the key in AI Chat's `.env`, the AI Chat settings UI, or the AI Chat SQLite database:
 
 ```bash
-AI_CHAT_SECRETS_DIR="${HOME}/.config/ai-chat"
-install -d -m 700 "$AI_CHAT_SECRETS_DIR"
+install -d -m 700 "$HOME/.config/watchdog"
 read -rsp "Work Ollama API key: " OLLAMA_API_KEY; printf '\n'
-printf '%s\n' "$OLLAMA_API_KEY" > "$AI_CHAT_SECRETS_DIR/ollama-tud-api-key"
+printf '%s\n' "$OLLAMA_API_KEY" > "$HOME/.config/watchdog/ollama-tud-work-api-key"
 unset OLLAMA_API_KEY
-openssl rand -hex 32 > "$AI_CHAT_SECRETS_DIR/watchdog-ollama-tud-proxy-token"
-chmod 600 "$AI_CHAT_SECRETS_DIR/ollama-tud-api-key" "$AI_CHAT_SECRETS_DIR/watchdog-ollama-tud-proxy-token"
+chmod 600 "$HOME/.config/watchdog/ollama-tud-work-api-key"
 ```
 
-Start the separate TUD Watchdog instance on port 7702. It has its own database, so work benchmark records stay separate from the existing personal Ollama and OpenRouter Watchdog dashboards:
+Add this named upstream profile to Watchdog's existing `watchdog_proxy_config.json`, preserving its existing `openrouter-work` entry:
 
 ```bash
-WATCHDOG_ROOT=/Users/robertdevore/2026/Kujolang/kujo-repos/watchdog
-AI_CHAT_SECRETS_DIR="${HOME}/.config/ai-chat"
-KUJO_BIN="${KUJO_BIN:-kujo}"
-OLLAMA_API_KEY="$(<"$AI_CHAT_SECRETS_DIR/ollama-tud-api-key")" \
-WDG_PORT=7702 \
-WDG_DB_PATH="$WATCHDOG_ROOT/data/watchdog-ollama-tud.db" \
-WDG_UPSTREAM_BASE_URL=https://ollama.com/v1 \
-WDG_PROXY_AUTH_MODE=override \
-WDG_UPSTREAM_API_KEY_ENV=OLLAMA_API_KEY \
-WDG_PROXY_AUTHZ_MODE=token \
-WDG_PROXY_AUTHZ_TOKEN="$(<"$AI_CHAT_SECRETS_DIR/watchdog-ollama-tud-proxy-token")" \
-"$KUJO_BIN" run --interpreter "$WATCHDOG_ROOT/dashboard_server.kujo"
+{
+  "upstream_profiles": {
+    "openrouter-work": { "upstream_base_url": "https://openrouter.ai/api/v1", "auth_mode": "override", "upstream_api_key_env": "OPENROUTER_WORK_API_KEY" },
+    "ollama-tud-work": { "upstream_base_url": "https://ollama.com/v1", "auth_mode": "override", "upstream_api_key_env": "OLLAMA_TUD_WORK_API_KEY" }
+  }
+}
 ```
 
-Add these two values to AI Chat's local `.env`, restart AI Chat, then select `Watchdog / Ollama (TUD)` in Settings. AI Chat seeds this profile on both fresh and existing databases. Leave its API key and base URL empty because the server reads only the proxy token file.
+Configure the existing Watchdog launch environment to load the key file at startup:
 
 ```bash
-WATCHDOG_OLLAMA_TUD_PROXY_URL=http://127.0.0.1:7702/proxy/v1
-WATCHDOG_OLLAMA_TUD_PROXY_TOKEN_FILE="${HOME}/.config/ai-chat/watchdog-ollama-tud-proxy-token"
+echo 'SIGNALBOX_WATCHDOG_OLLAMA_TUD_WORK_KEY_FILE=/Users/robertdevore/.config/watchdog/ollama-tud-work-api-key' >> /Users/robertdevore/2026/signalbox/.env.watchdog
+launchctl kickstart -k "gui/$(id -u)/com.signalbox.watchdog"
 ```
 
-Verify the TUD Watchdog is healthy before benchmarking:
+Add the named upstream selection to AI Chat's local `.env`, restart AI Chat, then select `Watchdog / Ollama (TUD)` in Settings. AI Chat seeds this profile on both fresh and existing databases. Leave its API key and base URL empty because the server reads the existing shared proxy token file.
 
 ```bash
-curl -fsS http://127.0.0.1:7702/healthz
+WATCHDOG_OLLAMA_TUD_UPSTREAM_PROFILE=ollama-tud-work
 ```
 
 - With `WATCHDOG_DIRECT_STREAMING=1`, a Watchdog pane automatically uses a matching, API-key-backed custom Ollama profile for the live provider connection and sends completion telemetry to Watchdog asynchronously. This avoids Watchdog's buffered proxy path while preserving observability. If no matching direct profile exists, the managed proxy remains the fallback.
