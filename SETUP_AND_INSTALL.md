@@ -52,6 +52,9 @@ WATCHDOG_API_TOKEN_FILE=
 MAX_TOOL_ROUNDS=8
 MAX_TOOL_CALLS_PER_REQUEST=24
 WEB_SEARCH_MAX_RESULTS=5
+WEB_SEARCH_TIMEOUT_MS=6000
+WEB_SEARCH_CACHE_TTL_MS=5000
+WEB_SEARCH_CACHE_MAX_ENTRIES=64
 BROWSER_ENABLED=0
 BROWSER_HEADLESS=1
 BROWSER_SESSION_TTL_MS=900000
@@ -63,6 +66,8 @@ BROWSER_NAVIGATION_TIMEOUT_MS=15000
 BROWSER_MAX_TEXT_CHARS=30000
 BROWSER_MAX_RESULT_BYTES=131072
 BROWSER_ARTIFACT_DIR=/absolute/path/to/ai-chat/data/tool-artifacts/browser
+BROWSER_ALLOWED_HOSTS=
+BROWSER_APPROVAL_TTL_MS=120000
 BROWSER_ACTION_POLICY=read-only
 ```
 
@@ -165,13 +170,13 @@ Regular New Chat continues to create one pane. To reuse a saved arrangement, ope
 
 The Web Search preset is executable through AI Chat's provider-neutral tool runtime. For the local-first path, run SearXNG with JSON output enabled and set `SEARXNG_BASE_URL` (loopback HTTP or HTTPS). With `WEB_SEARCH_BACKEND=auto`, AI Chat prefers that adapter; without it, the runtime uses the API key from a custom Ollama profile and Ollama Web Search. You can force `searxng` or `ollama` with `WEB_SEARCH_BACKEND`. The active chat provider only requests `web_search`; it never selects the backend.
 
-Search calls accept `query`, `max_results`, optional `domains`, and optional `freshness`, and are bounded by `MAX_TOOL_ROUNDS`, `MAX_TOOL_CALLS_PER_REQUEST`, and `WEB_SEARCH_MAX_RESULTS`. Results return to the model as provider-compatible tool messages so it can produce the final answer.
+Search calls accept `query`, `max_results`, optional `domains`, and optional `freshness`, and are bounded by `MAX_TOOL_ROUNDS`, `MAX_TOOL_CALLS_PER_REQUEST`, and `WEB_SEARCH_MAX_RESULTS`. Results keep the existing `query` plus `results` contract while adding canonical URLs, source domains, retrieval timestamps, optional upstream publication dates, backend capability metadata, and short TTL cache metadata. `WEB_SEARCH_TIMEOUT_MS`, `WEB_SEARCH_CACHE_TTL_MS`, and `WEB_SEARCH_CACHE_MAX_ENTRIES` bound latency and repeated identical lookups without logging queries/snippets in default telemetry mode. Results return to the model as provider-compatible tool messages so it can produce the final answer.
 
 Set `BROWSER_ENABLED=1` after installing Chromium to enable `browser_open`, `browser_snapshot`, `browser_act`, `browser_close`, and the saved-chat compatibility adapter `browser_use`. Health and Settings show browser presets as unavailable when the executable is missing, rather than forwarding a schema that cannot run. If startup can find Playwright but a tool call cannot launch Chromium, the tool returns `browser_not_configured` with the installation command.
 
-Browser sessions use a fresh context without the user's browser profile and are scoped to the requesting pane (or chat when no pane is supplied). The runtime limits sessions, actions, lifetime, navigation time, extracted text, result payloads, and screenshots; expired/abandoned sessions and shutdown resources are closed automatically. Only HTTP/HTTPS public destinations are allowed. DNS results are pinned for each intercepted request, redirects are revalidated, and localhost, private/link-local/multicast, metadata, unsafe-scheme, download, file, arbitrary-JavaScript, and network-write paths fail closed.
+Browser sessions use a fresh context without the user's browser profile and are scoped to the requesting pane (or chat when no pane is supplied). The runtime limits sessions, actions, lifetime, navigation time, extracted text, result payloads, screenshots, approval lifetime, and cached snapshot reuse; expired/abandoned sessions and shutdown resources are closed automatically. Only HTTP/HTTPS public destinations are allowed. DNS results are pinned for each intercepted request, redirects are revalidated, and localhost, private/link-local/multicast, metadata, unsafe-scheme, download, file, arbitrary-JavaScript, and network-write paths fail closed. `BROWSER_ALLOWED_HOSTS` can optionally restrict navigation to specific public domains/subdomains without creating a private-network bypass.
 
-The default `BROWSER_ACTION_POLICY=read-only` automatically permits public navigation, snapshots/text extraction, scrolling, back, screenshots, and safe link traversal. Typing and potentially consequential clicks return `tool_approval_required`. `development` is a controlled local-testing switch for non-sensitive typing and controls; sensitive fields and purchase/login/delete/submit/download/permission-style targets remain approval-gated. Do not enable it globally.
+The default `BROWSER_ACTION_POLICY=read-only` automatically permits public navigation, snapshots/text extraction, scrolling, back, screenshots, and safe link traversal. Non-sensitive typing and other narrowly scoped non-read-only actions return `tool_approval_required` with a short-lived, single-use approval request bound to the chat/browser session and exact target. Sensitive fields and purchase/login/delete/submit/download/permission-style targets are hard-blocked with `browser_action_blocked`, even after ordinary approval. `development` is a deprecated local-testing switch for non-sensitive actions only. Do not enable it globally.
 
 ## 9. Health and Smoke Validation
 

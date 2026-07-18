@@ -44,8 +44,8 @@ This project is for end users and teams who want one local web app to:
 	- Audio upload proxy endpoint for OpenAI-compatible transcription APIs
 	- Browser recording button to send audio and insert transcript into the composer
 - Bounded tool execution
-	- Execute the provider-neutral `web_search` contract with local SearXNG or Ollama Web Search and return sourced results to the requesting model
-	- Execute provider-neutral browser tools in fresh Playwright Chromium contexts with scoped sessions, bounded artifacts, network isolation, and a read-only default policy
+	- Execute the provider-neutral `web_search` contract with local SearXNG or Ollama Web Search and return citation-grade sourced results with canonical URLs, timestamps, and explicit capability metadata
+	- Execute provider-neutral browser tools in fresh Playwright Chromium contexts with scoped sessions, bounded artifacts, network isolation, scoped approvals, and a read-only default policy
 	- Store and forward other OpenAI-compatible function schemas; unsupported calls still stop explicitly
 
 ## What This Repo Is Not
@@ -116,6 +116,9 @@ Use `.env.example` as your baseline and set:
 - WEB_SEARCH_MAX_RESULTS
 - WEB_SEARCH_BACKEND
 - SEARXNG_BASE_URL
+- WEB_SEARCH_TIMEOUT_MS
+- WEB_SEARCH_CACHE_TTL_MS
+- WEB_SEARCH_CACHE_MAX_ENTRIES
 - BROWSER_ENABLED
 - BROWSER_HEADLESS
 - BROWSER_SESSION_TTL_MS
@@ -126,11 +129,13 @@ Use `.env.example` as your baseline and set:
 - BROWSER_MAX_TEXT_CHARS
 - BROWSER_MAX_RESULT_BYTES
 - BROWSER_ARTIFACT_DIR
+- BROWSER_ALLOWED_HOSTS
+- BROWSER_APPROVAL_TTL_MS
 - BROWSER_ACTION_POLICY
 
 Offline fixture mode is supported in the bridge and smoke workflow for safe local validation without live provider credentials.
 
-Tool note: Web Search and Browser presets are executable through AI Chat's provider-neutral tool runtime. `WEB_SEARCH_BACKEND=auto` prefers `SEARXNG_BASE_URL` when configured and otherwise uses an API-key-backed custom Ollama profile. With `BROWSER_ENABLED=1`, the stable browser contracts use local Playwright Chromium; the model provider never selects or sees that backend. Browser schemas are not advertised when Chromium is unavailable. Custom tools still require a registered executor.
+Tool note: Web Search and Browser presets are executable through AI Chat's provider-neutral tool runtime. `WEB_SEARCH_BACKEND=auto` prefers `SEARXNG_BASE_URL` when configured and otherwise uses an API-key-backed custom Ollama profile. Search results keep the stable `query` and `results` shape but now add canonical URLs, source domains, retrieval timestamps, optional upstream publication dates, explicit capability/policy metadata, and short read-only cache metadata for safer citations. With `BROWSER_ENABLED=1`, the stable browser contracts use local Playwright Chromium; the model provider never selects or sees that backend. Browser schemas are not advertised when Chromium is unavailable. Custom tools still require a registered executor.
 
 Security note:
 
@@ -142,6 +147,8 @@ Security note:
 - Set TRUST_PROXY=1 only when AI Chat runs behind a trusted reverse proxy that sets `X-Forwarded-*` headers.
 - Use RATE_LIMIT_MAX_BUCKETS to cap in-memory rate-limit tracker growth under high-cardinality traffic.
 - Use STREAM_REQUEST_TIMEOUT_MS to tune long-running upstream streaming requests.
+- Use `WEB_SEARCH_TIMEOUT_MS`, `WEB_SEARCH_CACHE_TTL_MS`, and `WEB_SEARCH_CACHE_MAX_ENTRIES` to bound identical search latency/reuse without changing the active model provider.
+- Use `BROWSER_ALLOWED_HOSTS` to restrict browser tooling to explicit public domains or subdomains, and `BROWSER_APPROVAL_TTL_MS` to keep typed/click approval grants short-lived and single-use.
 - Live provider and transcription requests are optional and require the configured provider/API-key path.
 - The dedicated Watchdog provider accepts only the configured loopback URL. Its proxy token is read from `WATCHDOG_PROXY_TOKEN_FILE`; it does not copy the upstream Ollama key into AI Chat or its SQLite database.
 - OpenRouter through Watchdog uses the same Watchdog proxy, database, and dashboard as Ollama. Set `WATCHDOG_OPENROUTER_UPSTREAM_PROFILE` to the named upstream configured in Watchdog; the OpenRouter key remains server-side in Watchdog.
@@ -310,7 +317,7 @@ When a model requests `web_search`, the server dispatches it through a local reg
 
 The default per-request web-search budget is 8 tool rounds and 24 tool calls, configurable with `MAX_TOOL_ROUNDS` and `MAX_TOOL_CALLS_PER_REQUEST` and capped at 8 rounds / 32 calls to prevent runaway loops. If the cap is reached, the stream reports the active budget in its terminal error.
 
-The stable browser tools are `browser_open(url, session_id?)`, `browser_snapshot(session_id)`, `browser_act(session_id, action)`, and `browser_close(session_id)`. The saved `browser_use` name remains available as a compatibility adapter. Sessions are isolated per chat, expire automatically, expose opaque IDs only, and are closed during shutdown. Opening public pages, snapshotting, extracting text, scrolling, and going back are automatic. The default `read-only` action policy returns `tool_approval_required` for typing and potentially consequential clicks. `BROWSER_ACTION_POLICY=development` permits controlled local testing of non-sensitive interactions but still rejects sensitive fields and purchase, login, delete, submit, download, permission, and similar actions.
+The stable browser tools are `browser_open(url, session_id?)`, `browser_snapshot(session_id)`, `browser_act(session_id, action)`, and `browser_close(session_id)`. The saved `browser_use` name remains available as a deprecated compatibility adapter. Sessions are isolated per chat, expire automatically, expose opaque IDs only, and are closed during shutdown. Read-only navigation, snapshots, extraction, scrolling, going back, and screenshots remain automatic. Browser snapshots now include the final URL, page title, retrieval timestamp, stable element refs, and provenance metadata while clearly marking page-derived text and links as untrusted content. The default `read-only` action policy returns `tool_approval_required` for non-sensitive typing and other narrowly scoped non-read-only actions, while login, purchase, submit, delete, permission, credential, upload, download, and similarly consequential actions fail closed with `browser_action_blocked`. `BROWSER_ALLOWED_HOSTS` optionally narrows browser use to trusted public domains/subdomains. `BROWSER_ACTION_POLICY=development` remains a deprecated local-testing escape hatch for non-sensitive actions only.
 
 Browser navigation allows only HTTP/HTTPS and pins each request to a validated public DNS result. Localhost, private/link-local/multicast networks, cloud-metadata addresses, unsafe schemes, redirect pivots, network writes, downloads, user-profile access, file upload, arbitrary JavaScript, and shell/filesystem control are blocked. Page content is untrusted data. Screenshots are bounded local artifacts and tool results never expose the artifact directory. If health reports `chromium_unavailable`, run `npx playwright install chromium` with the same Node installation used to start AI Chat.
 

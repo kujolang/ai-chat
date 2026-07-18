@@ -154,7 +154,7 @@ test("browser network policy blocks unsafe schemes, private and metadata IPs, re
 	}
 });
 
-test("read-only policy permits safe link clicks but requires approval for typing and consequential controls", async () => {
+test("read-only policy permits safe link clicks, blocks consequential controls, and gates typing behind explicit approval", async () => {
 	await withFixture((req, res) => {
 		res.setHeader("content-type", "text/html; charset=utf-8");
 		res.end("<!doctype html><title>Policy</title><a href='/docs'>Read docs</a><button>Purchase now</button><input aria-label='Search terms'>");
@@ -166,8 +166,64 @@ test("read-only policy permits safe link clicks but requires approval for typing
 			const purchase = opened.elements.find((entry) => entry.name === "Purchase now");
 			const input = opened.elements.find((entry) => entry.name === "Search terms");
 			await runtime.execute("browser_act", { session_id: opened.session_id, action: { type: "click", target: docs.ref } }, { scopeId: "chat-a", requestState: {} });
-			await assert.rejects(() => runtime.execute("browser_act", { session_id: opened.session_id, action: { type: "click", target: purchase.ref } }, { scopeId: "chat-a", requestState: {} }), (error) => error.code === "tool_approval_required");
-			await assert.rejects(() => runtime.execute("browser_act", { session_id: opened.session_id, action: { type: "type", target: input.ref, text: "hello" } }, { scopeId: "chat-a", requestState: {} }), (error) => error.code === "tool_approval_required");
+			await assert.rejects(() => runtime.execute("browser_act", { session_id: opened.session_id, action: { type: "click", target: purchase.ref } }, { scopeId: "chat-a", requestState: {} }), (error) => error.code === "browser_action_blocked");
+			let approvalError = null;
+			await assert.rejects(() => runtime.execute("browser_act", { session_id: opened.session_id, action: { type: "type", target: input.ref, text: "hello" } }, { scopeId: "chat-a", requestState: {} }), (error) => {
+				approvalError = error;
+				return error.code === "tool_approval_required" && Boolean(error.approval_request && error.approval_request.request_id);
+			});
+			await runtime.approveAction({ requestId: approvalError.approval_request.request_id, scopeId: "chat-a", decision: "approve" });
+			const typed = await runtime.execute("browser_act", { session_id: opened.session_id, action: { type: "type", target: input.ref, text: "hello" } }, { scopeId: "chat-a", requestState: {} });
+			assert.equal(typed.characters_typed, 5);
+		} finally {
+			await destroy();
+		}
+	});
+});
+
+test("browser snapshots include provenance metadata and short-lived cache hits", async () => {
+	await withFixture((req, res) => {
+		res.setHeader("content-type", "text/html; charset=utf-8");
+		res.end("<!doctype html><title>Evidence</title><p>Source grounded.</p>");
+	}, async ({ url }) => {
+		const { runtime, destroy } = createRuntime({ snapshotCacheTtlMs: 5000 });
+		try {
+			const opened = await runtime.execute("browser_open", { url }, { scopeId: "chat-a", requestState: {} });
+			const first = await runtime.execute("browser_snapshot", { session_id: opened.session_id }, { scopeId: "chat-a", requestState: {} });
+			const second = await runtime.execute("browser_snapshot", { session_id: opened.session_id }, { scopeId: "chat-a", requestState: {} });
+			assert.equal(first.page_content_is_untrusted, true);
+			assert.equal(first.provenance.backend, "playwright-chromium");
+			assert.equal(first.final_url, `${url}/`);
+			assert.equal(second.cache.hit, true);
+		} finally {
+			await destroy();
+		}
+	});
+});
+
+test("browser allowlist and approval denial fail closed", async () => {
+	const blocked = createRuntime({ allowedHosts: ["example.com"] });
+	try {
+		await assert.rejects(() => blocked.runtime.execute("browser_open", { url: "https://not-example.com" }, { scopeId: "chat-a", requestState: {} }), (error) => error.code === "browser_url_blocked");
+	} finally {
+		await blocked.destroy();
+	}
+
+	await withFixture((req, res) => {
+		res.setHeader("content-type", "text/html; charset=utf-8");
+		res.end("<!doctype html><title>Deny</title><input aria-label='Notes'>");
+	}, async ({ url }) => {
+		const { runtime, destroy } = createRuntime();
+		try {
+			const opened = await runtime.execute("browser_open", { url }, { scopeId: "chat-a", requestState: {} });
+			const input = opened.elements.find((entry) => entry.name === "Notes");
+			let approvalError = null;
+			await assert.rejects(() => runtime.execute("browser_act", { session_id: opened.session_id, action: { type: "type", target: input.ref, text: "hello" } }, { scopeId: "chat-a", requestState: {} }), (error) => {
+				approvalError = error;
+				return error.code === "tool_approval_required";
+			});
+			await runtime.approveAction({ requestId: approvalError.approval_request.request_id, scopeId: "chat-a", decision: "deny" });
+			await assert.rejects(() => runtime.execute("browser_act", { session_id: opened.session_id, action: { type: "type", target: input.ref, text: "hello" } }, { scopeId: "chat-a", requestState: {} }), (error) => error.code === "tool_approval_denied");
 		} finally {
 			await destroy();
 		}

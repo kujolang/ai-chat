@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Harden `web_search` with canonical citation metadata, bounded URL validation/deduplication, explicit backend capability metadata, short timeouts/retries/coalescing/cache, and privacy-safe telemetry defaults.
+- Make decomposed browser tools primary, add provenance-rich snapshots, scoped browser action approvals, optional public-domain allowlists, hard blocks for sensitive actions, and stronger prompt-injection labeling.
 - Render browser screenshots as compact thumbnails and open them in a scrollable chat gallery.
 - Show terminal tool-execution failures in assistant messages and avoid retrying explicitly non-retryable tool errors.
 - Permit same-origin browser screenshot blob URLs under the content-security policy.

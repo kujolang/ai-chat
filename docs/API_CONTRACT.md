@@ -16,6 +16,7 @@ Current endpoints:
 - `POST /api/chat`
 - `POST /api/chat/stream`
 - `POST /api/transcribe`
+- `POST /api/browser/approvals`
 - `GET /api/browser/artifacts/:artifactId`
 
 ## 2. Authentication Contract
@@ -76,6 +77,7 @@ When `DEBUG_API_ERRORS=0`, provider raw error bodies are not included in stream 
 - `retention_days`: number
 - `tool_runtime.tools`: executable provider-neutral tool names
 - `tool_runtime.web_search_backend`: resolved `searxng` or `ollama` adapter
+- `tool_runtime.web_search`: sanitized search backend capabilities, timeout, cache, and policy metadata
 - `tool_runtime.browser`: sanitized `enabled`, `available`, `backend`, `headless`, `action_policy`, and `unavailable_reason` fields
 - `tool_runtime.schemas`: built-in schemas that are currently executable; browser schemas are absent when Chromium is unavailable
 
@@ -144,11 +146,18 @@ Executable browser contracts use the same provider-neutral loop:
 - `browser_snapshot`: `{ "session_id": "opaque id" }`
 - `browser_act`: `{ "session_id": "opaque id", "action": { "type": "navigate|click|type|scroll|back|screenshot|snapshot|close", "url": "optional", "target": "latest snapshot ref", "text": "optional", "direction": "up|down", "amount": 600 } }`
 - `browser_close`: `{ "session_id": "opaque id" }`
-- `browser_use`: compatibility adapter for saved schemas; selectors are not unrestricted and element actions require a latest-snapshot ref such as `e1`
+- `browser_use`: deprecated compatibility adapter for saved schemas; selectors are not unrestricted and element actions require a latest-snapshot ref such as `e1`
 
-Browser tool errors include `browser_not_configured`, `browser_url_blocked`, `browser_dns_failed`, `browser_session_not_found`, `browser_session_expired`, `browser_session_limit`, `browser_action_limit`, `browser_target_stale`, `browser_output_limit`, and `tool_approval_required`. Errors are sanitized and never include browser process details, filesystem paths, cookies, storage, credentials, or response headers.
+Browser tool errors include `browser_not_configured`, `browser_url_blocked`, `browser_dns_failed`, `browser_session_not_found`, `browser_session_expired`, `browser_session_limit`, `browser_action_limit`, `browser_target_stale`, `browser_output_limit`, `browser_action_blocked`, `tool_approval_required`, `tool_approval_denied`, and `tool_approval_expired`. Errors are sanitized and never include browser process details, filesystem paths, cookies, storage, credentials, or response headers.
 
 The stable `web_search` arguments are `query` (required), `max_results`, `domains` (up to 10 domain names), and `freshness` (`day`, `week`, `month`, or `year`). Saved legacy definitions using `recency_days` remain accepted by the runtime.
+
+`web_search` results keep the additive-compatible shape:
+
+- top level: `query`, `results`, optional `meta`
+- each result: `title`, canonical HTTP(S) `url`, optional safe `original_url`, normalized `domain`, bounded `content`, `retrieved_at`, optional upstream `published_at` / `published_date`, `source`, and `provenance`
+
+`meta` describes the active backend, request policy, backend capabilities, retrieval timestamp, and bounded cache status. Search snippets and webpage text are untrusted external content, not instructions.
 
 The endpoint returns `text/event-stream` with the following events:
 
@@ -167,7 +176,7 @@ Client rules:
 - The server consumes the complete upstream body before emitting its terminal `done` event and supports standard multiline SSE `data:` frames.
 - SSE and newline-delimited JSON upstream bodies are forwarded incrementally. Provider `error` events are terminal and are never followed by a misleading `done` event.
 - `web_search` calls run through the bounded tool runtime. Invalid arguments, missing adapter configuration or credentials, upstream search failure, and tool-budget exhaustion emit explicit terminal errors.
-- Browser calls may span multiple provider rounds. Sessions remain scoped to the requesting pane when supplied, otherwise to the chat/request identity; the read-only policy blocks consequential interactions with `tool_approval_required`.
+- Browser calls may span multiple provider rounds. Sessions remain scoped to the requesting pane when supplied, otherwise to the chat/request identity; the read-only policy blocks consequential interactions and may return a short-lived `approval_request` object alongside `tool_approval_required`.
 - Browser screenshot artifacts in `done.tool_artifacts` are fetched from the authenticated artifact endpoint. Clients should render supported image artifacts alongside the assistant response and retain their opaque IDs in persisted message metadata.
 - Unsupported provider tool calls remain terminal. The server emits `tool_execution_unavailable` instead of returning an empty successful answer or repeatedly continuing the request.
 - Watchdog streams may use a matching direct Ollama profile and asynchronous Watchdog telemetry intake when direct streaming is enabled; otherwise they use the managed proxy fallback.
@@ -176,6 +185,34 @@ Client rules:
 - Each continuation pass has a unique telemetry `request_id` under one stable `trace_id`. Provider rounds, transport timing, first token, thinking, tool execution, errors, throughput, and committed state persistence are emitted as optional spans/events. The browser persists `usage.trace_id` only when a Watchdog trace was expected.
 - `WATCHDOG_TELEMETRY_CONTENT_MODE=off` is the default and records metadata/counts without prompts, queries, tool results, or response text. `summary` permits bounded structural summaries. `full` explicitly opts into bounded content and remains subject to Watchdog redaction.
 - The telemetry contract does not couple runtimes: the model provider, provider-neutral tool registry, each tool adapter, AI Chat persistence, and Watchdog can all operate independently.
+
+## 6a. Browser Approval Contract
+
+`POST /api/browser/approvals` accepts:
+
+```json
+{
+  "request_id": "browser-approval_...",
+  "scope_id": "chat-or-pane-scope",
+  "decision": "approve"
+}
+```
+
+`decision` may be `approve` or `deny`. Approvals are bound to the requesting scope, exact browser action, and a short expiration. Successful responses return:
+
+```json
+{
+  "ok": true,
+  "approval": {
+    "request_id": "browser-approval_...",
+    "decision": "approved",
+    "expires_at": "2026-07-18T12:34:56.000Z",
+    "used": false
+  }
+}
+```
+
+Approval failures are closed and sanitized with `browser_approval_not_found`, `browser_approval_scope_mismatch`, or `tool_approval_expired`.
 
 ## 7. Versioning Policy
 
