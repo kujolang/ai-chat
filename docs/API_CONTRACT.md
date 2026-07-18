@@ -131,7 +131,7 @@ Bridge/offline path note:
 
 - The bridge accepts an `offline_fixture` flag for safe local smoke validation.
 - Live provider calls remain gated behind configured API keys and the external AI SDK files.
-- Watchdog profiles use `WATCHDOG_PROXY_TOKEN_FILE` and automatically attach `X-Observe-*` correlation headers to chat requests.
+- Watchdog profiles automatically attach `X-Observe-*` correlation headers to chat requests. The primary and OpenRouter profiles use `WATCHDOG_PROXY_TOKEN_FILE`; `watchdog_ollama_tud` uses `WATCHDOG_OLLAMA_TUD_PROXY_TOKEN_FILE` and is restricted to `WATCHDOG_OLLAMA_TUD_PROXY_URL` on loopback.
 
 ## 6. Streaming Contract (`POST /api/chat/stream`)
 
@@ -170,6 +170,7 @@ Client rules:
 - Browser screenshot artifacts in `done.tool_artifacts` are fetched from the authenticated artifact endpoint. Clients should render supported image artifacts alongside the assistant response and retain their opaque IDs in persisted message metadata.
 - Unsupported provider tool calls remain terminal. The server emits `tool_execution_unavailable` instead of returning an empty successful answer or repeatedly continuing the request.
 - Watchdog streams may use a matching direct Ollama profile and asynchronous Watchdog telemetry intake when direct streaming is enabled; otherwise they use the managed proxy fallback.
+- `watchdog_ollama_tud` always uses its managed proxy, preventing a work benchmark from using a matching personal direct Ollama profile.
 - Direct Watchdog telemetry uses `WATCHDOG_API_TOKEN_FILE` when the Watchdog `/api/*` surface requires token authentication. Telemetry remains best effort: a rejected or unreachable intake logs a sanitized server warning but does not change the successful chat stream contract.
 - Each continuation pass has a unique telemetry `request_id` under one stable `trace_id`. Provider rounds, transport timing, first token, thinking, tool execution, errors, throughput, and committed state persistence are emitted as optional spans/events. The browser persists `usage.trace_id` only when a Watchdog trace was expected.
 - `WATCHDOG_TELEMETRY_CONTENT_MODE=off` is the default and records metadata/counts without prompts, queries, tool results, or response text. `summary` permits bounded structural summaries. `full` explicitly opts into bounded content and remains subject to Watchdog redaction.

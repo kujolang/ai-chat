@@ -106,6 +106,8 @@ Use `.env.example` as your baseline and set:
 - WATCHDOG_PROXY_URL
 - WATCHDOG_PROXY_TOKEN_FILE
 - WATCHDOG_OPENROUTER_UPSTREAM_PROFILE
+- WATCHDOG_OLLAMA_TUD_PROXY_URL
+- WATCHDOG_OLLAMA_TUD_PROXY_TOKEN_FILE
 - WATCHDOG_DIRECT_STREAMING
 - WATCHDOG_TELEMETRY_URL
 - WATCHDOG_API_TOKEN_FILE
@@ -144,6 +146,7 @@ Security note:
 - Live provider and transcription requests are optional and require the configured provider/API-key path.
 - The dedicated Watchdog provider accepts only the configured loopback URL. Its proxy token is read from `WATCHDOG_PROXY_TOKEN_FILE`; it does not copy the upstream Ollama key into AI Chat or its SQLite database.
 - OpenRouter through Watchdog uses the same Watchdog proxy, database, and dashboard as Ollama. Set `WATCHDOG_OPENROUTER_UPSTREAM_PROFILE` to the named upstream configured in Watchdog; the OpenRouter key remains server-side in Watchdog.
+- `Watchdog / Ollama (TUD)` is a separate loopback Watchdog instance intended for a work-owned Ollama key. It always streams through that managed proxy, so it cannot select a personal direct Ollama credential.
 
 To create the two local credential files without putting the OpenRouter key in AI Chat's SQLite database or `.env`, run:
 
@@ -179,6 +182,51 @@ Then point AI Chat at that managed proxy and restart AI Chat:
 ```bash
 echo 'WATCHDOG_OPENROUTER_UPSTREAM_PROFILE=openrouter-work' >> .env
 ```
+
+### Work Ollama Watchdog setup (TUD)
+
+Create a separate upstream-key file and proxy token. Do not put the work key in `.env`, the AI Chat settings UI, or the AI Chat SQLite database:
+
+```bash
+AI_CHAT_SECRETS_DIR="${HOME}/.config/ai-chat"
+install -d -m 700 "$AI_CHAT_SECRETS_DIR"
+read -rsp "Work Ollama API key: " OLLAMA_API_KEY; printf '\n'
+printf '%s\n' "$OLLAMA_API_KEY" > "$AI_CHAT_SECRETS_DIR/ollama-tud-api-key"
+unset OLLAMA_API_KEY
+openssl rand -hex 32 > "$AI_CHAT_SECRETS_DIR/watchdog-ollama-tud-proxy-token"
+chmod 600 "$AI_CHAT_SECRETS_DIR/ollama-tud-api-key" "$AI_CHAT_SECRETS_DIR/watchdog-ollama-tud-proxy-token"
+```
+
+Start the separate TUD Watchdog instance on port 7702. It has its own database, so work benchmark records stay separate from the existing personal Ollama and OpenRouter Watchdog dashboards:
+
+```bash
+WATCHDOG_ROOT=/Users/robertdevore/2026/Kujolang/kujo-repos/watchdog
+AI_CHAT_SECRETS_DIR="${HOME}/.config/ai-chat"
+KUJO_BIN="${KUJO_BIN:-kujo}"
+OLLAMA_API_KEY="$(<"$AI_CHAT_SECRETS_DIR/ollama-tud-api-key")" \
+WDG_PORT=7702 \
+WDG_DB_PATH="$WATCHDOG_ROOT/data/watchdog-ollama-tud.db" \
+WDG_UPSTREAM_BASE_URL=https://ollama.com/v1 \
+WDG_PROXY_AUTH_MODE=override \
+WDG_UPSTREAM_API_KEY_ENV=OLLAMA_API_KEY \
+WDG_PROXY_AUTHZ_MODE=token \
+WDG_PROXY_AUTHZ_TOKEN="$(<"$AI_CHAT_SECRETS_DIR/watchdog-ollama-tud-proxy-token")" \
+"$KUJO_BIN" run --interpreter "$WATCHDOG_ROOT/dashboard_server.kujo"
+```
+
+Add these two values to AI Chat's local `.env`, restart AI Chat, then select `Watchdog / Ollama (TUD)` in Settings. AI Chat seeds this profile on both fresh and existing databases. Leave its API key and base URL empty because the server reads only the proxy token file.
+
+```bash
+WATCHDOG_OLLAMA_TUD_PROXY_URL=http://127.0.0.1:7702/proxy/v1
+WATCHDOG_OLLAMA_TUD_PROXY_TOKEN_FILE="${HOME}/.config/ai-chat/watchdog-ollama-tud-proxy-token"
+```
+
+Verify the TUD Watchdog is healthy before benchmarking:
+
+```bash
+curl -fsS http://127.0.0.1:7702/healthz
+```
+
 - With `WATCHDOG_DIRECT_STREAMING=1`, a Watchdog pane automatically uses a matching, API-key-backed custom Ollama profile for the live provider connection and sends completion telemetry to Watchdog asynchronously. This avoids Watchdog's buffered proxy path while preserving observability. If no matching direct profile exists, the managed proxy remains the fallback.
 - When Watchdog protects `/api/*` with token auth, `WATCHDOG_API_TOKEN_FILE` must point to a readable file containing `WDG_API_AUTH_TOKEN`. This is separate from the proxy authorization token. Rejected or unreachable asynchronous telemetry is logged as a sanitized warning without failing the chat stream.
 - AI Chat emits provider-neutral trace spans/events for provider rounds, connection and first-token timing, thinking, tool execution, errors, throughput, and committed message persistence. `WATCHDOG_TELEMETRY_CONTENT_MODE` defaults to `off`; `summary` keeps bounded structural summaries, while `full` explicitly opts into bounded raw content and should be used only with an appropriate local privacy policy.
