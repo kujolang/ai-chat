@@ -46,7 +46,7 @@ try {
 	if (!Array.isArray(paneProfile.panes) || paneProfile.panes.length === 0) fail(`Pane profile has no panes: ${paneProfileName}`);
 	currentPaneProfile = paneProfile;
 
-	const maxTokens = Number(state.state?.settings?.maxTokens) || 12000;
+	const maxTokens = Number(args.maxTokens) || Number(state.state?.settings?.maxTokens) || 12000;
 	const temperature = Number(state.state?.settings?.temperature);
 	run.summary.total = tests.length * paneProfile.panes.length;
 	console.log(`Benchmark run ${runId}`);
