@@ -70,14 +70,17 @@ test("seeds and upgrades OpenRouter and Watchdog model suggestions from the stat
 		const openRouter = state.settings.profiles.find((profile) => profile.provider_id === "openrouter");
 		const watchdog = state.settings.profiles.find((profile) => profile.provider_id === "watchdog");
 		const watchdogOpenRouter = state.settings.profiles.find((profile) => profile.provider_id === "watchdog_openrouter");
+		const watchdogOllamaTud = state.settings.profiles.find((profile) => profile.provider_id === "watchdog_ollama_tud");
 		assert.ok(openRouter);
 		assert.ok(watchdog);
 		assert.ok(watchdogOpenRouter);
+		assert.ok(watchdogOllamaTud);
 		assert.match(openRouter.models_csv, /moonshotai\/kimi-k2\.7-code/);
 		assert.match(openRouter.models_csv, /openai\/gpt-4\.1-mini/);
 		assert.match(watchdog.models_csv, /gemma4:31b/);
 		assert.match(watchdog.models_csv, /mistral-large-3:675b/);
 		assert.match(watchdogOpenRouter.models_csv, /moonshotai\/kimi-k2\.7-code/);
+		assert.match(watchdogOllamaTud.models_csv, /mistral-large-3:675b/);
 	} finally {
 		destroy();
 	}
@@ -121,6 +124,7 @@ test("catalog migration keeps existing model suggestions while appending new can
 		assert.match(openRouter.models_csv, /moonshotai\/kimi-k2\.7-code/);
 		assert.match(watchdog.models_csv, /qwen3\.5:397b-cloud/);
 		assert.match(watchdog.models_csv, /gemma4:31b/);
+		assert.ok(state.settings.profiles.some((profile) => profile.provider_id === "watchdog_ollama_tud"));
 	} finally {
 		upgradedRuntime.close();
 		fs.rmSync(tempRoot, { recursive: true, force: true });

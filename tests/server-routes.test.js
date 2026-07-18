@@ -894,6 +894,56 @@ test("POST /api/chat/stream routes Watchdog profiles through the managed local p
 	}
 });
 
+test("POST /api/chat/stream routes the Ollama TUD profile through its isolated proxy", async () => {
+	const credentialDir = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-watchdog-ollama-tud-token-"));
+	const tokenFile = path.join(credentialDir, "proxy-token");
+	fs.writeFileSync(tokenFile, "tud-watchdog-token\n", { mode: 0o600 });
+	const observed = [];
+	const { runtime, destroy } = createIsolatedRuntime({
+		envMerge: {
+			WATCHDOG_OLLAMA_TUD_PROXY_URL: "http://127.0.0.1:7702/proxy/v1",
+			WATCHDOG_OLLAMA_TUD_PROXY_TOKEN_FILE: tokenFile,
+			WATCHDOG_DIRECT_STREAMING: "1",
+			ALLOWED_CUSTOM_PROVIDER_HOSTS: "ollama.com"
+		},
+		fetchFn: async (url, options) => {
+			observed.push({ url, options });
+			return mockSseResponse([{ choices: [{ delta: { content: "ok" } }], usage: { prompt_tokens: 2, completion_tokens: 1, total_tokens: 3 } }]);
+		}
+	});
+	try {
+		const profileId = applyProfileMutation(runtime, (profile, state) => {
+			profile.provider_id = "watchdog_ollama_tud";
+			profile.base_url = "";
+			profile.api_key = "";
+			profile.models_csv = "qwen3.5:397b";
+			state.settings.profiles.push({
+				id: "personal-direct-ollama",
+				name: "Personal direct Ollama",
+				provider_id: "custom",
+				base_url: "https://ollama.com",
+				models_csv: "qwen3.5:397b",
+				api_key: "personal-key"
+			});
+		});
+		await withServer(runtime.app, async (baseUrl) => {
+			const response = await fetch(`${baseUrl}/api/chat/stream`, {
+				method: "POST",
+				headers: withAuthHeaders({ "Content-Type": "application/json" }),
+				body: JSON.stringify({ profile_id: profileId, model: "qwen3.5:397b", messages: [{ role: "user", content: "hi" }] })
+			});
+			await response.text();
+			assert.equal(response.status, 200);
+		});
+		assert.equal(observed.length, 1);
+		assert.equal(observed[0].url, "http://127.0.0.1:7702/proxy/v1/chat/completions");
+		assert.equal(observed[0].options.headers.Authorization, "Bearer tud-watchdog-token");
+	} finally {
+		destroy();
+		fs.rmSync(credentialDir, { recursive: true, force: true });
+	}
+});
+
 test("POST /api/chat/stream authenticates direct Watchdog telemetry and reports rejection", async () => {
 	const credentialDir = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-watchdog-direct-"));
 	const tokenFile = path.join(credentialDir, "proxy-token");

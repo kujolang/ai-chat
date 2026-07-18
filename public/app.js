@@ -3219,6 +3219,10 @@ function providerLabelForId(providerId) {
 		return "Watchdog (OpenRouter)";
 	}
 
+	if (providerId === "watchdog_ollama_tud") {
+		return "Watchdog (Ollama TUD)";
+	}
+
 	return providerId || "Unknown Provider";
 }
 
@@ -3297,7 +3301,7 @@ function renderSettings() {
 
 	nodes.profileList.innerHTML = state.settings.profiles
 		.map((profile) => {
-			const managedCredential = profile.provider_id === "watchdog" || profile.provider_id === "watchdog_openrouter" || profile.credential_managed;
+			const managedCredential = profile.provider_id === "watchdog" || profile.provider_id === "watchdog_openrouter" || profile.provider_id === "watchdog_ollama_tud" || profile.credential_managed;
 			const keyStatus = managedCredential
 				? "Managed by server credential file"
 				: profile.api_key_present
@@ -3320,6 +3324,7 @@ function renderSettings() {
 								${providerOption(profile.provider_id, "custom", "Custom OpenAI-Compatible")}
 								${providerOption(profile.provider_id, "watchdog", "Watchdog (Ollama Cloud)")}
 								${providerOption(profile.provider_id, "watchdog_openrouter", "Watchdog (OpenRouter)")}
+								${providerOption(profile.provider_id, "watchdog_ollama_tud", "Watchdog (Ollama TUD)")}
 							</select>
 						</label>
 						<label>
