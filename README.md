@@ -368,6 +368,11 @@ responses up to three times. This is intentional for shared work keys; use
 `--concurrency 4` only after a stable baseline, and do not increase it merely
 to shorten a run.
 
+Benchmark files may contain any positive number of tests. Use one `# TEST
+<number>: <title>` or `## TEST <number>: <title>` heading per test, followed by
+an `## Prompt` section. Test numbers should be sequential for predictable chat
+titles.
+
 Use `--title-prefix` when benchmark chats need a sortable run identifier; the
 runner appends a three-digit test number, for example `RND005TST001`.
 

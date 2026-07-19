@@ -109,7 +109,7 @@ function parseArgs(values) {
 
 function parseBenchmarkTests(markdown) {
 	const matches = [...markdown.matchAll(/^#{1,2} TEST (\d+):\s*([^\n]+)\s*$/gm)];
-	if (matches.length !== 10) fail(`Expected 10 benchmark tests, found ${matches.length}.`);
+	if (matches.length === 0) fail("Expected at least one benchmark test heading in the form `# TEST <number>: <title>`.");
 	return matches.map((match, index) => {
 		const section = markdown.slice(match.index, matches[index + 1]?.index || markdown.length);
 		const promptMatch = section.match(/(?:^|\n)## Prompt\s*\n([\s\S]*?)(?:\n\* \* \*\s*$|$)/);
