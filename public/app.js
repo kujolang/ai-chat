@@ -2032,20 +2032,22 @@ function renderMessageNodeHtml(message, paneId) {
 	if (Number(message.continuation_passes) > 0) {
 		metaBits.push(`continued ${message.continuation_passes}x`);
 	}
-	if (Number(message.retry_count) > 0) {
-		metaBits.push(`retries ${message.retry_count}`);
+	const retryCount = retryCountForMessage(message);
+	if (retryCount > 0) {
+		metaBits.push(`retries ${retryCount}`);
 	}
 
 	const meta = metaBits.length > 0 ? `<div class=\"message-meta\">${escapeHtml(metaBits.join(" | "))}</div>` : "";
 	const thinking = renderThinkingBlock(message, paneId);
 	const toolError = renderToolErrorBlock(message);
 	const contentBody = message.role === "assistant"
-		? renderAssistantMessageContent(message, paneId)
+		? renderAssistantMarkdown(message.content)
 		: renderPlainText(message.content);
 	const content = `<div class="message-content-block">${contentBody}</div>`;
 	const screenshots = renderBrowserScreenshotArtifacts(message);
 	const timestamp = formatMessageTime(message.createdAt);
-	const footer = `<div class="message-footer"><span class="message-time">${escapeHtml(timestamp)}</span><button type="button" class="message-copy-btn" data-action="copy-message" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}" aria-label="Copy message" title="Copy message">${copyCodeButtonSvg}</button></div>`;
+	const retryAction = message.role === "assistant" ? renderRetryAction(message, paneId) : "";
+	const footer = `<div class="message-footer"><span class="message-time">${escapeHtml(timestamp)}</span><button type="button" class="message-copy-btn" data-action="copy-message" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}" aria-label="Copy message" title="Copy message">${copyCodeButtonSvg}</button>${retryAction}</div>`;
 
 	if ("assistant" === message.role) {
 		const metaFooter = meta || footer
@@ -2057,29 +2059,9 @@ function renderMessageNodeHtml(message, paneId) {
 	return `<div class="${messageClasses.join(" ")}" data-message-id="${escapeHtml(message.id)}" data-pane-id="${escapeHtml(paneId)}"><div class="message-bubble">${content}${meta}</div>${footer}</div>`;
 }
 
-function renderAssistantMessageContent(message, paneId) {
-	const retryAction = renderRetryAction(message, paneId);
-	if (!retryAction) {
-		return renderAssistantMarkdown(message.content);
-	}
-	return `${renderPlainText(message.content)}${retryAction}`;
-}
-
 function renderRetryAction(message, paneId) {
-	const error = retryErrorForMessage(message);
-	if (!error || message.streaming || !String(error.message || "").trim()) return "";
+	if (!message || message.role !== "assistant" || message.streaming) return "";
 	return ` <button type="button" class="message-retry-link" data-action="retry-message" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}" aria-label="Retry response" title="Retry response">${retryIconSvg}</button>`;
-}
-
-function retryErrorForMessage(message) {
-	if (!message || message.role !== "assistant") return null;
-	if (message.usage && message.usage.error && typeof message.usage.error === "object") {
-		return message.usage.error;
-	}
-	const content = String(message.content || "");
-	return /^Error:\s*/i.test(content)
-		? { message: content.replace(/^Error:\s*/i, ""), retryable: true }
-		: null;
 }
 
 function renderToolErrorBlock(message) {
@@ -4200,6 +4182,9 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 				}
 				: null;
 		}
+		if (!assistantMessage.usage && assistantMessage.retry_count > 0) {
+			assistantMessage.usage = { retry_count: assistantMessage.retry_count };
+		}
 		if (assistantMessage.usage && watchdogTraceRecorded) {
 			assistantMessage.usage.trace_id = assistantMessage.trace_id;
 		}
@@ -4352,9 +4337,8 @@ async function retryFailedPaneMessage(chat, paneId, messageId) {
 		return;
 	}
 
-	const failedMessage = pane.messages[messageIndex];
-	const error = retryErrorForMessage(failedMessage);
-	if (!error || failedMessage.streaming) {
+	const responseMessage = pane.messages[messageIndex];
+	if (responseMessage.role !== "assistant" || responseMessage.streaming) {
 		return;
 	}
 
@@ -4372,7 +4356,7 @@ async function retryFailedPaneMessage(chat, paneId, messageId) {
 	schedulePersist();
 	await sendMessageToPaneStream(chat, pane, userMessage.content, {
 		reuseUserMessageId: userMessage.id,
-		retryCount: retryCountForMessage(failedMessage) + 1
+		retryCount: retryCountForMessage(responseMessage) + 1
 	});
 }
 

@@ -1338,14 +1338,14 @@ textarea::-webkit-scrollbar-thumb:hover {
 .message-retry-link {
 	display: inline-flex;
 	align-items: center;
-	gap: 4px;
-	margin: 0 0 0 6px;
+	justify-content: center;
+	width: 24px;
+	height: 24px;
 	padding: 0;
-	border: 0;
-	background: transparent;
-	color: #8ec8ff;
-	font: inherit;
-	text-decoration: underline;
+	border: 1px solid #2f3b48;
+	background: rgba(18, 24, 31, 0.9);
+	color: #b8cadc;
+	border-radius: 7px;
 	cursor: pointer;
 }
 
@@ -1354,7 +1354,9 @@ textarea::-webkit-scrollbar-thumb:hover {
 }
 
 .message-retry-link:hover {
-	color: #c4e3ff;
+	border-color: #47657f;
+	color: #e0eefc;
+	transform: none;
 }
 
 .message.user {
