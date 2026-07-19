@@ -54,7 +54,9 @@ try {
 	console.log(`${tests.length} tests × ${paneProfile.panes.length} panes = ${run.summary.total} responses (concurrency ${concurrency}, max attempts ${maxAttempts})`);
 
 	for (const benchmark of tests) {
-		const existingChat = (state.state?.chats || []).find((chat) => chat.title === benchmarkTitle(benchmark));
+		const existingChat = (state.state?.chats || []).find((chat) =>
+			chat.title === benchmarkTitle(benchmark) && chatMatchesPaneProfile(chat, paneProfile)
+		);
 		const chat = existingChat ? hydrateChat(existingChat) : createChat(benchmark);
 		if (!existingChat) await persistInitialChat(chat, benchmark.prompt);
 		const testResult = { number: benchmark.number, title: benchmark.title, chat_id: chat.id, panes: [] };
@@ -136,6 +138,15 @@ function createChat(benchmark) {
 function benchmarkTitle(benchmark) {
 	const sequence = String(benchmark.number).padStart(3, "0");
 	return `${titlePrefix}${sequence} — ${benchmark.title}`;
+}
+
+function chatMatchesPaneProfile(chat, paneProfile) {
+	const chatPanes = Array.isArray(chat?.panes) ? chat.panes : [];
+	const profilePanes = Array.isArray(paneProfile?.panes) ? paneProfile.panes : [];
+	return chatPanes.length === profilePanes.length && chatPanes.every((pane, index) =>
+		String(pane.profile_id) === String(profilePanes[index]?.profile_id)
+		&& String(pane.model) === String(profilePanes[index]?.model)
+	);
 }
 
 function hydrateChat(chat) {
