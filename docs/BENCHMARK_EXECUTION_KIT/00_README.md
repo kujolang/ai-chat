@@ -37,6 +37,8 @@ MAX_TOKENS: [optional; omit to use the app setting]
 1. [Mega execution prompt](01_MEGA_BENCHMARK_EXECUTION_PROMPT.md)
 2. [Interchangeable test-suite template](02_TEST_SUITE_TEMPLATE.md)
 3. [Post-run handoff checklist](03_REVIEW_KIT_HANDOFF.md)
+4. [Step-by-step operator guide](04_OPERATOR_HOW_TO.md)
+5. [End-to-end Codex goal prompt](05_END_TO_END_CODEX_GOAL_PROMPT.md)
 
 The runner stores its resumable run artifact at
 `[OUTPUT_DIR]/[RUN_ID].json`. It creates one chat per test titled
