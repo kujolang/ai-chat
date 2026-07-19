@@ -1335,6 +1335,22 @@ textarea::-webkit-scrollbar-thumb:hover {
 	text-decoration: underline;
 }
 
+.message-retry-link {
+	display: inline;
+	margin: 0 0 0 6px;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: #8ec8ff;
+	font: inherit;
+	text-decoration: underline;
+	cursor: pointer;
+}
+
+.message-retry-link:hover {
+	color: #c4e3ff;
+}
+
 .message.user {
 	width: min(66%, 760px);
 	align-self: flex-end;

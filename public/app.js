@@ -934,6 +934,11 @@ function wireEvents() {
 			return;
 		}
 
+		if (action === "retry-message") {
+			void retryFailedPaneMessage(chat, paneId, String(actionElement.getAttribute("data-message-id") || ""));
+			return;
+		}
+
 		if (action === "remove-pane") {
 			removePaneFromChat(chat, paneId);
 			return;
@@ -2032,7 +2037,8 @@ function renderMessageNodeHtml(message, paneId) {
 	const contentBody = message.role === "assistant"
 		? renderAssistantMarkdown(message.content)
 		: renderPlainText(message.content);
-	const content = `<div class="message-content-block">${contentBody}</div>`;
+	const retryAction = renderRetryAction(message, paneId);
+	const content = `<div class="message-content-block">${contentBody}${retryAction}</div>`;
 	const screenshots = renderBrowserScreenshotArtifacts(message);
 	const timestamp = formatMessageTime(message.createdAt);
 	const footer = `<div class="message-footer"><span class="message-time">${escapeHtml(timestamp)}</span><button type="button" class="message-copy-btn" data-action="copy-message" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}" aria-label="Copy message" title="Copy message">${copyCodeButtonSvg}</button></div>`;
@@ -2045,6 +2051,23 @@ function renderMessageNodeHtml(message, paneId) {
 	}
 
 	return `<div class="${messageClasses.join(" ")}" data-message-id="${escapeHtml(message.id)}" data-pane-id="${escapeHtml(paneId)}"><div class="message-bubble">${content}${meta}</div>${footer}</div>`;
+}
+
+function renderRetryAction(message, paneId) {
+	const error = retryErrorForMessage(message);
+	if (!error || message.streaming || !String(error.message || "").trim()) return "";
+	return ` <button type="button" class="message-retry-link" data-action="retry-message" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}">Retry</button>`;
+}
+
+function retryErrorForMessage(message) {
+	if (!message || message.role !== "assistant") return null;
+	if (message.usage && message.usage.error && typeof message.usage.error === "object") {
+		return message.usage.error;
+	}
+	const content = String(message.content || "");
+	return /^Error:\s*/i.test(content)
+		? { message: content.replace(/^Error:\s*/i, ""), retryable: true }
+		: null;
 }
 
 function renderToolErrorBlock(message) {
@@ -3726,17 +3749,22 @@ async function sendFromComposer() {
 	renderComposerUsageSummary();
 }
 
-async function sendMessageToPaneStream(chat, pane, text) {
+async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 	const profile = getProfileById(pane.profile_id);
 	if (!profile) {
 		pane.status = "error";
-		pane.messages.push(makeMessage("assistant", "This pane has no valid provider profile selected."));
+		const errorMessage = makeMessage("assistant", "Error: This pane has no valid provider profile selected.");
+		errorMessage.usage = { error: { message: "This pane has no valid provider profile selected.", retryable: true } };
+		pane.messages.push(errorMessage);
 		return;
 	}
 	const selectedModel = modelForProfileSelection(profile, pane.model);
 	pane.model = selectedModel;
 
-	const userMessage = makeMessage("user", text);
+	const existingUserMessage = options.reuseUserMessageId
+		? pane.messages.find((message) => message.id === options.reuseUserMessageId && message.role === "user")
+		: null;
+	const userMessage = existingUserMessage || makeMessage("user", text);
 	const assistantMessage = makeMessage("assistant", "");
 	assistantMessage.thinking = "";
 	assistantMessage.provider = profile.provider_id;
@@ -3750,7 +3778,9 @@ async function sendMessageToPaneStream(chat, pane, text) {
 	assistantMessage.continuation_passes = 0;
 	assistantMessage.trace_id = assistantMessage.id;
 
-	pane.messages.push(userMessage);
+	if (!existingUserMessage) {
+		pane.messages.push(userMessage);
+	}
 	pane.messages.push(assistantMessage);
 	pane.status = "waiting";
 	chat.updatedAt = Date.now();
@@ -4245,6 +4275,10 @@ async function sendMessageToPaneStream(chat, pane, text) {
 		if (!assistantMessage.content) {
 			assistantMessage.content = `Error: ${errorMessage}`;
 		}
+		assistantMessage.usage = {
+			...(assistantMessage.usage && typeof assistantMessage.usage === "object" ? assistantMessage.usage : {}),
+			error: { message: errorMessage, retryable: true }
+		};
 		renderComposerUsageSummary();
 		if (isUsageModalOpen()) {
 			renderUsageModalContent();
@@ -4268,6 +4302,38 @@ async function sendMessageToPaneStream(chat, pane, text) {
 		stopStreamingRequested = false;
 	}
 	updateStreamingControls();
+}
+
+async function retryFailedPaneMessage(chat, paneId, messageId) {
+	const pane = chat && chat.panes ? chat.panes.find((candidate) => candidate.id === paneId) : null;
+	if (!pane || !messageId || pane.status === "waiting") {
+		return;
+	}
+
+	const messageIndex = pane.messages.findIndex((message) => message.id === messageId);
+	if (messageIndex < 0) {
+		return;
+	}
+
+	const failedMessage = pane.messages[messageIndex];
+	const error = retryErrorForMessage(failedMessage);
+	if (!error || failedMessage.streaming) {
+		return;
+	}
+
+	const userMessage = pane.messages
+		.slice(0, messageIndex)
+		.reverse()
+		.find((message) => message.role === "user" && String(message.content || "").trim());
+	if (!userMessage) {
+		return;
+	}
+
+	pane.messages.splice(messageIndex, 1);
+	chat.updatedAt = Date.now();
+	renderWorkspace();
+	schedulePersist();
+	await sendMessageToPaneStream(chat, pane, userMessage.content, { reuseUserMessageId: userMessage.id });
 }
 
 function agentInstructionsForModel(model) {
