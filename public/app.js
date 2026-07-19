@@ -150,6 +150,7 @@ const nodes = {
 	closeUsageBtn: document.getElementById("close-usage-btn"),
 	usageStatTotal: document.getElementById("usage-stat-total"),
 	usageStatResponses: document.getElementById("usage-stat-responses"),
+	usageStatRetries: document.getElementById("usage-stat-retries"),
 	usageStatAverage: document.getElementById("usage-stat-average"),
 	usageStatInput: document.getElementById("usage-stat-input"),
 	usageStatOutput: document.getElementById("usage-stat-output"),
@@ -2031,6 +2032,9 @@ function renderMessageNodeHtml(message, paneId) {
 	if (Number(message.continuation_passes) > 0) {
 		metaBits.push(`continued ${message.continuation_passes}x`);
 	}
+	if (Number(message.retry_count) > 0) {
+		metaBits.push(`retries ${message.retry_count}`);
+	}
 
 	const meta = metaBits.length > 0 ? `<div class=\"message-meta\">${escapeHtml(metaBits.join(" | "))}</div>` : "";
 	const thinking = renderThinkingBlock(message, paneId);
@@ -2064,7 +2068,7 @@ function renderAssistantMessageContent(message, paneId) {
 function renderRetryAction(message, paneId) {
 	const error = retryErrorForMessage(message);
 	if (!error || message.streaming || !String(error.message || "").trim()) return "";
-	return ` <button type="button" class="message-retry-link" data-action="retry-message" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}" aria-label="Retry response" title="Retry response">Retry ${retryIconSvg}</button>`;
+	return ` <button type="button" class="message-retry-link" data-action="retry-message" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}" aria-label="Retry response" title="Retry response">${retryIconSvg}</button>`;
 }
 
 function retryErrorForMessage(message) {
@@ -2648,6 +2652,14 @@ function usageTokenCount(entry) {
 	return derivedTotal > 0 ? derivedTotal : 0;
 }
 
+function retryCountForMessage(message) {
+	return Math.max(0, Number(message && (message.retry_count || (message.usage && message.usage.retry_count))) || 0);
+}
+
+function retryCountForEntry(entry) {
+	return Math.max(0, Number(entry && entry.retry_count) || 0);
+}
+
 function nullableUsageValue(value) {
 	if (value === null || value === undefined || (typeof value === "string" && value.trim() === "")) {
 		return null;
@@ -2694,7 +2706,8 @@ function collectUsageRecords() {
 			for (const message of pane.messages) {
 				const tokenCount = Number(message && message.usage && message.usage.total_tokens);
 				const responseTime = Number(message && message.response_time_ms);
-				if ((!Number.isFinite(tokenCount) || tokenCount <= 0) && (!Number.isFinite(responseTime) || responseTime <= 0)) {
+				const retryCount = retryCountForMessage(message);
+				if ((!Number.isFinite(tokenCount) || tokenCount <= 0) && (!Number.isFinite(responseTime) || responseTime <= 0) && retryCount <= 0) {
 					continue;
 				}
 
@@ -2716,6 +2729,7 @@ function collectUsageRecords() {
 					model: String(message.model || "unknown"),
 					role: String(message.role || "assistant"),
 					tokens: Number.isFinite(tokenCount) && tokenCount > 0 ? tokenCount : 0,
+					retry_count: retryCount,
 					response_time_ms: Number.isFinite(responseTime) && responseTime > 0 ? responseTime : 0,
 					input_tokens: finiteUsageValue(message.usage.input_tokens),
 					output_tokens: finiteUsageValue(message.usage.output_tokens),
@@ -2735,7 +2749,8 @@ function collectUsageRecords() {
 
 		const tokenCount = usageTokenCount(entry);
 		const responseTime = Number(entry.response_time_ms);
-		if ((!Number.isFinite(tokenCount) || tokenCount <= 0) && (!Number.isFinite(responseTime) || responseTime <= 0)) {
+		const retryCount = retryCountForEntry(entry);
+		if ((!Number.isFinite(tokenCount) || tokenCount <= 0) && (!Number.isFinite(responseTime) || responseTime <= 0) && retryCount <= 0) {
 			continue;
 		}
 
@@ -2756,6 +2771,7 @@ function collectUsageRecords() {
 			model: String(entry.model || "unknown"),
 			role: String(entry.role || "assistant"),
 			tokens: Number.isFinite(tokenCount) && tokenCount > 0 ? tokenCount : 0,
+			retry_count: retryCount,
 			response_time_ms: Number.isFinite(responseTime) && responseTime > 0 ? responseTime : 0,
 			input_tokens: finiteUsageValue(entry.input_tokens),
 			output_tokens: finiteUsageValue(entry.output_tokens),
@@ -2900,10 +2916,12 @@ function renderUsageModalContent() {
 	const cachedInputTokens = filteredRecords.reduce((sum, record) => sum + (record.cached_input_tokens || 0), 0);
 	const cacheWriteInputTokens = filteredRecords.reduce((sum, record) => sum + (record.cache_write_input_tokens || 0), 0);
 	const responseCount = filteredRecords.length;
+	const retryCount = filteredRecords.reduce((sum, record) => sum + record.retry_count, 0);
 	const average = responseCount > 0 ? Math.round(totalTokens / responseCount) : 0;
 
 	nodes.usageStatTotal.textContent = formatNumber(totalTokens);
 	nodes.usageStatResponses.textContent = formatNumber(responseCount);
+	nodes.usageStatRetries.textContent = formatNumber(retryCount);
 	nodes.usageStatAverage.textContent = formatNumber(average);
 	nodes.usageStatInput.textContent = formatNumber(inputTokens);
 	nodes.usageStatOutput.textContent = formatNumber(outputTokens);
@@ -2960,6 +2978,7 @@ function groupUsageRecords(records, groupBy, usageWindow = null) {
 				cached_input_tokens: 0,
 				cache_write_input_tokens: 0,
 				cache_details_reported: false,
+				retry_count: 0,
 				response_time_ms: 0,
 				total_response_time_ms: 0,
 				max_response_time_ms: 0,
@@ -2974,6 +2993,7 @@ function groupUsageRecords(records, groupBy, usageWindow = null) {
 		bucket.cached_input_tokens += record.cached_input_tokens || 0;
 		bucket.cache_write_input_tokens += record.cache_write_input_tokens || 0;
 		bucket.cache_details_reported = bucket.cache_details_reported || record.cache_details_reported;
+		bucket.retry_count += record.retry_count;
 		bucket.response_time_ms += record.response_time_ms || 0;
 		bucket.max_response_time_ms = Math.max(bucket.max_response_time_ms, record.response_time_ms || 0);
 		bucket.responses += 1;
@@ -2993,6 +3013,7 @@ function groupUsageRecords(records, groupBy, usageWindow = null) {
 						cached_input_tokens: 0,
 						cache_write_input_tokens: 0,
 						cache_details_reported: false,
+						retry_count: 0,
 						response_time_ms: 0,
 						total_response_time_ms: 0,
 						max_response_time_ms: 0,
@@ -3277,6 +3298,7 @@ function renderUsageBreakdown(groupedRows) {
 				<tr>
 					<th>Group</th>
 					<th>Responses</th>
+					<th>Retries</th>
 					<th>Total Tokens</th>
 					<th>Input</th>
 					<th>Output</th>
@@ -3293,7 +3315,7 @@ function renderUsageBreakdown(groupedRows) {
 						const cached = row.cache_details_reported ? formatNumber(row.cached_input_tokens) : "—";
 						const cacheWrite = row.cache_details_reported ? formatNumber(row.cache_write_input_tokens) : "—";
 						const averageResponseTime = row.responses > 0 && row.response_time_ms > 0 ? row.response_time_ms / row.responses : 0;
-						return `<tr><td>${escapeHtml(row.label)}</td><td>${formatNumber(row.responses)}</td><td>${formatNumber(row.tokens)}</td><td>${formatNumber(row.input_tokens)}</td><td>${formatNumber(row.output_tokens)}</td><td>${cached}</td><td>${cacheWrite}</td><td>${formatNumber(average)}</td><td>${formatDurationMs(averageResponseTime)}</td><td>${formatDurationMs(row.max_response_time_ms)}</td></tr>`;
+						return `<tr><td>${escapeHtml(row.label)}</td><td>${formatNumber(row.responses)}</td><td>${formatNumber(row.retry_count)}</td><td>${formatNumber(row.tokens)}</td><td>${formatNumber(row.input_tokens)}</td><td>${formatNumber(row.output_tokens)}</td><td>${cached}</td><td>${cacheWrite}</td><td>${formatNumber(average)}</td><td>${formatDurationMs(averageResponseTime)}</td><td>${formatDurationMs(row.max_response_time_ms)}</td></tr>`;
 				}).join("")}
 			</tbody>
 		</table>
@@ -3784,6 +3806,7 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 	assistantMessage.thinking_duration_ms = 0;
 	assistantMessage.response_time_ms = 0;
 	assistantMessage.continuation_passes = 0;
+	assistantMessage.retry_count = Math.max(0, Number(options.retryCount) || 0);
 	assistantMessage.trace_id = assistantMessage.id;
 
 	if (!existingUserMessage) {
@@ -4180,6 +4203,9 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 		if (assistantMessage.usage && watchdogTraceRecorded) {
 			assistantMessage.usage.trace_id = assistantMessage.trace_id;
 		}
+		if (assistantMessage.usage) {
+			assistantMessage.usage.retry_count = assistantMessage.retry_count;
+		}
 		if (assistantMessage.usage && terminalStreamError) {
 			assistantMessage.usage.tool_error = terminalStreamError;
 		}
@@ -4215,6 +4241,7 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 				model: assistantMessage.model || selectedModel,
 				role: "assistant",
 				tokens: Number(assistantMessage.usage.total_tokens || 0),
+				retry_count: assistantMessage.retry_count,
 				input_tokens: Number(assistantMessage.usage.input_tokens || 0),
 				output_tokens: Number(assistantMessage.usage.output_tokens || 0),
 				cached_input_tokens: assistantMessage.usage.cached_input_tokens,
@@ -4264,6 +4291,7 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 					model: assistantMessage.model || selectedModel,
 					role: "assistant",
 					tokens: Number(assistantMessage.usage.total_tokens || 0),
+					retry_count: assistantMessage.retry_count,
 					input_tokens: Number(assistantMessage.usage.input_tokens || 0),
 					output_tokens: Number(assistantMessage.usage.output_tokens || 0),
 					cached_input_tokens: assistantMessage.usage.cached_input_tokens,
@@ -4285,7 +4313,8 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 		}
 		assistantMessage.usage = {
 			...(assistantMessage.usage && typeof assistantMessage.usage === "object" ? assistantMessage.usage : {}),
-			error: { message: errorMessage, retryable: true }
+			error: { message: errorMessage, retryable: true },
+			retry_count: assistantMessage.retry_count
 		};
 		renderComposerUsageSummary();
 		if (isUsageModalOpen()) {
@@ -4341,7 +4370,10 @@ async function retryFailedPaneMessage(chat, paneId, messageId) {
 	chat.updatedAt = Date.now();
 	renderWorkspace();
 	schedulePersist();
-	await sendMessageToPaneStream(chat, pane, userMessage.content, { reuseUserMessageId: userMessage.id });
+	await sendMessageToPaneStream(chat, pane, userMessage.content, {
+		reuseUserMessageId: userMessage.id,
+		retryCount: retryCountForMessage(failedMessage) + 1
+	});
 }
 
 function agentInstructionsForModel(model) {
@@ -5406,6 +5438,7 @@ function loadUsageLedgerFromStorage() {
 		return parsed.slice(-10000).map((entry) => ({
 			...entry,
 			tokens: usageTokenCount(entry),
+			retry_count: retryCountForEntry(entry),
 			response_time_ms: finiteUsageValue(entry && entry.response_time_ms),
 			createdAt: parseUsageTimestamp(entry && entry.createdAt)
 		}));
@@ -5435,6 +5468,7 @@ function appendUsageLedgerEntry(entry) {
 		model: String(entry.model || "unknown"),
 		role: String(entry.role || "assistant"),
 		tokens: usageTokenCount(entry),
+		retry_count: retryCountForEntry(entry),
 		input_tokens: finiteUsageValue(entry.input_tokens),
 		output_tokens: finiteUsageValue(entry.output_tokens),
 		cached_input_tokens: nullableUsageValue(entry.cached_input_tokens),
@@ -5444,7 +5478,7 @@ function appendUsageLedgerEntry(entry) {
 		createdAt: parseUsageTimestamp(entry.createdAt)
 	};
 
-	if (!Number.isFinite(normalized.tokens) || normalized.tokens <= 0) {
+	if ((!Number.isFinite(normalized.tokens) || normalized.tokens <= 0) && normalized.retry_count <= 0) {
 		return;
 	}
 
