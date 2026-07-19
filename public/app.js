@@ -71,6 +71,7 @@ const sendButtonSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" he
 const stopButtonSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect width=\"14\" height=\"14\" x=\"5\" y=\"5\" rx=\"2\"/></svg>";
 const collapseSidebarSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect width=\"18\" height=\"18\" x=\"3\" y=\"3\" rx=\"2\"/><path d=\"M9 3v18\"/><path d=\"m15 9-3 3 3 3\"/></svg>";
 const expandSidebarSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect width=\"18\" height=\"18\" x=\"3\" y=\"3\" rx=\"2\"/><path d=\"M9 3v18\"/><path d=\"m13 9 3 3-3 3\"/></svg>";
+const retryIconSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"message-retry-icon\" aria-hidden=\"true\"><path d=\"M3 12a9 9 0 1 0 3-6.7\"/><path d=\"M3 4v5h5\"/></svg>";
 const chevronLeftSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m15 18-6-6 6-6\"/></svg>";
 const chevronRightSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m9 18 6-6-6-6\"/></svg>";
 const copyCodeButtonSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"code-copy-icon\" aria-hidden=\"true\"><rect width=\"14\" height=\"14\" x=\"8\" y=\"8\" rx=\"2\" ry=\"2\"/><path d=\"M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2\"/></svg>";
@@ -2035,10 +2036,9 @@ function renderMessageNodeHtml(message, paneId) {
 	const thinking = renderThinkingBlock(message, paneId);
 	const toolError = renderToolErrorBlock(message);
 	const contentBody = message.role === "assistant"
-		? renderAssistantMarkdown(message.content)
+		? renderAssistantMessageContent(message, paneId)
 		: renderPlainText(message.content);
-	const retryAction = renderRetryAction(message, paneId);
-	const content = `<div class="message-content-block">${contentBody}${retryAction}</div>`;
+	const content = `<div class="message-content-block">${contentBody}</div>`;
 	const screenshots = renderBrowserScreenshotArtifacts(message);
 	const timestamp = formatMessageTime(message.createdAt);
 	const footer = `<div class="message-footer"><span class="message-time">${escapeHtml(timestamp)}</span><button type="button" class="message-copy-btn" data-action="copy-message" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}" aria-label="Copy message" title="Copy message">${copyCodeButtonSvg}</button></div>`;
@@ -2053,10 +2053,18 @@ function renderMessageNodeHtml(message, paneId) {
 	return `<div class="${messageClasses.join(" ")}" data-message-id="${escapeHtml(message.id)}" data-pane-id="${escapeHtml(paneId)}"><div class="message-bubble">${content}${meta}</div>${footer}</div>`;
 }
 
+function renderAssistantMessageContent(message, paneId) {
+	const retryAction = renderRetryAction(message, paneId);
+	if (!retryAction) {
+		return renderAssistantMarkdown(message.content);
+	}
+	return `${renderPlainText(message.content)}${retryAction}`;
+}
+
 function renderRetryAction(message, paneId) {
 	const error = retryErrorForMessage(message);
 	if (!error || message.streaming || !String(error.message || "").trim()) return "";
-	return ` <button type="button" class="message-retry-link" data-action="retry-message" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}">Retry</button>`;
+	return ` <button type="button" class="message-retry-link" data-action="retry-message" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}" aria-label="Retry response" title="Retry response">Retry ${retryIconSvg}</button>`;
 }
 
 function retryErrorForMessage(message) {

@@ -1336,7 +1336,9 @@ textarea::-webkit-scrollbar-thumb:hover {
 }
 
 .message-retry-link {
-	display: inline;
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
 	margin: 0 0 0 6px;
 	padding: 0;
 	border: 0;
@@ -1345,6 +1347,10 @@ textarea::-webkit-scrollbar-thumb:hover {
 	font: inherit;
 	text-decoration: underline;
 	cursor: pointer;
+}
+
+.message-retry-icon {
+	flex: 0 0 auto;
 }
 
 .message-retry-link:hover {
