@@ -336,3 +336,17 @@ test("browser_use snapshot without a session returns guidance instead of abortin
 		await destroy();
 	}
 });
+
+test("browser_use local URLs return guidance instead of aborting tool flow", async () => {
+	const { runtime, destroy } = createRuntime();
+	try {
+		const result = await runtime.execute("browser_use", { action: "navigate", url: "file:///tmp/README.md" }, { scopeId: "chat-a", requestState: {} });
+		assert.equal(result.ok, false);
+		assert.equal(result.code, "browser_url_blocked");
+		assert.equal(result.deprecated_tool, true);
+		assert.match(result.message, /HTTP and HTTPS/);
+		assert.match(result.retry_hint, /local_file_read/);
+	} finally {
+		await destroy();
+	}
+});
