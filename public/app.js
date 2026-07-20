@@ -112,6 +112,7 @@ const nodes = {
 	addProjectFolderBtn: document.getElementById("add-project-folder-btn"),
 	chatList: document.getElementById("chat-list"),
 	chatTitleInput: document.getElementById("chat-title-input"),
+	copyChatIdBtn: document.getElementById("copy-chat-id-btn"),
 	addPaneBtn: document.getElementById("add-pane-btn"),
 	openPaneProfilesBtn: document.getElementById("open-pane-profiles-btn"),
 	paneControls: document.getElementById("pane-controls"),
@@ -595,6 +596,26 @@ function wireEvents() {
 		chat.updatedAt = Date.now();
 		schedulePersist();
 		renderSidebar();
+	});
+
+	nodes.copyChatIdBtn.addEventListener("click", () => {
+		const chat = getActiveChat();
+		if (!chat || !chat.id || !navigator.clipboard || typeof navigator.clipboard.writeText !== "function") {
+			return;
+		}
+
+		void navigator.clipboard.writeText(String(chat.id)).then(() => {
+			nodes.copyChatIdBtn.classList.add("copied");
+			nodes.copyChatIdBtn.setAttribute("aria-label", "Copied chat ID");
+			nodes.copyChatIdBtn.setAttribute("title", "Copied chat ID");
+			window.setTimeout(() => {
+				nodes.copyChatIdBtn.classList.remove("copied");
+				nodes.copyChatIdBtn.setAttribute("aria-label", "Copy chat ID");
+				nodes.copyChatIdBtn.setAttribute("title", "Copy chat ID");
+			}, 1200);
+		}).catch(() => {
+			// Ignore clipboard failures.
+		});
 	});
 
 	nodes.addPaneBtn.addEventListener("click", () => {
@@ -2457,12 +2478,17 @@ function renderWorkspace(options = {}) {
 	const chat = getActiveChat();
 	if (!chat) {
 		nodes.chatTitleInput.value = "";
+		nodes.copyChatIdBtn.disabled = true;
 		nodes.paneControls.innerHTML = "";
 		nodes.paneGrid.innerHTML = "<div class=\"empty-state\">Start a new chat or choose one from the sidebar.</div>";
 		return;
 	}
 
 	nodes.chatTitleInput.value = chat.title;
+	nodes.copyChatIdBtn.disabled = false;
+	nodes.copyChatIdBtn.classList.remove("copied");
+	nodes.copyChatIdBtn.setAttribute("aria-label", "Copy chat ID");
+	nodes.copyChatIdBtn.setAttribute("title", `Copy chat ID: ${chat.id}`);
 	renderPaneControls(chat);
 	const paneCount = chat.panes.length;
 	nodes.paneGrid.classList.toggle("cols-2", paneCount === 2);

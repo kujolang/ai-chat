@@ -678,9 +678,15 @@ input[type="checkbox"]:disabled {
 
 .workspace-title {
 	flex: 1;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	min-width: 0;
 }
 
 .workspace-title input {
+	flex: 1;
+	min-width: 0;
 	border: 0;
 	background: transparent;
 	padding: 0;
@@ -693,6 +699,37 @@ input[type="checkbox"]:disabled {
 .workspace-title input:focus {
 	border: 0;
 	box-shadow: none;
+}
+
+.chat-id-copy-btn.icon-only {
+	flex: 0 0 auto;
+	width: 26px;
+	height: 26px;
+	min-width: 26px;
+	border: 0;
+	color: #8f9aa7;
+	background: transparent;
+}
+
+.chat-id-copy-btn.icon-only svg {
+	width: 15px;
+	height: 15px;
+}
+
+.chat-id-copy-btn.icon-only:hover,
+.chat-id-copy-btn.icon-only:focus-visible {
+	color: #d8e1ec;
+	background: rgba(255, 255, 255, 0.045);
+	transform: none;
+}
+
+.chat-id-copy-btn.icon-only.copied {
+	color: #7de0b7;
+}
+
+.chat-id-copy-btn.icon-only:disabled {
+	opacity: 0.35;
+	pointer-events: none;
 }
 
 .workspace-actions {
