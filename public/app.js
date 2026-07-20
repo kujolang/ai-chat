@@ -7036,6 +7036,8 @@ function getMarkdownRenderer() {
 			"</div>"
 		].join("");
 	};
+	renderer.renderer.rules.table_open = () => "<div class=\"table-scroll\"><table>";
+	renderer.renderer.rules.table_close = () => "</table></div>";
 
 	markdownRenderer = renderer;
 	return markdownRenderer;
@@ -7232,7 +7234,7 @@ function parseMarkdownTable(lines, startLineIndex) {
 		: "<tbody></tbody>";
 
 	return {
-		html: `<table>${headHtml}${bodyHtml}</table>`,
+		html: `<div class="table-scroll"><table>${headHtml}${bodyHtml}</table></div>`,
 		nextLineIndex: currentIndex - 1
 	};
 }
