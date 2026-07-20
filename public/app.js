@@ -34,7 +34,7 @@ let persistInFlight = false;
 let persistRequested = false;
 let lastPersistedSnapshot = null;
 let stateLoadedFromServer = false;
-let runtimeCapabilities = { loaded: false, tools: [], browser: { enabled: false, available: false, action_policy: "read-only" } };
+let runtimeCapabilities = { loaded: false, tools: [], schemas: [], browser: { enabled: false, available: false, action_policy: "read-only" } };
 let settingsSaveIndicatorTimer = null;
 let suppressNextTokenBlurSave = false;
 let usageChart = null;
@@ -239,6 +239,7 @@ async function loadRuntimeCapabilities() {
 		runtimeCapabilities = {
 			loaded: true,
 			tools: Array.isArray(toolRuntime.tools) ? toolRuntime.tools.map(String) : [],
+			schemas: Array.isArray(toolRuntime.schemas) ? toolRuntime.schemas.map(normalizeRuntimeToolSchema).filter(Boolean) : [],
 			browser: toolRuntime.browser && typeof toolRuntime.browser === "object"
 				? toolRuntime.browser
 				: { enabled: false, available: false, action_policy: "read-only" }
@@ -6088,7 +6089,7 @@ function createActionToolDefinitions() {
 }
 
 function buildEnabledToolDefinitions() {
-	return state.settings.tools
+	const savedTools = state.settings.tools
 		.filter((tool) => tool.enabled)
 		.filter((tool) => !isRuntimePresetTool(tool.name) || !runtimeCapabilities.loaded || runtimeCapabilities.tools.includes(tool.name))
 		.map((tool) => {
@@ -6105,8 +6106,32 @@ function buildEnabledToolDefinitions() {
 				}
 			};
 		})
-		.filter(Boolean)
-		.slice(0, 32);
+		.filter(Boolean);
+	const savedNames = new Set(state.settings.tools.map((tool) => sanitizeToolName(tool.name)).filter(Boolean));
+	const liveRuntimeTools = runtimeCapabilities.loaded
+		? runtimeCapabilities.schemas
+			.filter((schema) => isRuntimePresetTool(schema.function.name))
+			.filter((schema) => runtimeCapabilities.tools.includes(schema.function.name))
+			.filter((schema) => !savedNames.has(schema.function.name))
+		: [];
+	return savedTools.concat(liveRuntimeTools).slice(0, 32);
+}
+
+function normalizeRuntimeToolSchema(schema) {
+	if (!schema || typeof schema !== "object" || schema.type !== "function" || !schema.function || typeof schema.function !== "object") return null;
+	const name = sanitizeToolName(schema.function.name);
+	if (!name) return null;
+	const parameters = schema.function.parameters && typeof schema.function.parameters === "object" && !Array.isArray(schema.function.parameters)
+		? schema.function.parameters
+		: { type: "object", properties: {}, additionalProperties: false };
+	return {
+		type: "function",
+		function: {
+			name,
+			description: String(schema.function.description || "").slice(0, 2000),
+			parameters
+		}
+	};
 }
 
 function isRuntimePresetTool(name) {
