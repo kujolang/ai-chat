@@ -437,6 +437,39 @@ test("chatRequestPayload applies defaults and validates normalized messages", ()
 	}
 });
 
+test("chatRequestPayload augments stale requests with enabled runtime presets from settings", () => {
+	const { runtime, destroy } = createIsolatedRuntime({
+		envMerge: {
+			AI_CHAT_LOCAL_TOOLS_ENABLED: "1",
+			AI_CHAT_LOCAL_WORKSPACE_ROOTS: path.resolve(__dirname, ".."),
+			AI_CHAT_LOCAL_WRITE_ENABLED: "1",
+			AI_CHAT_LOCAL_SHELL_ENABLED: "1",
+			AI_CHAT_LOCAL_SHELL_ALLOWLIST: "git,rg,ls,pwd,npm"
+		}
+	});
+	try {
+		const state = runtime.helpers.readState();
+		state.settings.tools = [
+			{ id: "skill-read", name: "skill_read", description: "Read skills", parameters_json: "{}", enabled: true, kind: "preset" },
+			{ id: "local-shell", name: "local_shell", description: "Run shell", parameters_json: "{}", enabled: true, kind: "preset" },
+			{ id: "local-write", name: "local_file_write", description: "Write file", parameters_json: "{}", enabled: true, kind: "preset" }
+		];
+		runtime.helpers.writeState(state);
+
+		const payload = runtime.helpers.chatRequestPayload({
+			messages: [{ role: "user", content: "Can you save memory?" }],
+			tools: [{ type: "function", function: { name: "skill_read", parameters: { type: "object", properties: {} } } }]
+		}, {});
+		const names = payload.tools.map((tool) => tool.function.name);
+		assert.ok(names.includes("skill_read"));
+		assert.ok(names.includes("local_shell"));
+		assert.ok(names.includes("local_file_write"));
+		assert.equal(payload.tools.find((tool) => tool.function.name === "local_shell").function.parameters.properties.command.type, "string");
+	} finally {
+		destroy();
+	}
+});
+
 test("tool execution errors name requested functions without exposing arguments", () => {
 	const { runtime, destroy } = createIsolatedRuntime();
 	try {
