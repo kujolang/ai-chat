@@ -437,6 +437,7 @@ test("browser_use always advertises the compatibility session contract", () => {
 		const parameters = payload.tools[0].function.parameters;
 		assert.ok(parameters.properties.session_id);
 		assert.ok(parameters.properties.url);
+		assert.equal(parameters.properties.url.pattern, "^https?://");
 		assert.ok(parameters.properties.action.enum.includes("screenshot"));
 	} finally {
 		destroy();

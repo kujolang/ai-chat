@@ -89,6 +89,20 @@ test("tool runtime rejects unknown tools and missing search credentials", async 
 	await assert.rejects(() => runtime.execute("web_search", { query: "Kujo" }), (error) => error.code === "web_search_auth_required");
 });
 
+test("browser tool schemas steer models toward absolute HTTP URLs", () => {
+	const runtime = createToolRuntime({
+		browserRuntime: {
+			list: () => ["browser_open", "browser_snapshot", "browser_act", "browser_close", "browser_use"],
+			canExecute: () => true,
+			execute: async () => ({})
+		}
+	});
+	const schemas = Object.fromEntries(runtime.schemas().filter((schema) => schema.function.name.startsWith("browser_")).map((schema) => [schema.function.name, schema.function.parameters]));
+	assert.equal(schemas.browser_open.properties.url.pattern, "^https?://");
+	assert.equal(schemas.browser_act.properties.action.properties.url.pattern, "^https?://");
+	assert.equal(schemas.browser_use.properties.url.pattern, "^https?://");
+});
+
 test("SearXNG URL policy permits local HTTP and requires HTTPS elsewhere", () => {
 	assert.equal(normalizeSearxngBaseUrl("http://localhost:8080/"), "http://localhost:8080");
 	assert.equal(normalizeSearxngBaseUrl("https://search.example.com/"), "https://search.example.com");
