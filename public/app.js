@@ -2592,8 +2592,9 @@ function renderMessageNodeHtml(message, paneId) {
 	const screenshots = renderBrowserScreenshotArtifacts(message);
 	const timestamp = formatMessageTime(message.createdAt);
 	const branchAction = renderBranchAction(message, paneId);
+	const copyAction = `<button type="button" class="message-copy-btn" data-action="copy-message" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}" aria-label="Copy message" title="Copy message">${copyCodeButtonSvg}</button>`;
 	const retryAction = message.role === "assistant" ? renderRetryAction(message, paneId) : "";
-	const footer = `<div class="message-footer"><span class="message-time">${escapeHtml(timestamp)}</span><button type="button" class="message-copy-btn" data-action="copy-message" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}" aria-label="Copy message" title="Copy message">${copyCodeButtonSvg}</button>${branchAction}${retryAction}</div>`;
+	const footer = `<div class="message-footer"><span class="message-time">${escapeHtml(timestamp)}</span>${branchAction}${copyAction}${retryAction}</div>`;
 
 	if ("assistant" === message.role) {
 		const metaFooter = meta || footer

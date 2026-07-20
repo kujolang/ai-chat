@@ -1389,13 +1389,12 @@ textarea::-webkit-scrollbar-thumb:hover {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	width: 24px;
-	height: 24px;
+	width: 18px;
+	height: 22px;
 	padding: 0;
-	border: 1px solid #2f3b48;
-	background: rgba(18, 24, 31, 0.9);
+	border: 0;
+	background: transparent;
 	color: #b8cadc;
-	border-radius: 7px;
 	cursor: pointer;
 }
 
@@ -1406,7 +1405,6 @@ textarea::-webkit-scrollbar-thumb:hover {
 
 .message-retry-link:hover,
 .message-branch-link:hover {
-	border-color: #47657f;
 	color: #e0eefc;
 	transform: none;
 }
@@ -1465,7 +1463,7 @@ textarea::-webkit-scrollbar-thumb:hover {
 	display: flex;
 	justify-content: flex-end;
 	align-items: center;
-	gap: 8px;
+	gap: 6px;
 	font-size: 10px;
 	color: var(--text-dim);
 	font-family: var(--mono);
@@ -1478,6 +1476,7 @@ textarea::-webkit-scrollbar-thumb:hover {
 
 .message.assistant .message-footer {
 	margin-left: auto;
+	transform: translateX(3px);
 }
 
 .message-footer {
@@ -1497,24 +1496,20 @@ textarea::-webkit-scrollbar-thumb:hover {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	width: 24px;
-	height: 24px;
+	width: 18px;
+	height: 22px;
 	padding: 0;
-	border: 1px solid #2f3b48;
-	background: rgba(18, 24, 31, 0.9);
+	border: 0;
+	background: transparent;
 	color: #b8cadc;
-	border-radius: 7px;
 }
 
 .message-copy-btn:hover {
-	border-color: #47657f;
 	color: #e0eefc;
 	transform: none;
 }
 
 .message-copy-btn.copied {
-	border-color: #3f6958;
-	background: rgba(107, 241, 191, 0.12);
 	color: #7de0b7;
 }
 
