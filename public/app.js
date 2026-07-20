@@ -61,6 +61,7 @@ const legacyUsageLedgerStorageKey = "kujo_ai_chat_usage_ledger_v1";
 const sidebarCollapsedStorageKey = "ai_chat_sidebar_collapsed_v1";
 const paneInfoVisibleStorageKey = "ai_chat_pane_info_visible_v1";
 const usageSummaryVisibleStorageKey = "ai_chat_usage_summary_visible_v1";
+const collapsedProvidersStorageKey = "ai_chat_collapsed_providers_v1";
 const stateChangesBatchBytes = 512 * 1024;
 const maxVisibleProjectFolders = 5;
 const sidebarChatPageSize = 5;
@@ -86,6 +87,9 @@ let sidebarChatVisibleCount = sidebarChatPageSize;
 let projectFolderSelect2Ready = false;
 let composerModelSelect2Ready = false;
 let settingsDefaultModelSelect2Ready = false;
+let draggedProviderId = "";
+let draggedModel = null;
+let collapsedProviderIds = loadCollapsedProviderIds();
 loadApiAuthTokenFromStorage();
 
 const nodes = {
@@ -1033,19 +1037,35 @@ function wireEvents() {
 	const onProfileFieldChange = (event) => {
 		const profileId = event.target.getAttribute("data-profile-id");
 		const field = event.target.getAttribute("data-field");
-		if (!profileId || !field) {
+		const modelIndexValue = event.target.getAttribute("data-model-index");
+		if (!profileId) {
 			return;
 		}
 		const profile = getProfileById(profileId);
 		if (!profile) {
 			return;
 		}
+		if (modelIndexValue !== null && event.target.matches("input[data-model-index]")) {
+			const modelIndex = Number(modelIndexValue);
+			const modelList = event.target.closest(".profile-model-list");
+			if (!Number.isInteger(modelIndex) || modelIndex < 0 || !modelList) return;
+			const nextValue = String(event.target.value || "").replaceAll(",", "").slice(0, 500);
+			event.target.value = nextValue;
+			const models = Array.from(modelList.querySelectorAll("input[data-model-index]"))
+				.map((input) => String(input.value || "").replaceAll(",", "").trim().slice(0, 500))
+				.filter(Boolean);
+			setProfileModels(profile, models);
+			schedulePersist();
+			if (event.type === "change") renderSettings();
+			return;
+		}
+		if (!field) return;
 		if (field === "api_key") {
 			profile.api_key = event.target.value;
 			profile.api_key_dirty = true;
 		} else {
 			profile[field] = event.target.value;
-			if (field === "name" || field === "models_csv") {
+			if (field === "name") {
 				ensureValidDefaultModelSelection();
 				renderComposerProfileSelect();
 				renderSettingsDefaultModelSelect();
@@ -1058,15 +1078,54 @@ function wireEvents() {
 	nodes.profileList.addEventListener("change", onProfileFieldChange);
 
 	nodes.profileList.addEventListener("click", (event) => {
-		const action = event.target.getAttribute("data-action");
-		if (action !== "delete-profile") {
-			return;
-		}
-
-		const profileId = event.target.getAttribute("data-profile-id");
+		const actionNode = event.target.closest("[data-action][data-profile-id]");
+		const action = actionNode ? String(actionNode.getAttribute("data-action") || "") : "";
+		const profileId = actionNode ? String(actionNode.getAttribute("data-profile-id") || "") : "";
 		if (!profileId) {
 			return;
 		}
+		if (action === "toggle-profile") {
+			if (collapsedProviderIds.has(profileId)) collapsedProviderIds.delete(profileId);
+			else collapsedProviderIds.add(profileId);
+			storeCollapsedProviderIds();
+			renderSettings();
+			return;
+		}
+		if (action === "add-model") {
+			const profile = getProfileById(profileId);
+			if (!profile) return;
+			const models = profileModelEntries(profile);
+			let candidate = "new-model";
+			let suffix = 2;
+			while (models.includes(candidate)) {
+				candidate = `new-model-${suffix}`;
+				suffix += 1;
+			}
+			models.push(candidate);
+			setProfileModels(profile, models);
+			schedulePersist();
+			renderSettings();
+			window.requestAnimationFrame(() => {
+				const input = nodes.profileList.querySelector(`input[data-profile-id="${cssEscape(profileId)}"][data-model-index="${models.length - 1}"]`);
+				if (input) {
+					input.focus();
+					input.select();
+				}
+			});
+			return;
+		}
+		if (action === "delete-model") {
+			const profile = getProfileById(profileId);
+			const modelIndex = Number(actionNode.getAttribute("data-model-index"));
+			if (!profile || !Number.isInteger(modelIndex)) return;
+			const models = profileModelEntries(profile);
+			models.splice(modelIndex, 1);
+			setProfileModels(profile, models);
+			schedulePersist();
+			renderSettings();
+			return;
+		}
+		if (action !== "delete-profile") return;
 
 		if (state.settings.profiles.length <= 1) {
 			window.alert("At least one profile is required.");
@@ -1074,6 +1133,8 @@ function wireEvents() {
 		}
 
 		state.settings.profiles = state.settings.profiles.filter((profile) => profile.id !== profileId);
+		collapsedProviderIds.delete(profileId);
+		storeCollapsedProviderIds();
 		const fallback = state.settings.profiles[0];
 		for (const chat of state.chats) {
 			for (const pane of chat.panes) {
@@ -1095,6 +1156,93 @@ function wireEvents() {
 		schedulePersist();
 		renderSettings();
 		renderAll();
+	});
+
+	nodes.profileList.addEventListener("keydown", (event) => {
+		const handle = event.target.closest("[data-drag-kind]");
+		if (!handle || !["ArrowUp", "ArrowDown"].includes(event.key)) return;
+		event.preventDefault();
+		const direction = event.key === "ArrowUp" ? -1 : 1;
+		const kind = String(handle.getAttribute("data-drag-kind") || "");
+		const profileId = String(handle.getAttribute("data-profile-id") || "");
+		if (kind === "provider") moveProviderBy(profileId, direction);
+		if (kind === "model") moveModelBy(profileId, Number(handle.getAttribute("data-model-index")), direction);
+	});
+
+	nodes.profileList.addEventListener("dragstart", (event) => {
+		const handle = event.target.closest("[data-drag-kind]");
+		if (!handle) {
+			event.preventDefault();
+			return;
+		}
+		const kind = String(handle.getAttribute("data-drag-kind") || "");
+		const profileId = String(handle.getAttribute("data-profile-id") || "");
+		if (kind === "provider") {
+			draggedProviderId = profileId;
+			handle.closest(".profile-card")?.classList.add("dragging");
+		} else if (kind === "model") {
+			draggedModel = { profileId, modelIndex: Number(handle.getAttribute("data-model-index")) };
+			handle.closest(".profile-model-row")?.classList.add("dragging");
+		}
+		if (event.dataTransfer) {
+			event.dataTransfer.effectAllowed = "move";
+			event.dataTransfer.setData("text/plain", `${kind}:${profileId}`);
+		}
+	});
+
+	nodes.profileList.addEventListener("dragover", (event) => {
+		const target = draggedModel
+			? event.target.closest(`.profile-model-row[data-profile-id="${cssEscape(draggedModel.profileId)}"]`)
+			: draggedProviderId
+				? event.target.closest(".profile-card")
+				: null;
+		if (!target) return;
+		event.preventDefault();
+		if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
+		for (const item of nodes.profileList.querySelectorAll(".drag-over-before, .drag-over-after")) {
+			item.classList.remove("drag-over-before", "drag-over-after");
+		}
+		const rectangle = target.getBoundingClientRect();
+		const placeAfter = event.clientY > rectangle.top + rectangle.height / 2;
+		target.classList.add(placeAfter ? "drag-over-after" : "drag-over-before");
+	});
+
+	nodes.profileList.addEventListener("drop", (event) => {
+		const dropTarget = event.target.closest(".drag-over-before, .drag-over-after");
+		if (!dropTarget) return;
+		event.preventDefault();
+		const placeAfter = dropTarget.classList.contains("drag-over-after");
+		if (draggedModel) {
+			const profile = getProfileById(draggedModel.profileId);
+			const targetIndex = Number(dropTarget.getAttribute("data-model-index"));
+			if (profile) {
+				const models = profileModelEntries(profile);
+				if (moveListItemForDrop(models, draggedModel.modelIndex, targetIndex, placeAfter)) {
+					setProfileModels(profile, models);
+					schedulePersist();
+					renderSettings();
+				}
+			}
+		} else if (draggedProviderId) {
+			const fromIndex = state.settings.profiles.findIndex((profile) => profile.id === draggedProviderId);
+			const targetProfileId = String(dropTarget.getAttribute("data-profile-id") || "");
+			const targetIndex = state.settings.profiles.findIndex((profile) => profile.id === targetProfileId);
+			if (moveListItemForDrop(state.settings.profiles, fromIndex, targetIndex, placeAfter)) {
+				schedulePersist();
+				renderSettings();
+				renderAll();
+			}
+		}
+		draggedModel = null;
+		draggedProviderId = "";
+	});
+
+	nodes.profileList.addEventListener("dragend", () => {
+		draggedModel = null;
+		draggedProviderId = "";
+		for (const item of nodes.profileList.querySelectorAll(".dragging, .drag-over-before, .drag-over-after")) {
+			item.classList.remove("dragging", "drag-over-before", "drag-over-after");
+		}
 	});
 
 	const onToolFieldChange = (event) => {
@@ -1700,6 +1848,23 @@ function storeBooleanPreference(storageKey, value) {
 		window.localStorage.setItem(storageKey, value ? "1" : "0");
 	} catch (error) {
 		// Ignore local preference storage errors.
+	}
+}
+
+function loadCollapsedProviderIds() {
+	try {
+		const parsed = JSON.parse(window.localStorage.getItem(collapsedProvidersStorageKey) || "[]");
+		return new Set(Array.isArray(parsed) ? parsed.map(String) : []);
+	} catch (error) {
+		return new Set();
+	}
+}
+
+function storeCollapsedProviderIds() {
+	try {
+		window.localStorage.setItem(collapsedProvidersStorageKey, JSON.stringify(Array.from(collapsedProviderIds)));
+	} catch (error) {
+		// Keep accordion controls usable when storage is unavailable.
 	}
 }
 
@@ -3608,6 +3773,86 @@ function closeSettings() {
 	}
 }
 
+function profileModelEntries(profile) {
+	return String((profile && profile.models_csv) || "")
+		.split(",")
+		.map((item) => item.trim())
+		.filter(Boolean);
+}
+
+function setProfileModels(profile, models) {
+	profile.models_csv = (Array.isArray(models) ? models : [])
+		.map((model) => String(model || "").replaceAll(",", "").trim().slice(0, 500))
+		.filter(Boolean)
+		.join(",");
+	ensureValidDefaultModelSelection();
+	renderComposerProfileSelect();
+	renderSettingsDefaultModelSelect();
+}
+
+function moveListItem(items, fromIndex, toIndex) {
+	if (!Array.isArray(items) || fromIndex < 0 || fromIndex >= items.length || toIndex < 0 || toIndex >= items.length || fromIndex === toIndex) {
+		return false;
+	}
+	const [item] = items.splice(fromIndex, 1);
+	items.splice(toIndex, 0, item);
+	return true;
+}
+
+function moveListItemForDrop(items, fromIndex, targetIndex, placeAfter) {
+	if (!Array.isArray(items) || fromIndex < 0 || targetIndex < 0 || fromIndex >= items.length || targetIndex >= items.length || fromIndex === targetIndex) return false;
+	let insertIndex = targetIndex + (placeAfter ? 1 : 0);
+	const [item] = items.splice(fromIndex, 1);
+	if (fromIndex < insertIndex) insertIndex -= 1;
+	items.splice(Math.max(0, Math.min(items.length, insertIndex)), 0, item);
+	return true;
+}
+
+function moveProviderBy(profileId, delta) {
+	const fromIndex = state.settings.profiles.findIndex((profile) => profile.id === profileId);
+	const toIndex = Math.max(0, Math.min(state.settings.profiles.length - 1, fromIndex + delta));
+	if (!moveListItem(state.settings.profiles, fromIndex, toIndex)) return;
+	schedulePersist();
+	renderSettings();
+	renderAll();
+}
+
+function moveModelBy(profileId, modelIndex, delta) {
+	const profile = getProfileById(profileId);
+	if (!profile) return;
+	const models = profileModelEntries(profile);
+	const toIndex = Math.max(0, Math.min(models.length - 1, modelIndex + delta));
+	if (!moveListItem(models, modelIndex, toIndex)) return;
+	setProfileModels(profile, models);
+	schedulePersist();
+	renderSettings();
+}
+
+function renderProfileModels(profile) {
+	const models = profileModelEntries(profile);
+	const rows = models.map((model, index) => `
+		<div class="profile-model-row" data-profile-id="${escapeHtml(profile.id)}" data-model-index="${index}">
+			<button class="profile-drag-handle" type="button" draggable="true" data-drag-kind="model" data-profile-id="${escapeHtml(profile.id)}" data-model-index="${index}" aria-label="Drag ${escapeHtml(model)} to reorder" title="Drag to reorder; arrow keys also move this model">
+				<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/></svg>
+			</button>
+			<input data-profile-id="${escapeHtml(profile.id)}" data-model-index="${index}" type="text" value="${escapeHtml(model)}" aria-label="Model ${index + 1} for ${escapeHtml(profile.name)}">
+			<button class="profile-model-remove btn ghost icon-only" type="button" data-action="delete-model" data-profile-id="${escapeHtml(profile.id)}" data-model-index="${index}" aria-label="Remove ${escapeHtml(model)}" title="Remove model">
+				<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+			</button>
+		</div>
+	`).join("");
+	return `
+		<div class="profile-model-field">
+			<div class="profile-model-field-head"><span>Models</span><span>${models.length} configured</span></div>
+			<div class="profile-model-list" data-profile-id="${escapeHtml(profile.id)}">${rows || '<div class="profile-model-empty">No models configured.</div>'}</div>
+			<button class="btn ghost profile-model-add" type="button" data-action="add-model" data-profile-id="${escapeHtml(profile.id)}">
+				<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+				<span>Add model</span>
+			</button>
+		</div>
+	`;
+}
+
 function renderSettings() {
 	nodes.settingsTemperature.value = String(state.settings.temperature);
 	nodes.settingsMaxTokens.value = String(state.settings.maxTokens);
@@ -3624,8 +3869,10 @@ function renderSettings() {
 		: "Paste server API_AUTH_TOKEN";
 
 	nodes.profileList.innerHTML = state.settings.profiles
-		.map((profile) => {
+		.map((profile, profileIndex) => {
 			const managedCredential = profile.provider_id === "watchdog" || profile.provider_id === "watchdog_openrouter" || profile.provider_id === "watchdog_ollama_tud" || profile.credential_managed;
+			const collapsed = collapsedProviderIds.has(profile.id);
+			const modelCount = profileModelEntries(profile).length;
 			const keyStatus = managedCredential
 				? "Managed by server credential file"
 				: profile.api_key_present
@@ -3633,7 +3880,17 @@ function renderSettings() {
 				: "Stored key: not configured";
 
 			return `
-				<div class="profile-card">
+				<div class="profile-card${collapsed ? " collapsed" : ""}" data-profile-id="${escapeHtml(profile.id)}" data-profile-index="${profileIndex}">
+					<div class="profile-card-head">
+						<button class="profile-drag-handle profile-card-drag-handle" type="button" draggable="true" data-drag-kind="provider" data-profile-id="${escapeHtml(profile.id)}" aria-label="Drag ${escapeHtml(profile.name)} to reorder" title="Drag to reorder; arrow keys also move this provider">
+							<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/></svg>
+						</button>
+						<div class="profile-card-title"><strong>${escapeHtml(profile.name)}</strong><span>${modelCount} model${modelCount === 1 ? "" : "s"}</span></div>
+						<button class="profile-card-toggle btn ghost icon-only" type="button" data-action="toggle-profile" data-profile-id="${escapeHtml(profile.id)}" aria-label="${collapsed ? "Open" : "Close"} ${escapeHtml(profile.name)}" aria-expanded="${collapsed ? "false" : "true"}" title="${collapsed ? "Open provider" : "Close provider"}">
+							<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+						</button>
+					</div>
+					<div class="profile-card-body">
 					<div class="profile-grid">
 						<label>
 							<span>Name</span>
@@ -3663,13 +3920,11 @@ function renderSettings() {
 							<span>Base URL (custom only)</span>
 							<input data-profile-id="${profile.id}" data-field="base_url" type="text" value="${escapeHtml(profile.base_url || "")}" placeholder="${managedCredential ? "Managed by WATCHDOG_PROXY_URL" : ""}" ${managedCredential ? "disabled" : ""}>
 						</label>
-						<label style="grid-column: span 2;">
-							<span>Model suggestions (comma separated)</span>
-							<input data-profile-id="${profile.id}" data-field="models_csv" type="text" value="${escapeHtml(profile.models_csv || "")}">
-						</label>
 					</div>
+					${renderProfileModels(profile)}
 					<div class="profile-actions">
 						<button class="btn ghost danger" data-action="delete-profile" data-profile-id="${profile.id}">Delete Profile</button>
+					</div>
 					</div>
 				</div>
 			`;
@@ -6391,6 +6646,11 @@ function escapeHtml(value) {
 		.replace(/>/g, "&gt;")
 		.replace(/\"/g, "&quot;")
 		.replace(/'/g, "&#039;");
+}
+
+function cssEscape(value) {
+	if (window.CSS && typeof window.CSS.escape === "function") return window.CSS.escape(String(value || ""));
+	return String(value || "").replace(/[^A-Za-z0-9_-]/g, "\\$&");
 }
 
 function formatNumber(value) {

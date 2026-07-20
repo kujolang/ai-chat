@@ -143,7 +143,7 @@ http://127.0.0.1:4173
 1. Open Settings.
 2. Add or edit provider profiles.
 3. Enter API keys for the providers you want to use.
-4. Set model suggestions for each profile (comma-separated).
+4. Add, edit, remove, and drag model rows within each provider profile. Drag provider cards to set their order; use the chevron to collapse or open a card.
 5. In General settings, choose the default model/provider for regular new chats.
 6. Create a chat and add panes if you want side-by-side comparisons.
 7. Optionally open Pane Profiles in the chat header, name the current pane/model arrangement, and save it for future chats.

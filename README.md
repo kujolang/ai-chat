@@ -28,6 +28,8 @@ This project is for end users and teams who want one local web app to:
 	- Persist changed chats, panes, and messages incrementally with visible save status
 - Provider profiles
 	- Store provider profiles and model suggestions in Settings
+	- Reorder provider cards and their model rows with drag and drop
+	- Collapse provider cards while keeping their order and model count visible
 	- Choose the model/provider that every regular new chat starts with
 	- API keys are encrypted before being stored in SQLite
 - Model picker
@@ -288,7 +290,7 @@ account-visible inventory before relying on a newly added or marked-retired mode
 1. Open Settings.
 2. Add or edit provider profiles.
 3. Enter API keys for each direct-provider profile you plan to use. Watchdog profiles use the server-managed credential file instead.
-4. Set model suggestions (comma-separated) per profile.
+4. Add, edit, remove, and drag model rows within each provider profile. Drag provider cards to set their order.
 5. In General settings, choose the default model/provider for regular new chats.
 6. Create a new chat and add panes for side-by-side comparison.
 7. Open Pane Profiles in the chat header to save the current pane/model arrangement for later benchmarks or repeated workflows.

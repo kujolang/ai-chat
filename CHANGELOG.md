@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Make provider cards collapsible and reorderable, replace comma-separated model inputs with draggable model-row repeaters, and persist provider ordering.
 - Add a persistent default model/provider for regular new chats and replace the composer model select with a searchable, scrollable picker for large catalogs.
 - Harden `web_search` with canonical citation metadata, bounded URL validation/deduplication, explicit backend capability metadata, short timeouts/retries/coalescing/cache, and privacy-safe telemetry defaults.
 - Make decomposed browser tools primary, add provenance-rich snapshots, scoped browser action approvals, optional public-domain allowlists, hard blocks for sensitive actions, and stronger prompt-injection labeling.
