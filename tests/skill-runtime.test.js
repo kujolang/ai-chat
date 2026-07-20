@@ -71,3 +71,27 @@ test("skill runtime rejects path traversal and non-text files", () => {
 		fs.rmSync(tempRoot, { recursive: true, force: true });
 	}
 });
+
+test("skill runtime tool file reads return guidance for unreadable relative files", () => {
+	const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-skills-"));
+	try {
+		makeSkill(tempRoot, "video", "# Video\nUse references/render.md.\n", {
+			"references/render.md": "Render steps.\n"
+		});
+		const runtime = createSkillRuntime({
+			env: { AI_CHAT_SKILL_ROOTS: tempRoot },
+			homeDir: tempRoot
+		});
+		const id = runtime.list().skills[0].id;
+
+		const result = runtime.readFileForTool({ id, path: "README.md" });
+		assert.equal(result.ok, false);
+		assert.equal(result.code, "skill_file_not_readable");
+		assert.equal(result.file, "README.md");
+		assert.deepEqual(result.related_files, ["SKILL.md", "references/render.md"]);
+		assert.match(result.retry_hint, /local_file_read/);
+		assert.equal(JSON.stringify(result).includes(tempRoot), false);
+	} finally {
+		fs.rmSync(tempRoot, { recursive: true, force: true });
+	}
+});

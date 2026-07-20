@@ -96,12 +96,16 @@ test("tool runtime exposes read-only skill tools when a skill runtime is connect
 			status: () => ({ enabled: true, available: true, skill_count: 1 }),
 			list: () => ({ skills: [{ id: "skill_0_demo", name: "Demo" }] }),
 			read: () => ({ skill: { id: "skill_0_demo", name: "Demo" }, content: "# Demo" }),
-			readFile: () => ({ skill: { id: "skill_0_demo", name: "Demo" }, file: "references/demo.md", content: "Demo" })
+			readFile: () => {
+				throw new Error("direct readFile should not be used when readFileForTool is available");
+			},
+			readFileForTool: () => ({ ok: false, code: "skill_file_not_readable", retry_hint: "Use a listed skill file." })
 		}
 	});
 	assert.equal(runtime.canExecute("skill_list"), true);
 	assert.equal(runtime.schemas().some((schema) => schema.function.name === "skill_file_read"), true);
 	assert.deepEqual(await runtime.execute("skill_read", { id: "skill_0_demo" }), { skill: { id: "skill_0_demo", name: "Demo" }, content: "# Demo" });
+	assert.deepEqual(await runtime.execute("skill_file_read", { id: "skill_0_demo", path: "README.md" }), { ok: false, code: "skill_file_not_readable", retry_hint: "Use a listed skill file." });
 });
 
 test("tool runtime exposes local tools when a local runtime is connected", async () => {
