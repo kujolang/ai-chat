@@ -206,6 +206,7 @@ const nodes = {
 	addBrowserToolBtn: document.getElementById("add-browser-tool-btn"),
 	addWebSearchToolBtn: document.getElementById("add-web-search-tool-btn"),
 	addSkillToolBtn: document.getElementById("add-skill-tool-btn"),
+	addLocalToolBtn: document.getElementById("add-local-tool-btn"),
 	appShell: document.getElementById("app"),
 	paneTemplate: document.getElementById("pane-template")
 };
@@ -691,6 +692,14 @@ function wireEvents() {
 
 	nodes.addSkillToolBtn.addEventListener("click", () => {
 		for (const definition of createSkillToolDefinitions()) {
+			if (!state.settings.tools.some((tool) => tool.name === definition.name)) state.settings.tools.push(definition);
+		}
+		renderSettings();
+		schedulePersist();
+	});
+
+	nodes.addLocalToolBtn.addEventListener("click", () => {
+		for (const definition of createLocalToolDefinitions()) {
 			if (!state.settings.tools.some((tool) => tool.name === definition.name)) state.settings.tools.push(definition);
 		}
 		renderSettings();
@@ -4312,7 +4321,7 @@ function renderToolsSettings() {
 	nodes.toolsList.innerHTML = state.settings.tools.map((tool, toolIndex) => {
 		const schema = parseToolParameters(tool.parameters_json);
 		const schemaStatus = schema ? "Valid JSON schema" : "Invalid JSON schema";
-		const browserUnavailable = ["browser_open", "browser_snapshot", "browser_act", "browser_close", "browser_use"].includes(tool.name)
+		const runtimeUnavailable = isRuntimePresetTool(tool.name)
 			&& runtimeCapabilities.loaded
 			&& !runtimeCapabilities.tools.includes(tool.name);
 		const collapsed = collapsedToolIds.has(tool.id);
@@ -4324,9 +4333,9 @@ function renderToolsSettings() {
 					</button>
 					<div class="tool-card-summary">
 						<div class="tool-card-title">${escapeHtml(tool.name)}</div>
-						<div class="tool-card-kind">${escapeHtml(browserUnavailable ? "Preset · Browser runtime unavailable" : (tool.kind === "preset" ? "Preset" : "Custom function tool"))}</div>
+						<div class="tool-card-kind">${escapeHtml(runtimeUnavailable ? "Preset · Runtime unavailable" : (tool.kind === "preset" ? "Preset" : "Custom function tool"))}</div>
 					</div>
-					<label class="tool-enabled"><input data-tool-id="${escapeHtml(tool.id)}" data-tool-field="enabled" type="checkbox" ${tool.enabled ? "checked" : ""} ${browserUnavailable ? "disabled" : ""}> Enabled</label>
+					<label class="tool-enabled"><input data-tool-id="${escapeHtml(tool.id)}" data-tool-field="enabled" type="checkbox" ${tool.enabled ? "checked" : ""} ${runtimeUnavailable ? "disabled" : ""}> Enabled</label>
 					<button class="tool-card-toggle btn ghost icon-only" type="button" data-tool-action="toggle-card" data-tool-id="${escapeHtml(tool.id)}" aria-label="${collapsed ? "Open" : "Close"} ${escapeHtml(tool.name)}" aria-expanded="${collapsed ? "false" : "true"}" title="${collapsed ? "Open tool" : "Close tool"}">
 						<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
 					</button>
@@ -5975,10 +5984,60 @@ function createSkillToolDefinitions() {
 	return definitions.map(([name, description, parameters]) => createToolDefinition({ name, description, parameters_json: JSON.stringify(parameters, null, 2), kind: "preset" }));
 }
 
+function createLocalToolDefinitions() {
+	const definitions = [
+		["local_workspace_list", "List local workspaces explicitly exposed to AI Chat local tools. Use this before local file or shell tools.", { type: "object", properties: {}, additionalProperties: false }],
+		["local_file_list", "List non-sensitive files and directories inside an exposed local workspace.", {
+			type: "object",
+			properties: {
+				root_id: { type: "string" },
+				path: { type: "string" },
+				max_entries: { type: "integer", minimum: 1, maximum: 1000 }
+			},
+			additionalProperties: false
+		}],
+		["local_file_read", "Read a bounded non-sensitive text file inside an exposed local workspace.", {
+			type: "object",
+			properties: {
+				root_id: { type: "string" },
+				path: { type: "string" },
+				max_chars: { type: "integer", minimum: 1000, maximum: 200000 }
+			},
+			required: ["path"],
+			additionalProperties: false
+		}],
+		["local_file_write", "Create, overwrite, or append a bounded non-sensitive text file inside an exposed local workspace. Requires server write opt-in.", {
+			type: "object",
+			properties: {
+				root_id: { type: "string" },
+				path: { type: "string" },
+				content: { type: "string" },
+				mode: { type: "string", enum: ["create", "overwrite", "append"] },
+				create_dirs: { type: "boolean" }
+			},
+			required: ["path", "content"],
+			additionalProperties: false
+		}],
+		["local_shell", "Run one allowlisted local command in an exposed workspace without shell interpolation. Requires server shell opt-in.", {
+			type: "object",
+			properties: {
+				root_id: { type: "string" },
+				cwd: { type: "string" },
+				command: { type: "string" },
+				args: { type: "array", items: { type: "string" }, maxItems: 40 },
+				timeout_ms: { type: "integer", minimum: 1000, maximum: 120000 }
+			},
+			required: ["command", "args"],
+			additionalProperties: false
+		}]
+	];
+	return definitions.map(([name, description, parameters]) => createToolDefinition({ name, description, parameters_json: JSON.stringify(parameters, null, 2), kind: "preset" }));
+}
+
 function buildEnabledToolDefinitions() {
 	return state.settings.tools
 		.filter((tool) => tool.enabled)
-		.filter((tool) => !["browser_open", "browser_snapshot", "browser_act", "browser_close", "browser_use"].includes(tool.name) || !runtimeCapabilities.loaded || runtimeCapabilities.tools.includes(tool.name))
+		.filter((tool) => !isRuntimePresetTool(tool.name) || !runtimeCapabilities.loaded || runtimeCapabilities.tools.includes(tool.name))
 		.map((tool) => {
 			const parameters = parseToolParameters(tool.parameters_json);
 			if (!parameters) {
@@ -5995,6 +6054,14 @@ function buildEnabledToolDefinitions() {
 		})
 		.filter(Boolean)
 		.slice(0, 32);
+}
+
+function isRuntimePresetTool(name) {
+	return [
+		"browser_open", "browser_snapshot", "browser_act", "browser_close", "browser_use",
+		"skill_list", "skill_read", "skill_file_read",
+		"local_workspace_list", "local_file_list", "local_file_read", "local_file_write", "local_shell"
+	].includes(String(name || ""));
 }
 
 function normalizeApiTokenTtlDays(value) {
