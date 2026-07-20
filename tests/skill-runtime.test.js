@@ -54,6 +54,43 @@ test("skill runtime discovers configured roots and reads bounded skill files", (
 	}
 });
 
+test("skill runtime follows symlinked skill directories", () => {
+	const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-skills-"));
+	const externalRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-external-skills-"));
+	try {
+		makeSkill(externalRoot, "linked-writer", [
+			"---",
+			"name: linked-writer",
+			"description: Draft from a symlinked skill directory.",
+			"---",
+			"# Linked Writer",
+			"Use references/notes.md."
+		].join("\n"), {
+			"references/notes.md": "Symlinked reference.\n"
+		});
+		fs.symlinkSync(path.join(externalRoot, "linked-writer"), path.join(tempRoot, "linked-writer"));
+
+		const runtime = createSkillRuntime({
+			env: { AI_CHAT_SKILL_ROOTS: tempRoot },
+			homeDir: tempRoot
+		});
+
+		const listed = runtime.list({ query: "symlinked" });
+		assert.equal(listed.skills.length, 1);
+		assert.equal(listed.skills[0].name, "linked-writer");
+		assert.equal(listed.skills[0].relative_path, "linked-writer");
+		assert.equal(listed.meta.skill_count, 1);
+
+		const read = runtime.read({ id: listed.skills[0].id });
+		assert.match(read.content, /Linked Writer/);
+		assert.deepEqual(read.related_files, ["SKILL.md", "references/notes.md"]);
+		assert.equal(JSON.stringify(read).includes(externalRoot), false);
+	} finally {
+		fs.rmSync(tempRoot, { recursive: true, force: true });
+		fs.rmSync(externalRoot, { recursive: true, force: true });
+	}
+});
+
 test("skill runtime rejects path traversal and non-text files", () => {
 	const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-skills-"));
 	try {
