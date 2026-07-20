@@ -524,6 +524,20 @@ test("writeState falls back pane profile_id to an existing profile", () => {
 	}
 });
 
+test("writeState persists provider profile order", () => {
+	const { runtime, destroy } = createIsolatedRuntime();
+	try {
+		const state = runtime.helpers.readState();
+		const expectedIds = state.settings.profiles.map((profile) => profile.id).reverse();
+		state.settings.profiles.reverse();
+		runtime.helpers.writeState(state);
+		const after = runtime.helpers.readState();
+		assert.deepEqual(after.settings.profiles.map((profile) => profile.id), expectedIds);
+	} finally {
+		destroy();
+	}
+});
+
 test("writeState persists chat title and settings values", () => {
 	const { runtime, destroy } = createIsolatedRuntime();
 	try {

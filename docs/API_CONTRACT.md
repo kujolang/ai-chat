@@ -105,6 +105,8 @@ Profile key handling guarantee:
 - `api_key_present` is exposed as a boolean indicator.
 - `credential_managed` is `true` for Watchdog profiles whose proxy token comes from the server credential file.
 
+Provider profiles are returned in their persisted `sort_order`. `models_csv` remains the compatible wire/storage field, with comma-separated entries preserving the ordered model rows shown by the browser UI.
+
 ### Incremental state changes
 
 `POST /api/state/changes` is the preferred persistence endpoint. Its request body is:

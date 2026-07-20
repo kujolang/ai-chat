@@ -142,3 +142,25 @@ test("state sync persists the default model selection as app settings", () => {
 	assert.equal(changes[0].settings.defaultProfileId, "profile-2");
 	assert.equal(changes[0].settings.defaultModel, "claude-sonnet-4.6");
 });
+
+test("state sync persists provider order through profile sort values", () => {
+	const state = baseState();
+	state.settings.profiles.push({
+		id: "profile-2",
+		name: "Secondary",
+		provider_id: "openrouter",
+		base_url: "",
+		models_csv: "anthropic/claude-sonnet-5",
+		api_key_dirty: false
+	});
+	const before = stateSync.persistenceSnapshot(state);
+	state.settings.profiles.reverse();
+	const changes = stateSync.buildChanges(before, stateSync.persistenceSnapshot(state));
+	const profileChanges = changes.filter((change) => change.type === "profile_upsert");
+
+	assert.equal(profileChanges.length, 2);
+	assert.deepEqual(profileChanges.map((change) => [change.profile.id, change.profile.sort_order]), [
+		["profile-2", 0],
+		["profile-1", 1]
+	]);
+});

@@ -543,6 +543,35 @@ test("POST /api/state/changes persists reusable pane profiles independently", as
 	}
 });
 
+test("POST /api/state/changes persists provider profile order", async () => {
+	const { runtime, destroy } = createIsolatedRuntime();
+	try {
+		const seeded = runtime.helpers.readState();
+		const reordered = seeded.settings.profiles.slice().reverse();
+		await withServer(runtime.app, async (baseUrl) => {
+			const result = await fetchJson(baseUrl, "/api/state/changes", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					changes: reordered.map((profile, sortOrder) => ({
+						type: "profile_upsert",
+						profile: { ...profile, sort_order: sortOrder }
+					}))
+				})
+			});
+			assert.equal(result.response.status, 200);
+
+			const after = await fetchJson(baseUrl, "/api/state");
+			assert.deepEqual(
+				after.json.state.settings.profiles.map((profile) => profile.id),
+				reordered.map((profile) => profile.id)
+			);
+		});
+	} finally {
+		destroy();
+	}
+});
+
 test("PUT /api/state rejects malformed payload", async () => {
 	const { runtime, destroy } = createIsolatedRuntime();
 	try {
