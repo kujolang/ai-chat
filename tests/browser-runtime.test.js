@@ -85,6 +85,24 @@ test("browser opens a controlled fixture, snapshots readable content, scrolls, a
 	});
 });
 
+test("browser reuses a request-scoped session for repeated opens without a session id", async () => {
+	await withFixture((req, res) => {
+		res.setHeader("content-type", "text/html; charset=utf-8");
+		res.end(`<!doctype html><title>${req.url}</title><p>${req.url}</p>`);
+	}, async ({ url }) => {
+		const { runtime, destroy } = createRuntime({ maxSessionsPerScope: 1 });
+		try {
+			const requestState = {};
+			const first = await runtime.execute("browser_open", { url: `${url}/first` }, { scopeId: "chat-a", requestState });
+			const second = await runtime.execute("browser_open", { url: `${url}/second` }, { scopeId: "chat-a", requestState });
+			assert.equal(second.session_id, first.session_id);
+			assert.match(second.url, /\/second$/);
+		} finally {
+			await destroy();
+		}
+	});
+});
+
 test("browser sessions are isolated, expire, enforce action limits, and close idempotently", async () => {
 	let clock = 1000;
 	await withFixture((req, res) => res.end("<!doctype html><title>Limits</title><p>limits</p>"), async ({ url }) => {

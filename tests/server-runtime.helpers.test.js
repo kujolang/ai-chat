@@ -22,13 +22,16 @@ function createIsolatedRuntime(overrides = {}) {
 		PORT: "0",
 		KUJO_BIN: "/usr/bin/false",
 		WEB_SEARCH_BACKEND: "auto",
-		SEARXNG_BASE_URL: ""
+		SEARXNG_BASE_URL: "",
+		...(overrides.envMerge || {})
 	};
 
+	const runtimeOverrides = { ...overrides };
+	delete runtimeOverrides.envMerge;
 	const runtime = createServerRuntime({
 		env,
 		projectRoot: path.resolve(__dirname, ".."),
-		...overrides
+		...runtimeOverrides
 	});
 
 	return {
@@ -280,6 +283,37 @@ test("createServerRuntime defaults host to localhost and allows explicit overrid
 	} finally {
 		overrideRuntime.close();
 		fs.rmSync(tempRoot, { recursive: true, force: true });
+	}
+});
+
+test("createServerRuntime exposes pane-friendly bounded tool and browser defaults", () => {
+	const defaultRuntime = createIsolatedRuntime();
+	try {
+		assert.equal(defaultRuntime.runtime.config.maxToolRounds, 24);
+		assert.equal(defaultRuntime.runtime.config.maxToolCallsPerRequest, 96);
+		assert.equal(defaultRuntime.runtime.config.browserMaxSessions, 32);
+		assert.equal(defaultRuntime.runtime.config.browserMaxSessionsPerChat, 8);
+		assert.equal(defaultRuntime.runtime.config.browserMaxActionsPerRequest, 24);
+		assert.equal(defaultRuntime.runtime.config.browserMaxActionsPerSession, 60);
+	} finally {
+		defaultRuntime.destroy();
+	}
+
+	const cappedRuntime = createIsolatedRuntime({
+		envMerge: {
+			MAX_TOOL_ROUNDS: "999",
+			MAX_TOOL_CALLS_PER_REQUEST: "999",
+			BROWSER_MAX_SESSIONS: "999",
+			BROWSER_MAX_SESSIONS_PER_CHAT: "999"
+		}
+	});
+	try {
+		assert.equal(cappedRuntime.runtime.config.maxToolRounds, 64);
+		assert.equal(cappedRuntime.runtime.config.maxToolCallsPerRequest, 256);
+		assert.equal(cappedRuntime.runtime.config.browserMaxSessions, 128);
+		assert.equal(cappedRuntime.runtime.config.browserMaxSessionsPerChat, 32);
+	} finally {
+		cappedRuntime.destroy();
 	}
 });
 
