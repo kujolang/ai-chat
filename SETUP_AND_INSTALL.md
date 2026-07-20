@@ -30,6 +30,12 @@ Copy values from `.env.example` and define these variables in your shell or envi
 - MAX_TOOL_ROUNDS
 - MAX_TOOL_CALLS_PER_REQUEST
 - WEB_SEARCH_MAX_RESULTS
+- AI_CHAT_SKILLS_ENABLED
+- AI_CHAT_SKILL_ROOTS
+- AI_CHAT_EXTRA_SKILL_ROOTS
+- AI_CHAT_SKILLS_MAX_COUNT
+- AI_CHAT_SKILLS_MAX_DEPTH
+- AI_CHAT_SKILLS_MAX_READ_CHARS
 
 `AI_SDK_PATH` must point to a directory that contains both `ai_sdk.kujo` and `providers.kujo`.
 
@@ -55,6 +61,12 @@ WEB_SEARCH_MAX_RESULTS=5
 WEB_SEARCH_TIMEOUT_MS=6000
 WEB_SEARCH_CACHE_TTL_MS=5000
 WEB_SEARCH_CACHE_MAX_ENTRIES=64
+AI_CHAT_SKILLS_ENABLED=1
+AI_CHAT_SKILL_ROOTS=
+AI_CHAT_EXTRA_SKILL_ROOTS=
+AI_CHAT_SKILLS_MAX_COUNT=500
+AI_CHAT_SKILLS_MAX_DEPTH=6
+AI_CHAT_SKILLS_MAX_READ_CHARS=48000
 BROWSER_ENABLED=0
 BROWSER_HEADLESS=1
 BROWSER_SESSION_TTL_MS=900000
@@ -174,6 +186,14 @@ Tool cards in Settings can be reordered by dragging their handles and collapsed 
 The Web Search preset is executable through AI Chat's provider-neutral tool runtime. For the local-first path, run SearXNG with JSON output enabled and set `SEARXNG_BASE_URL` (loopback HTTP or HTTPS). With `WEB_SEARCH_BACKEND=auto`, AI Chat prefers that adapter; without it, the runtime uses the API key from a custom Ollama profile and Ollama Web Search. You can force `searxng` or `ollama` with `WEB_SEARCH_BACKEND`. The active chat provider only requests `web_search`; it never selects the backend.
 
 Search calls accept `query`, `max_results`, optional `domains`, and optional `freshness`, and are bounded by `MAX_TOOL_ROUNDS`, `MAX_TOOL_CALLS_PER_REQUEST`, and `WEB_SEARCH_MAX_RESULTS`. Results keep the existing `query` plus `results` contract while adding canonical URLs, source domains, retrieval timestamps, optional upstream publication dates, backend capability metadata, and short TTL cache metadata. `WEB_SEARCH_TIMEOUT_MS`, `WEB_SEARCH_CACHE_TTL_MS`, and `WEB_SEARCH_CACHE_MAX_ENTRIES` bound latency and repeated identical lookups without logging queries/snippets in default telemetry mode. Results return to the model as provider-compatible tool messages so it can produce the final answer.
+
+The Skill presets expose installed local skill manuals to agents through read-only tools:
+
+- `skill_list` discovers `SKILL.md` manuals under configured roots.
+- `skill_read` reads the bounded `SKILL.md` for a selected skill id.
+- `skill_file_read` reads bounded text reference files inside that selected skill folder.
+
+By default, AI Chat checks common local folders: `~/.codex/skills`, `~/.agents/skills`, and `~/.claude/skills`. Set `AI_CHAT_SKILL_ROOTS` to replace that default list, using comma-separated or platform path-delimited absolute paths. Set `AI_CHAT_EXTRA_SKILL_ROOTS` to add folders while keeping the defaults. Runtime responses do not expose absolute root paths to the model, reject path traversal and symlink escapes, ignore hidden/dependency folders during discovery, and enforce `AI_CHAT_SKILLS_MAX_COUNT`, `AI_CHAT_SKILLS_MAX_DEPTH`, and `AI_CHAT_SKILLS_MAX_READ_CHARS`.
 
 Set `BROWSER_ENABLED=1` after installing Chromium to enable `browser_open`, `browser_snapshot`, `browser_act`, `browser_close`, and the saved-chat compatibility adapter `browser_use`. Health and Settings show browser presets as unavailable when the executable is missing, rather than forwarding a schema that cannot run. If startup can find Playwright but a tool call cannot launch Chromium, the tool returns `browser_not_configured` with the installation command.
 

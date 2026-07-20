@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Add read-only local Skill tool presets (`skill_list`, `skill_read`, `skill_file_read`) with configurable roots, bounded discovery/read limits, health metadata, and Settings presets.
 - Persist default-model changes immediately, keep disabled multi-pane model controls on-theme, make provider drops reliable across card gaps, and add reorderable/collapsible Tool cards.
 - Make provider cards collapsible and reorderable, replace comma-separated model inputs with draggable model-row repeaters, and persist provider ordering.
 - Add a persistent default model/provider for regular new chats and replace the composer model select with a searchable, scrollable picker for large catalogs.

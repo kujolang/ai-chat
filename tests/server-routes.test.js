@@ -41,6 +41,9 @@ function createIsolatedRuntime(overrides = {}) {
 	};
 	const runtimeOverrides = { ...overrides };
 	delete runtimeOverrides.envMerge;
+	if (!runtimeOverrides.skillRuntimeOptions) {
+		runtimeOverrides.skillRuntimeOptions = { homeDir: tempRoot };
+	}
 
 	const runtime = createServerRuntime({
 		env,
@@ -237,14 +240,42 @@ test("GET /api/health returns runtime metadata", async () => {
 			assert.equal(json.ok, true);
 			assert.equal(typeof json.auth_configured, "boolean");
 			assert.equal(typeof json.ai_sdk_available, "boolean");
-			assert.deepEqual(json.tool_runtime.tools, ["web_search"]);
+			assert.deepEqual(json.tool_runtime.tools, ["web_search", "skill_list", "skill_read", "skill_file_read"]);
 			assert.equal(json.tool_runtime.web_search_backend, "ollama");
 			assert.equal(json.tool_runtime.browser.available, false);
+			assert.equal(json.tool_runtime.skills.available, false);
 			assert.equal(json.tool_runtime.browser.unavailable_reason, "disabled");
 			assert.equal(json.tool_runtime.schemas.some((schema) => schema.function.name === "browser_open"), false);
+			assert.equal(json.tool_runtime.schemas.some((schema) => schema.function.name === "skill_read"), true);
 		});
 	} finally {
 		destroy();
+	}
+});
+
+test("GET /api/health reports configured local skill roots without absolute paths", async () => {
+	const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-health-skills-"));
+	try {
+		const skillDir = path.join(tempRoot, "one");
+		fs.mkdirSync(skillDir, { recursive: true });
+		fs.writeFileSync(path.join(skillDir, "SKILL.md"), "---\nname: one\ndescription: One skill.\n---\n");
+		const { runtime, destroy } = createIsolatedRuntime({
+			envMerge: { AI_CHAT_SKILL_ROOTS: tempRoot },
+			skillRuntimeOptions: { homeDir: tempRoot }
+		});
+		try {
+			await withServer(runtime.app, async (baseUrl) => {
+				const { json } = await fetchJson(baseUrl, "/api/health");
+				assert.equal(json.tool_runtime.skills.available, true);
+				assert.equal(json.tool_runtime.skills.skill_count, 1);
+				assert.equal(JSON.stringify(json.tool_runtime.skills).includes(tempRoot), false);
+				assert.ok(json.tool_runtime.tools.includes("skill_list"));
+			});
+		} finally {
+			destroy();
+		}
+	} finally {
+		fs.rmSync(tempRoot, { recursive: true, force: true });
 	}
 });
 

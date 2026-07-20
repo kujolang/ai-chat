@@ -80,6 +80,7 @@ When `DEBUG_API_ERRORS=0`, provider raw error bodies are not included in stream 
 - `tool_runtime.web_search_backend`: resolved `searxng` or `ollama` adapter
 - `tool_runtime.web_search`: sanitized search backend capabilities, timeout, cache, and policy metadata
 - `tool_runtime.browser`: sanitized `enabled`, `available`, `backend`, `headless`, `action_policy`, and `unavailable_reason` fields
+- `tool_runtime.skills`: sanitized `enabled`, `available`, skill/root counts, root labels, and read/discovery limits
 - `tool_runtime.schemas`: built-in schemas that are currently executable; browser schemas are absent when Chromium is unavailable
 
 ## 5. State Contract
@@ -145,7 +146,15 @@ Bridge/offline path note:
 
 ## 6. Streaming Contract (`POST /api/chat/stream`)
 
-Requests may include `tools`, an array of up to 32 OpenAI-compatible function definitions. The streaming route dispatches `web_search` through AI Chat's provider-neutral tool registry, appends the result as a provider-compatible tool message, and continues the conversation within bounded round/call limits. The runtime resolves SearXNG or Ollama Web Search independently of the active model provider. A successful final `done` payload includes `tool_calls_executed`. Other schemas do not grant capabilities: unsupported tool requests emit a terminal `tool_execution_unavailable` error containing `tool_names`. The JSON bridge route retains the explicit HTTP 422 behavior for requested tool execution. Clients must not retry terminal tool errors automatically.
+Requests may include `tools`, an array of up to 32 OpenAI-compatible function definitions. The streaming route dispatches executable built-in tools through AI Chat's provider-neutral tool registry, appends the result as a provider-compatible tool message, and continues the conversation within bounded round/call limits. The runtime resolves SearXNG or Ollama Web Search independently of the active model provider, and reads local skill manuals only through configured read-only skill roots. A successful final `done` payload includes `tool_calls_executed`. Other schemas do not grant capabilities: unsupported tool requests emit a terminal `tool_execution_unavailable` error containing `tool_names`. The JSON bridge route retains the explicit HTTP 422 behavior for requested tool execution. Clients must not retry terminal tool errors automatically.
+
+Executable local skill contracts are:
+
+- `skill_list`: `{ "query": "optional text", "source": "optional root label filter", "max_results": 50 }`
+- `skill_read`: `{ "id": "skill id returned by skill_list" }`
+- `skill_file_read`: `{ "id": "skill id returned by skill_list", "path": "relative/path.md", "max_chars": 48000 }`
+
+Skill tool responses are bounded, read-only, and scoped to configured roots. They never return absolute root paths, reject path traversal and symlink escapes, and only read known text file extensions inside a selected skill folder. Skill contents are local workflow context; they do not override user instructions, app safety policy, credential handling, or tool limits.
 
 Executable browser contracts use the same provider-neutral loop:
 

@@ -89,6 +89,21 @@ test("tool runtime rejects unknown tools and missing search credentials", async 
 	await assert.rejects(() => runtime.execute("web_search", { query: "Kujo" }), (error) => error.code === "web_search_auth_required");
 });
 
+test("tool runtime exposes read-only skill tools when a skill runtime is connected", async () => {
+	const runtime = createToolRuntime({
+		skillRuntime: {
+			canExecute: () => true,
+			status: () => ({ enabled: true, available: true, skill_count: 1 }),
+			list: () => ({ skills: [{ id: "skill_0_demo", name: "Demo" }] }),
+			read: () => ({ skill: { id: "skill_0_demo", name: "Demo" }, content: "# Demo" }),
+			readFile: () => ({ skill: { id: "skill_0_demo", name: "Demo" }, file: "references/demo.md", content: "Demo" })
+		}
+	});
+	assert.equal(runtime.canExecute("skill_list"), true);
+	assert.equal(runtime.schemas().some((schema) => schema.function.name === "skill_file_read"), true);
+	assert.deepEqual(await runtime.execute("skill_read", { id: "skill_0_demo" }), { skill: { id: "skill_0_demo", name: "Demo" }, content: "# Demo" });
+});
+
 test("browser tool schemas steer models toward absolute HTTP URLs", () => {
 	const runtime = createToolRuntime({
 		browserRuntime: {
