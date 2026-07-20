@@ -28,7 +28,11 @@ This project is for end users and teams who want one local web app to:
 	- Persist changed chats, panes, and messages incrementally with visible save status
 - Provider profiles
 	- Store provider profiles and model suggestions in Settings
+	- Choose the model/provider that every regular new chat starts with
 	- API keys are encrypted before being stored in SQLite
+- Model picker
+	- Search the full configured model catalog in real time from the composer
+	- Scroll long result lists in a styled, keyboard-friendly dropdown
 - Seed OpenRouter and Ollama Cloud (Watchdog) with the July 17, 2026 catalog snapshot; existing profiles receive any newly cataloged suggestions without replacing their current models, except the intentionally curated `Watchdog / OpenRouter (TUD)` benchmark profile
 - Multi-pane comparisons
 	- Add multiple panes per chat with per-pane profile/model selection
@@ -285,9 +289,10 @@ account-visible inventory before relying on a newly added or marked-retired mode
 2. Add or edit provider profiles.
 3. Enter API keys for each direct-provider profile you plan to use. Watchdog profiles use the server-managed credential file instead.
 4. Set model suggestions (comma-separated) per profile.
-5. Create a new chat and add panes for side-by-side comparison.
-6. Open Pane Profiles in the chat header to save the current pane/model arrangement for later benchmarks or repeated workflows.
-7. Send a prompt; every pane receives the same prompt automatically.
+5. In General settings, choose the default model/provider for regular new chats.
+6. Create a new chat and add panes for side-by-side comparison.
+7. Open Pane Profiles in the chat header to save the current pane/model arrangement for later benchmarks or repeated workflows.
+8. Send a prompt; every pane receives the same prompt automatically.
 
 ## API Endpoints
 

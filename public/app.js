@@ -10,6 +10,8 @@ const defaultState = {
 	settings: {
 		temperature: 0.2,
 		maxTokens: 12000,
+		defaultProfileId: "",
+		defaultModel: "",
 		agentInstructions: "",
 		agentInstructionProfiles: [],
 		profiles: [],
@@ -82,6 +84,8 @@ const pendingAutoTitleChatIds = new Set();
 let projectFolderModalContext = null;
 let sidebarChatVisibleCount = sidebarChatPageSize;
 let projectFolderSelect2Ready = false;
+let composerModelSelect2Ready = false;
+let settingsDefaultModelSelect2Ready = false;
 loadApiAuthTokenFromStorage();
 
 const nodes = {
@@ -175,6 +179,7 @@ const nodes = {
 	addProfileBtn: document.getElementById("add-profile-btn"),
 	settingsTemperature: document.getElementById("settings-temperature"),
 	settingsMaxTokens: document.getElementById("settings-max-tokens"),
+	settingsDefaultModel: document.getElementById("settings-default-model"),
 	settingsAgentInstructions: document.getElementById("settings-agent-instructions"),
 	insertStrataInstructionsBtn: document.getElementById("insert-strata-instructions-btn"),
 	addModelInstructionBtn: document.getElementById("add-model-instruction-btn"),
@@ -197,6 +202,7 @@ void bootstrap();
 async function bootstrap() {
 	wireEvents();
 	initializeProjectFolderSelect2();
+	initializeModelSelect2();
 	if (!hasValidApiAuthToken()) {
 		nodes.voiceStatus.textContent = "Voice: API token required for server actions";
 	}
@@ -233,6 +239,10 @@ function ensureMinimumState() {
 	}
 	if (!Array.isArray(state.settings.paneProfiles)) {
 		state.settings.paneProfiles = [];
+	}
+	const defaultSelectionChanged = ensureValidDefaultModelSelection();
+	if (defaultSelectionChanged) {
+		schedulePersist();
 	}
 
 	if (state.chats.length === 0) {
@@ -308,6 +318,12 @@ function migrateState(candidate) {
 					: Number(candidate.settings.maxTokens);
 			} else {
 				merged.settings.maxTokens = 12000;
+			}
+			if (typeof candidate.settings.defaultProfileId === "string") {
+				merged.settings.defaultProfileId = candidate.settings.defaultProfileId.slice(0, 500);
+			}
+			if (typeof candidate.settings.defaultModel === "string") {
+				merged.settings.defaultModel = candidate.settings.defaultModel.slice(0, 500);
 			}
 			if (typeof candidate.settings.agentInstructions === "string") {
 				merged.settings.agentInstructions = candidate.settings.agentInstructions.slice(0, 24000);
@@ -699,6 +715,16 @@ function wireEvents() {
 		schedulePersist();
 	});
 
+	nodes.settingsDefaultModel.addEventListener("change", (event) => {
+		const selectedOption = event.target.selectedOptions && event.target.selectedOptions[0]
+			? event.target.selectedOptions[0]
+			: null;
+		if (!selectedOption) return;
+		state.settings.defaultProfileId = String(selectedOption.getAttribute("data-profile-id") || "");
+		state.settings.defaultModel = String(selectedOption.getAttribute("data-model") || "");
+		schedulePersist();
+	});
+
 	nodes.settingsAgentInstructions.addEventListener("input", (event) => {
 		state.settings.agentInstructions = String(event.target.value || "").slice(0, 24000);
 		schedulePersist();
@@ -1020,7 +1046,9 @@ function wireEvents() {
 		} else {
 			profile[field] = event.target.value;
 			if (field === "name" || field === "models_csv") {
+				ensureValidDefaultModelSelection();
 				renderComposerProfileSelect();
+				renderSettingsDefaultModelSelect();
 			}
 		}
 		schedulePersist();
@@ -1062,6 +1090,7 @@ function wireEvents() {
 				}
 			}
 		}
+		ensureValidDefaultModelSelection();
 
 		schedulePersist();
 		renderSettings();
@@ -1686,6 +1715,7 @@ function buildProfileModelOptions() {
 			options.push({
 				profile_id: profile.id,
 				model: "",
+				profile_name: profile.name,
 				label: profile.name
 			});
 			continue;
@@ -1695,12 +1725,98 @@ function buildProfileModelOptions() {
 			options.push({
 				profile_id: profile.id,
 				model,
+				profile_name: profile.name,
 				label: `${profile.name} | ${model}`
 			});
 		}
 	}
 
 	return options;
+}
+
+function defaultModelOption() {
+	const options = buildProfileModelOptions();
+	return options.find((option) => option.profile_id === state.settings.defaultProfileId
+		&& option.model === state.settings.defaultModel) || options[0] || null;
+}
+
+function ensureValidDefaultModelSelection() {
+	const option = defaultModelOption();
+	const nextProfileId = option ? option.profile_id : "";
+	const nextModel = option ? option.model : "";
+	const changed = state.settings.defaultProfileId !== nextProfileId || state.settings.defaultModel !== nextModel;
+	state.settings.defaultProfileId = nextProfileId;
+	state.settings.defaultModel = nextModel;
+	return changed;
+}
+
+function modelOptionMarkup(options, selectedProfileId, selectedModel, valuePrefix) {
+	return options.map((option, index) => {
+		const selected = option.profile_id === selectedProfileId && option.model === selectedModel ? "selected" : "";
+		return `<option value="${valuePrefix}-${index}" data-profile-id="${escapeHtml(option.profile_id)}" data-model="${escapeHtml(option.model)}" data-profile-name="${escapeHtml(option.profile_name || "")}" ${selected}>${escapeHtml(option.label)}</option>`;
+	}).join("");
+}
+
+function refreshSelect2(selectNode) {
+	if (!selectNode || !window.jQuery || !window.jQuery.fn || typeof window.jQuery.fn.select2 !== "function") return;
+	window.jQuery(selectNode).trigger("change.select2");
+}
+
+function initializeModelSelect2() {
+	const jquery = window.jQuery;
+	if (!jquery || !jquery.fn || typeof jquery.fn.select2 !== "function") return;
+	const templateResult = (item) => {
+		if (!item.id || !item.element) return item.text;
+		const wrapper = document.createElement("span");
+		wrapper.className = "model-picker-option";
+		const model = document.createElement("span");
+		model.className = "model-picker-option-model";
+		model.textContent = String(item.element.getAttribute("data-model") || item.text || "Default model");
+		const profile = document.createElement("span");
+		profile.className = "model-picker-option-profile";
+		profile.textContent = String(item.element.getAttribute("data-profile-name") || "");
+		wrapper.append(model, profile);
+		return wrapper;
+	};
+	const templateSelection = (item) => {
+		if (!item.element) return item.text;
+		const model = String(item.element.getAttribute("data-model") || "");
+		const profile = String(item.element.getAttribute("data-profile-name") || "");
+		return model ? `${model} · ${profile}` : profile;
+	};
+	const configure = (node, dropdownParent) => {
+		if (!node) return false;
+		jquery(node).select2({
+			width: "100%",
+			minimumResultsForSearch: 0,
+			dropdownParent,
+			dropdownCssClass: "model-picker-dropdown",
+			containerCssClass: "model-picker-select2",
+			templateResult,
+			templateSelection
+		}).on("select2:open", () => {
+			const search = document.querySelector(".select2-container--open .select2-search__field");
+			if (search) search.setAttribute("placeholder", "Search models or providers…");
+		}).on("select2:select", () => {
+			node.dispatchEvent(new Event("change", { bubbles: true }));
+		});
+		return true;
+	};
+	if (!composerModelSelect2Ready) composerModelSelect2Ready = configure(nodes.composerProfileSelect, jquery(document.body));
+	if (!settingsDefaultModelSelect2Ready) settingsDefaultModelSelect2Ready = configure(nodes.settingsDefaultModel, jquery(nodes.settingsModal));
+}
+
+function renderSettingsDefaultModelSelect() {
+	const options = buildProfileModelOptions();
+	const selected = defaultModelOption();
+	nodes.settingsDefaultModel.innerHTML = modelOptionMarkup(
+		options,
+		selected ? selected.profile_id : "",
+		selected ? selected.model : "",
+		"default-model"
+	);
+	nodes.settingsDefaultModel.disabled = options.length === 0;
+	refreshSelect2(nodes.settingsDefaultModel);
 }
 
 function renderComposerProfileSelect() {
@@ -1725,21 +1841,14 @@ function renderComposerProfileSelect() {
 		return;
 	}
 
-	nodes.composerProfileSelect.innerHTML = options
-		.map((option, index) => {
-			const selected = option.profile_id === selectedProfileId
-				&& option.model === selectedModel
-				? "selected"
-				: "";
-			return `<option value="opt-${index}" data-profile-id="${escapeHtml(option.profile_id)}" data-model="${escapeHtml(option.model)}" ${selected}>${escapeHtml(option.label)}</option>`;
-		})
-		.join("");
+	nodes.composerProfileSelect.innerHTML = modelOptionMarkup(options, selectedProfileId, selectedModel, "composer-model");
 
 	const hasMultiplePanes = Boolean(chat && Array.isArray(chat.panes) && chat.panes.length > 1);
 	nodes.composerProfileSelect.disabled = hasMultiplePanes;
 	nodes.composerProfileSelect.title = hasMultiplePanes
 		? "Per-pane model/profile selection is active when multiple panes are open."
 		: "";
+	refreshSelect2(nodes.composerProfileSelect);
 }
 
 function renderSidebar() {
@@ -3502,6 +3611,7 @@ function closeSettings() {
 function renderSettings() {
 	nodes.settingsTemperature.value = String(state.settings.temperature);
 	nodes.settingsMaxTokens.value = String(state.settings.maxTokens);
+	renderSettingsDefaultModelSelect();
 	nodes.settingsAgentInstructions.value = String(state.settings.agentInstructions || "");
 	renderModelInstructionProfiles();
 	const tokenConfigured = hasValidApiAuthToken();
@@ -5002,6 +5112,9 @@ function createChat(title) {
 	if (state.settings.profiles.length === 0) {
 		state.settings.profiles.push(firstProfile);
 	}
+	ensureValidDefaultModelSelection();
+	const defaultOption = defaultModelOption();
+	const defaultProfile = defaultOption ? getProfileById(defaultOption.profile_id) : firstProfile;
 
 	return {
 		id: uid(),
@@ -5011,7 +5124,7 @@ function createChat(title) {
 		archived: false,
 		createdAt: Date.now(),
 		updatedAt: Date.now(),
-		panes: [createPane(firstProfile.id)]
+		panes: [createPane(defaultProfile.id, defaultOption ? defaultOption.model : "")]
 	};
 }
 
@@ -5032,12 +5145,12 @@ function panesFromPaneProfile(paneProfile) {
 	});
 }
 
-function createPane(profileId) {
+function createPane(profileId, selectedModel = "") {
 	const profile = getProfileById(profileId);
 	return {
 		id: uid(),
 		profile_id: profileId,
-		model: profile ? firstModelFromProfile(profile) : "",
+		model: profile ? modelForProfileSelection(profile, selectedModel) : "",
 		messages: [],
 		status: "idle"
 	};

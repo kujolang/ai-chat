@@ -91,7 +91,9 @@ When `DEBUG_API_ERRORS=0`, provider raw error bodies are not included in stream 
 - `state.showArchived` boolean
 - `state.searchQuery` string
 - `state.broadcastToAllPanes` boolean compatibility field; the UI always persists this as `true` and broadcasts prompts to every pane.
-- `state.settings` object containing `temperature`, `maxTokens`, persistent `agentInstructions`, provider `profiles`, reusable `paneProfiles`, and saved function-tool definitions in `tools`
+- `state.settings` object containing `temperature`, `maxTokens`, `defaultProfileId`, `defaultModel`, persistent `agentInstructions`, provider `profiles`, reusable `paneProfiles`, and saved function-tool definitions in `tools`
+
+`defaultProfileId` and `defaultModel` identify the provider/model selection used by regular new chats. Clients fall back to the first available configured model when the saved selection is missing or no longer exists.
 
 `agentInstructions` is a bounded (24,000-character) app-wide instruction document. `agentInstructionProfiles` is an optional array of bounded `{id, models_csv, instructions}` entries; matching comma-separated model names append their instructions. The browser prepends the combined text as the first system message for each pane request. These fields are intended to be compatible with concise `AGENTS.md` guidance and must not contain credentials or other secrets.
 
