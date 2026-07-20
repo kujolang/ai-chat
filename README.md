@@ -50,6 +50,7 @@ This project is for end users and teams who want one local web app to:
 	- Audio upload proxy endpoint for OpenAI-compatible transcription APIs
 	- Browser recording button to send audio and insert transcript into the composer
 - Bounded tool execution
+	- Reorder and collapse Tool cards in Settings while preserving their configured execution order
 	- Execute the provider-neutral `web_search` contract with local SearXNG or Ollama Web Search and return citation-grade sourced results with canonical URLs, timestamps, and explicit capability metadata
 	- Execute provider-neutral browser tools in fresh Playwright Chromium contexts with scoped sessions, bounded artifacts, network isolation, scoped approvals, and a read-only default policy
 	- Store and forward other OpenAI-compatible function schemas; unsupported calls still stop explicitly
