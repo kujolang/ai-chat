@@ -572,6 +572,45 @@ test("POST /api/state/changes persists provider profile order", async () => {
 	}
 });
 
+test("POST /api/state/changes persists the default model across state reloads", async () => {
+	const { runtime, destroy } = createIsolatedRuntime();
+	try {
+		await withServer(runtime.app, async (baseUrl) => {
+			const seeded = await fetchJson(baseUrl, "/api/state");
+			const seededState = seeded.json.state;
+			const targetProfile = seededState.settings.profiles[1];
+			const targetModel = String(targetProfile.models_csv || "").split(",").map((model) => model.trim()).find(Boolean) || "";
+			const result = await fetchJson(baseUrl, "/api/state/changes", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ changes: [{
+					type: "app_settings_upsert",
+					settings: {
+						temperature: seededState.settings.temperature,
+						maxTokens: seededState.settings.maxTokens,
+						defaultProfileId: targetProfile.id,
+						defaultModel: targetModel,
+						activeChatId: seededState.activeChatId,
+						projectFolders: seededState.projectFolders,
+						tools: seededState.settings.tools,
+						agentInstructions: seededState.settings.agentInstructions,
+						agentInstructionProfiles: seededState.settings.agentInstructionProfiles,
+						showArchived: seededState.showArchived,
+						searchQuery: seededState.searchQuery
+					}
+				}] })
+			});
+			assert.equal(result.response.status, 200);
+
+			const after = await fetchJson(baseUrl, "/api/state");
+			assert.equal(after.json.state.settings.defaultProfileId, targetProfile.id);
+			assert.equal(after.json.state.settings.defaultModel, targetModel);
+		});
+	} finally {
+		destroy();
+	}
+});
+
 test("PUT /api/state rejects malformed payload", async () => {
 	const { runtime, destroy } = createIsolatedRuntime();
 	try {

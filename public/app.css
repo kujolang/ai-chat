@@ -1646,6 +1646,20 @@ textarea {
 	cursor: not-allowed;
 }
 
+.composer-model-picker .select2-container--disabled .select2-selection--single {
+	background: rgba(18, 20, 23, 0.88) !important;
+	border-color: var(--line-soft) !important;
+	box-shadow: none !important;
+	cursor: not-allowed;
+	opacity: 0.68;
+}
+
+.composer-model-picker .select2-container--disabled .select2-selection__rendered,
+.composer-model-picker .select2-container--disabled .select2-selection__arrow b {
+	color: var(--text-dim) !important;
+	border-color: var(--text-dim) transparent transparent transparent;
+}
+
 .composer-model-picker .select2-container,
 .settings-default-model-field .select2-container {
 	width: 100% !important;
@@ -2899,6 +2913,8 @@ textarea {
 	background: transparent;
 	color: var(--text-dim);
 	cursor: grab;
+	touch-action: none;
+	user-select: none;
 }
 
 .profile-drag-handle:hover,
@@ -3013,21 +3029,66 @@ textarea {
 }
 
 .tool-card {
-	padding: 10px;
+	padding: 0;
 	border: 1px solid var(--line-soft);
 	border-radius: 11px;
 	background: rgba(255, 255, 255, 0.015);
+	overflow: hidden;
+	transition: border-color 140ms ease, box-shadow 140ms ease, opacity 140ms ease;
+}
+
+.tool-card.dragging {
+	opacity: 0.45;
+}
+
+.tool-card.drag-over-before {
+	box-shadow: 0 -3px 0 var(--accent);
+}
+
+.tool-card.drag-over-after {
+	box-shadow: 0 3px 0 var(--accent);
 }
 
 .tool-card-head {
-	display: flex;
-	justify-content: space-between;
-	align-items: flex-start;
-	gap: 12px;
-	margin-bottom: 8px;
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr) auto auto;
+	align-items: center;
+	gap: 8px;
+	min-height: 52px;
+	padding: 8px 10px;
+	background: rgba(255, 255, 255, 0.02);
+}
+
+.tool-card-summary {
+	min-width: 0;
+}
+
+.tool-card-body {
+	padding: 10px;
+	border-top: 1px solid var(--line-soft);
+}
+
+.tool-card.collapsed .tool-card-body {
+	display: none;
+}
+
+.tool-card-toggle.icon-only {
+	width: 32px;
+	height: 32px;
+}
+
+.tool-card-toggle svg {
+	transition: transform 150ms ease;
+}
+
+.tool-card:not(.collapsed) .tool-card-toggle svg {
+	transform: rotate(180deg);
 }
 
 .tool-card-title {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 	font-family: var(--mono);
 	font-size: 12px;
 	color: var(--text);

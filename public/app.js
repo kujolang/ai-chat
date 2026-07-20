@@ -62,6 +62,7 @@ const sidebarCollapsedStorageKey = "ai_chat_sidebar_collapsed_v1";
 const paneInfoVisibleStorageKey = "ai_chat_pane_info_visible_v1";
 const usageSummaryVisibleStorageKey = "ai_chat_usage_summary_visible_v1";
 const collapsedProvidersStorageKey = "ai_chat_collapsed_providers_v1";
+const collapsedToolsStorageKey = "ai_chat_collapsed_tools_v1";
 const stateChangesBatchBytes = 512 * 1024;
 const maxVisibleProjectFolders = 5;
 const sidebarChatPageSize = 5;
@@ -89,7 +90,12 @@ let composerModelSelect2Ready = false;
 let settingsDefaultModelSelect2Ready = false;
 let draggedProviderId = "";
 let draggedModel = null;
+let profileDropDestination = null;
+let draggedToolId = "";
+let toolDropDestination = null;
+let activeSettingsPointerDrag = null;
 let collapsedProviderIds = loadCollapsedProviderIds();
+let collapsedToolIds = loadCollapsedToolIds();
 loadApiAuthTokenFromStorage();
 
 const nodes = {
@@ -726,7 +732,7 @@ function wireEvents() {
 		if (!selectedOption) return;
 		state.settings.defaultProfileId = String(selectedOption.getAttribute("data-profile-id") || "");
 		state.settings.defaultModel = String(selectedOption.getAttribute("data-model") || "");
-		schedulePersist();
+		schedulePersist({ immediate: true });
 	});
 
 	nodes.settingsAgentInstructions.addEventListener("input", (event) => {
@@ -1177,6 +1183,7 @@ function wireEvents() {
 		}
 		const kind = String(handle.getAttribute("data-drag-kind") || "");
 		const profileId = String(handle.getAttribute("data-profile-id") || "");
+		profileDropDestination = null;
 		if (kind === "provider") {
 			draggedProviderId = profileId;
 			handle.closest(".profile-card")?.classList.add("dragging");
@@ -1191,58 +1198,35 @@ function wireEvents() {
 	});
 
 	nodes.profileList.addEventListener("dragover", (event) => {
+		if (!draggedModel && !draggedProviderId) return;
+		event.preventDefault();
+		if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
 		const target = draggedModel
 			? event.target.closest(`.profile-model-row[data-profile-id="${cssEscape(draggedModel.profileId)}"]`)
 			: draggedProviderId
 				? event.target.closest(".profile-card")
 				: null;
 		if (!target) return;
-		event.preventDefault();
-		if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
 		for (const item of nodes.profileList.querySelectorAll(".drag-over-before, .drag-over-after")) {
 			item.classList.remove("drag-over-before", "drag-over-after");
 		}
 		const rectangle = target.getBoundingClientRect();
 		const placeAfter = event.clientY > rectangle.top + rectangle.height / 2;
 		target.classList.add(placeAfter ? "drag-over-after" : "drag-over-before");
+		profileDropDestination = draggedModel
+			? { kind: "model", profileId: draggedModel.profileId, targetIndex: Number(target.getAttribute("data-model-index")), placeAfter }
+			: { kind: "provider", targetProfileId: String(target.getAttribute("data-profile-id") || ""), placeAfter };
 	});
 
 	nodes.profileList.addEventListener("drop", (event) => {
-		const dropTarget = event.target.closest(".drag-over-before, .drag-over-after");
-		if (!dropTarget) return;
+		if (!profileDropDestination) return;
 		event.preventDefault();
-		const placeAfter = dropTarget.classList.contains("drag-over-after");
-		if (draggedModel) {
-			const profile = getProfileById(draggedModel.profileId);
-			const targetIndex = Number(dropTarget.getAttribute("data-model-index"));
-			if (profile) {
-				const models = profileModelEntries(profile);
-				if (moveListItemForDrop(models, draggedModel.modelIndex, targetIndex, placeAfter)) {
-					setProfileModels(profile, models);
-					schedulePersist();
-					renderSettings();
-				}
-			}
-		} else if (draggedProviderId) {
-			const fromIndex = state.settings.profiles.findIndex((profile) => profile.id === draggedProviderId);
-			const targetProfileId = String(dropTarget.getAttribute("data-profile-id") || "");
-			const targetIndex = state.settings.profiles.findIndex((profile) => profile.id === targetProfileId);
-			if (moveListItemForDrop(state.settings.profiles, fromIndex, targetIndex, placeAfter)) {
-				schedulePersist();
-				renderSettings();
-				renderAll();
-			}
-		}
-		draggedModel = null;
-		draggedProviderId = "";
+		commitProfileDrop();
+		resetSettingsDragState();
 	});
 
 	nodes.profileList.addEventListener("dragend", () => {
-		draggedModel = null;
-		draggedProviderId = "";
-		for (const item of nodes.profileList.querySelectorAll(".dragging, .drag-over-before, .drag-over-after")) {
-			item.classList.remove("dragging", "drag-over-before", "drag-over-after");
-		}
+		resetSettingsDragState();
 	});
 
 	const onToolFieldChange = (event) => {
@@ -1264,6 +1248,15 @@ function wireEvents() {
 	nodes.toolsList.addEventListener("input", onToolFieldChange);
 	nodes.toolsList.addEventListener("change", onToolFieldChange);
 	nodes.toolsList.addEventListener("click", (event) => {
+		const cardToggleButton = event.target.closest("[data-tool-action='toggle-card']");
+		if (cardToggleButton) {
+			const toolId = String(cardToggleButton.getAttribute("data-tool-id") || "");
+			if (collapsedToolIds.has(toolId)) collapsedToolIds.delete(toolId);
+			else collapsedToolIds.add(toolId);
+			storeCollapsedToolIds();
+			renderToolsSettings();
+			return;
+		}
 		const toggleButton = event.target.closest("[data-tool-action='toggle-parameters']");
 		if (toggleButton) {
 			const card = toggleButton.closest(".tool-card");
@@ -1281,8 +1274,156 @@ function wireEvents() {
 
 		const toolId = String(actionNode.getAttribute("data-tool-id") || "");
 		state.settings.tools = state.settings.tools.filter((tool) => tool.id !== toolId);
+		collapsedToolIds.delete(toolId);
+		storeCollapsedToolIds();
 		renderSettings();
 		schedulePersist();
+	});
+
+	nodes.toolsList.addEventListener("keydown", (event) => {
+		const handle = event.target.closest("[data-tool-drag='true']");
+		if (!handle || !["ArrowUp", "ArrowDown"].includes(event.key)) return;
+		event.preventDefault();
+		moveToolBy(String(handle.getAttribute("data-tool-id") || ""), event.key === "ArrowUp" ? -1 : 1);
+	});
+
+	nodes.toolsList.addEventListener("dragstart", (event) => {
+		const handle = event.target.closest("[data-tool-drag='true']");
+		if (!handle) {
+			event.preventDefault();
+			return;
+		}
+		draggedToolId = String(handle.getAttribute("data-tool-id") || "");
+		toolDropDestination = null;
+		handle.closest(".tool-card")?.classList.add("dragging");
+		if (event.dataTransfer) {
+			event.dataTransfer.effectAllowed = "move";
+			event.dataTransfer.setData("text/plain", `tool:${draggedToolId}`);
+		}
+	});
+
+	nodes.toolsList.addEventListener("dragover", (event) => {
+		if (!draggedToolId) return;
+		event.preventDefault();
+		if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
+		const target = event.target.closest(".tool-card");
+		if (!target) return;
+		for (const item of nodes.toolsList.querySelectorAll(".drag-over-before, .drag-over-after")) {
+			item.classList.remove("drag-over-before", "drag-over-after");
+		}
+		const rectangle = target.getBoundingClientRect();
+		const placeAfter = event.clientY > rectangle.top + rectangle.height / 2;
+		target.classList.add(placeAfter ? "drag-over-after" : "drag-over-before");
+		toolDropDestination = { targetToolId: String(target.getAttribute("data-tool-id") || ""), placeAfter };
+	});
+
+	nodes.toolsList.addEventListener("drop", (event) => {
+		if (!draggedToolId || !toolDropDestination) return;
+		event.preventDefault();
+		commitToolDrop();
+		resetSettingsDragState();
+	});
+
+	nodes.toolsList.addEventListener("dragend", () => {
+		resetSettingsDragState();
+	});
+
+	const beginSettingsPointerDrag = (event, handle, payload) => {
+		if (event.button !== 0 || activeSettingsPointerDrag) return;
+		event.preventDefault();
+		resetSettingsDragState();
+		activeSettingsPointerDrag = {
+			...payload,
+			pointerId: event.pointerId,
+			startX: event.clientX,
+			startY: event.clientY,
+			moved: false,
+			handle,
+			sourceItem: handle.closest(payload.scope === "tools" ? ".tool-card" : (payload.kind === "model" ? ".profile-model-row" : ".profile-card"))
+		};
+		if (payload.scope === "tools") draggedToolId = payload.toolId;
+		else if (payload.kind === "model") draggedModel = { profileId: payload.profileId, modelIndex: payload.modelIndex };
+		else draggedProviderId = payload.profileId;
+		try {
+			handle.setPointerCapture(event.pointerId);
+		} catch (error) {
+			// Pointer capture is optional; window-level handlers still complete the drag.
+		}
+	};
+
+	nodes.profileList.addEventListener("pointerdown", (event) => {
+		const handle = event.target.closest("[data-drag-kind]");
+		if (!handle) return;
+		const kind = String(handle.getAttribute("data-drag-kind") || "");
+		beginSettingsPointerDrag(event, handle, {
+			scope: "profiles",
+			kind,
+			profileId: String(handle.getAttribute("data-profile-id") || ""),
+			modelIndex: Number(handle.getAttribute("data-model-index"))
+		});
+	});
+
+	nodes.toolsList.addEventListener("pointerdown", (event) => {
+		const handle = event.target.closest("[data-tool-drag='true']");
+		if (!handle) return;
+		beginSettingsPointerDrag(event, handle, {
+			scope: "tools",
+			kind: "tool",
+			toolId: String(handle.getAttribute("data-tool-id") || "")
+		});
+	});
+
+	window.addEventListener("pointermove", (event) => {
+		const activeDrag = activeSettingsPointerDrag;
+		if (!activeDrag || activeDrag.pointerId !== event.pointerId) return;
+		const distance = Math.hypot(event.clientX - activeDrag.startX, event.clientY - activeDrag.startY);
+		if (!activeDrag.moved && distance < 5) return;
+		event.preventDefault();
+		activeDrag.moved = true;
+		activeDrag.sourceItem?.classList.add("dragging");
+		const pointerTarget = document.elementFromPoint(event.clientX, event.clientY);
+		if (!pointerTarget) return;
+
+		if (activeDrag.scope === "tools") {
+			const target = pointerTarget.closest(".tool-card");
+			if (!target) return;
+			for (const item of nodes.toolsList.querySelectorAll(".drag-over-before, .drag-over-after")) {
+				item.classList.remove("drag-over-before", "drag-over-after");
+			}
+			const rectangle = target.getBoundingClientRect();
+			const placeAfter = event.clientY > rectangle.top + rectangle.height / 2;
+			target.classList.add(placeAfter ? "drag-over-after" : "drag-over-before");
+			toolDropDestination = { targetToolId: String(target.getAttribute("data-tool-id") || ""), placeAfter };
+			return;
+		}
+
+		const target = activeDrag.kind === "model"
+			? pointerTarget.closest(`.profile-model-row[data-profile-id="${cssEscape(activeDrag.profileId)}"]`)
+			: pointerTarget.closest(".profile-card");
+		if (!target) return;
+		for (const item of nodes.profileList.querySelectorAll(".drag-over-before, .drag-over-after")) {
+			item.classList.remove("drag-over-before", "drag-over-after");
+		}
+		const rectangle = target.getBoundingClientRect();
+		const placeAfter = event.clientY > rectangle.top + rectangle.height / 2;
+		target.classList.add(placeAfter ? "drag-over-after" : "drag-over-before");
+		profileDropDestination = activeDrag.kind === "model"
+			? { kind: "model", profileId: activeDrag.profileId, targetIndex: Number(target.getAttribute("data-model-index")), placeAfter }
+			: { kind: "provider", targetProfileId: String(target.getAttribute("data-profile-id") || ""), placeAfter };
+	}, { passive: false });
+
+	window.addEventListener("pointerup", (event) => {
+		const activeDrag = activeSettingsPointerDrag;
+		if (!activeDrag || activeDrag.pointerId !== event.pointerId) return;
+		if (activeDrag.moved) {
+			if (activeDrag.scope === "tools") commitToolDrop();
+			else commitProfileDrop();
+		}
+		resetSettingsDragState();
+	});
+
+	window.addEventListener("pointercancel", (event) => {
+		if (activeSettingsPointerDrag && activeSettingsPointerDrag.pointerId === event.pointerId) resetSettingsDragState();
 	});
 
 	window.addEventListener("online", () => {
@@ -1863,6 +2004,23 @@ function loadCollapsedProviderIds() {
 function storeCollapsedProviderIds() {
 	try {
 		window.localStorage.setItem(collapsedProvidersStorageKey, JSON.stringify(Array.from(collapsedProviderIds)));
+	} catch (error) {
+		// Keep accordion controls usable when storage is unavailable.
+	}
+}
+
+function loadCollapsedToolIds() {
+	try {
+		const parsed = JSON.parse(window.localStorage.getItem(collapsedToolsStorageKey) || "[]");
+		return new Set(Array.isArray(parsed) ? parsed.map(String) : []);
+	} catch (error) {
+		return new Set();
+	}
+}
+
+function storeCollapsedToolIds() {
+	try {
+		window.localStorage.setItem(collapsedToolsStorageKey, JSON.stringify(Array.from(collapsedToolIds)));
 	} catch (error) {
 		// Keep accordion controls usable when storage is unavailable.
 	}
@@ -3828,6 +3986,65 @@ function moveModelBy(profileId, modelIndex, delta) {
 	renderSettings();
 }
 
+function moveToolBy(toolId, delta) {
+	const fromIndex = state.settings.tools.findIndex((tool) => tool.id === toolId);
+	const toIndex = Math.max(0, Math.min(state.settings.tools.length - 1, fromIndex + delta));
+	if (!moveListItem(state.settings.tools, fromIndex, toIndex)) return;
+	schedulePersist();
+	renderToolsSettings();
+}
+
+function commitProfileDrop() {
+	const destination = profileDropDestination;
+	if (!destination) return false;
+	if (draggedModel && destination.kind === "model") {
+		const profile = getProfileById(draggedModel.profileId);
+		if (!profile) return false;
+		const models = profileModelEntries(profile);
+		if (!moveListItemForDrop(models, draggedModel.modelIndex, destination.targetIndex, destination.placeAfter)) return false;
+		setProfileModels(profile, models);
+		schedulePersist();
+		renderSettings();
+		return true;
+	}
+	if (draggedProviderId && destination.kind === "provider") {
+		const fromIndex = state.settings.profiles.findIndex((profile) => profile.id === draggedProviderId);
+		const targetIndex = state.settings.profiles.findIndex((profile) => profile.id === destination.targetProfileId);
+		if (!moveListItemForDrop(state.settings.profiles, fromIndex, targetIndex, destination.placeAfter)) return false;
+		schedulePersist();
+		renderSettings();
+		renderAll();
+		return true;
+	}
+	return false;
+}
+
+function commitToolDrop() {
+	if (!draggedToolId || !toolDropDestination) return false;
+	const fromIndex = state.settings.tools.findIndex((tool) => tool.id === draggedToolId);
+	const targetIndex = state.settings.tools.findIndex((tool) => tool.id === toolDropDestination.targetToolId);
+	if (!moveListItemForDrop(state.settings.tools, fromIndex, targetIndex, toolDropDestination.placeAfter)) return false;
+	schedulePersist();
+	renderToolsSettings();
+	return true;
+}
+
+function clearSettingsDragVisuals() {
+	for (const item of document.querySelectorAll(".dragging, .drag-over-before, .drag-over-after")) {
+		item.classList.remove("dragging", "drag-over-before", "drag-over-after");
+	}
+}
+
+function resetSettingsDragState() {
+	draggedModel = null;
+	draggedProviderId = "";
+	profileDropDestination = null;
+	draggedToolId = "";
+	toolDropDestination = null;
+	activeSettingsPointerDrag = null;
+	clearSettingsDragVisuals();
+}
+
 function renderProfileModels(profile) {
 	const models = profileModelEntries(profile);
 	const rows = models.map((model, index) => `
@@ -3994,21 +4211,29 @@ function renderToolsSettings() {
 			: "Unavailable: enable the browser runtime and install Playwright Chromium.";
 	}
 
-	nodes.toolsList.innerHTML = state.settings.tools.map((tool) => {
+	nodes.toolsList.innerHTML = state.settings.tools.map((tool, toolIndex) => {
 		const schema = parseToolParameters(tool.parameters_json);
 		const schemaStatus = schema ? "Valid JSON schema" : "Invalid JSON schema";
 		const browserUnavailable = ["browser_open", "browser_snapshot", "browser_act", "browser_close", "browser_use"].includes(tool.name)
 			&& runtimeCapabilities.loaded
 			&& !runtimeCapabilities.tools.includes(tool.name);
+		const collapsed = collapsedToolIds.has(tool.id);
 		return `
-			<div class="tool-card">
+			<div class="tool-card${collapsed ? " collapsed" : ""}" data-tool-id="${escapeHtml(tool.id)}" data-tool-index="${toolIndex}">
 				<div class="tool-card-head">
-					<div>
+					<button class="profile-drag-handle tool-card-drag-handle" type="button" draggable="true" data-tool-drag="true" data-tool-id="${escapeHtml(tool.id)}" aria-label="Drag ${escapeHtml(tool.name)} to reorder" title="Drag to reorder; arrow keys also move this tool">
+						<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/></svg>
+					</button>
+					<div class="tool-card-summary">
 						<div class="tool-card-title">${escapeHtml(tool.name)}</div>
 						<div class="tool-card-kind">${escapeHtml(browserUnavailable ? "Preset · Browser runtime unavailable" : (tool.kind === "preset" ? "Preset" : "Custom function tool"))}</div>
 					</div>
 					<label class="tool-enabled"><input data-tool-id="${escapeHtml(tool.id)}" data-tool-field="enabled" type="checkbox" ${tool.enabled ? "checked" : ""} ${browserUnavailable ? "disabled" : ""}> Enabled</label>
+					<button class="tool-card-toggle btn ghost icon-only" type="button" data-tool-action="toggle-card" data-tool-id="${escapeHtml(tool.id)}" aria-label="${collapsed ? "Open" : "Close"} ${escapeHtml(tool.name)}" aria-expanded="${collapsed ? "false" : "true"}" title="${collapsed ? "Open tool" : "Close tool"}">
+						<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+					</button>
 				</div>
+				<div class="tool-card-body">
 				<div class="tool-grid">
 					<label>
 						<span>Name</span>
@@ -4029,6 +4254,7 @@ function renderToolsSettings() {
 				</div>
 				<div class="profile-actions">
 					<button class="btn ghost danger" data-tool-action="delete" data-tool-id="${escapeHtml(tool.id)}">Remove Tool</button>
+				</div>
 				</div>
 			</div>
 		`;

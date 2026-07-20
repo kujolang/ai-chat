@@ -164,3 +164,17 @@ test("state sync persists provider order through profile sort values", () => {
 		["profile-1", 1]
 	]);
 });
+
+test("state sync persists reordered tools through app settings", () => {
+	const state = baseState();
+	state.settings.tools = [
+		{ id: "tool-1", name: "web_search", description: "Search", parameters_json: "{}", enabled: true, kind: "preset" },
+		{ id: "tool-2", name: "browser_open", description: "Browse", parameters_json: "{}", enabled: true, kind: "preset" }
+	];
+	const before = stateSync.persistenceSnapshot(state);
+	state.settings.tools.reverse();
+	const changes = stateSync.buildChanges(before, stateSync.persistenceSnapshot(state));
+
+	assert.deepEqual(changes.map((change) => change.type), ["app_settings_upsert"]);
+	assert.deepEqual(changes[0].settings.tools.map((tool) => tool.id), ["tool-2", "tool-1"]);
+});
