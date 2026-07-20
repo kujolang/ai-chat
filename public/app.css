@@ -662,6 +662,7 @@ input[type="checkbox"]:disabled {
 	display: grid;
 	grid-template-rows: auto 1fr auto;
 	min-height: 0;
+	min-width: 0;
 }
 
 .workspace-top {
@@ -996,7 +997,7 @@ textarea::-webkit-scrollbar-thumb:hover {
 }
 
 .pane-grid.cols-2 .message-list {
-	max-width: min(100%, calc((var(--content-max) - 16px) / 2));
+	max-width: 100%;
 }
 
 .pane-grid.cols-3 .message-list {
@@ -1417,6 +1418,7 @@ textarea::-webkit-scrollbar-thumb:hover {
 	border: 0;
 	background: transparent;
 	margin-bottom: 10px;
+	margin-right: 10px;
 }
 
 .message.user .message-bubble {
