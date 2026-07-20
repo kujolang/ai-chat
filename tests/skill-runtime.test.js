@@ -91,6 +91,54 @@ test("skill runtime follows symlinked skill directories", () => {
 	}
 });
 
+test("skill runtime reads by exact skill name or relative path", () => {
+	const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-skills-"));
+	try {
+		makeSkill(tempRoot, "memory/strata-memory", [
+			"---",
+			"name: strata-memory",
+			"description: Save durable memories.",
+			"---",
+			"# Strata Memory"
+		].join("\n"));
+		const runtime = createSkillRuntime({
+			env: { AI_CHAT_SKILL_ROOTS: tempRoot },
+			homeDir: tempRoot
+		});
+
+		const byName = runtime.read({ id: "strata-memory" });
+		assert.equal(byName.skill.name, "strata-memory");
+		assert.match(byName.content, /Strata Memory/);
+
+		const byRelativePath = runtime.read({ id: "memory/strata-memory" });
+		assert.equal(byRelativePath.skill.name, "strata-memory");
+		assert.match(byRelativePath.content, /Strata Memory/);
+	} finally {
+		fs.rmSync(tempRoot, { recursive: true, force: true });
+	}
+});
+
+test("skill runtime reports ambiguous skill names with candidates", () => {
+	const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-skills-"));
+	try {
+		makeSkill(tempRoot, "one/duplicate", "---\nname: duplicate\n---\n# One\n");
+		makeSkill(tempRoot, "two/duplicate", "---\nname: duplicate\n---\n# Two\n");
+		const runtime = createSkillRuntime({
+			env: { AI_CHAT_SKILL_ROOTS: tempRoot },
+			homeDir: tempRoot
+		});
+
+		assert.throws(() => runtime.read({ id: "duplicate" }), (error) => error.code === "skill_ambiguous" && error.candidates.length === 2);
+		const result = runtime.readFileForTool({ id: "duplicate", path: "SKILL.md" });
+		assert.equal(result.ok, false);
+		assert.equal(result.code, "skill_ambiguous");
+		assert.equal(result.candidates.length, 2);
+		assert.match(result.retry_hint, /exact id/);
+	} finally {
+		fs.rmSync(tempRoot, { recursive: true, force: true });
+	}
+});
+
 test("skill runtime rejects path traversal and non-text files", () => {
 	const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-skills-"));
 	try {
