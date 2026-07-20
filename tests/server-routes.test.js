@@ -2140,6 +2140,36 @@ test("POST /api/chat/stream keeps the timeout active while consuming the upstrea
 	}
 });
 
+test("POST /api/chat/stream classifies upstream fetch failures as transport errors", async () => {
+	const transportError = new TypeError("fetch failed");
+	transportError.cause = { code: "UND_ERR_SOCKET" };
+	const { runtime, destroy } = createIsolatedRuntime({
+		fetchFn: async () => {
+			throw transportError;
+		}
+	});
+	try {
+		const profileId = applyProfileMutation(runtime, (profile) => {
+			profile.api_key = "stream-key";
+		});
+		await withServer(runtime.app, async (baseUrl) => {
+			const response = await fetch(`${baseUrl}/api/chat/stream`, {
+				method: "POST",
+				headers: withAuthHeaders({ "Content-Type": "application/json" }),
+				body: JSON.stringify({ profile_id: profileId, messages: [{ role: "user", content: "hello" }] })
+			});
+			const events = parseSseEvents(await response.text());
+			assert.equal(events[0].event, "error");
+			assert.equal(events[0].data.code, "stream_transport_failed");
+			assert.equal(events[0].data.transport_error_code, "UND_ERR_SOCKET");
+			assert.equal(events[0].data.retryable, true);
+			assert.match(events[0].data.message, /Watchdog proxy\/provider connection/);
+		});
+	} finally {
+		destroy();
+	}
+});
+
 test("POST /api/chat/stream preserves Ollama-style message chunks and detects an unmarked close", async () => {
 	const { runtime, destroy } = createIsolatedRuntime({
 		fetchFn: async () => mockSseResponseFromPayload([

@@ -2669,6 +2669,8 @@ function normalizeStreamErrorPayload(payload) {
 	return {
 		code: String(source.code || "stream_error").slice(0, 120),
 		message: String(source.message || "The tool run stopped before a final response was available.").slice(0, 1000),
+		retryable: source.retryable !== false,
+		transport_error_code: String(source.transport_error_code || "").slice(0, 120),
 		tool_names: Array.isArray(source.tool_names)
 			? source.tool_names.map((name) => String(name).slice(0, 120)).filter(Boolean).slice(0, 32)
 			: []
