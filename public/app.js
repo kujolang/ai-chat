@@ -6973,7 +6973,7 @@ function renderThinkingBlock(message, paneId) {
 			: "Thought";
 
 	const renderedThinking = renderAssistantMarkdown(thinkingText);
-	return `<div class="message-thinking" role="status" aria-live="polite"><div class="message-thinking-head"><div class="thinking-label">${thinkingLabel}${loadingIcon}</div>${toggle}</div><div class="${contentClass} message-thinking-markdown"><div class="message-content-block">${renderedThinking}</div></div></div>`;
+	return `<div class="message-thinking" role="status" aria-live="polite"><div class="message-thinking-head"><div class="thinking-label">${thinkingLabel}</div>${toggle}${loadingIcon}</div><div class="${contentClass} message-thinking-markdown"><div class="message-content-block">${renderedThinking}</div></div></div>`;
 }
 
 function thinkingToggleIconSvg(expanded) {
@@ -6984,7 +6984,7 @@ function thinkingToggleIconSvg(expanded) {
 	return "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"thinking-toggle-icon\" aria-hidden=\"true\"><path d=\"m6 9 6 6 6-6\"/></svg>";
 }
 
-const thinkingLoadingIconSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"thinking-loading-icon\" aria-label=\"Thinking in progress\"><path d=\"M12 2v4\"/><path d=\"m16.24 3.76-2.83 2.83\"/><path d=\"M22 12h-4\"/><path d=\"m20.24 16.24-2.83-2.83\"/><path d=\"M12 22v-4\"/><path d=\"m7.76 20.24 2.83-2.83\"/><path d=\"M2 12H6\"/><path d=\"m3.76 7.76 2.83 2.83\"/></svg>";
+const thinkingLoadingIconSvg = "<img class=\"thinking-loading-icon\" src=\"/loading.svg\" alt=\"Thinking in progress\">";
 
 function renderPlainText(value) {
 	return escapeHtml(String(value || "")).replace(/\n/g, "<br>");

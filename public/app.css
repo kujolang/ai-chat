@@ -1583,20 +1583,16 @@ textarea::-webkit-scrollbar-thumb:hover {
 .message-thinking-head {
 	display: flex;
 	align-items: center;
-	justify-content: space-between;
-	gap: 8px;
+	justify-content: flex-start;
+	gap: 5px;
 	margin-bottom: 6px;
 }
 
 .thinking-loading-icon {
-	animation: thinking-spinner 900ms linear infinite;
-	color: #7de0b7;
-}
-
-@keyframes thinking-spinner {
-	to {
-		transform: rotate(360deg);
-	}
+	width: 16px;
+	height: 16px;
+	display: block;
+	object-fit: contain;
 }
 
 .message-thinking-content {
@@ -1613,18 +1609,16 @@ textarea::-webkit-scrollbar-thumb:hover {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	border: 1px solid #2f3d4f;
-	background: rgba(21, 29, 38, 0.9);
-	color: #9ec6df;
-	border-radius: 8px;
+	border: 0;
+	background: transparent;
+	color: inherit;
 	padding: 0;
-	width: 22px;
-	height: 22px;
+	width: 16px;
+	height: 16px;
 }
 
 .thinking-toggle:hover {
-	border-color: #40607d;
-	background: rgba(30, 44, 58, 0.95);
+	color: #e0eefc;
 	transform: none;
 }
 
