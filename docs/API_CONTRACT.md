@@ -11,6 +11,7 @@ Current endpoints:
 - `GET /api/health`
 - `GET /api/providers`
 - `GET /api/state`
+- `GET /api/chats/:chatId`
 - `PUT /api/state`
 - `POST /api/state/changes`
 - `POST /api/chat`
@@ -92,6 +93,8 @@ When `DEBUG_API_ERRORS=0`, provider raw error bodies are not included in stream 
 - `state.searchQuery` string
 - `state.broadcastToAllPanes` boolean compatibility field; the UI always persists this as `true` and broadcasts prompts to every pane.
 - `state.settings` object containing `temperature`, `maxTokens`, `defaultProfileId`, `defaultModel`, persistent `agentInstructions`, provider `profiles`, reusable `paneProfiles`, and saved function-tool definitions in `tools`
+
+Clients may request `GET /api/state?messages=none` to load chat metadata, pane metadata, and per-pane `messageCount` without message bodies. Use `GET /api/chats/:chatId` to hydrate one chat's panes and messages on demand.
 
 `defaultProfileId` and `defaultModel` identify the provider/model selection used by regular new chats. Clients fall back to the first available configured model when the saved selection is missing or no longer exists.
 

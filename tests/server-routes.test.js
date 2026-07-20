@@ -480,6 +480,43 @@ test("GET /api/state returns seeded state", async () => {
 	}
 });
 
+test("GET /api/state can return lightweight chat summaries and hydrate one chat", async () => {
+	const { runtime, destroy } = createIsolatedRuntime();
+	try {
+		const seeded = runtime.helpers.readState();
+		const chatId = seeded.chats[0].id;
+		const paneId = seeded.chats[0].panes[0].id;
+		runtime.helpers.applyStateChanges({
+			changes: [{
+				type: "message_upsert",
+				message: {
+					id: "route-lazy-message",
+					pane_id: paneId,
+					role: "assistant",
+					content: "loaded on demand",
+					thinking: "",
+					usage: null,
+					created_at: Date.now(),
+					sort_order: 0
+				}
+			}]
+		});
+
+		await withServer(runtime.app, async (baseUrl) => {
+			const summary = await fetchJson(baseUrl, "/api/state?messages=none");
+			assert.equal(summary.response.status, 200);
+			assert.equal(summary.json.state.chats[0].panes[0].messages.length, 0);
+			assert.equal(summary.json.state.chats[0].panes[0].messageCount, 1);
+
+			const hydrated = await fetchJson(baseUrl, `/api/chats/${chatId}`);
+			assert.equal(hydrated.response.status, 200);
+			assert.equal(hydrated.json.chat.panes[0].messages[0].content, "loaded on demand");
+		});
+	} finally {
+		destroy();
+	}
+});
+
 test("POST /api/state/changes persists reusable pane profiles independently", async () => {
 	const { runtime, destroy } = createIsolatedRuntime();
 	try {

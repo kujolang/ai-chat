@@ -609,6 +609,39 @@ test("applyStateChanges upserts messages without replacing unrelated state", () 
 	}
 });
 
+test("readState can omit message bodies while preserving counts for lazy chat loading", () => {
+	const { runtime, destroy } = createIsolatedRuntime();
+	try {
+		const seeded = runtime.helpers.readState();
+		const paneId = seeded.chats[0].panes[0].id;
+		runtime.helpers.applyStateChanges({
+			changes: [{
+				type: "message_upsert",
+				message: {
+					id: "lazy-message",
+					pane_id: paneId,
+					role: "user",
+					content: "hydrate me later",
+					thinking: "",
+					usage: null,
+					created_at: Date.now(),
+					sort_order: 0
+				}
+			}]
+		});
+
+		const summary = runtime.helpers.readState({ includeMessages: false });
+		assert.equal(summary.chats[0].panes[0].messages.length, 0);
+		assert.equal(summary.chats[0].panes[0].messageCount, 1);
+
+		const chat = runtime.helpers.readChat(summary.chats[0].id);
+		assert.equal(chat.panes[0].messages.length, 1);
+		assert.equal(chat.panes[0].messages[0].content, "hydrate me later");
+	} finally {
+		destroy();
+	}
+});
+
 test("applyStateChanges preserves an encrypted profile key when metadata changes", () => {
 	const { runtime, destroy } = createIsolatedRuntime();
 	try {
