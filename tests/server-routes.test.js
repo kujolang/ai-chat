@@ -244,12 +244,47 @@ test("GET /api/health returns runtime metadata", async () => {
 			assert.equal(json.tool_runtime.web_search_backend, "ollama");
 			assert.equal(json.tool_runtime.browser.available, false);
 			assert.equal(json.tool_runtime.skills.available, false);
+			assert.equal(json.tool_runtime.local.available, false);
 			assert.equal(json.tool_runtime.browser.unavailable_reason, "disabled");
 			assert.equal(json.tool_runtime.schemas.some((schema) => schema.function.name === "browser_open"), false);
 			assert.equal(json.tool_runtime.schemas.some((schema) => schema.function.name === "skill_read"), true);
+			assert.equal(json.tool_runtime.schemas.some((schema) => schema.function.name === "local_shell"), false);
 		});
 	} finally {
 		destroy();
+	}
+});
+
+test("GET /api/health advertises local schemas only when local tools are enabled", async () => {
+	const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-health-local-"));
+	try {
+		fs.writeFileSync(path.join(tempRoot, "README.md"), "# Local\n");
+		const { runtime, destroy } = createIsolatedRuntime({
+			envMerge: {
+				AI_CHAT_LOCAL_TOOLS_ENABLED: "1",
+				AI_CHAT_LOCAL_WORKSPACE_ROOTS: tempRoot,
+				AI_CHAT_LOCAL_WRITE_ENABLED: "1",
+				AI_CHAT_LOCAL_SHELL_ENABLED: "1",
+				AI_CHAT_LOCAL_SHELL_ALLOWLIST: "pwd"
+			},
+			localRuntimeOptions: { homeDir: tempRoot, projectRoot: tempRoot }
+		});
+		try {
+			await withServer(runtime.app, async (baseUrl) => {
+				const { json } = await fetchJson(baseUrl, "/api/health");
+				assert.equal(json.tool_runtime.local.available, true);
+				assert.equal(json.tool_runtime.local.write_enabled, true);
+				assert.equal(json.tool_runtime.local.shell_enabled, true);
+				assert.deepEqual(json.tool_runtime.local.shell_allowlist, ["pwd"]);
+				assert.equal(JSON.stringify(json.tool_runtime.local).includes(tempRoot), false);
+				assert.ok(json.tool_runtime.tools.includes("local_file_read"));
+				assert.ok(json.tool_runtime.schemas.some((schema) => schema.function.name === "local_shell"));
+			});
+		} finally {
+			destroy();
+		}
+	} finally {
+		fs.rmSync(tempRoot, { recursive: true, force: true });
 	}
 });
 

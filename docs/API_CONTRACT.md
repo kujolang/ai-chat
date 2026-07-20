@@ -81,6 +81,7 @@ When `DEBUG_API_ERRORS=0`, provider raw error bodies are not included in stream 
 - `tool_runtime.web_search`: sanitized search backend capabilities, timeout, cache, and policy metadata
 - `tool_runtime.browser`: sanitized `enabled`, `available`, `backend`, `headless`, `action_policy`, and `unavailable_reason` fields
 - `tool_runtime.skills`: sanitized `enabled`, `available`, skill/root counts, root labels, and read/discovery limits
+- `tool_runtime.local`: sanitized `enabled`, `available`, write/shell flags, workspace labels, shell allowlist, and bounded execution limits
 - `tool_runtime.schemas`: built-in schemas that are currently executable; browser schemas are absent when Chromium is unavailable
 
 ## 5. State Contract
@@ -155,6 +156,16 @@ Executable local skill contracts are:
 - `skill_file_read`: `{ "id": "skill id returned by skill_list", "path": "relative/path.md", "max_chars": 48000 }`
 
 Skill tool responses are bounded, read-only, and scoped to configured roots. They never return absolute root paths, reject path traversal and symlink escapes, and only read known text file extensions inside a selected skill folder. Skill contents are local workflow context; they do not override user instructions, app safety policy, credential handling, or tool limits.
+
+Executable local workspace contracts are:
+
+- `local_workspace_list`: `{}`
+- `local_file_list`: `{ "root_id": "workspace_0", "path": ".", "max_entries": 100 }`
+- `local_file_read`: `{ "root_id": "workspace_0", "path": "README.md", "max_chars": 64000 }`
+- `local_file_write`: `{ "root_id": "workspace_0", "path": "notes/example.md", "content": "...", "mode": "create|overwrite|append", "create_dirs": true }`
+- `local_shell`: `{ "root_id": "workspace_0", "cwd": ".", "command": "rg", "args": ["pattern", "README.md"], "timeout_ms": 15000 }`
+
+Local workspace tools are disabled unless `AI_CHAT_LOCAL_TOOLS_ENABLED=1`. Write and shell actions additionally require `AI_CHAT_LOCAL_WRITE_ENABLED=1` and `AI_CHAT_LOCAL_SHELL_ENABLED=1`. Shell execution uses `spawn` without shell interpolation, an args array, an allowlist from `AI_CHAT_LOCAL_SHELL_ALLOWLIST`, sanitized environment variables, timeout and output bounds, and configured workspace cwd containment. Local file tools reject path traversal, symlink escapes, sensitive filenames, oversized files, hidden dependency/runtime folders in listings, and unknown/binary file extensions.
 
 Executable browser contracts use the same provider-neutral loop:
 

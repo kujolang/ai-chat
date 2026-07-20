@@ -36,6 +36,15 @@ Copy values from `.env.example` and define these variables in your shell or envi
 - AI_CHAT_SKILLS_MAX_COUNT
 - AI_CHAT_SKILLS_MAX_DEPTH
 - AI_CHAT_SKILLS_MAX_READ_CHARS
+- AI_CHAT_LOCAL_TOOLS_ENABLED
+- AI_CHAT_LOCAL_WORKSPACE_ROOTS
+- AI_CHAT_LOCAL_WRITE_ENABLED
+- AI_CHAT_LOCAL_SHELL_ENABLED
+- AI_CHAT_LOCAL_SHELL_ALLOWLIST
+- AI_CHAT_LOCAL_MAX_READ_CHARS
+- AI_CHAT_LOCAL_MAX_OUTPUT_CHARS
+- AI_CHAT_LOCAL_MAX_ENTRIES
+- AI_CHAT_LOCAL_COMMAND_TIMEOUT_MS
 
 `AI_SDK_PATH` must point to a directory that contains both `ai_sdk.kujo` and `providers.kujo`.
 
@@ -67,6 +76,15 @@ AI_CHAT_EXTRA_SKILL_ROOTS=
 AI_CHAT_SKILLS_MAX_COUNT=500
 AI_CHAT_SKILLS_MAX_DEPTH=6
 AI_CHAT_SKILLS_MAX_READ_CHARS=48000
+AI_CHAT_LOCAL_TOOLS_ENABLED=0
+AI_CHAT_LOCAL_WORKSPACE_ROOTS=
+AI_CHAT_LOCAL_WRITE_ENABLED=0
+AI_CHAT_LOCAL_SHELL_ENABLED=0
+AI_CHAT_LOCAL_SHELL_ALLOWLIST=git,rg,ls,pwd
+AI_CHAT_LOCAL_MAX_READ_CHARS=64000
+AI_CHAT_LOCAL_MAX_OUTPUT_CHARS=64000
+AI_CHAT_LOCAL_MAX_ENTRIES=200
+AI_CHAT_LOCAL_COMMAND_TIMEOUT_MS=15000
 BROWSER_ENABLED=0
 BROWSER_HEADLESS=1
 BROWSER_SESSION_TTL_MS=900000
@@ -194,6 +212,15 @@ The Skill presets expose installed local skill manuals to agents through read-on
 - `skill_file_read` reads bounded text reference files inside that selected skill folder.
 
 By default, AI Chat checks common local folders: `~/.codex/skills`, `~/.agents/skills`, and `~/.claude/skills`. Set `AI_CHAT_SKILL_ROOTS` to replace that default list, using comma-separated or platform path-delimited absolute paths. Set `AI_CHAT_EXTRA_SKILL_ROOTS` to add folders while keeping the defaults. Runtime responses do not expose absolute root paths to the model, reject path traversal and symlink escapes, ignore hidden/dependency folders during discovery, and enforce `AI_CHAT_SKILLS_MAX_COUNT`, `AI_CHAT_SKILLS_MAX_DEPTH`, and `AI_CHAT_SKILLS_MAX_READ_CHARS`.
+
+The Local presets make skills actionable through separate permissioned executors:
+
+- `local_workspace_list` lists configured local workspace ids.
+- `local_file_list` and `local_file_read` inspect bounded non-sensitive text files.
+- `local_file_write` creates, overwrites, or appends bounded non-sensitive text files when `AI_CHAT_LOCAL_WRITE_ENABLED=1`.
+- `local_shell` runs one allowlisted command as executable plus args, without shell interpolation, when `AI_CHAT_LOCAL_SHELL_ENABLED=1`.
+
+Local tools are disabled by default. Set `AI_CHAT_LOCAL_TOOLS_ENABLED=1` and optionally `AI_CHAT_LOCAL_WORKSPACE_ROOTS`; if omitted, the current AI Chat project root is the only workspace. Command execution uses a sanitized environment, bounded output, command timeouts, no provider credentials, and `AI_CHAT_LOCAL_SHELL_ALLOWLIST`. See `docs/LOCAL_AGENT_CAPABILITIES.md` for the full capability map and a throwaway-workspace test command.
 
 Set `BROWSER_ENABLED=1` after installing Chromium to enable `browser_open`, `browser_snapshot`, `browser_act`, `browser_close`, and the saved-chat compatibility adapter `browser_use`. Health and Settings show browser presets as unavailable when the executable is missing, rather than forwarding a schema that cannot run. If startup can find Playwright but a tool call cannot launch Chromium, the tool returns `browser_not_configured` with the installation command.
 

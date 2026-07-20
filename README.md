@@ -132,6 +132,15 @@ Use `.env.example` as your baseline and set:
 - AI_CHAT_SKILLS_MAX_COUNT
 - AI_CHAT_SKILLS_MAX_DEPTH
 - AI_CHAT_SKILLS_MAX_READ_CHARS
+- AI_CHAT_LOCAL_TOOLS_ENABLED
+- AI_CHAT_LOCAL_WORKSPACE_ROOTS
+- AI_CHAT_LOCAL_WRITE_ENABLED
+- AI_CHAT_LOCAL_SHELL_ENABLED
+- AI_CHAT_LOCAL_SHELL_ALLOWLIST
+- AI_CHAT_LOCAL_MAX_READ_CHARS
+- AI_CHAT_LOCAL_MAX_OUTPUT_CHARS
+- AI_CHAT_LOCAL_MAX_ENTRIES
+- AI_CHAT_LOCAL_COMMAND_TIMEOUT_MS
 - BROWSER_ENABLED
 - BROWSER_HEADLESS
 - BROWSER_SESSION_TTL_MS
@@ -148,7 +157,7 @@ Use `.env.example` as your baseline and set:
 
 Offline fixture mode is supported in the bridge and smoke workflow for safe local validation without live provider credentials.
 
-Tool note: Web Search, Skill, and Browser presets are executable through AI Chat's provider-neutral tool runtime. `WEB_SEARCH_BACKEND=auto` prefers `SEARXNG_BASE_URL` when configured and otherwise uses an API-key-backed custom Ollama profile. Search results keep the stable `query` and `results` shape but now add canonical URLs, source domains, retrieval timestamps, optional upstream publication dates, explicit capability/policy metadata, and short read-only cache metadata for safer citations. Skill presets expose bounded read-only access to local `SKILL.md` manuals under configured skill roots, defaulting to common Codex, agent, and Claude skill folders. With `BROWSER_ENABLED=1`, the stable browser contracts use local Playwright Chromium; the model provider never selects or sees that backend. Browser schemas are not advertised when Chromium is unavailable. Custom tools still require a registered executor.
+Tool note: Web Search, Skill, Local, and Browser presets are executable through AI Chat's provider-neutral tool runtime. `WEB_SEARCH_BACKEND=auto` prefers `SEARXNG_BASE_URL` when configured and otherwise uses an API-key-backed custom Ollama profile. Search results keep the stable `query` and `results` shape but now add canonical URLs, source domains, retrieval timestamps, optional upstream publication dates, explicit capability/policy metadata, and short read-only cache metadata for safer citations. Skill presets expose bounded read-only access to local `SKILL.md` manuals under configured skill roots, defaulting to common Codex, agent, and Claude skill folders. Local presets expose configured workspaces through explicit file and allowlisted command tools only when `AI_CHAT_LOCAL_TOOLS_ENABLED=1`; write and shell actions each require their own opt-in. See `docs/LOCAL_AGENT_CAPABILITIES.md` for the full capability matrix. With `BROWSER_ENABLED=1`, the stable browser contracts use local Playwright Chromium; the model provider never selects or sees that backend. Browser schemas are not advertised when Chromium is unavailable. Custom tools still require a registered executor.
 
 Security note:
 
@@ -162,6 +171,7 @@ Security note:
 - Use STREAM_REQUEST_TIMEOUT_MS to tune long-running upstream streaming requests.
 - Use `WEB_SEARCH_TIMEOUT_MS`, `WEB_SEARCH_CACHE_TTL_MS`, and `WEB_SEARCH_CACHE_MAX_ENTRIES` to bound identical search latency/reuse without changing the active model provider.
 - Use `AI_CHAT_SKILL_ROOTS` to replace the default local skill roots or `AI_CHAT_EXTRA_SKILL_ROOTS` to add roots. Skill tools are read-only, scoped to configured roots, bounded by count/depth/read limits, and only return text files inside a selected skill folder.
+- Use `AI_CHAT_LOCAL_TOOLS_ENABLED=1` with `AI_CHAT_LOCAL_WORKSPACE_ROOTS` to expose local workspace tools. File writes and command execution stay disabled until `AI_CHAT_LOCAL_WRITE_ENABLED=1` or `AI_CHAT_LOCAL_SHELL_ENABLED=1`; shell commands must also be named in `AI_CHAT_LOCAL_SHELL_ALLOWLIST`.
 - Use `BROWSER_ALLOWED_HOSTS` to restrict browser tooling to explicit public domains or subdomains, and `BROWSER_APPROVAL_TTL_MS` to keep typed/click approval grants short-lived and single-use.
 - Live provider and transcription requests are optional and require the configured provider/API-key path.
 - The dedicated Watchdog provider accepts only the configured loopback URL. Its proxy token is read from `WATCHDOG_PROXY_TOKEN_FILE`; it does not copy the upstream Ollama key into AI Chat or its SQLite database.
