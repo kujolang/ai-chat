@@ -245,13 +245,52 @@ test("GET /api/health returns runtime metadata", async () => {
 			assert.equal(json.tool_runtime.browser.available, false);
 			assert.equal(json.tool_runtime.skills.available, false);
 			assert.equal(json.tool_runtime.local.available, false);
+			assert.equal(json.tool_runtime.actions.available, false);
 			assert.equal(json.tool_runtime.browser.unavailable_reason, "disabled");
 			assert.equal(json.tool_runtime.schemas.some((schema) => schema.function.name === "browser_open"), false);
 			assert.equal(json.tool_runtime.schemas.some((schema) => schema.function.name === "skill_read"), true);
 			assert.equal(json.tool_runtime.schemas.some((schema) => schema.function.name === "local_shell"), false);
+			assert.equal(json.tool_runtime.schemas.some((schema) => schema.function.name === "action_adapter_call"), false);
 		});
 	} finally {
 		destroy();
+	}
+});
+
+test("GET /api/health advertises action adapter schemas only when configured", async () => {
+	const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-health-actions-"));
+	try {
+		const manifestPath = path.join(tempRoot, "actions.json");
+		fs.writeFileSync(manifestPath, JSON.stringify({
+			adapters: [{
+				id: "fixture_action",
+				name: "Fixture Action",
+				description: "Fixture adapter.",
+				url: "http://127.0.0.1:8787/actions/fixture",
+				input_schema: { type: "object", properties: { value: { type: "string" } } }
+			}]
+		}));
+		const { runtime, destroy } = createIsolatedRuntime({
+			envMerge: {
+				AI_CHAT_ACTIONS_ENABLED: "1",
+				AI_CHAT_ACTION_MANIFEST_PATH: manifestPath
+			}
+		});
+		try {
+			await withServer(runtime.app, async (baseUrl) => {
+				const { json } = await fetchJson(baseUrl, "/api/health");
+				assert.equal(json.tool_runtime.actions.available, true);
+				assert.equal(json.tool_runtime.actions.adapter_count, 1);
+				assert.equal(json.tool_runtime.actions.adapters[0].id, "fixture_action");
+				assert.equal(JSON.stringify(json.tool_runtime.actions).includes(manifestPath), false);
+				assert.ok(json.tool_runtime.tools.includes("action_adapter_call"));
+				assert.ok(json.tool_runtime.schemas.some((schema) => schema.function.name === "action_adapter_call"));
+			});
+		} finally {
+			destroy();
+		}
+	} finally {
+		fs.rmSync(tempRoot, { recursive: true, force: true });
 	}
 });
 

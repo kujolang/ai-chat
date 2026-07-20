@@ -82,6 +82,7 @@ When `DEBUG_API_ERRORS=0`, provider raw error bodies are not included in stream 
 - `tool_runtime.browser`: sanitized `enabled`, `available`, `backend`, `headless`, `action_policy`, and `unavailable_reason` fields
 - `tool_runtime.skills`: sanitized `enabled`, `available`, skill/root counts, root labels, and read/discovery limits
 - `tool_runtime.local`: sanitized `enabled`, `available`, write/shell flags, workspace labels, shell allowlist, and bounded execution limits
+- `tool_runtime.actions`: sanitized `enabled`, `available`, adapter metadata, input schemas, and bounded execution limits
 - `tool_runtime.schemas`: built-in schemas that are currently executable; browser schemas are absent when Chromium is unavailable
 
 ## 5. State Contract
@@ -166,6 +167,13 @@ Executable local workspace contracts are:
 - `local_shell`: `{ "root_id": "workspace_0", "cwd": ".", "command": "rg", "args": ["pattern", "README.md"], "timeout_ms": 15000 }`
 
 Local workspace tools are disabled unless `AI_CHAT_LOCAL_TOOLS_ENABLED=1`. Write and shell actions additionally require `AI_CHAT_LOCAL_WRITE_ENABLED=1` and `AI_CHAT_LOCAL_SHELL_ENABLED=1`. Shell execution uses `spawn` without shell interpolation, an args array, an allowlist from `AI_CHAT_LOCAL_SHELL_ALLOWLIST`, sanitized environment variables, timeout and output bounds, and configured workspace cwd containment. Local file tools reject path traversal, symlink escapes, sensitive filenames, oversized files, hidden dependency/runtime folders in listings, and unknown/binary file extensions.
+
+Executable action adapter contracts are:
+
+- `action_adapter_list`: `{}`
+- `action_adapter_call`: `{ "id": "adapter_id", "input": { "...": "adapter-specific JSON" } }`
+
+Action adapters are disabled unless `AI_CHAT_ACTIONS_ENABLED=1` and `AI_CHAT_ACTION_MANIFEST_PATH` points to a JSON manifest. Each adapter declares `id`, `name`, `description`, loopback-only HTTP `url`, optional `input_schema`, and optional `timeout_ms`. Calls use POST with JSON body `{ "input": ... }`, no credential headers, timeout and result-size limits, and JSON-only responses. AI Chat does not broker OAuth, MCP sessions, plugin credentials, or document-library permissions; the trusted adapter service owns those policies and returns bounded data.
 
 Executable browser contracts use the same provider-neutral loop:
 

@@ -207,6 +207,7 @@ const nodes = {
 	addWebSearchToolBtn: document.getElementById("add-web-search-tool-btn"),
 	addSkillToolBtn: document.getElementById("add-skill-tool-btn"),
 	addLocalToolBtn: document.getElementById("add-local-tool-btn"),
+	addActionToolBtn: document.getElementById("add-action-tool-btn"),
 	appShell: document.getElementById("app"),
 	paneTemplate: document.getElementById("pane-template")
 };
@@ -700,6 +701,14 @@ function wireEvents() {
 
 	nodes.addLocalToolBtn.addEventListener("click", () => {
 		for (const definition of createLocalToolDefinitions()) {
+			if (!state.settings.tools.some((tool) => tool.name === definition.name)) state.settings.tools.push(definition);
+		}
+		renderSettings();
+		schedulePersist();
+	});
+
+	nodes.addActionToolBtn.addEventListener("click", () => {
+		for (const definition of createActionToolDefinitions()) {
 			if (!state.settings.tools.some((tool) => tool.name === definition.name)) state.settings.tools.push(definition);
 		}
 		renderSettings();
@@ -6034,6 +6043,22 @@ function createLocalToolDefinitions() {
 	return definitions.map(([name, description, parameters]) => createToolDefinition({ name, description, parameters_json: JSON.stringify(parameters, null, 2), kind: "preset" }));
 }
 
+function createActionToolDefinitions() {
+	const definitions = [
+		["action_adapter_list", "List explicitly configured local action adapters for document, MCP, plugin, or workflow capabilities. Use this before action_adapter_call.", { type: "object", properties: {}, additionalProperties: false }],
+		["action_adapter_call", "Call one configured local action adapter with structured JSON input. Adapters are loopback-only services declared in the server manifest.", {
+			type: "object",
+			properties: {
+				id: { type: "string" },
+				input: { type: "object", additionalProperties: true }
+			},
+			required: ["id", "input"],
+			additionalProperties: false
+		}]
+	];
+	return definitions.map(([name, description, parameters]) => createToolDefinition({ name, description, parameters_json: JSON.stringify(parameters, null, 2), kind: "preset" }));
+}
+
 function buildEnabledToolDefinitions() {
 	return state.settings.tools
 		.filter((tool) => tool.enabled)
@@ -6060,7 +6085,8 @@ function isRuntimePresetTool(name) {
 	return [
 		"browser_open", "browser_snapshot", "browser_act", "browser_close", "browser_use",
 		"skill_list", "skill_read", "skill_file_read",
-		"local_workspace_list", "local_file_list", "local_file_read", "local_file_write", "local_shell"
+		"local_workspace_list", "local_file_list", "local_file_read", "local_file_write", "local_shell",
+		"action_adapter_list", "action_adapter_call"
 	].includes(String(name || ""));
 }
 

@@ -121,6 +121,20 @@ test("tool runtime exposes local tools when a local runtime is connected", async
 	assert.deepEqual(await runtime.execute("local_file_read", { path: "README.md" }), { path: "README.md", content: "hi" });
 });
 
+test("tool runtime exposes action adapter tools when an action runtime is connected", async () => {
+	const runtime = createToolRuntime({
+		actionRuntime: {
+			canExecute: () => true,
+			status: () => ({ enabled: true, available: true, adapter_count: 1 }),
+			list: () => ({ adapters: [{ id: "docx_summary", name: "DOCX Summary" }] }),
+			call: async () => ({ adapter: { id: "docx_summary" }, result: { ok: true } })
+		}
+	});
+	assert.equal(runtime.canExecute("action_adapter_list"), true);
+	assert.equal(runtime.schemas().some((schema) => schema.function.name === "action_adapter_call"), true);
+	assert.deepEqual(await runtime.execute("action_adapter_call", { id: "docx_summary", input: {} }), { adapter: { id: "docx_summary" }, result: { ok: true } });
+});
+
 test("browser tool schemas steer models toward absolute HTTP URLs", () => {
 	const runtime = createToolRuntime({
 		browserRuntime: {

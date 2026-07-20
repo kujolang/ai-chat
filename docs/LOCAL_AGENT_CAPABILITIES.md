@@ -10,6 +10,7 @@ AI Chat exposes local power through explicit provider-neutral tool contracts. Sk
 | Workspace files | `local_workspace_list`, `local_file_list`, `local_file_read` | Disabled | Inspect configured workspaces | Read-only, bounded, sensitive-name denylist, no absolute paths returned |
 | Workspace writes | `local_file_write` | Disabled | Create/overwrite/append bounded text files | Requires `AI_CHAT_LOCAL_WRITE_ENABLED=1`, configured workspace root, known text extensions |
 | Shell | `local_shell` | Disabled | Run allowlisted local commands | Requires `AI_CHAT_LOCAL_SHELL_ENABLED=1`, no shell interpolation, args array only, sanitized environment, timeout/output limits |
+| Action adapters | `action_adapter_list`, `action_adapter_call` | Disabled | Bridge document, MCP, plugin, and workflow actions through local adapter services | Requires a manifest, loopback-only HTTP POST, structured JSON input, bounded JSON output |
 | Browser | `browser_open`, `browser_snapshot`, `browser_act`, `browser_close` | Disabled | Inspect public web pages | Existing Playwright isolation and approval policy |
 | Web search | `web_search` | Enabled when backend credentials/config exist | Search external web | Existing backend policy and cache controls |
 
@@ -33,6 +34,37 @@ npm run dev
 
 Then open Settings > Tools and add Skill Tool Presets plus Local Tool Presets.
 
+For document, MCP, plugin, or workflow actions, expose a trusted local adapter service and point AI Chat at a manifest:
+
+```json
+{
+  "adapters": [
+    {
+      "id": "docx_summary",
+      "name": "DOCX Summary",
+      "description": "Summarize a document already available to the adapter service.",
+      "url": "http://127.0.0.1:8787/actions/docx-summary",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "document_id": { "type": "string" }
+        },
+        "required": ["document_id"],
+        "additionalProperties": false
+      }
+    }
+  ]
+}
+```
+
+Start AI Chat with:
+
+```bash
+AI_CHAT_ACTIONS_ENABLED=1 \
+AI_CHAT_ACTION_MANIFEST_PATH=/absolute/path/to/actions.json \
+npm run dev
+```
+
 ## Forward-Looking Executor Checklist
 
 Use this list when adding additional action classes:
@@ -53,5 +85,6 @@ Use this list when adding additional action classes:
 ## Current Limitations
 
 - There is no arbitrary MCP or plugin bridge yet. Add each connector as a separate server-side adapter with the checklist above.
+- Action adapters are the supported bridge for MCP/plugin/document actions. AI Chat does not broker OAuth, secrets, or plugin credentials; the local adapter service owns those concerns.
 - Shell commands are intentionally allowlisted. If a skill requires `npm`, `kujo`, or another executable, add that command to `AI_CHAT_LOCAL_SHELL_ALLOWLIST` only for a trusted workspace.
 - The tool runtime does not perform interactive command approval prompts yet. Keep write and shell switches off except in workspaces where model-initiated local actions are acceptable.

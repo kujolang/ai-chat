@@ -45,6 +45,10 @@ Copy values from `.env.example` and define these variables in your shell or envi
 - AI_CHAT_LOCAL_MAX_OUTPUT_CHARS
 - AI_CHAT_LOCAL_MAX_ENTRIES
 - AI_CHAT_LOCAL_COMMAND_TIMEOUT_MS
+- AI_CHAT_ACTIONS_ENABLED
+- AI_CHAT_ACTION_MANIFEST_PATH
+- AI_CHAT_ACTION_TIMEOUT_MS
+- AI_CHAT_ACTION_MAX_RESULT_BYTES
 
 `AI_SDK_PATH` must point to a directory that contains both `ai_sdk.kujo` and `providers.kujo`.
 
@@ -85,6 +89,10 @@ AI_CHAT_LOCAL_MAX_READ_CHARS=64000
 AI_CHAT_LOCAL_MAX_OUTPUT_CHARS=64000
 AI_CHAT_LOCAL_MAX_ENTRIES=200
 AI_CHAT_LOCAL_COMMAND_TIMEOUT_MS=15000
+AI_CHAT_ACTIONS_ENABLED=0
+AI_CHAT_ACTION_MANIFEST_PATH=
+AI_CHAT_ACTION_TIMEOUT_MS=15000
+AI_CHAT_ACTION_MAX_RESULT_BYTES=131072
 BROWSER_ENABLED=0
 BROWSER_HEADLESS=1
 BROWSER_SESSION_TTL_MS=900000
@@ -221,6 +229,13 @@ The Local presets make skills actionable through separate permissioned executors
 - `local_shell` runs one allowlisted command as executable plus args, without shell interpolation, when `AI_CHAT_LOCAL_SHELL_ENABLED=1`.
 
 Local tools are disabled by default. Set `AI_CHAT_LOCAL_TOOLS_ENABLED=1` and optionally `AI_CHAT_LOCAL_WORKSPACE_ROOTS`; if omitted, the current AI Chat project root is the only workspace. Command execution uses a sanitized environment, bounded output, command timeouts, no provider credentials, and `AI_CHAT_LOCAL_SHELL_ALLOWLIST`. See `docs/LOCAL_AGENT_CAPABILITIES.md` for the full capability map and a throwaway-workspace test command.
+
+The Action Adapter presets bridge document, MCP, plugin, or workflow actions through explicitly configured loopback services:
+
+- `action_adapter_list` lists manifest-declared adapters and input schemas.
+- `action_adapter_call` posts structured JSON input to one adapter and returns bounded JSON output.
+
+Set `AI_CHAT_ACTIONS_ENABLED=1` and `AI_CHAT_ACTION_MANIFEST_PATH=/absolute/path/to/actions.json`. Adapter URLs must be loopback `http://127.0.0.1`, `http://localhost`, or equivalent IPv6 loopback URLs; AI Chat does not forward credentials or arbitrary headers. The adapter service owns its own authentication, OAuth, plugin credentials, MCP sessions, document libraries, and side-effect policy.
 
 Set `BROWSER_ENABLED=1` after installing Chromium to enable `browser_open`, `browser_snapshot`, `browser_act`, `browser_close`, and the saved-chat compatibility adapter `browser_use`. Health and Settings show browser presets as unavailable when the executable is missing, rather than forwarding a schema that cannot run. If startup can find Playwright but a tool call cannot launch Chromium, the tool returns `browser_not_configured` with the installation command.
 
