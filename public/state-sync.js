@@ -16,6 +16,8 @@
 			appSettings: {
 				temperature: finiteNumber(settings.temperature, 0.2),
 				maxTokens: finiteNumber(settings.maxTokens, 12000),
+				defaultProfileId: String(settings.defaultProfileId || "").slice(0, 500),
+				defaultModel: String(settings.defaultModel || "").slice(0, 500),
 				agentInstructions: String(settings.agentInstructions || "").slice(0, 24000),
 				agentInstructionProfiles: arrayClone(settings.agentInstructionProfiles).slice(0, 64),
 				broadcastToAllPanes: true,

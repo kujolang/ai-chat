@@ -531,6 +531,8 @@ test("writeState persists chat title and settings values", () => {
 		state.chats[0].title = "Renamed Chat";
 		state.settings.temperature = 0.8;
 		state.settings.maxTokens = 1200;
+		state.settings.defaultProfileId = state.settings.profiles[0].id;
+		state.settings.defaultModel = "gpt-4.1-mini";
 		state.settings.agentInstructions = "Use concise responses and finish with a durable note.";
 		state.settings.agentInstructionProfiles = [{ id: "coding-models", models_csv: "gpt-4.1", instructions: "Use code-focused instructions." }];
 		state.searchQuery = "abc";
@@ -539,6 +541,8 @@ test("writeState persists chat title and settings values", () => {
 		assert.equal(after.chats[0].title, "Renamed Chat");
 		assert.equal(after.settings.temperature, 0.8);
 		assert.equal(after.settings.maxTokens, 1200);
+		assert.equal(after.settings.defaultProfileId, state.settings.defaultProfileId);
+		assert.equal(after.settings.defaultModel, "gpt-4.1-mini");
 		assert.equal(after.settings.agentInstructions, "Use concise responses and finish with a durable note.");
 		assert.deepEqual(after.settings.agentInstructionProfiles, state.settings.agentInstructionProfiles);
 		assert.equal(after.searchQuery, "abc");
@@ -546,6 +550,13 @@ test("writeState persists chat title and settings values", () => {
 		state.stateVersion = after.stateVersion;
 		runtime.helpers.writeState(state);
 		assert.equal(runtime.helpers.readState().settings.tools[0].name, "browser_use");
+		const legacyState = runtime.helpers.readState();
+		delete legacyState.settings.defaultProfileId;
+		delete legacyState.settings.defaultModel;
+		runtime.helpers.writeState(legacyState);
+		const afterLegacyWrite = runtime.helpers.readState();
+		assert.equal(afterLegacyWrite.settings.defaultProfileId, state.settings.defaultProfileId);
+		assert.equal(afterLegacyWrite.settings.defaultModel, "gpt-4.1-mini");
 	} finally {
 		destroy();
 	}

@@ -12,6 +12,8 @@ function baseState() {
 		settings: {
 			temperature: 0.2,
 			maxTokens: 12000,
+			defaultProfileId: "profile-1",
+			defaultModel: "gpt-4.1",
 			agentInstructions: "Be concise.",
 			agentInstructionProfiles: [],
 			paneProfiles: [],
@@ -127,4 +129,16 @@ test("state sync persists model-specific agent instructions", () => {
 
 	assert.deepEqual(changes.map((change) => change.type), ["app_settings_upsert"]);
 	assert.deepEqual(changes[0].settings.agentInstructionProfiles, state.settings.agentInstructionProfiles);
+});
+
+test("state sync persists the default model selection as app settings", () => {
+	const state = baseState();
+	const before = stateSync.persistenceSnapshot(state);
+	state.settings.defaultProfileId = "profile-2";
+	state.settings.defaultModel = "claude-sonnet-4.6";
+	const changes = stateSync.buildChanges(before, stateSync.persistenceSnapshot(state));
+
+	assert.deepEqual(changes.map((change) => change.type), ["app_settings_upsert"]);
+	assert.equal(changes[0].settings.defaultProfileId, "profile-2");
+	assert.equal(changes[0].settings.defaultModel, "claude-sonnet-4.6");
 });

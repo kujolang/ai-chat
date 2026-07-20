@@ -471,6 +471,8 @@ test("GET /api/state returns seeded state", async () => {
 			assert.equal(json.ok, true);
 			assert.equal(Array.isArray(json.state.chats), true);
 			assert.deepEqual(json.state.settings.paneProfiles, []);
+			assert.equal(typeof json.state.settings.defaultProfileId, "string");
+			assert.equal(typeof json.state.settings.defaultModel, "string");
 			assert.equal(Object.prototype.hasOwnProperty.call(json.state.settings.profiles[0], "api_key"), false);
 		});
 	} finally {
