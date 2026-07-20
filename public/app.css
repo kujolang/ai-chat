@@ -1375,7 +1375,8 @@ textarea::-webkit-scrollbar-thumb:hover {
 	text-decoration: underline;
 }
 
-.message-retry-link {
+.message-retry-link,
+.message-branch-link {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
@@ -1389,11 +1390,13 @@ textarea::-webkit-scrollbar-thumb:hover {
 	cursor: pointer;
 }
 
-.message-retry-icon {
+.message-retry-icon,
+.message-branch-icon {
 	flex: 0 0 auto;
 }
 
-.message-retry-link:hover {
+.message-retry-link:hover,
+.message-branch-link:hover {
 	border-color: #47657f;
 	color: #e0eefc;
 	transform: none;
@@ -1469,14 +1472,15 @@ textarea::-webkit-scrollbar-thumb:hover {
 
 .message-footer {
 	opacity: 0;
-	pointer-events: none;
+	pointer-events: auto;
+	position: relative;
+	z-index: 1;
 	transition: opacity 120ms ease;
 }
 
 .message:hover .message-footer,
 .message:focus-within .message-footer {
 	opacity: 1;
-	pointer-events: auto;
 }
 
 .message-copy-btn {
@@ -1502,6 +1506,26 @@ textarea::-webkit-scrollbar-thumb:hover {
 	border-color: #3f6958;
 	background: rgba(107, 241, 191, 0.12);
 	color: #7de0b7;
+}
+
+.empty-state-action {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	min-height: 120px;
+}
+
+.empty-pane-ask-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 8px 11px;
+	color: #d8dde5;
+}
+
+.empty-pane-ask-btn svg {
+	width: 16px;
+	height: 16px;
 }
 
 .message-thinking {

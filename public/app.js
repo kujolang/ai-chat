@@ -77,6 +77,8 @@ const stopButtonSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" he
 const collapseSidebarSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect width=\"18\" height=\"18\" x=\"3\" y=\"3\" rx=\"2\"/><path d=\"M9 3v18\"/><path d=\"m15 9-3 3 3 3\"/></svg>";
 const expandSidebarSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect width=\"18\" height=\"18\" x=\"3\" y=\"3\" rx=\"2\"/><path d=\"M9 3v18\"/><path d=\"m13 9 3 3-3 3\"/></svg>";
 const retryIconSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"message-retry-icon\" aria-hidden=\"true\"><path d=\"M3 12a9 9 0 1 0 3-6.7\"/><path d=\"M3 4v5h5\"/></svg>";
+const branchIconSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"message-branch-icon\" aria-hidden=\"true\"><path d=\"M6 3v12\"/><circle cx=\"18\" cy=\"6\" r=\"3\"/><circle cx=\"6\" cy=\"18\" r=\"3\"/><path d=\"M18 9a9 9 0 0 1-9 9\"/></svg>";
+const askIconSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z\"/><path d=\"m21.854 2.147-10.94 10.939\"/></svg>";
 const chevronLeftSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m15 18-6-6 6-6\"/></svg>";
 const chevronRightSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m9 18 6-6-6-6\"/></svg>";
 const copyCodeButtonSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"code-copy-icon\" aria-hidden=\"true\"><rect width=\"14\" height=\"14\" x=\"8\" y=\"8\" rx=\"2\" ry=\"2\"/><path d=\"M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2\"/></svg>";
@@ -975,6 +977,16 @@ function wireEvents() {
 
 		if (action === "retry-message") {
 			void retryFailedPaneMessage(chat, paneId, String(actionElement.getAttribute("data-message-id") || ""));
+			return;
+		}
+
+		if (action === "branch-message") {
+			branchMessageIntoNewChat(chat, paneId, String(actionElement.getAttribute("data-message-id") || ""));
+			return;
+		}
+
+		if (action === "ask-original-question") {
+			void askOriginalQuestionInPane(chat, paneId);
 			return;
 		}
 
@@ -2453,7 +2465,7 @@ function renderWorkspace(options = {}) {
 		if (!chat.messagesLoaded && hydratingChatIds.has(chat.id)) {
 			messageList.innerHTML = "<div class=\"empty-state\">Loading chat history...</div>";
 		} else if (pane.messages.length === 0) {
-			messageList.innerHTML = "<div class=\"empty-state\">No messages yet for this pane.</div>";
+			messageList.innerHTML = renderEmptyPaneState(chat, pane);
 		} else {
 			messageList.innerHTML = pane.messages
 				.map((message) => renderMessageNodeHtml(message, pane.id))
@@ -2535,8 +2547,9 @@ function renderMessageNodeHtml(message, paneId) {
 	const content = `<div class="message-content-block">${contentBody}</div>`;
 	const screenshots = renderBrowserScreenshotArtifacts(message);
 	const timestamp = formatMessageTime(message.createdAt);
+	const branchAction = renderBranchAction(message, paneId);
 	const retryAction = message.role === "assistant" ? renderRetryAction(message, paneId) : "";
-	const footer = `<div class="message-footer"><span class="message-time">${escapeHtml(timestamp)}</span><button type="button" class="message-copy-btn" data-action="copy-message" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}" aria-label="Copy message" title="Copy message">${copyCodeButtonSvg}</button>${retryAction}</div>`;
+	const footer = `<div class="message-footer"><span class="message-time">${escapeHtml(timestamp)}</span><button type="button" class="message-copy-btn" data-action="copy-message" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}" aria-label="Copy message" title="Copy message">${copyCodeButtonSvg}</button>${branchAction}${retryAction}</div>`;
 
 	if ("assistant" === message.role) {
 		const metaFooter = meta || footer
@@ -2546,6 +2559,18 @@ function renderMessageNodeHtml(message, paneId) {
 	}
 
 	return `<div class="${messageClasses.join(" ")}" data-message-id="${escapeHtml(message.id)}" data-pane-id="${escapeHtml(paneId)}"><div class="message-bubble">${content}${meta}</div>${footer}</div>`;
+}
+
+function renderEmptyPaneState(chat, pane) {
+	if (canAskOriginalQuestionInPane(chat, pane)) {
+		return `<div class="empty-state empty-state-action"><button type="button" class="btn ghost empty-pane-ask-btn" data-action="ask-original-question" data-pane-id="${escapeHtml(pane.id)}" aria-label="Ask original question in this pane" title="Ask original question in this pane">${askIconSvg}<span>Ask Original</span></button></div>`;
+	}
+	return "<div class=\"empty-state\">No messages yet for this pane.</div>";
+}
+
+function renderBranchAction(message, paneId) {
+	if (!message || message.streaming) return "";
+	return ` <button type="button" class="message-branch-link" data-action="branch-message" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}" aria-label="Branch chat from here" title="Branch chat from here">${branchIconSvg}</button>`;
 }
 
 function renderRetryAction(message, paneId) {
@@ -5016,6 +5041,100 @@ async function retryFailedPaneMessage(chat, paneId, messageId) {
 		reuseUserMessageId: userMessage.id,
 		retryCount: retryCountForMessage(responseMessage) + 1
 	});
+}
+
+function branchMessageIntoNewChat(sourceChat, paneId, messageId) {
+	const sourcePane = sourceChat && Array.isArray(sourceChat.panes)
+		? sourceChat.panes.find((candidate) => candidate.id === paneId)
+		: null;
+	if (!sourceChat || !sourcePane || sourcePane.status === "waiting" || !messageId) {
+		return;
+	}
+
+	const messageIndex = sourcePane.messages.findIndex((message) => message.id === messageId);
+	if (messageIndex < 0) {
+		return;
+	}
+
+	const branchChat = createChat(`Branch: ${cleanTitle(sourceChat.title, "Chat")}`);
+	branchChat.projectPath = normalizeProjectPath(sourceChat.projectPath || sourceChat.project_path || "");
+	branchChat.panes = [createPane(sourcePane.profile_id, sourcePane.model)];
+	branchChat.panes[0].messages = sourcePane.messages
+		.slice(0, messageIndex + 1)
+		.map((message) => cloneMessageForBranch(message));
+	updatePaneMessageCount(branchChat.panes[0]);
+	branchChat.createdAt = Date.now();
+	branchChat.updatedAt = Date.now();
+	branchChat.messagesLoaded = true;
+
+	state.chats.push(branchChat);
+	state.activeChatId = branchChat.id;
+	schedulePersist({ immediate: true });
+	renderAll();
+	focusComposerInput();
+}
+
+function cloneMessageForBranch(message) {
+	const cloned = structuredClone(message || {});
+	cloned.id = uid();
+	cloned.streaming = false;
+	delete cloned.request_started_at;
+	delete cloned.thinking_started_at;
+	return cloned;
+}
+
+function firstCompletedPromptForChat(chat) {
+	if (!chat || !Array.isArray(chat.panes)) {
+		return null;
+	}
+
+	for (const pane of chat.panes) {
+		const messages = Array.isArray(pane.messages) ? pane.messages : [];
+		for (let index = 0; index < messages.length; index += 1) {
+			const userMessage = messages[index];
+			if (!userMessage || userMessage.role !== "user" || !String(userMessage.content || "").trim()) {
+				continue;
+			}
+			const hasAssistantReply = messages
+				.slice(index + 1)
+				.some((message) => message.role === "assistant" && !message.streaming && String(message.content || "").trim());
+			if (hasAssistantReply) {
+				return {
+					content: String(userMessage.content || "").trim(),
+					sourcePaneId: pane.id,
+					sourceMessageId: userMessage.id
+				};
+			}
+		}
+	}
+
+	return null;
+}
+
+function canAskOriginalQuestionInPane(chat, pane) {
+	return Boolean(
+		chat
+		&& pane
+		&& pane.status !== "waiting"
+		&& Array.isArray(pane.messages)
+		&& pane.messages.length === 0
+		&& firstCompletedPromptForChat(chat)
+	);
+}
+
+async function askOriginalQuestionInPane(chat, paneId) {
+	const pane = chat && Array.isArray(chat.panes)
+		? chat.panes.find((candidate) => candidate.id === paneId)
+		: null;
+	const prompt = firstCompletedPromptForChat(chat);
+	if (!canAskOriginalQuestionInPane(chat, pane) || !prompt) {
+		return;
+	}
+
+	await sendMessageToPaneStream(chat, pane, prompt.content);
+	schedulePersist();
+	renderWorkspace();
+	renderComposerUsageSummary();
 }
 
 function agentInstructionsForModel(model) {
