@@ -45,6 +45,7 @@ const streamingMessagePatchQueue = new Map();
 const activeStreamControllers = new Set();
 let activeStreamCount = 0;
 let stopStreamingRequested = false;
+const hydratingChatIds = new Set();
 let codeHighlightScheduled = false;
 const pendingCodeHighlightRoots = new Set();
 const browserArtifactImageUrls = new Map();
@@ -254,28 +255,21 @@ function ensureMinimumState() {
 		schedulePersist();
 	}
 
-	if (state.chats.length === 0) {
-		const created = createChat("New Chat");
-		state.chats.push(created);
-		state.activeChatId = created.id;
-		schedulePersist();
-	}
-
-	if (!state.activeChatId && state.chats[0]) {
-		state.activeChatId = state.chats[0].id;
-		schedulePersist();
+	if (state.activeChatId && !getChatById(state.activeChatId)) {
+		state.activeChatId = null;
 	}
 }
 
 async function loadStateFromServer() {
 	try {
-		const response = await apiFetch("/api/state");
+		const response = await apiFetch("/api/state?messages=none");
 		if (!response.ok) {
 			throw new Error(`state load failed: ${response.status}`);
 		}
 		const payload = await response.json();
 		if (payload && payload.ok && payload.state) {
 			state = migrateState(payload.state);
+			state.activeChatId = null;
 			stateLoadedFromServer = true;
 			lastPersistedSnapshot = createPersistenceSnapshot(state);
 			saveStateToCache();
@@ -285,6 +279,7 @@ async function loadStateFromServer() {
 		console.error(error);
 		const cachedState = loadStateFromCache();
 		state = cachedState || structuredClone(defaultState);
+		state.activeChatId = null;
 		lastPersistedSnapshot = null;
 		setSaveStatus("error", cachedState ? "Offline — changes kept locally" : "Not connected");
 	}
@@ -375,10 +370,21 @@ function normalizeIncomingChat(chat) {
 		return null;
 	}
 
-	return {
+	const normalized = {
 		...chat,
 		projectPath: normalizeProjectPath(chat.projectPath || chat.project_path || "")
 	};
+	for (const pane of Array.isArray(normalized.panes) ? normalized.panes : []) {
+		if (!Array.isArray(pane.messages)) {
+			pane.messages = [];
+		}
+		pane.messageCount = Number.isFinite(Number(pane.messageCount))
+			? Number(pane.messageCount)
+			: pane.messages.length;
+	}
+	normalized.messagesLoaded = normalized.panes.some((pane) => Array.isArray(pane.messages) && pane.messages.length > 0)
+		|| normalized.panes.every((pane) => Number(pane.messageCount || 0) === 0);
+	return normalized;
 }
 
 function normalizePaneProfile(paneProfile) {
@@ -516,9 +522,7 @@ function wireEvents() {
 		}
 
 		state.showArchived = Boolean(chat.archived);
-		state.activeChatId = chat.id;
-		schedulePersist();
-		renderAll();
+		void activateChat(chat.id, { persist: true });
 		closeSearchModal();
 	});
 
@@ -846,9 +850,7 @@ function wireEvents() {
 		}
 
 		if (!action) {
-			state.activeChatId = chat.id;
-			schedulePersist();
-			renderAll();
+			void activateChat(chat.id, { persist: false });
 			return;
 		}
 
@@ -1448,6 +1450,55 @@ function createAndActivateChat() {
 	schedulePersist();
 	renderAll();
 	focusComposerInput();
+}
+
+async function activateChat(chatId, { persist = false } = {}) {
+	const chat = getChatById(chatId);
+	if (!chat) {
+		return;
+	}
+	state.activeChatId = chat.id;
+	if (persist) {
+		schedulePersist();
+	}
+	renderAll();
+	await hydrateChatMessages(chat.id);
+	renderAll();
+	focusComposerInput();
+}
+
+async function hydrateChatMessages(chatId) {
+	const chat = getChatById(chatId);
+	if (!chat || chat.messagesLoaded || hydratingChatIds.has(chat.id)) {
+		return;
+	}
+
+	hydratingChatIds.add(chat.id);
+	try {
+		const response = await apiFetch(`/api/chats/${encodeURIComponent(chat.id)}`);
+		if (!response.ok) {
+			throw new Error(`chat load failed: ${response.status}`);
+		}
+		const payload = await response.json();
+		if (!payload || payload.ok !== true || !payload.chat) {
+			throw new Error("chat load failed");
+		}
+		const loaded = normalizeIncomingChat(payload.chat);
+		if (!loaded) {
+			throw new Error("chat load failed");
+		}
+		loaded.messagesLoaded = true;
+		const index = state.chats.findIndex((candidate) => candidate.id === loaded.id);
+		if (index >= 0) {
+			state.chats[index] = { ...state.chats[index], ...loaded };
+		}
+		saveStateToCache();
+	} catch (error) {
+		console.error(error);
+		nodes.voiceStatus.textContent = "Chat history could not be loaded.";
+	} finally {
+		hydratingChatIds.delete(chat.id);
+	}
 }
 
 function openPaneProfilesModal() {
@@ -2290,7 +2341,12 @@ function renderSidebarChatItems(chats) {
 		.map((chat) => {
 			const active = chat.id === state.activeChatId ? "active" : "";
 			const paneCount = Array.isArray(chat.panes) ? chat.panes.length : 0;
-			const count = (chat.panes || []).reduce((sum, pane) => sum + pane.messages.length, 0);
+			const count = (chat.panes || []).reduce((sum, pane) => {
+				if (Array.isArray(pane.messages) && pane.messages.length > 0) {
+					return sum + pane.messages.length;
+				}
+				return sum + Number(pane.messageCount || 0);
+			}, 0);
 			const archiveLabel = chat.archived ? "Unarchive" : "Archive";
 			const pinLabel = chat.pinned ? "Unpin" : "Pin";
 			const shouldShowPin = !state.showArchived;
@@ -2346,7 +2402,7 @@ function renderWorkspace(options = {}) {
 	if (!chat) {
 		nodes.chatTitleInput.value = "";
 		nodes.paneControls.innerHTML = "";
-		nodes.paneGrid.innerHTML = "<div class=\"empty-state\">No active chat selected.</div>";
+		nodes.paneGrid.innerHTML = "<div class=\"empty-state\">Start a new chat or choose one from the sidebar.</div>";
 		return;
 	}
 
@@ -2394,7 +2450,9 @@ function renderWorkspace(options = {}) {
 		}
 		paneModelSelect.setAttribute("data-pane-id", pane.id);
 
-		if (pane.messages.length === 0) {
+		if (!chat.messagesLoaded && hydratingChatIds.has(chat.id)) {
+			messageList.innerHTML = "<div class=\"empty-state\">Loading chat history...</div>";
+		} else if (pane.messages.length === 0) {
 			messageList.innerHTML = "<div class=\"empty-state\">No messages yet for this pane.</div>";
 		} else {
 			messageList.innerHTML = pane.messages
@@ -4365,6 +4423,7 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 		const errorMessage = makeMessage("assistant", "Error: This pane has no valid provider profile selected.");
 		errorMessage.usage = { error: { message: "This pane has no valid provider profile selected.", retryable: true } };
 		pane.messages.push(errorMessage);
+		updatePaneMessageCount(pane);
 		return;
 	}
 	const selectedModel = modelForProfileSelection(profile, pane.model);
@@ -4392,6 +4451,7 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 		pane.messages.push(userMessage);
 	}
 	pane.messages.push(assistantMessage);
+	updatePaneMessageCount(pane);
 	pane.status = "waiting";
 	chat.updatedAt = Date.now();
 	renderWorkspace();
@@ -4948,6 +5008,7 @@ async function retryFailedPaneMessage(chat, paneId, messageId) {
 	}
 
 	pane.messages.splice(messageIndex, 1);
+	updatePaneMessageCount(pane);
 	chat.updatedAt = Date.now();
 	renderWorkspace();
 	schedulePersist();
@@ -5614,6 +5675,7 @@ function createChat(title) {
 		archived: false,
 		createdAt: Date.now(),
 		updatedAt: Date.now(),
+		messagesLoaded: true,
 		panes: [createPane(defaultProfile.id, defaultOption ? defaultOption.model : "")]
 	};
 }
@@ -5642,6 +5704,7 @@ function createPane(profileId, selectedModel = "") {
 		profile_id: profileId,
 		model: profile ? modelForProfileSelection(profile, selectedModel) : "",
 		messages: [],
+		messageCount: 0,
 		status: "idle"
 	};
 }
@@ -5936,6 +5999,13 @@ function getPaneById(id) {
 		return null;
 	}
 	return chat.panes.find((pane) => pane.id === id) || null;
+}
+
+function updatePaneMessageCount(pane) {
+	if (!pane || !Array.isArray(pane.messages)) {
+		return;
+	}
+	pane.messageCount = pane.messages.length;
 }
 
 function getProfileById(id) {
