@@ -191,7 +191,6 @@ const nodes = {
 	settingsMaxTokens: document.getElementById("settings-max-tokens"),
 	settingsDefaultModel: document.getElementById("settings-default-model"),
 	settingsAgentInstructions: document.getElementById("settings-agent-instructions"),
-	insertStrataInstructionsBtn: document.getElementById("insert-strata-instructions-btn"),
 	addModelInstructionBtn: document.getElementById("add-model-instruction-btn"),
 	modelInstructionList: document.getElementById("model-instruction-list"),
 	settingsApiToken: document.getElementById("settings-api-token"),
@@ -740,14 +739,6 @@ function wireEvents() {
 		schedulePersist();
 	});
 
-	nodes.insertStrataInstructionsBtn.addEventListener("click", () => {
-		const template = "Be concise and do not narrate routine work. After completing a meaningful task, write a short factual handoff note to my local Strata app using the configured Strata tool. Include what changed, verification, and unresolved blockers. Do not store secrets or private reasoning.";
-		const current = String(state.settings.agentInstructions || "").trim();
-		state.settings.agentInstructions = current ? `${current}\n\n${template}` : template;
-		nodes.settingsAgentInstructions.value = state.settings.agentInstructions;
-		schedulePersist();
-	});
-
 	nodes.addModelInstructionBtn.addEventListener("click", () => {
 		state.settings.agentInstructionProfiles.push(createAgentInstructionProfile());
 		renderModelInstructionProfiles();
@@ -759,6 +750,14 @@ function wireEvents() {
 		const field = String(event.target.getAttribute("data-agent-instruction-field") || "");
 		if (!profile || !["models_csv", "instructions"].includes(field)) return;
 		profile[field] = String(event.target.value || "").slice(0, field === "models_csv" ? 2000 : 24000);
+		schedulePersist();
+	});
+
+	nodes.modelInstructionList.addEventListener("change", (event) => {
+		const profile = getAgentInstructionProfile(event.target.getAttribute("data-agent-instruction-id"));
+		const field = String(event.target.getAttribute("data-agent-instruction-field") || "");
+		if (!profile || field !== "enabled") return;
+		profile.enabled = String(event.target.value || "enabled") !== "disabled";
 		schedulePersist();
 	});
 
@@ -4155,11 +4154,11 @@ function normalizeAgentInstructionProfile(profile) {
 	const modelsCsv = String(profile.models_csv || "").slice(0, 2000);
 	const instructions = String(profile.instructions || "").slice(0, 24000);
 	if (!modelsCsv && !instructions) return null;
-	return { id: String(profile.id || uid()), models_csv: modelsCsv, instructions };
+	return { id: String(profile.id || uid()), models_csv: modelsCsv, instructions, enabled: profile.enabled !== false };
 }
 
 function createAgentInstructionProfile() {
-	return { id: uid(), models_csv: "", instructions: "" };
+	return { id: uid(), models_csv: "", instructions: "", enabled: true };
 }
 
 function getAgentInstructionProfile(id) {
@@ -4175,6 +4174,13 @@ function renderModelInstructionProfiles() {
 				<strong>Model-specific instructions</strong>
 				<button class="btn ghost danger" type="button" data-agent-instruction-action="delete" data-agent-instruction-id="${escapeHtml(profile.id)}">Remove</button>
 			</div>
+			<label>
+				<span>Status</span>
+				<select data-agent-instruction-id="${escapeHtml(profile.id)}" data-agent-instruction-field="enabled">
+					<option value="enabled" ${profile.enabled !== false ? "selected" : ""}>Enabled</option>
+					<option value="disabled" ${profile.enabled === false ? "selected" : ""}>Disabled</option>
+				</select>
+			</label>
 			<label>
 				<span>Models (comma separated)</span>
 				<input data-agent-instruction-id="${escapeHtml(profile.id)}" data-agent-instruction-field="models_csv" type="text" value="${escapeHtml(profile.models_csv)}" placeholder="gpt-4.1, claude-sonnet-4.6">
@@ -4955,6 +4961,9 @@ function agentInstructionsForModel(model) {
 	const instructions = [String(state.settings.agentInstructions || "").trim()];
 	const normalizedModel = String(model || "").trim().toLowerCase();
 	for (const profile of state.settings.agentInstructionProfiles || []) {
+		if (profile.enabled === false) {
+			continue;
+		}
 		const matchesModel = String(profile.models_csv || "").split(",")
 			.map((entry) => entry.trim().toLowerCase())
 			.filter(Boolean)

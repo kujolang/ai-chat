@@ -548,7 +548,7 @@ test("writeState persists chat title and settings values", () => {
 		state.settings.defaultProfileId = state.settings.profiles[0].id;
 		state.settings.defaultModel = "gpt-4.1-mini";
 		state.settings.agentInstructions = "Use concise responses and finish with a durable note.";
-		state.settings.agentInstructionProfiles = [{ id: "coding-models", models_csv: "gpt-4.1", instructions: "Use code-focused instructions." }];
+		state.settings.agentInstructionProfiles = [{ id: "coding-models", models_csv: "gpt-4.1", instructions: "Use code-focused instructions.", enabled: false }];
 		state.searchQuery = "abc";
 		runtime.helpers.writeState(state);
 		const after = runtime.helpers.readState();

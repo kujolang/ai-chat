@@ -45,7 +45,7 @@ This project is for end users and teams who want one local web app to:
 	- Thinking/reasoning deltas shown when available
 - Agent instructions
 	- Set persistent, AGENTS.md-compatible custom instructions once in Settings; add matching comma-separated model groups when a model needs specialized guidance
-	- Use the built-in concise Strata handoff template as a starting point for end-of-task workflow requirements
+	- Enable or disable each model-specific instruction group without deleting its saved text
 - Transcription support
 	- Audio upload proxy endpoint for OpenAI-compatible transcription APIs
 	- Browser recording button to send audio and insert transcript into the composer

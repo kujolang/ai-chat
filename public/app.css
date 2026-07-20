@@ -298,6 +298,7 @@ select,
 .tool-grid input,
 .tool-grid textarea,
 .model-instruction-card input,
+.model-instruction-card select,
 .model-instruction-card textarea {
 	width: 100%;
 	padding: 10px 11px;
@@ -318,9 +319,48 @@ select:focus,
 .token-auth-input:focus,
 .settings-grid input:focus,
 .profile-card input:focus,
-.profile-card select:focus {
+.profile-card select:focus,
+.model-instruction-card select:focus {
 	border-color: #3a5f55;
 	box-shadow: 0 0 0 3px rgba(107, 241, 191, 0.12);
+}
+
+input[type="checkbox"] {
+	appearance: none;
+	-webkit-appearance: none;
+	display: inline-grid;
+	place-content: center;
+	width: 16px;
+	height: 16px;
+	margin: 0;
+	border: 1px solid #3a5f55;
+	background: var(--bg-soft);
+	color: var(--bg);
+	vertical-align: middle;
+}
+
+input[type="checkbox"]::before {
+	content: "";
+	width: 8px;
+	height: 8px;
+	transform: scale(0);
+	transition: transform 120ms ease;
+	background: var(--accent);
+}
+
+input[type="checkbox"]:checked::before {
+	transform: scale(1);
+}
+
+input[type="checkbox"]:focus-visible {
+	outline: 2px solid rgba(107, 241, 191, 0.42);
+	outline-offset: 2px;
+}
+
+input[type="checkbox"]:disabled {
+	border-color: var(--line);
+	background: rgba(255, 255, 255, 0.035);
+	opacity: 0.55;
 }
 
 .search-wrap {

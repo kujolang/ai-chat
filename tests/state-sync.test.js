@@ -123,7 +123,8 @@ test("state sync persists model-specific agent instructions", () => {
 	state.settings.agentInstructionProfiles.push({
 		id: "coding-models",
 		models_csv: "gpt-4.1, claude-sonnet-4.6",
-		instructions: "Prioritize concise implementation notes."
+		instructions: "Prioritize concise implementation notes.",
+		enabled: false
 	});
 	const changes = stateSync.buildChanges(before, stateSync.persistenceSnapshot(state));
 

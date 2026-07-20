@@ -95,7 +95,7 @@ When `DEBUG_API_ERRORS=0`, provider raw error bodies are not included in stream 
 
 `defaultProfileId` and `defaultModel` identify the provider/model selection used by regular new chats. Clients fall back to the first available configured model when the saved selection is missing or no longer exists.
 
-`agentInstructions` is a bounded (24,000-character) app-wide instruction document. `agentInstructionProfiles` is an optional array of bounded `{id, models_csv, instructions}` entries; matching comma-separated model names append their instructions. The browser prepends the combined text as the first system message for each pane request. These fields are intended to be compatible with concise `AGENTS.md` guidance and must not contain credentials or other secrets.
+`agentInstructions` is a bounded (24,000-character) app-wide instruction document. `agentInstructionProfiles` is an optional array of bounded `{id, models_csv, instructions, enabled}` entries; matching comma-separated model names append their instructions when `enabled` is not `false`. The browser prepends the combined text as the first system message for each pane request. These fields are intended to be compatible with concise `AGENTS.md` guidance and must not contain credentials or other secrets.
 
 Each pane profile stores a name plus an ordered `panes` array of provider-profile/model selections. It contains no messages or provider credentials. The normal new-chat action remains a single-pane chat; clients may explicitly create a new chat or replace the current chat's panes from a saved pane profile. The browser asks for confirmation before replacing panes that contain messages.
 
