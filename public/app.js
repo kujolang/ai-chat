@@ -263,6 +263,12 @@ function ensureMinimumState() {
 	if (state.activeChatId && !getChatById(state.activeChatId)) {
 		state.activeChatId = null;
 	}
+	if (!state.activeChatId) {
+		const fallbackChat = state.chats.find((chat) => !chat.archived) || state.chats[0] || null;
+		if (fallbackChat) {
+			state.activeChatId = fallbackChat.id;
+		}
+	}
 }
 
 async function loadStateFromServer() {
@@ -677,43 +683,53 @@ function wireEvents() {
 		schedulePersist();
 	});
 
-	nodes.addBrowserToolBtn.addEventListener("click", () => {
-		for (const definition of createBrowserToolDefinitions()) {
-			if (!state.settings.tools.some((tool) => tool.name === definition.name)) state.settings.tools.push(definition);
-		}
-		renderSettings();
-		schedulePersist();
-	});
+	if (nodes.addBrowserToolBtn) {
+		nodes.addBrowserToolBtn.addEventListener("click", () => {
+			for (const definition of createBrowserToolDefinitions()) {
+				if (!state.settings.tools.some((tool) => tool.name === definition.name)) state.settings.tools.push(definition);
+			}
+			renderSettings();
+			schedulePersist();
+		});
+	}
 
-	nodes.addWebSearchToolBtn.addEventListener("click", () => {
-		state.settings.tools.push(createWebSearchToolDefinition());
-		renderSettings();
-		schedulePersist();
-	});
+	if (nodes.addWebSearchToolBtn) {
+		nodes.addWebSearchToolBtn.addEventListener("click", () => {
+			state.settings.tools.push(createWebSearchToolDefinition());
+			renderSettings();
+			schedulePersist();
+		});
+	}
 
-	nodes.addSkillToolBtn.addEventListener("click", () => {
-		for (const definition of createSkillToolDefinitions()) {
-			if (!state.settings.tools.some((tool) => tool.name === definition.name)) state.settings.tools.push(definition);
-		}
-		renderSettings();
-		schedulePersist();
-	});
+	if (nodes.addSkillToolBtn) {
+		nodes.addSkillToolBtn.addEventListener("click", () => {
+			for (const definition of createSkillToolDefinitions()) {
+				if (!state.settings.tools.some((tool) => tool.name === definition.name)) state.settings.tools.push(definition);
+			}
+			renderSettings();
+			schedulePersist();
+		});
+	}
 
-	nodes.addLocalToolBtn.addEventListener("click", () => {
-		for (const definition of createLocalToolDefinitions()) {
-			if (!state.settings.tools.some((tool) => tool.name === definition.name)) state.settings.tools.push(definition);
-		}
-		renderSettings();
-		schedulePersist();
-	});
+	if (nodes.addLocalToolBtn) {
+		nodes.addLocalToolBtn.addEventListener("click", () => {
+			for (const definition of createLocalToolDefinitions()) {
+				if (!state.settings.tools.some((tool) => tool.name === definition.name)) state.settings.tools.push(definition);
+			}
+			renderSettings();
+			schedulePersist();
+		});
+	}
 
-	nodes.addActionToolBtn.addEventListener("click", () => {
-		for (const definition of createActionToolDefinitions()) {
-			if (!state.settings.tools.some((tool) => tool.name === definition.name)) state.settings.tools.push(definition);
-		}
-		renderSettings();
-		schedulePersist();
-	});
+	if (nodes.addActionToolBtn) {
+		nodes.addActionToolBtn.addEventListener("click", () => {
+			for (const definition of createActionToolDefinitions()) {
+				if (!state.settings.tools.some((tool) => tool.name === definition.name)) state.settings.tools.push(definition);
+			}
+			renderSettings();
+			schedulePersist();
+		});
+	}
 
 	nodes.settingsApiToken.addEventListener("keydown", (event) => {
 		if (event.key !== "Enter") {
@@ -809,13 +825,13 @@ function wireEvents() {
 	});
 
 	nodes.sendBtn.addEventListener("click", () => {
-		void sendFromComposer();
+		void sendFromComposer().catch(handleComposerSendError);
 	});
 
 	nodes.composerInput.addEventListener("keydown", (event) => {
 		if (event.key === "Enter" && !event.shiftKey) {
 			event.preventDefault();
-			void sendFromComposer();
+			void sendFromComposer().catch(handleComposerSendError);
 		}
 	});
 
@@ -4448,8 +4464,12 @@ async function sendFromComposer() {
 		return;
 	}
 
+	ensureMinimumState();
 	const chat = getActiveChat();
 	if (!chat) {
+		if (nodes.voiceStatus) {
+			nodes.voiceStatus.textContent = "Send failed: choose or create a chat.";
+		}
 		return;
 	}
 
@@ -4466,6 +4486,14 @@ async function sendFromComposer() {
 	schedulePersist();
 	renderWorkspace();
 	renderComposerUsageSummary();
+}
+
+function handleComposerSendError(error) {
+	console.error("composer_send_failed", error);
+	if (nodes.voiceStatus) {
+		nodes.voiceStatus.textContent = `Send failed: ${error && error.message ? error.message : "Unknown error"}`;
+	}
+	updateStreamingControls();
 }
 
 async function sendMessageToPaneStream(chat, pane, text, options = {}) {
