@@ -323,3 +323,16 @@ test("browser_use compatibility routing and result-size limits remain bounded", 
 		}
 	});
 });
+
+test("browser_use snapshot without a session returns guidance instead of aborting tool flow", async () => {
+	const { runtime, destroy } = createRuntime();
+	try {
+		const result = await runtime.execute("browser_use", { action: "snapshot" }, { scopeId: "chat-a", requestState: {} });
+		assert.equal(result.ok, false);
+		assert.equal(result.code, "browser_session_required");
+		assert.equal(result.deprecated_tool, true);
+		assert.match(result.retry_hint, /browser_open/);
+	} finally {
+		await destroy();
+	}
+});
