@@ -1107,6 +1107,19 @@ function wireEvents() {
 			return;
 		}
 
+		const messageMetaToggleButton = event.target.closest("[data-action='toggle-message-meta']");
+		if (messageMetaToggleButton) {
+			const paneId = String(messageMetaToggleButton.getAttribute("data-pane-id") || "");
+			const messageId = String(messageMetaToggleButton.getAttribute("data-message-id") || "");
+			const chat = getActiveChat();
+			const pane = chat && chat.panes.find((candidate) => candidate.id === paneId);
+			const message = pane && pane.messages.find((candidate) => candidate.id === messageId);
+			if (!message) return;
+			message.meta_expanded = !Boolean(message.meta_expanded);
+			renderWorkspace({ preserveScroll: true });
+			return;
+		}
+
 		const messageDisclosureButton = event.target.closest("[data-action='toggle-message-disclosure']");
 		if (messageDisclosureButton) {
 			const paneId = String(messageDisclosureButton.getAttribute("data-pane-id") || "");
@@ -2175,7 +2188,10 @@ function renderAll(options = {}) {
 
 function renderPaneInfoToggle() {
 	nodes.paneControls.classList.toggle("hidden", !paneInfoVisible);
-	document.querySelectorAll(".pane-detail-action").forEach((node) => node.classList.toggle("hidden", !paneInfoVisible));
+	document.querySelectorAll(".pane-detail-action").forEach((node) => {
+		const available = node !== nodes.chatWatchdogBtn || node.dataset.available === "true";
+		node.classList.toggle("hidden", !paneInfoVisible || !available);
+	});
 	nodes.togglePaneInfoBtn.innerHTML = paneInfoVisible ? chevronRightSvg : chevronLeftSvg;
 	const label = paneInfoVisible ? "Hide pane information" : "Show pane information";
 	nodes.togglePaneInfoBtn.setAttribute("aria-label", label);
@@ -2829,13 +2845,17 @@ function renderMessageNodeHtml(message, paneId) {
 		metaBits.push(`retries ${retryCount}`);
 	}
 
-	const meta = metaBits.length > 0 ? `<div class=\"message-meta\">${escapeHtml(metaBits.join(" | "))}</div>` : "";
+	const metaExpanded = Boolean(message.meta_expanded);
+	const meta = metaBits.length > 0 ? `<div class="message-meta${metaExpanded ? " expanded" : ""}">${escapeHtml(metaBits.join(" | "))}</div>` : "";
 	const thinking = renderThinkingBlock(message, paneId);
 	const toolError = renderMessageErrorBlock(message);
 	const toolActivity = Array.isArray(message.tool_activity) && message.tool_activity.length > 0
 		? `<div class="message-tool-activity" role="status">${message.tool_activity.map((line) => escapeHtml(String(line))).join("<br>")}</div>`
 		: "";
-	const contentBody = renderAssistantMarkdown(message.content);
+	const liveNarration = message.streaming && String(message.live_narration || "").trim()
+		? `<div class="message-live-narration">${renderAssistantMarkdown(normalizeAssistantProseSpacing(message.live_narration))}</div>`
+		: "";
+	const contentBody = renderAssistantMarkdown(message.role === "assistant" ? normalizeAssistantProseSpacing(message.content) : message.content);
 	const content = renderMessageContent(message, paneId, contentBody);
 	const screenshots = renderBrowserScreenshotArtifacts(message);
 	const timestamp = formatMessageTime(message.createdAt);
@@ -2845,10 +2865,13 @@ function renderMessageNodeHtml(message, paneId) {
 	const footer = `<div class="message-footer">${copyAction}${branchAction}${retryAction}<span class="message-time">${escapeHtml(timestamp)}</span></div>`;
 
 	if ("assistant" === message.role) {
-		const metaFooter = meta || footer
-			? `<div class="message-meta-footer">${footer}${meta}</div>`
+		const metaToggle = metaBits.length > 0
+			? `<button type="button" class="message-meta-toggle${metaExpanded ? " expanded" : ""}" data-action="toggle-message-meta" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}" aria-expanded="${metaExpanded ? "true" : "false"}" aria-label="${metaExpanded ? "Hide" : "Show"} response details">${messageMetaToggleIconSvg(metaExpanded)}</button>`
 			: "";
-		return `<div class="${messageClasses.join(" ")}" data-message-id="${escapeHtml(message.id)}" data-pane-id="${escapeHtml(paneId)}">${thinking}${toolActivity}${content}${toolError}${screenshots}${metaFooter}</div>`;
+		const metaFooter = meta || footer
+			? `<div class="message-meta-footer">${footer}<div class="message-runtime-details">${meta}${metaToggle}</div></div>`
+			: "";
+		return `<div class="${messageClasses.join(" ")}" data-message-id="${escapeHtml(message.id)}" data-pane-id="${escapeHtml(paneId)}">${thinking}${liveNarration}${toolActivity}${content}${toolError}${screenshots}${metaFooter}</div>`;
 	}
 
 	return `<div class="${messageClasses.join(" ")}" data-message-id="${escapeHtml(message.id)}" data-pane-id="${escapeHtml(paneId)}"><div class="message-bubble">${content}${meta}</div>${footer}</div>`;
@@ -2864,6 +2887,21 @@ function renderMessageContent(message, paneId, contentBody) {
 	return `<div class="message-content-block${collapseClass}">${contentBody}</div>${disclosure}`;
 }
 
+function normalizeAssistantProseSpacing(value) {
+	return String(value || "")
+		.split(/(```[\s\S]*?```|`[^`\n]*`)/g)
+		.map((segment, index) => index % 2 === 1
+			? segment
+			: segment.replace(/([.!?])(?=[A-Z][a-z])/g, "$1\n\n"))
+		.join("");
+}
+
+function messageMetaToggleIconSvg(expanded) {
+	return expanded
+		? "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m9 18 6-6-6-6\"/></svg>"
+		: "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m15 18-6-6 6-6\"/></svg>";
+}
+
 function renderHeaderWatchdogTrace(chat) {
 	if (chatWatchdogChatId !== chat.id) {
 		chatWatchdogChatId = chat.id;
@@ -2876,7 +2914,8 @@ function renderHeaderWatchdogTrace(chat) {
 		.filter((message) => message && message.usage && String(message.usage.trace_id || ""))
 		.reduce((latest, message) => !latest || Number(message.createdAt || 0) >= Number(latest.createdAt || 0) ? message : latest, null);
 	const traceId = traced ? String(traced.usage.trace_id || "") : "";
-	nodes.chatWatchdogBtn.classList.toggle("hidden", !traceId);
+	nodes.chatWatchdogBtn.dataset.available = traceId ? "true" : "false";
+	nodes.chatWatchdogBtn.classList.toggle("hidden", !traceId || !paneInfoVisible);
 	if (!traceId) {
 		chatWatchdogExpanded = false;
 		nodes.chatWatchdogBtn.classList.remove("expanded");
@@ -3737,8 +3776,84 @@ function renderUsageModalContent() {
 	nodes.usageStatSlowestResponse.textContent = formatDurationMs(slowestResponseTime);
 	nodes.usageStatActiveModels.textContent = formatNumber(new Set(filteredRecords.map((record) => record.model).filter(Boolean)).size);
 
+	renderUsageStatSparklines(filteredRecords, usageWindow);
 	renderUsageChart(groupedRows, filters.chartType, filters.groupBy);
 	renderUsageBreakdown(groupedRows);
+}
+
+function renderUsageStatSparklines(records, usageWindow) {
+	const sparklineNodes = document.querySelectorAll("[data-usage-sparkline]");
+	if (sparklineNodes.length === 0) return;
+	const bucketCount = 12;
+	const timestamps = records.map((record) => Number(record.createdAt || 0)).filter((value) => value > 0);
+	const fallbackEnd = timestamps.length > 0 ? Math.max(...timestamps) : Date.now();
+	const fallbackStart = timestamps.length > 0 ? Math.min(...timestamps) : subtractDays(fallbackEnd, bucketCount - 1);
+	const startMs = Number(usageWindow && usageWindow.startMs || fallbackStart);
+	const endMs = Math.max(startMs + 1, Number(usageWindow && usageWindow.endMs || fallbackEnd));
+	const spanMs = endMs - startMs + 1;
+	const buckets = Array.from({ length: bucketCount }, () => ({
+		total: 0,
+		responses: 0,
+		retries: 0,
+		input: 0,
+		output: 0,
+		responseTotal: 0,
+		responseCount: 0,
+		slowest: 0,
+		models: new Set()
+	}));
+
+	for (const record of records) {
+		const timestamp = Math.min(endMs, Math.max(startMs, Number(record.createdAt || startMs)));
+		const index = Math.min(bucketCount - 1, Math.floor(((timestamp - startMs) / spanMs) * bucketCount));
+		const bucket = buckets[index];
+		bucket.total += Number(record.tokens || 0);
+		bucket.responses += 1;
+		bucket.retries += Number(record.retry_count || 0);
+		bucket.input += Number(record.input_tokens || 0);
+		bucket.output += Number(record.output_tokens || 0);
+		const responseTime = Number(record.response_time_ms || 0);
+		if (responseTime > 0) {
+			bucket.responseTotal += responseTime;
+			bucket.responseCount += 1;
+			bucket.slowest = Math.max(bucket.slowest, responseTime);
+		}
+		if (record.model) bucket.models.add(String(record.model));
+	}
+
+	const series = {
+		total: buckets.map((bucket) => bucket.total),
+		responses: buckets.map((bucket) => bucket.responses),
+		retries: buckets.map((bucket) => bucket.retries),
+		average: buckets.map((bucket) => bucket.responses > 0 ? bucket.total / bucket.responses : 0),
+		input: buckets.map((bucket) => bucket.input),
+		output: buckets.map((bucket) => bucket.output),
+		response: buckets.map((bucket) => bucket.responseCount > 0 ? bucket.responseTotal / bucket.responseCount : 0),
+		slowest: buckets.map((bucket) => bucket.slowest),
+		models: buckets.map((bucket) => bucket.models.size)
+	};
+
+	for (const node of sparklineNodes) {
+		const metric = String(node.getAttribute("data-usage-sparkline") || "total");
+		node.innerHTML = usageSparklineSvg(series[metric] || series.total, metric);
+	}
+}
+
+function usageSparklineSvg(values, metric) {
+	const width = 92;
+	const height = 52;
+	const inset = 5;
+	const safeValues = Array.isArray(values) && values.length > 0 ? values.map((value) => Math.max(0, Number(value || 0))) : [0];
+	const maxValue = Math.max(...safeValues, 0);
+	const xStep = safeValues.length > 1 ? (width - inset * 2) / (safeValues.length - 1) : 0;
+	const points = safeValues.map((value, index) => {
+		const x = inset + index * xStep;
+		const y = maxValue > 0 ? height - inset - (value / maxValue) * (height - inset * 2) : height - 11;
+		return `${x.toFixed(1)},${y.toFixed(1)}`;
+	}).join(" ");
+	const areaPoints = `${inset},${height - inset} ${points} ${width - inset},${height - inset}`;
+	const patternId = `usage-spark-${String(metric).replace(/[^a-z0-9_-]/gi, "")}`;
+	return `<svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" aria-hidden="true"><defs><pattern id="${patternId}" width="4" height="4" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="0.8" fill="#77b9ff" opacity=".62"/></pattern></defs><polygon points="${areaPoints}" fill="url(#${patternId})"/><polyline points="${points}" fill="none" stroke="#8ec8ff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="${width - inset}" cy="${points.split(" ").at(-1).split(",")[1]}" r="1.8" fill="#c9e1ff"/></svg>`;
 }
 
 function filterUsageRecords(records, filters, activeChatId, usageWindow = null) {
@@ -4705,6 +4820,7 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 	assistantMessage.retry_count = Math.max(0, Number(options.retryCount) || 0);
 	assistantMessage.trace_id = assistantMessage.id;
 	assistantMessage.tool_activity = [];
+	assistantMessage.live_narration = "";
 
 	if (!existingUserMessage) {
 		pane.messages.push(userMessage);
@@ -4756,7 +4872,19 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 			const contentLengthBeforePass = contentBeforePass.length;
 			const thinkingLengthBeforePass = String(assistantMessage.thinking || "").length;
 			let passOutputText = "";
+			let streamUsedTools = false;
 			let streamErrorPayload = null;
+			const captureToolNarration = () => {
+				const narration = String(passOutputText || "").trim();
+				if (!narration) return;
+				if (!Number(assistantMessage.thinking_started_at)) {
+					assistantMessage.thinking_started_at = Date.now();
+				}
+				assistantMessage.live_narration = appendThinkingSection(assistantMessage.live_narration, narration);
+				assistantMessage.thinking = appendThinkingSection(assistantMessage.thinking, narration);
+				passOutputText = "";
+				assistantMessage.content = contentBeforePass;
+			};
 			const chatHistory = pane.messages
 				.filter((message) => message.id !== assistantMessage.id)
 				.filter((message) => message.role === "system" || message.role === "user" || message.role === "assistant")
@@ -4864,6 +4992,10 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 				}
 
 				if (eventName === "tool") {
+					if (payloadObj.phase === "started") {
+						streamUsedTools = true;
+						captureToolNarration();
+					}
 					const toolName = String(payloadObj.tool_name || "tool").replaceAll("_", " ");
 					const activity = String(payloadObj.activity || "").trim().slice(0, 180);
 					const status = payloadObj.phase === "started"
@@ -4935,10 +5067,11 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 				watchdogTraceRecorded = watchdogTraceRecorded || Boolean(streamDonePayload.watchdog_trace);
 				assistantMessage.provider = streamDonePayload.provider || assistantMessage.provider;
 				assistantMessage.model = streamDonePayload.model || assistantMessage.model;
-				if (streamDonePayload.output_text) {
+				if (streamDonePayload.output_text || (streamUsedTools && passOutputText)) {
+					const completedText = streamUsedTools ? passOutputText : streamDonePayload.output_text;
 					const finalizedPassText = continuationPass > 0
-						? sanitizeContinuationChunk(streamDonePayload.output_text)
-						: streamDonePayload.output_text;
+						? sanitizeContinuationChunk(completedText)
+						: completedText;
 					assistantMessage.content = mergeContinuationText(contentBeforePass, finalizedPassText);
 					scheduleStreamingMessagePatch(chat.id, pane.id, assistantMessage.id);
 				}
@@ -5147,6 +5280,7 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 				? assistantMessage.tool_activity.slice(0, 32)
 				: [];
 		}
+		assistantMessage.live_narration = "";
 		assistantMessage.streaming = false;
 		const shouldMarkPartial = endedLikelyIncomplete || (!assistantMessage.content && assistantMessage.thinking);
 		pane.status = terminalStreamError ? "error" : (shouldMarkPartial ? "partial" : "idle");
@@ -5184,6 +5318,7 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 		if (intentionallyStopped) {
 			completeThinkingTiming();
 			assistantMessage.response_time_ms = Math.max(0, Date.now() - Number(assistantMessage.request_started_at || Date.now()));
+			assistantMessage.live_narration = "";
 			assistantMessage.streaming = false;
 			pane.status = assistantMessage.content || assistantMessage.thinking ? "partial" : "idle";
 		} else {
@@ -5225,6 +5360,7 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 			}
 		}
 
+		assistantMessage.live_narration = "";
 		assistantMessage.streaming = false;
 		pane.status = "error";
 		const errorMessage = (error && error.message)
@@ -7139,7 +7275,7 @@ function renderThinkingBlock(message, paneId) {
 
 	const thinkingText = String(message.thinking || "");
 	const expanded = Boolean(message.thinking_expanded);
-	const contentClass = expanded || message.streaming ? "message-thinking-content" : "message-thinking-content collapsed";
+	const contentClass = expanded && !message.streaming ? "message-thinking-content" : "message-thinking-content collapsed";
 	const toggle = message.streaming ? "" : `<button class="thinking-toggle" type="button" data-action="toggle-thinking" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}" aria-expanded="${expanded ? "true" : "false"}" aria-label="${expanded ? "Collapse thinking" : "Expand thinking"}">${thinkingToggleIconSvg(expanded)}</button>`;
 	const loadingIcon = message.streaming ? `<span class="thinking-inline-progress" aria-label="Working">${thinkingLoadingIconSvg}</span>` : "";
 	const thinkingLabel = message.streaming
@@ -7162,6 +7298,14 @@ function appendThinkingDelta(previousValue, nextValue) {
 	if (/[.!?]\s*$/.test(previous) && !/^\s/.test(next)) return `${previous}\n${next}`;
 	if (/\n[-*]\s*$/.test(previous) && !/^\s/.test(next)) return `${previous}${next}`;
 	return `${previous}${next}`;
+}
+
+function appendThinkingSection(previousValue, nextValue) {
+	const previous = String(previousValue || "").trim();
+	const next = normalizeAssistantProseSpacing(String(nextValue || "").trim());
+	if (!previous) return next;
+	if (!next) return previous;
+	return `${previous}\n\n${next}`;
 }
 
 function thinkingToggleIconSvg(expanded) {

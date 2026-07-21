@@ -1655,11 +1655,21 @@ textarea::-webkit-scrollbar-thumb:hover {
 	margin-top: 6px;
 	display: flex;
 	align-items: center;
-	justify-content: flex-start;
+	justify-content: space-between;
 	gap: 8px;
+	min-height: 22px;
 }
 
-.message-meta-footer .message-meta {
+.message-runtime-details {
+	margin-left: auto;
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 5px;
+	min-width: 18px;
+}
+
+.message-runtime-details .message-meta {
 	margin-top: 0;
 	opacity: 0;
 	max-width: 0;
@@ -1668,10 +1678,36 @@ textarea::-webkit-scrollbar-thumb:hover {
 	transition: opacity 120ms ease, max-width 120ms ease;
 }
 
-.message:hover .message-meta-footer .message-meta,
-.message:focus-within .message-meta-footer .message-meta {
+.message-runtime-details .message-meta.expanded {
 	opacity: 1;
 	max-width: 620px;
+}
+
+.message-meta-toggle {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 18px;
+	height: 20px;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: #8fa6bd;
+	cursor: pointer;
+	opacity: 0;
+	transition: opacity 120ms ease, color 120ms ease;
+}
+
+.message:hover .message-meta-toggle,
+.message:focus-within .message-meta-toggle,
+.message-meta-toggle.expanded {
+	opacity: 1;
+}
+
+.message-meta-toggle:hover,
+.message-meta-toggle:focus-visible {
+	color: #d8ebff;
+	transform: none;
 }
 
 .message-footer {
@@ -1841,6 +1877,14 @@ textarea:focus,
 }
 
 .message-thinking-content .message-content-block { margin: 0; padding: 0; }
+
+.message-live-narration {
+	margin: 2px 0 8px;
+	color: #d7e4f1;
+}
+
+.message-live-narration > :first-child { margin-top: 0; }
+.message-live-narration > :last-child { margin-bottom: 0; }
 
 .confirmation-modal-panel {
 	width: min(480px, 92vw);
@@ -2559,48 +2603,52 @@ textarea {
 	border-radius: 12px;
 	padding: 10px 12px;
 	background: rgba(255, 255, 255, 0.015);
-	min-height: 68px;
+	min-height: 78px;
 	display: grid;
+	grid-template-columns: minmax(0, 1fr) 92px;
+	grid-template-rows: auto auto;
 	gap: 4px;
 	align-content: center;
+	align-items: center;
 	position: relative;
 	overflow: hidden;
-	--mini-a: 38%;
-	--mini-b: 68%;
-	--mini-c: 50%;
 }
 
-.usage-stat-card::before {
-	content: "";
-	position: absolute;
-	right: 12px;
-	bottom: 14px;
-	width: 52px;
-	height: 34px;
-	background:
-		linear-gradient(to top, rgba(79, 143, 210, .8) 0 var(--mini-a), transparent var(--mini-a)) 0 100% / 12px 100% no-repeat,
-		linear-gradient(to top, rgba(100, 169, 236, .78) 0 var(--mini-b), transparent var(--mini-b)) 20px 100% / 12px 100% no-repeat,
-		linear-gradient(to top, rgba(127, 190, 249, .74) 0 var(--mini-c), transparent var(--mini-c)) 40px 100% / 12px 100% no-repeat;
-	opacity: .68;
+.usage-stat-card:hover {
+	border-color: #315779;
 }
 
-.usage-stat-card::after {
-	content: "";
-	position: absolute;
-	right: 10px;
-	bottom: 12px;
-	width: 56px;
-	height: 38px;
-	background-image: radial-gradient(rgba(220, 240, 255, .68) .7px, transparent .85px);
-	background-size: 4px 4px;
-	pointer-events: none;
-}
-
-.usage-stat-card:nth-child(2n) { --mini-a: 66%; --mini-b: 42%; --mini-c: 78%; }
-.usage-stat-card:nth-child(3n) { --mini-a: 54%; --mini-b: 84%; --mini-c: 34%; }
-.usage-stat-card:nth-child(4n) { --mini-a: 82%; --mini-b: 58%; --mini-c: 72%; }
 .usage-stat-card .usage-stat-label,
-.usage-stat-card .usage-stat-value { position: relative; z-index: 1; padding-right: 64px; }
+.usage-stat-card .usage-stat-value {
+	position: relative;
+	z-index: 1;
+	grid-column: 1;
+}
+
+.usage-stat-label { grid-row: 1; align-self: end; }
+.usage-stat-value { grid-row: 2; align-self: start; }
+
+.usage-stat-sparkline {
+	grid-column: 2;
+	grid-row: 1 / span 2;
+	width: 92px;
+	height: 52px;
+	opacity: .72;
+	mask-image: linear-gradient(to right, transparent 0%, #000 22%);
+	transition: opacity 140ms ease, transform 140ms ease;
+}
+
+.usage-stat-card:hover .usage-stat-sparkline {
+	opacity: 1;
+	transform: translateY(-2px);
+}
+
+.usage-stat-sparkline svg {
+	display: block;
+	width: 100%;
+	height: 100%;
+	overflow: visible;
+}
 
 .usage-stat-label {
 	font-size: 11px;
