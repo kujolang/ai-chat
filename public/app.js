@@ -60,7 +60,7 @@ const legacyApiTokenExpiresAtStorageKey = "kujo_ai_chat_api_token_expires_at";
 const legacyStateCacheStorageKey = "kujo_ai_chat_state_cache_v1";
 const legacyUsageLedgerStorageKey = "kujo_ai_chat_usage_ledger_v1";
 const sidebarCollapsedStorageKey = "ai_chat_sidebar_collapsed_v1";
-const paneInfoVisibleStorageKey = "ai_chat_pane_info_visible_v2";
+const paneInfoVisibleStorageKey = "ai_chat_pane_info_visible_v3";
 const usageSummaryVisibleStorageKey = "ai_chat_usage_summary_visible_v1";
 const collapsedProvidersStorageKey = "ai_chat_collapsed_providers_v1";
 const collapsedToolsStorageKey = "ai_chat_collapsed_tools_v1";
@@ -125,7 +125,6 @@ const nodes = {
 	copyChatIdBtn: document.getElementById("copy-chat-id-btn"),
 	chatWatchdogBtn: document.getElementById("chat-watchdog-btn"),
 	exportChatBtn: document.getElementById("export-chat-btn"),
-	addPaneBtn: document.getElementById("add-pane-btn"),
 	openPaneProfilesBtn: document.getElementById("open-pane-profiles-btn"),
 	paneControls: document.getElementById("pane-controls"),
 	togglePaneInfoBtn: document.getElementById("toggle-pane-info-btn"),
@@ -846,21 +845,6 @@ function wireEvents() {
 
 	nodes.exportChatBtn.addEventListener("click", () => { void exportActiveChat(); });
 
-	nodes.addPaneBtn.addEventListener("click", () => {
-		const chat = getActiveChat();
-		if (!chat) {
-			return;
-		}
-		const firstProfile = state.settings.profiles[0] || createDefaultProfile();
-		if (state.settings.profiles.length === 0) {
-			state.settings.profiles.push(firstProfile);
-		}
-		chat.panes.push(createPane(firstProfile.id));
-		chat.updatedAt = Date.now();
-		schedulePersist();
-		renderAll({ preserveWorkspaceScroll: true });
-	});
-
 	nodes.togglePaneInfoBtn.addEventListener("click", () => {
 		paneInfoVisible = !paneInfoVisible;
 		if (!paneInfoVisible) paneMenuOpen = false;
@@ -1364,6 +1348,18 @@ function wireEvents() {
 
 		if (actionElement.getAttribute("data-action") === "remove-pane") {
 			removePaneFromChat(chat, String(actionElement.getAttribute("data-pane-id") || ""));
+			return;
+		}
+
+		if (actionElement.getAttribute("data-action") === "add-pane") {
+			const firstProfile = state.settings.profiles[0] || createDefaultProfile();
+			if (state.settings.profiles.length === 0) state.settings.profiles.push(firstProfile);
+			chat.panes.push(createPane(firstProfile.id));
+			chat.updatedAt = Date.now();
+			paneMenuOpen = true;
+			paneMenuChatId = chat.id;
+			schedulePersist();
+			renderAll({ preserveWorkspaceScroll: true });
 		}
 	});
 
@@ -3039,12 +3035,6 @@ async function exportActiveChat() {
 
 function renderPaneControls(chat) {
 	const paneCount = chat.panes.length;
-	if (paneCount <= 1) {
-		paneMenuOpen = false;
-		paneMenuChatId = chat.id;
-		nodes.paneControls.innerHTML = "";
-		return;
-	}
 	if (paneMenuChatId !== chat.id) {
 		paneMenuOpen = false;
 		paneMenuChatId = chat.id;
@@ -3056,10 +3046,11 @@ function renderPaneControls(chat) {
 		const profileName = profile ? String(profile.name || "Profile") : "Profile";
 		const modelName = profile ? modelForProfileSelection(profile, pane.model) : String(pane.model || "");
 		const paneName = `Pane ${index + 1}`;
-		return `<div class="pane-menu-row" data-pane-id="${escapeHtml(pane.id)}"><span class="pane-menu-copy"><strong>${escapeHtml(paneName)}</strong><small>${escapeHtml([profileName, modelName].filter(Boolean).join(" · "))}</small></span><span class="${statusClass}">${escapeHtml(status)}</span><button class="pane-menu-delete btn ghost icon-only" data-action="remove-pane" data-pane-id="${escapeHtml(pane.id)}" aria-label="Remove ${escapeHtml(paneName)}" title="Remove ${escapeHtml(paneName)}"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button></div>`;
+		const deleteButton = paneCount > 1 ? `<button class="pane-menu-delete btn ghost icon-only" data-action="remove-pane" data-pane-id="${escapeHtml(pane.id)}" aria-label="Remove ${escapeHtml(paneName)}" title="Remove ${escapeHtml(paneName)}"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>` : "";
+		return `<div class="pane-menu-row" data-pane-id="${escapeHtml(pane.id)}"><span class="pane-menu-copy"><strong>${escapeHtml(paneName)}</strong><small>${escapeHtml([profileName, modelName].filter(Boolean).join(" · "))}</small></span><span class="${statusClass}">${escapeHtml(status)}</span>${deleteButton}</div>`;
 	}).join("");
 	const label = paneMenuOpen ? "Hide panes" : "Show panes";
-	nodes.paneControls.innerHTML = `<button type="button" class="btn ghost icon-only pane-menu-toggle" data-action="toggle-pane-menu" aria-label="${label}" title="${label}" aria-expanded="${paneMenuOpen ? "true" : "false"}"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg></button><div class="pane-menu-dropdown${paneMenuOpen ? "" : " hidden"}" role="menu" aria-label="Chat panes"><div class="pane-menu-heading"><span>Panes</span><span>${paneCount}</span></div>${paneRows}</div>`;
+	nodes.paneControls.innerHTML = `<button type="button" class="btn ghost icon-only pane-menu-toggle" data-action="toggle-pane-menu" aria-label="${label}" title="${label}" aria-expanded="${paneMenuOpen ? "true" : "false"}"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg></button><div class="pane-menu-dropdown${paneMenuOpen ? "" : " hidden"}" role="menu" aria-label="Chat panes"><div class="pane-menu-heading"><span>Panes</span><span>${paneCount}</span></div>${paneRows}<button type="button" class="pane-menu-add" data-action="add-pane"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg><span>Add pane</span></button></div>`;
 }
 
 function renderMessageNodeHtml(message, paneId) {
