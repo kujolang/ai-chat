@@ -443,6 +443,36 @@ test("chatRequestPayload applies defaults and validates normalized messages", ()
 	}
 });
 
+test("chatRequestPayload keeps long saved chats usable with a bounded recent context", () => {
+	const { runtime, destroy } = createIsolatedRuntime({
+		envMerge: {
+			MAX_MESSAGES_PER_REQUEST: "5",
+			MAX_MESSAGE_CHARS: "250",
+			MAX_TOTAL_MESSAGE_CHARS: "180"
+		}
+	});
+	try {
+		const payload = runtime.helpers.chatRequestPayload({
+			messages: [
+				{ role: "system", content: "Keep this instruction." },
+				{ role: "user", content: "old user context ".repeat(6) },
+				{ role: "assistant", content: "old assistant context ".repeat(6) },
+				{ role: "user", content: "recent question" },
+				{ role: "assistant", content: "recent answer" },
+				{ role: "user", content: "latest question" }
+			]
+		}, { id: "profile-1" });
+
+		assert.equal(payload.messages[0].role, "system");
+		assert.equal(payload.messages.at(-1).content, "latest question");
+		assert.ok(payload.messages.length <= 5);
+		assert.ok(payload.messages.reduce((total, message) => total + message.content.length, 0) <= 180);
+		assert.ok(payload.messages.some((message) => message.content.includes("transcript remains saved")));
+	} finally {
+		destroy();
+	}
+});
+
 test("chatRequestPayload augments stale requests with enabled runtime presets from settings", () => {
 	const { runtime, destroy } = createIsolatedRuntime({
 		envMerge: {

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Keep long-running saved chats usable by sending a bounded recent context window instead of rejecting the entire accumulated transcript.
 - Replace inline pane statuses with a compact pane menu, including per-pane details and hover delete actions.
 - Add explicit copied feedback for chat and Watchdog IDs, delay chevron tooltips, and align the Watchdog icon color with other title-bar actions.
 - Bundle Departure Mono and use it for chat titles without a font CDN dependency.
