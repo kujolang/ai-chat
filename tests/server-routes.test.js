@@ -568,6 +568,20 @@ test("GET /api/providers returns provider catalog", async () => {
 	}
 });
 
+test("GET /c/:chatId serves the app for bookmarkable chat links", async () => {
+	const { runtime, destroy } = createIsolatedRuntime();
+	try {
+		await withServer(runtime.app, async (baseUrl) => {
+			const response = await fetch(`${baseUrl}/c/bookmarked-chat`);
+			assert.equal(response.status, 200);
+			assert.match(response.headers.get("content-type"), /^text\/html/);
+			assert.match(await response.text(), /<title>AI Chat<\/title>/);
+		});
+	} finally {
+		destroy();
+	}
+});
+
 test("GET /api/state returns seeded state", async () => {
 	const { runtime, destroy } = createIsolatedRuntime();
 	try {

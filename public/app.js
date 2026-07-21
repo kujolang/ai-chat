@@ -69,7 +69,7 @@ const collapsedToolsStorageKey = "ai_chat_collapsed_tools_v1";
 const stateChangesBatchBytes = 512 * 1024;
 const composerPasteSoftLimitChars = 120000;
 const maxVisibleProjectFolders = 5;
-const sidebarChatPageSize = 5;
+const sidebarChatPageSize = 20;
 const defaultApiTokenTtlDays = 3650;
 const maxApiTokenTtlDays = 36500;
 let sidebarCollapsed = loadSidebarCollapsedPreference();
@@ -92,6 +92,9 @@ const pendingAutoTitleChatIds = new Set();
 let projectFolderModalContext = null;
 let pendingConfirmation = null;
 let sidebarChatVisibleCount = sidebarChatPageSize;
+let sidebarChatLoadingMore = false;
+let sidebarChatLoadTimer = null;
+let activeTooltipButton = null;
 let projectFolderSelect2Ready = false;
 let composerModelSelect2Ready = false;
 let settingsDefaultModelSelect2Ready = false;
@@ -115,6 +118,7 @@ const nodes = {
 	deleteAllArchivedBtn: document.getElementById("delete-all-archived-btn"),
 	projectFolderList: document.getElementById("project-folder-list"),
 	addProjectFolderBtn: document.getElementById("add-project-folder-btn"),
+	sidebarMain: document.querySelector(".sidebar-main"),
 	chatList: document.getElementById("chat-list"),
 	chatTitleInput: document.getElementById("chat-title-input"),
 	copyChatIdBtn: document.getElementById("copy-chat-id-btn"),
@@ -232,8 +236,10 @@ void bootstrap();
 
 async function bootstrap() {
 	wireEvents();
+	initializeButtonTooltips();
 	initializeProjectFolderSelect2();
 	initializeModelSelect2();
+	const linkedChatId = chatIdFromLocation();
 	if (!hasValidApiAuthToken()) {
 		nodes.voiceStatus.textContent = "Voice: API token required for server actions";
 	}
@@ -241,7 +247,13 @@ async function bootstrap() {
 	await loadStateFromServer();
 	await loadRuntimeCapabilities();
 	ensureMinimumState();
+	const shouldHydrateLinkedChat = Boolean(linkedChatId && state.activeChatId === linkedChatId);
 	renderAll();
+	const activeChat = getActiveChat();
+	if (activeChat && shouldHydrateLinkedChat) {
+		await hydrateChatMessages(activeChat.id);
+		renderAll();
+	}
 	setupSpeechRecognition();
 	setupWhisperRecorder();
 }
@@ -299,7 +311,9 @@ async function loadStateFromServer() {
 		const payload = await response.json();
 		if (payload && payload.ok && payload.state) {
 			state = migrateState(payload.state);
-			state.activeChatId = null;
+			const linkedChatId = chatIdFromLocation();
+			state.activeChatId = linkedChatId && getChatById(linkedChatId) ? linkedChatId : null;
+			if (state.activeChatId) state.showArchived = Boolean(getActiveChat().archived);
 			stateLoadedFromServer = true;
 			lastPersistedSnapshot = createPersistenceSnapshot(state);
 			saveStateToCache();
@@ -309,7 +323,9 @@ async function loadStateFromServer() {
 		console.error(error);
 		const cachedState = loadStateFromCache();
 		state = cachedState || structuredClone(defaultState);
-		state.activeChatId = null;
+		const linkedChatId = chatIdFromLocation();
+		state.activeChatId = linkedChatId && getChatById(linkedChatId) ? linkedChatId : null;
+		if (state.activeChatId) state.showArchived = Boolean(getActiveChat().archived);
 		lastPersistedSnapshot = null;
 		setSaveStatus("error", cachedState ? "Offline — changes kept locally" : "Not connected");
 	}
@@ -436,9 +452,117 @@ function normalizePaneProfile(paneProfile) {
 	};
 }
 
+function chatIdFromLocation() {
+	const match = String(window.location.pathname || "").match(/^\/c\/([^/]+)\/?$/);
+	if (!match) return "";
+	try {
+		return decodeURIComponent(match[1]);
+	} catch (error) {
+		return "";
+	}
+}
+
+function syncActiveChatUrl({ replace = false } = {}) {
+	const chat = getActiveChat();
+	if (!chat || !chat.id) return;
+	const nextPath = `/c/${encodeURIComponent(chat.id)}`;
+	if (window.location.pathname === nextPath) return;
+	window.history[replace ? "replaceState" : "pushState"]({ chatId: chat.id }, "", `${nextPath}${window.location.search}${window.location.hash}`);
+}
+
+function initializeButtonTooltips() {
+	const tooltip = document.createElement("div");
+	tooltip.className = "app-tooltip";
+	tooltip.setAttribute("role", "tooltip");
+	tooltip.setAttribute("aria-hidden", "true");
+	document.body.append(tooltip);
+
+	const syncTooltipText = (root) => {
+		const buttons = [];
+		if (root instanceof Element && root.matches("button[title]")) buttons.push(root);
+		if (root && typeof root.querySelectorAll === "function") buttons.push(...root.querySelectorAll("button[title]"));
+		for (const button of buttons) {
+			const text = String(button.getAttribute("title") || "").trim();
+			if (text) button.setAttribute("data-tooltip", text);
+			else button.removeAttribute("data-tooltip");
+			button.removeAttribute("title");
+		}
+	};
+
+	const hideTooltip = () => {
+		activeTooltipButton = null;
+		tooltip.classList.remove("visible");
+		tooltip.setAttribute("aria-hidden", "true");
+	};
+
+	const showTooltip = (button) => {
+		const text = String(button && button.getAttribute("data-tooltip") || "").trim();
+		if (!text || button.disabled) {
+			hideTooltip();
+			return;
+		}
+		activeTooltipButton = button;
+		tooltip.textContent = text;
+		tooltip.classList.add("visible");
+		tooltip.setAttribute("aria-hidden", "false");
+		const buttonRect = button.getBoundingClientRect();
+		const tooltipRect = tooltip.getBoundingClientRect();
+		const gap = 8;
+		const edge = 8;
+		let left = buttonRect.left + (buttonRect.width - tooltipRect.width) / 2;
+		left = Math.max(edge, Math.min(left, window.innerWidth - tooltipRect.width - edge));
+		let top = buttonRect.bottom + gap;
+		if (top + tooltipRect.height > window.innerHeight - edge) top = buttonRect.top - tooltipRect.height - gap;
+		tooltip.style.left = `${Math.round(left)}px`;
+		tooltip.style.top = `${Math.round(Math.max(edge, top))}px`;
+	};
+
+	syncTooltipText(document);
+	new MutationObserver((mutations) => {
+		for (const mutation of mutations) {
+			if (mutation.type === "attributes") syncTooltipText(mutation.target);
+			for (const node of mutation.addedNodes || []) syncTooltipText(node);
+		}
+	}).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ["title"] });
+
+	document.addEventListener("pointerover", (event) => {
+		const button = event.target.closest && event.target.closest("button[data-tooltip]");
+		if (button) showTooltip(button);
+	});
+	document.addEventListener("pointerout", (event) => {
+		if (!activeTooltipButton || activeTooltipButton.contains(event.relatedTarget)) return;
+		hideTooltip();
+	});
+	document.addEventListener("focusin", (event) => {
+		const button = event.target.closest && event.target.closest("button[data-tooltip]");
+		if (button) showTooltip(button);
+	});
+	document.addEventListener("focusout", (event) => {
+		if (activeTooltipButton && !activeTooltipButton.contains(event.relatedTarget)) hideTooltip();
+	});
+	document.addEventListener("pointerdown", hideTooltip);
+	document.addEventListener("click", hideTooltip);
+	window.addEventListener("scroll", hideTooltip, true);
+	window.addEventListener("resize", hideTooltip);
+}
+
 function wireEvents() {
 	nodes.newChatBtn.addEventListener("click", () => {
 		createAndActivateChat();
+	});
+
+	nodes.sidebarMain.addEventListener("scroll", maybeLoadMoreSidebarChats, { passive: true });
+
+	window.addEventListener("popstate", () => {
+		const linkedChatId = chatIdFromLocation();
+		const chat = linkedChatId ? getChatById(linkedChatId) : null;
+		if (!chat) {
+			syncActiveChatUrl({ replace: true });
+			return;
+		}
+		state.showArchived = Boolean(chat.archived);
+		resetSidebarChatPagination();
+		void activateChat(chat.id, { persist: false, updateUrl: false });
 	});
 
 	window.addEventListener("keydown", (event) => {
@@ -956,13 +1080,6 @@ function wireEvents() {
 	});
 
 	nodes.chatList.addEventListener("click", (event) => {
-		const listActionNode = event.target.closest("[data-action='view-more-chats']");
-		if (listActionNode) {
-			sidebarChatVisibleCount += sidebarChatPageSize;
-			renderSidebar();
-			return;
-		}
-
 		const row = event.target.closest(".chat-item");
 		if (!row) {
 			return;
@@ -1629,17 +1746,19 @@ function createAndActivateChat() {
 	const chat = createChat("New Chat");
 	state.chats.push(chat);
 	state.activeChatId = chat.id;
+	syncActiveChatUrl();
 	schedulePersist();
 	renderAll();
 	focusComposerInput();
 }
 
-async function activateChat(chatId, { persist = false } = {}) {
+async function activateChat(chatId, { persist = false, updateUrl = true } = {}) {
 	const chat = getChatById(chatId);
 	if (!chat) {
 		return;
 	}
 	state.activeChatId = chat.id;
+	if (updateUrl) syncActiveChatUrl();
 	if (persist) {
 		schedulePersist();
 	}
@@ -1782,6 +1901,7 @@ async function handlePaneProfileAction(event) {
 		const chat = createChatFromPaneProfile(paneProfile);
 		state.chats.push(chat);
 		state.activeChatId = chat.id;
+		syncActiveChatUrl();
 		schedulePersist();
 		closePaneProfilesModal();
 		renderAll();
@@ -2172,6 +2292,7 @@ function closeConfirmationModal(value) {
 }
 
 function renderAll(options = {}) {
+	syncActiveChatUrl({ replace: true });
 	renderComposerProfileSelect();
 	renderComposerUsageSummary();
 	renderSidebar();
@@ -2455,12 +2576,12 @@ function renderSidebar() {
 		sidebarChatVisibleCount = sidebarChatPageSize;
 	}
 
-	const pinnedChats = filtered.filter((chat) => Boolean(chat.pinned));
-	const regularChats = filtered.filter((chat) => !chat.pinned);
-	const visibleRegularChats = regularChats.slice(0, sidebarChatVisibleCount);
-	const hasMoreChats = regularChats.length > visibleRegularChats.length;
+	const visibleChats = filtered.slice(0, sidebarChatVisibleCount);
+	const pinnedChats = visibleChats.filter((chat) => Boolean(chat.pinned));
+	const regularChats = visibleChats.filter((chat) => !chat.pinned);
+	const hasMoreChats = filtered.length > visibleChats.length;
 
-	if (pinnedChats.length === 0 && visibleRegularChats.length === 0) {
+	if (pinnedChats.length === 0 && regularChats.length === 0) {
 		nodes.chatList.innerHTML = `<div class="empty-state">${state.activeProjectPath ? "No chats in this project." : "No chats found."}</div>`;
 		nodes.deleteAllArchivedBtn.remove();
 		return;
@@ -2476,19 +2597,19 @@ function renderSidebar() {
 		`);
 	}
 
-	if (visibleRegularChats.length > 0) {
+	if (regularChats.length > 0) {
 		sections.push(`
 			<div class="chat-group">
 				<div class="chat-group-title">Recent</div>
-				${renderSidebarChatItems(visibleRegularChats)}
+				${renderSidebarChatItems(regularChats)}
 			</div>
 		`);
 	}
 
-	if (hasMoreChats) {
+	if (hasMoreChats && sidebarChatLoadingMore) {
 		sections.push(`
-			<div class="chat-list-view-more-wrap">
-				<button class="btn ghost chat-list-view-more-btn" data-action="view-more-chats">View More</button>
+			<div class="chat-list-loading-skeleton" aria-label="Loading more chats" role="status">
+				<span></span><span></span><span></span>
 			</div>
 		`);
 	}
@@ -2528,7 +2649,31 @@ async function deleteAllArchivedChats() {
 }
 
 function resetSidebarChatPagination() {
+	if (sidebarChatLoadTimer) window.clearTimeout(sidebarChatLoadTimer);
+	sidebarChatLoadTimer = null;
+	sidebarChatLoadingMore = false;
 	sidebarChatVisibleCount = sidebarChatPageSize;
+}
+
+function maybeLoadMoreSidebarChats() {
+	if (sidebarChatLoadingMore || !nodes.sidebarMain) return;
+	const remaining = nodes.sidebarMain.scrollHeight - nodes.sidebarMain.scrollTop - nodes.sidebarMain.clientHeight;
+	if (remaining > 96) return;
+
+	const filteredCount = state.chats
+		.filter((chat) => chat.archived === state.showArchived)
+		.filter((chat) => !state.activeProjectPath || normalizeProjectPath(chat.projectPath || chat.project_path || "") === state.activeProjectPath)
+		.length;
+	if (sidebarChatVisibleCount >= filteredCount) return;
+
+	sidebarChatLoadingMore = true;
+	renderSidebar();
+	sidebarChatLoadTimer = window.setTimeout(() => {
+		sidebarChatVisibleCount += sidebarChatPageSize;
+		sidebarChatLoadingMore = false;
+		sidebarChatLoadTimer = null;
+		renderSidebar();
+	}, 220);
 }
 
 function renderProjectFolderList() {
@@ -5457,6 +5602,7 @@ function branchMessageIntoNewChat(sourceChat, paneId, messageId) {
 
 	state.chats.push(branchChat);
 	state.activeChatId = branchChat.id;
+	syncActiveChatUrl();
 	schedulePersist({ immediate: true });
 	renderAll();
 	focusComposerInput();

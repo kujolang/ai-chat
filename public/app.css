@@ -537,19 +537,6 @@ input[type="checkbox"]:disabled {
 	overflow-x: hidden;
 }
 
-.chat-list-view-more-wrap {
-	display: flex;
-	justify-content: center;
-	padding: 2px 8px 0;
-}
-
-.chat-list-view-more-btn {
-	width: 100%;
-	padding: 7px 8px;
-	font-size: 11px;
-	border-radius: 8px;
-}
-
 .chat-group {
 	display: grid;
 	gap: 4px;
@@ -580,8 +567,34 @@ input[type="checkbox"]:disabled {
 }
 
 .chat-item.active {
+	margin-left: -16px;
+	padding-left: 25px;
 	border-color: #2f343a;
+	border-left: 0;
+	border-right: 0;
 	background: rgba(255, 255, 255, 0.06);
+}
+
+.chat-list-loading-skeleton {
+	display: grid;
+	gap: 7px;
+	padding: 8px 9px 10px;
+}
+
+.chat-list-loading-skeleton span {
+	display: block;
+	height: 9px;
+	background: linear-gradient(90deg, rgba(119, 185, 255, .06) 20%, rgba(119, 185, 255, .16) 50%, rgba(119, 185, 255, .06) 80%);
+	background-size: 220% 100%;
+	animation: sidebar-skeleton-shimmer 1s ease-in-out infinite;
+}
+
+.chat-list-loading-skeleton span:nth-child(2) { width: 72%; }
+.chat-list-loading-skeleton span:nth-child(3) { width: 46%; }
+
+@keyframes sidebar-skeleton-shimmer {
+	from { background-position: 100% 0; }
+	to { background-position: -100% 0; }
 }
 
 .chat-item-top {
@@ -821,18 +834,15 @@ input[type="checkbox"]:disabled {
 	box-shadow: none;
 }
 
-.chat-id-copy-btn[data-tooltip]::after,
-.chat-watchdog-btn[data-tooltip]::after {
-	content: attr(data-tooltip);
-	position: absolute;
-	top: calc(100% + 8px);
-	right: 0;
-	z-index: 30;
+.app-tooltip {
+	position: fixed;
+	z-index: 10000;
 	width: max-content;
-	max-width: 320px;
+	max-width: min(320px, calc(100vw - 16px));
 	padding: 6px 8px;
 	border: 1px solid #315779;
 	background: #111a24;
+	box-shadow: 0 8px 24px rgba(0, 0, 0, .35);
 	color: #dceeff;
 	font: 10px/1.35 var(--mono);
 	opacity: 0;
@@ -841,10 +851,7 @@ input[type="checkbox"]:disabled {
 	transition: opacity 120ms ease, transform 120ms ease;
 }
 
-.chat-id-copy-btn[data-tooltip]:hover::after,
-.chat-id-copy-btn[data-tooltip]:focus-visible::after,
-.chat-watchdog-btn[data-tooltip]:hover::after,
-.chat-watchdog-btn[data-tooltip]:focus-visible::after {
+.app-tooltip.visible {
 	opacity: 1;
 	transform: translateY(0);
 }
@@ -878,7 +885,6 @@ input[type="checkbox"]:disabled {
 	font: 10px/1.4 var(--mono);
 }
 .chat-watchdog-btn.expanded .chat-watchdog-trace { display: block; }
-.chat-watchdog-btn.expanded::after { display: none; }
 
 .sidebar-toggle-btn {
 	flex: 0 0 auto;
