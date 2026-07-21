@@ -239,7 +239,7 @@ async function bootstrap() {
 	initializeButtonTooltips();
 	initializeProjectFolderSelect2();
 	initializeModelSelect2();
-	const linkedChatId = chatIdFromLocation();
+	const linkedChatRouteId = chatRouteIdFromLocation();
 	if (!hasValidApiAuthToken()) {
 		nodes.voiceStatus.textContent = "Voice: API token required for server actions";
 	}
@@ -247,7 +247,7 @@ async function bootstrap() {
 	await loadStateFromServer();
 	await loadRuntimeCapabilities();
 	ensureMinimumState();
-	const shouldHydrateLinkedChat = Boolean(linkedChatId && state.activeChatId === linkedChatId);
+	const shouldHydrateLinkedChat = Boolean(linkedChatRouteId && getActiveChat());
 	renderAll();
 	const activeChat = getActiveChat();
 	if (activeChat && shouldHydrateLinkedChat) {
@@ -293,13 +293,6 @@ function ensureMinimumState() {
 	if (state.activeChatId && !getChatById(state.activeChatId)) {
 		state.activeChatId = null;
 	}
-	if (!state.activeChatId) {
-		// A fresh window is a new workspace, not a resume action. Keep saved chats
-		// in the sidebar but start with one blank, single-pane chat.
-		const freshChat = createChat("New Chat");
-		state.chats.unshift(freshChat);
-		state.activeChatId = freshChat.id;
-	}
 }
 
 async function loadStateFromServer() {
@@ -311,8 +304,10 @@ async function loadStateFromServer() {
 		const payload = await response.json();
 		if (payload && payload.ok && payload.state) {
 			state = migrateState(payload.state);
-			const linkedChatId = chatIdFromLocation();
-			state.activeChatId = linkedChatId && getChatById(linkedChatId) ? linkedChatId : null;
+			const linkedChatRouteId = chatRouteIdFromLocation();
+			const linkedChat = linkedChatRouteId ? getChatByRouteId(linkedChatRouteId) : null;
+			state.activeChatId = linkedChat ? linkedChat.id : null;
+			if (linkedChatRouteId && !linkedChat) resetToWelcomeUrl();
 			if (state.activeChatId) state.showArchived = Boolean(getActiveChat().archived);
 			stateLoadedFromServer = true;
 			lastPersistedSnapshot = createPersistenceSnapshot(state);
@@ -323,8 +318,9 @@ async function loadStateFromServer() {
 		console.error(error);
 		const cachedState = loadStateFromCache();
 		state = cachedState || structuredClone(defaultState);
-		const linkedChatId = chatIdFromLocation();
-		state.activeChatId = linkedChatId && getChatById(linkedChatId) ? linkedChatId : null;
+		const linkedChatRouteId = chatRouteIdFromLocation();
+		const linkedChat = linkedChatRouteId ? getChatByRouteId(linkedChatRouteId) : null;
+		state.activeChatId = linkedChat ? linkedChat.id : null;
 		if (state.activeChatId) state.showArchived = Boolean(getActiveChat().archived);
 		lastPersistedSnapshot = null;
 		setSaveStatus("error", cachedState ? "Offline — changes kept locally" : "Not connected");
@@ -418,6 +414,7 @@ function normalizeIncomingChat(chat) {
 
 	const normalized = {
 		...chat,
+		routeId: normalizeChatRouteId(chat.routeId || chat.route_id) || createChatRouteId(),
 		projectPath: normalizeProjectPath(chat.projectPath || chat.project_path || "")
 	};
 	for (const pane of Array.isArray(normalized.panes) ? normalized.panes : []) {
@@ -452,7 +449,7 @@ function normalizePaneProfile(paneProfile) {
 	};
 }
 
-function chatIdFromLocation() {
+function chatRouteIdFromLocation() {
 	const match = String(window.location.pathname || "").match(/^\/c\/([^/]+)\/?$/);
 	if (!match) return "";
 	try {
@@ -464,10 +461,15 @@ function chatIdFromLocation() {
 
 function syncActiveChatUrl({ replace = false } = {}) {
 	const chat = getActiveChat();
-	if (!chat || !chat.id) return;
-	const nextPath = `/c/${encodeURIComponent(chat.id)}`;
+	if (!chat || !chat.routeId) return;
+	const nextPath = `/c/${encodeURIComponent(chat.routeId)}`;
 	if (window.location.pathname === nextPath) return;
-	window.history[replace ? "replaceState" : "pushState"]({ chatId: chat.id }, "", `${nextPath}${window.location.search}${window.location.hash}`);
+	window.history[replace ? "replaceState" : "pushState"]({ chatId: chat.id, routeId: chat.routeId }, "", `${nextPath}${window.location.search}${window.location.hash}`);
+}
+
+function resetToWelcomeUrl() {
+	if (window.location.pathname === "/") return;
+	window.history.replaceState({}, "", `/${window.location.search}${window.location.hash}`);
 }
 
 function initializeButtonTooltips() {
@@ -554,10 +556,17 @@ function wireEvents() {
 	nodes.sidebarMain.addEventListener("scroll", maybeLoadMoreSidebarChats, { passive: true });
 
 	window.addEventListener("popstate", () => {
-		const linkedChatId = chatIdFromLocation();
-		const chat = linkedChatId ? getChatById(linkedChatId) : null;
+		const linkedChatRouteId = chatRouteIdFromLocation();
+		if (!linkedChatRouteId && window.location.pathname === "/") {
+			state.activeChatId = null;
+			renderAll();
+			return;
+		}
+		const chat = linkedChatRouteId ? getChatByRouteId(linkedChatRouteId) : null;
 		if (!chat) {
-			syncActiveChatUrl({ replace: true });
+			state.activeChatId = null;
+			resetToWelcomeUrl();
+			renderAll();
 			return;
 		}
 		state.showArchived = Boolean(chat.archived);
@@ -1121,6 +1130,13 @@ function wireEvents() {
 	});
 
 	nodes.paneGrid.addEventListener("click", (event) => {
+		const welcomeAction = event.target.closest("[data-welcome-action]");
+		if (welcomeAction) {
+			if (welcomeAction.getAttribute("data-welcome-action") === "new-chat") createAndActivateChat();
+			else openSearchModal();
+			return;
+		}
+
 		const screenshotButton = event.target.closest("[data-action='open-screenshot-gallery'][data-browser-artifact-id]");
 		if (screenshotButton) {
 			openScreenshotGallery(String(screenshotButton.getAttribute("data-browser-artifact-id") || ""));
@@ -2808,13 +2824,23 @@ function renderWorkspace(options = {}) {
 	}
 
 	const chat = getActiveChat();
+	nodes.appShell.classList.toggle("welcome-mode", !chat);
 	if (!chat) {
 		nodes.chatTitleInput.value = "";
 		nodes.copyChatIdBtn.disabled = true;
 		nodes.chatWatchdogBtn.classList.add("hidden");
 		nodes.exportChatBtn.disabled = true;
 		nodes.paneControls.innerHTML = "";
-		nodes.paneGrid.innerHTML = "<div class=\"empty-state\">Start a new chat or choose one from the sidebar.</div>";
+		nodes.paneGrid.classList.remove("cols-2", "cols-3");
+		nodes.paneGrid.innerHTML = `<section class="workspace-welcome">
+			<div class="workspace-welcome-kicker">AI Chat</div>
+			<h2>What are we working on?</h2>
+			<p>Start something new or open a saved chat from the sidebar.</p>
+			<div class="workspace-welcome-actions">
+				<button class="btn primary" type="button" data-welcome-action="new-chat">New chat</button>
+				<button class="btn ghost" type="button" data-welcome-action="search">Search chats</button>
+			</div>
+		</section>`;
 		return;
 	}
 
@@ -2954,12 +2980,16 @@ async function exportActiveChat() {
 
 function renderPaneControls(chat) {
 	const paneCount = chat.panes.length;
+	if (paneCount <= 1) {
+		nodes.paneControls.innerHTML = "";
+		return;
+	}
 	nodes.paneControls.innerHTML = chat.panes.map((pane, index) => {
 		const status = String(pane.status || "idle");
-		const panePrefix = paneCount > 1 ? `Pane ${index + 1} · ` : "";
+		const panePrefix = `Pane ${index + 1} · `;
 		const statusLabel = `${panePrefix}${status}`;
 		const statusClass = ["pane-control-status", ["idle", "waiting", "partial", "error"].includes(status) ? status : ""].filter(Boolean).join(" ");
-		return `<div class="pane-control-group${paneCount > 1 ? " is-removable" : ""}" data-pane-id="${escapeHtml(pane.id)}"><span class="${statusClass}" title="${escapeHtml(statusLabel)}">${escapeHtml(statusLabel)}</span><button class="pane-remove-btn btn ghost icon-only" data-action="remove-pane" data-pane-id="${escapeHtml(pane.id)}" aria-label="Remove ${escapeHtml(panePrefix || "pane")}" title="Remove ${escapeHtml(panePrefix || "pane")}"${paneCount <= 1 ? " disabled" : ""}><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash-icon lucide-trash" aria-hidden="true"><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button></div>`;
+		return `<div class="pane-control-group is-removable" data-pane-id="${escapeHtml(pane.id)}"><span class="${statusClass}" title="${escapeHtml(statusLabel)}">${escapeHtml(statusLabel)}</span><button class="pane-remove-btn btn ghost icon-only" data-action="remove-pane" data-pane-id="${escapeHtml(pane.id)}" aria-label="Remove ${escapeHtml(panePrefix)}" title="Remove ${escapeHtml(panePrefix)}"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash-icon lucide-trash" aria-hidden="true"><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button></div>`;
 	}).join("");
 }
 
@@ -6322,6 +6352,7 @@ function createChat(title) {
 
 	return {
 		id: uid(),
+		routeId: createChatRouteId(),
 		title,
 		projectPath: "",
 		pinned: false,
@@ -6783,6 +6814,24 @@ function getActiveChat() {
 
 function getChatById(id) {
 	return state.chats.find((chat) => chat.id === id) || null;
+}
+
+function getChatByRouteId(routeId) {
+	const normalized = normalizeChatRouteId(routeId);
+	return normalized ? state.chats.find((chat) => chat.routeId === normalized) || null : null;
+}
+
+function normalizeChatRouteId(value) {
+	const normalized = String(value || "").trim();
+	return /^[A-Za-z0-9_-]{32,96}$/.test(normalized) ? normalized : "";
+}
+
+function createChatRouteId() {
+	if (window.crypto && typeof window.crypto.getRandomValues === "function") {
+		const bytes = window.crypto.getRandomValues(new Uint8Array(24));
+		return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+	}
+	return `${uid()}${uid()}${uid()}${uid()}`.slice(0, 52);
 }
 
 function getPaneById(id) {

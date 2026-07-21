@@ -25,6 +25,7 @@ This project is for end users and teams who want one local web app to:
 
 - Chat workspace
 	- Create, rename, pin, archive, delete, and search chats
+	- Open to a welcome screen at `/`, then use stable opaque `/c/{routeId}` links for bookmarkable chats without exposing internal chat IDs
 	- Persist changed chats, panes, and messages incrementally with visible save status
 - Provider profiles
 	- Store provider profiles and model suggestions in Settings

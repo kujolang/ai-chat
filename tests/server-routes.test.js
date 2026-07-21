@@ -568,7 +568,7 @@ test("GET /api/providers returns provider catalog", async () => {
 	}
 });
 
-test("GET /c/:chatId serves the app for bookmarkable chat links", async () => {
+test("GET /c/:routeId serves the app for bookmarkable chat links", async () => {
 	const { runtime, destroy } = createIsolatedRuntime();
 	try {
 		await withServer(runtime.app, async (baseUrl) => {
@@ -590,6 +590,8 @@ test("GET /api/state returns seeded state", async () => {
 			assert.equal(response.status, 200);
 			assert.equal(json.ok, true);
 			assert.equal(Array.isArray(json.state.chats), true);
+			assert.match(json.state.chats[0].routeId, /^[a-f0-9]{48}$/);
+			assert.notEqual(json.state.chats[0].routeId, json.state.chats[0].id);
 			assert.deepEqual(json.state.settings.paneProfiles, []);
 			assert.equal(typeof json.state.settings.defaultProfileId, "string");
 			assert.equal(typeof json.state.settings.defaultModel, "string");

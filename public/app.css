@@ -1095,6 +1095,11 @@ input[type="checkbox"]:disabled {
 	pointer-events: none;
 }
 
+.workspace-top .pane-controls .pane-remove-btn.icon-only {
+	opacity: 0;
+	pointer-events: none;
+}
+
 .pane-control-group.is-removable:hover .pane-control-status,
 .pane-control-group.is-removable:focus-within .pane-control-status {
 	opacity: 0;
@@ -1102,6 +1107,12 @@ input[type="checkbox"]:disabled {
 
 .pane-control-group.is-removable:hover .pane-remove-btn,
 .pane-control-group.is-removable:focus-within .pane-remove-btn {
+	opacity: 1;
+	pointer-events: auto;
+}
+
+.workspace-top .pane-control-group.is-removable:hover .pane-remove-btn,
+.workspace-top .pane-control-group.is-removable:focus-within .pane-remove-btn {
 	opacity: 1;
 	pointer-events: auto;
 }
@@ -2000,6 +2011,58 @@ textarea:focus,
 	text-align: center;
 	border: 1px dashed var(--line);
 	border-radius: 12px;
+}
+
+.app-shell.welcome-mode .workspace-title,
+.app-shell.welcome-mode .workspace-actions,
+.app-shell.welcome-mode .composer {
+	display: none;
+}
+
+.app-shell.welcome-mode .workspace-top {
+	justify-content: flex-start;
+}
+
+.app-shell.welcome-mode .pane-grid {
+	display: grid;
+	place-items: center;
+	padding: 48px 24px;
+}
+
+.workspace-welcome {
+	width: min(620px, 100%);
+	text-align: center;
+	padding: 56px 36px;
+	border: 1px solid #263d56;
+	background: linear-gradient(180deg, rgba(119, 185, 255, .06), rgba(255, 255, 255, .015));
+	box-shadow: 0 24px 80px rgba(0, 0, 0, .28);
+}
+
+.workspace-welcome-kicker {
+	font: 11px/1 var(--mono);
+	letter-spacing: .14em;
+	text-transform: uppercase;
+	color: #77b9ff;
+}
+
+.workspace-welcome h2 {
+	margin: 16px 0 10px;
+	font-size: clamp(28px, 4vw, 42px);
+	line-height: 1.08;
+	letter-spacing: -.035em;
+}
+
+.workspace-welcome p {
+	margin: 0;
+	color: var(--text-dim);
+	font: 15px/1.6 var(--reading);
+}
+
+.workspace-welcome-actions {
+	display: flex;
+	justify-content: center;
+	gap: 10px;
+	margin-top: 28px;
 }
 
 .composer {

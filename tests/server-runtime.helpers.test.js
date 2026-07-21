@@ -3,6 +3,7 @@ const { test } = require("node:test");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
+const Database = require("better-sqlite3");
 
 const { createServerRuntime } = require("../lib/server-runtime");
 
@@ -576,9 +577,59 @@ test("readState contains seeded defaults on new database", () => {
 		assert.equal(state.settings.profiles.length > 0, true);
 		assert.equal(Array.isArray(state.chats), true);
 		assert.equal(state.chats.length > 0, true);
+		assert.match(state.chats[0].routeId, /^[a-f0-9]{48}$/);
+		assert.notEqual(state.chats[0].routeId, state.chats[0].id);
 		assert.equal(typeof state.activeChatId, "string");
 	} finally {
 		destroy();
+	}
+});
+
+test("startup backfills opaque route ids for existing chats", () => {
+	const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-route-migration-"));
+	const sdkPath = path.join(tempRoot, "ai-sdk");
+	const dbPath = path.join(tempRoot, "data", "test.db");
+	fs.mkdirSync(sdkPath, { recursive: true });
+	fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+	fs.writeFileSync(path.join(sdkPath, "ai_sdk.kujo"), "# test sdk placeholder\n");
+	fs.writeFileSync(path.join(sdkPath, "providers.kujo"), "# test providers placeholder\n");
+	const legacyDb = new Database(dbPath);
+	legacyDb.exec(`
+		CREATE TABLE chats (
+			id TEXT PRIMARY KEY,
+			title TEXT NOT NULL,
+			project_path TEXT NOT NULL DEFAULT '',
+			pinned INTEGER NOT NULL DEFAULT 0,
+			archived INTEGER NOT NULL DEFAULT 0,
+			created_at INTEGER NOT NULL,
+			updated_at INTEGER NOT NULL,
+			sort_order INTEGER NOT NULL DEFAULT 0
+		);
+		INSERT INTO chats (id, title, created_at, updated_at) VALUES ('legacy-chat', 'Legacy Chat', 1, 1);
+	`);
+	legacyDb.close();
+
+	const runtime = createServerRuntime({
+		env: {
+			...process.env,
+			ENCRYPTION_SECRET: "unit-test-secret",
+			API_AUTH_TOKEN: "unit-test-token",
+			AI_SDK_PATH: sdkPath,
+			DB_PATH: dbPath,
+			DB_BACKUP_DIR: path.join(tempRoot, "backups"),
+			PORT: "0",
+			KUJO_BIN: "/usr/bin/false"
+		},
+		projectRoot: path.resolve(__dirname, "..")
+	});
+	try {
+		const chat = runtime.helpers.readState().chats.find((candidate) => candidate.id === "legacy-chat");
+		assert.ok(chat);
+		assert.match(chat.routeId, /^[a-f0-9]{48}$/);
+		assert.notEqual(chat.routeId, chat.id);
+	} finally {
+		runtime.close();
+		fs.rmSync(tempRoot, { recursive: true, force: true });
 	}
 });
 
@@ -615,6 +666,7 @@ test("writeState persists chat title and settings values", () => {
 	const { runtime, destroy } = createIsolatedRuntime();
 	try {
 		const state = runtime.helpers.readState();
+		const routeId = state.chats[0].routeId;
 		state.chats[0].title = "Renamed Chat";
 		state.settings.temperature = 0.8;
 		state.settings.maxTokens = 1200;
@@ -626,6 +678,7 @@ test("writeState persists chat title and settings values", () => {
 		runtime.helpers.writeState(state);
 		const after = runtime.helpers.readState();
 		assert.equal(after.chats[0].title, "Renamed Chat");
+		assert.equal(after.chats[0].routeId, routeId);
 		assert.equal(after.settings.temperature, 0.8);
 		assert.equal(after.settings.maxTokens, 1200);
 		assert.equal(after.settings.defaultProfileId, state.settings.defaultProfileId);

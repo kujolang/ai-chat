@@ -29,6 +29,7 @@ function baseState() {
 		},
 		chats: [{
 			id: "chat-1",
+			routeId: "0123456789abcdef0123456789abcdef0123456789abcdef",
 			title: "Chat",
 			createdAt: 100,
 			updatedAt: 100,
@@ -52,6 +53,12 @@ test("state sync emits only the changed normalized entity", () => {
 
 	assert.deepEqual(changes.map((change) => change.type), ["message_upsert"]);
 	assert.equal(changes[0].message.content, "updated");
+});
+
+test("state sync persists the public chat route separately from the internal chat id", () => {
+	const snapshot = stateSync.persistenceSnapshot(baseState());
+	assert.equal(snapshot.chats[0].id, "chat-1");
+	assert.equal(snapshot.chats[0].route_id, "0123456789abcdef0123456789abcdef0123456789abcdef");
 });
 
 test("state sync preserves explicit key updates and dependency-safe delete order", () => {

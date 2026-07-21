@@ -55,6 +55,7 @@
 			const chatId = String(chat.id || "");
 			snapshot.chats.push({
 				id: chatId,
+				route_id: String(chat.routeId || chat.route_id || ""),
 				title: String(chat.title || "Untitled Chat"),
 				project_path: String(chat.projectPath || chat.project_path || ""),
 				pinned: Boolean(chat.pinned),

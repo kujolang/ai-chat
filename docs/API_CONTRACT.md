@@ -90,6 +90,7 @@ When `DEBUG_API_ERRORS=0`, provider raw error bodies are not included in stream 
 `GET /api/state` returns:
 
 - `state.chats` array
+- Each chat includes a stable `routeId` used only for bookmarkable `/c/{routeId}` browser URLs. It is a long opaque public identifier and is distinct from the internal chat `id` used by API endpoints, persistence relationships, exports, and telemetry.
 - `state.projectFolders` array
 - `state.activeChatId` string|null
 - `state.showArchived` boolean
