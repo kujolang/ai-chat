@@ -37,7 +37,6 @@ let stateLoadedFromServer = false;
 let runtimeCapabilities = { loaded: false, tools: [], schemas: [], browser: { enabled: false, available: false, action_policy: "read-only" } };
 let settingsSaveIndicatorTimer = null;
 let suppressNextTokenBlurSave = false;
-let usageChart = null;
 let markdownRenderer = null;
 let workspaceRenderScheduled = false;
 let streamingMessagePatchScheduled = false;
@@ -184,8 +183,7 @@ const nodes = {
 	usageStatAverage: document.getElementById("usage-stat-average"),
 	usageStatInput: document.getElementById("usage-stat-input"),
 	usageStatOutput: document.getElementById("usage-stat-output"),
-	usageStatCached: document.getElementById("usage-stat-cached"),
-	usageStatCacheWrite: document.getElementById("usage-stat-cache-write"),
+	usageStatActiveModels: document.getElementById("usage-stat-active-models"),
 	usageStatResponseTime: document.getElementById("usage-stat-response-time"),
 	usageStatSlowestResponse: document.getElementById("usage-stat-slowest-response"),
 	usageFilterChat: document.getElementById("usage-filter-chat"),
@@ -253,9 +251,10 @@ async function loadRuntimeCapabilities() {
 			loaded: true,
 			tools: Array.isArray(toolRuntime.tools) ? toolRuntime.tools.map(String) : [],
 			schemas: Array.isArray(toolRuntime.schemas) ? toolRuntime.schemas.map(normalizeRuntimeToolSchema).filter(Boolean) : [],
-			browser: toolRuntime.browser && typeof toolRuntime.browser === "object"
-				? toolRuntime.browser
-				: { enabled: false, available: false, action_policy: "read-only" }
+		browser: toolRuntime.browser && typeof toolRuntime.browser === "object"
+			? toolRuntime.browser
+			: { enabled: false, available: false, action_policy: "read-only" },
+		local: toolRuntime.local && typeof toolRuntime.local === "object" ? toolRuntime.local : { enabled: false, available: false, write_enabled: false, workspaces: [] }
 		};
 	} catch (error) {
 		// State loading already presents connection errors to the user.
@@ -2695,6 +2694,29 @@ async function exportActiveChat() {
 	const chat = getActiveChat();
 	if (!chat) return;
 	try {
+		const local = runtimeCapabilities.local || {};
+		const workspaces = Array.isArray(local.workspaces) ? local.workspaces : [];
+		if (local.write_enabled && workspaces.length > 0) {
+			const choices = workspaces.map((workspace) => `${workspace.id} (${workspace.label || workspace.path || "workspace"})`).join(", ");
+			const rootId = await openConfirmationModal({
+				title: "Save transcript to workspace",
+				message: `Enter an exposed workspace ID. Available: ${choices}. Leave blank to download instead.`,
+				inputLabel: "Workspace ID",
+				inputValue: "",
+				confirmLabel: "Save"
+			});
+			if (rootId) {
+				const saved = await apiFetch(`/api/chats/${encodeURIComponent(chat.id)}/export`, {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({ root_id: rootId, create_dirs: true })
+				});
+				const payload = await saved.json();
+				if (!saved.ok || !payload.ok) throw new Error(payload && payload.error && payload.error.message || `Export failed (${saved.status}).`);
+				if (nodes.voiceStatus) nodes.voiceStatus.textContent = `Saved ${payload.export.path}`;
+				return;
+			}
+		}
 		const response = await apiFetch(`/api/chats/${encodeURIComponent(chat.id)}/export`);
 		if (!response.ok) throw new Error(`Export failed (${response.status}).`);
 		const contentDisposition = String(response.headers.get("content-disposition") || "");
@@ -3094,7 +3116,6 @@ function openUsageModal() {
 
 function closeUsageModal() {
 	nodes.usageModal.classList.add("hidden");
-	destroyUsageChart();
 }
 
 function isUsageModalOpen() {
@@ -3635,9 +3656,6 @@ function renderUsageModalContent() {
 	const responseTimes = filteredRecords.map((record) => record.response_time_ms).filter((value) => value > 0);
 	const averageResponseTime = responseTimes.length > 0 ? responseTimes.reduce((sum, value) => sum + value, 0) / responseTimes.length : 0;
 	const slowestResponseTime = responseTimes.length > 0 ? Math.max(...responseTimes) : 0;
-	const cacheReported = filteredRecords.some((record) => record.cache_details_reported);
-	const cachedInputTokens = filteredRecords.reduce((sum, record) => sum + (record.cached_input_tokens || 0), 0);
-	const cacheWriteInputTokens = filteredRecords.reduce((sum, record) => sum + (record.cache_write_input_tokens || 0), 0);
 	const responseCount = filteredRecords.length;
 	const retryCount = filteredRecords.reduce((sum, record) => sum + record.retry_count, 0);
 	const average = responseCount > 0 ? Math.round(totalTokens / responseCount) : 0;
@@ -3648,10 +3666,9 @@ function renderUsageModalContent() {
 	nodes.usageStatAverage.textContent = formatNumber(average);
 	nodes.usageStatInput.textContent = formatNumber(inputTokens);
 	nodes.usageStatOutput.textContent = formatNumber(outputTokens);
-	nodes.usageStatCached.textContent = cacheReported ? formatNumber(cachedInputTokens) : "—";
-	nodes.usageStatCacheWrite.textContent = cacheReported ? formatNumber(cacheWriteInputTokens) : "—";
 	nodes.usageStatResponseTime.textContent = formatDurationMs(averageResponseTime);
 	nodes.usageStatSlowestResponse.textContent = formatDurationMs(slowestResponseTime);
+	nodes.usageStatActiveModels.textContent = formatNumber(new Set(filteredRecords.map((record) => record.model).filter(Boolean)).size);
 
 	renderUsageChart(groupedRows, filters.chartType, filters.groupBy);
 	renderUsageBreakdown(groupedRows);
@@ -3897,112 +3914,19 @@ function renderUsageChart(groupedRows, chartType, groupBy) {
 	if (!nodes.usageChartCanvas) {
 		return;
 	}
-
-	const chartLibrary = window.Chart;
-	if (!chartLibrary) {
-		destroyUsageChart();
-		return;
-	}
-
 	const labels = groupedRows.map((row) => row.label);
 	const metricKey = groupBy === "day" ? "responses" : "tokens";
 	const metricLabel = metricKey === "responses" ? "Requests" : "Tokens";
 	const data = groupedRows.map((row) => Number(row[metricKey] || 0));
-	const palette = ["#6bf1bf", "#43c4ff", "#ffd369", "#ff8a8a", "#bb9cff", "#95f28f", "#ffa8d9", "#7be1d0", "#f7a95b", "#9bb6ff"];
-	const backgroundColors = labels.map((_, index) => palette[index % palette.length]);
-	const safeChartType = chartType === "line" || chartType === "doughnut" ? chartType : "bar";
-
-	destroyUsageChart();
-	const shouldUseAxes = safeChartType === "bar" || safeChartType === "line";
-	const dataset = {
-		label: metricLabel,
-		data,
-		borderWidth: safeChartType === "line" ? 2 : 1,
-		borderColor: safeChartType === "line" ? "#6bf1bf" : backgroundColors,
-		backgroundColor: safeChartType === "line" ? "rgba(107, 241, 191, 0.2)" : backgroundColors,
-		tension: safeChartType === "line" ? 0.25 : 0,
-		fill: safeChartType === "line"
-	};
-
-	usageChart = new chartLibrary(nodes.usageChartCanvas, {
-		type: safeChartType,
-		data: {
-			labels,
-			datasets: [dataset]
-		},
-		options: {
-			responsive: true,
-			maintainAspectRatio: false,
-			plugins: {
-				legend: {
-					display: safeChartType === "doughnut"
-				},
-				tooltip: {
-					callbacks: {
-						label: (context) => {
-							const value = usageTooltipValue(context);
-							return metricKey === "responses"
-								? `${formatNumber(value)} requests`
-								: `${formatNumber(value)} tokens`;
-						}
-					}
-				}
-			},
-			scales: shouldUseAxes
-				? {
-					x: {
-						ticks: {
-							autoSkip: groupBy !== "day",
-							maxRotation: 0,
-							minRotation: 0
-						}
-					},
-					y: {
-						beginAtZero: true,
-						ticks: {
-							callback: (value) => formatNumber(value)
-						}
-					}
-				}
-				: undefined
-		}
-	});
-}
-
-function usageTooltipValue(context) {
-	if (!context || !Object.prototype.hasOwnProperty.call(context, "parsed")) {
-		return 0;
-	}
-
-	const parsed = context.parsed;
-	if (Number.isFinite(Number(parsed))) {
-		return Number(parsed);
-	}
-
-	if (parsed && Number.isFinite(Number(parsed.y))) {
-		return Number(parsed.y);
-	}
-
-	if (parsed && Number.isFinite(Number(parsed.r))) {
-		return Number(parsed.r);
-	}
-
-	if (parsed && Number.isFinite(Number(parsed.raw))) {
-		return Number(parsed.raw);
-	}
-
-	if (Number.isFinite(Number(context.raw))) {
-		return Number(context.raw);
-	}
-
-	return 0;
-}
-
-function destroyUsageChart() {
-	if (usageChart && typeof usageChart.destroy === "function") {
-		usageChart.destroy();
-	}
-	usageChart = null;
+	const maxValue = Math.max(...data, 1);
+	const rows = labels.length
+		? labels.map((label, index) => {
+			const value = data[index] || 0;
+			const width = Math.max(value > 0 ? 3 : 0, Math.round((value / maxValue) * 100));
+			return `<div class="usage-dither-row" title="${escapeHtml(label)}: ${formatNumber(value)} ${metricLabel.toLowerCase()}"><span class="usage-dither-label">${escapeHtml(label)}</span><span class="usage-dither-track"><span class="usage-dither-bar" style="width:${width}%"></span></span><strong>${formatNumber(value)}</strong></div>`;
+		}).join("")
+		: "<div class=\"empty-state\">No usage data for this view.</div>";
+	nodes.usageChartCanvas.innerHTML = `<div class="usage-dither-key">${escapeHtml(metricLabel)} · ${escapeHtml(chartType)} view</div>${rows}`;
 }
 
 function renderUsageBreakdown(groupedRows) {

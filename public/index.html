@@ -366,20 +366,16 @@
 					<div id="usage-stat-output" class="usage-stat-value">0</div>
 				</div>
 				<div class="usage-stat-card">
-					<div class="usage-stat-label">Cached Input</div>
-					<div id="usage-stat-cached" class="usage-stat-value">—</div>
-				</div>
-				<div class="usage-stat-card">
-					<div class="usage-stat-label">Cache Write</div>
-					<div id="usage-stat-cache-write" class="usage-stat-value">—</div>
-				</div>
-				<div class="usage-stat-card">
 					<div class="usage-stat-label">Average Response</div>
 					<div id="usage-stat-response-time" class="usage-stat-value">—</div>
 				</div>
 				<div class="usage-stat-card">
 					<div class="usage-stat-label">Slowest Response</div>
 					<div id="usage-stat-slowest-response" class="usage-stat-value">—</div>
+				</div>
+				<div class="usage-stat-card">
+					<div class="usage-stat-label">Active Models</div>
+					<div id="usage-stat-active-models" class="usage-stat-value">0</div>
 				</div>
 			</div>
 
@@ -437,7 +433,7 @@
 			</div>
 
 			<div class="usage-chart-wrap">
-				<canvas id="usage-chart-canvas" aria-label="Token usage chart"></canvas>
+				<div id="usage-chart-canvas" class="usage-dither-chart" role="img" aria-label="Token usage chart"></div>
 			</div>
 
 			<div id="usage-breakdown" class="usage-breakdown"></div>
@@ -490,7 +486,6 @@
 
 	<script src="https://cdn.jsdelivr.net/npm/markdown-it@14.1.0/dist/markdown-it.min.js"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
-	<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 	<script src="/state-sync.js"></script>

@@ -647,6 +647,34 @@ test("GET /api/chats/:chatId/export returns a complete Markdown transcript", asy
 	}
 });
 
+test("POST /api/chats/:chatId/export saves a transcript only to an opt-in workspace", async () => {
+	const exportRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-export-"));
+	const { runtime, destroy } = createIsolatedRuntime({
+		envMerge: {
+			AI_CHAT_LOCAL_TOOLS_ENABLED: "1",
+			AI_CHAT_LOCAL_WRITE_ENABLED: "1",
+			AI_CHAT_LOCAL_WORKSPACE_ROOTS: exportRoot
+		}
+	});
+	try {
+		const chatId = runtime.helpers.readState().chats[0].id;
+		await withServer(runtime.app, async (baseUrl) => {
+			const result = await fetchJson(baseUrl, `/api/chats/${chatId}/export`, {
+				method: "POST",
+				headers: { "content-type": "application/json" },
+				body: JSON.stringify({ root_id: "workspace_0" })
+			});
+			assert.equal(result.response.status, 201);
+			assert.equal(result.json.ok, true);
+			assert.match(result.json.export.path, /^chat-.*\.md$/);
+			assert.equal(fs.existsSync(path.join(exportRoot, result.json.export.path)), true);
+		});
+	} finally {
+		destroy();
+		fs.rmSync(exportRoot, { recursive: true, force: true });
+	}
+});
+
 test("POST /api/state/changes persists reusable pane profiles independently", async () => {
 	const { runtime, destroy } = createIsolatedRuntime();
 	try {

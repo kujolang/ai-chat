@@ -102,6 +102,10 @@ Clients may request `GET /api/state?messages=none` to load chat metadata, pane m
 `GET /api/chats/:chatId/export` returns an authenticated Markdown download named
 `chat-{ID}-{datetime}.md`. Its header records the chat ID, title, export time,
 pane provider/model selections, and complete user/assistant/thinking transcript.
+`POST /api/chats/:chatId/export` saves that same transcript into an explicitly
+configured local workspace only when both local tools and local writes are opted
+in. It accepts `root_id`, optional safe Markdown `path`, and `create_dirs`; it
+never writes outside the configured workspace or to a sensitive file path.
 
 Chat requests allow a single pasted message up to the existing 200,000-character
 aggregate request limit by default. Set `MAX_MESSAGE_CHARS` lower only when a
