@@ -116,6 +116,7 @@ const nodes = {
 	chatList: document.getElementById("chat-list"),
 	chatTitleInput: document.getElementById("chat-title-input"),
 	copyChatIdBtn: document.getElementById("copy-chat-id-btn"),
+	exportChatBtn: document.getElementById("export-chat-btn"),
 	addPaneBtn: document.getElementById("add-pane-btn"),
 	openPaneProfilesBtn: document.getElementById("open-pane-profiles-btn"),
 	paneControls: document.getElementById("pane-controls"),
@@ -646,6 +647,8 @@ function wireEvents() {
 			// Ignore clipboard failures.
 		});
 	});
+
+	nodes.exportChatBtn.addEventListener("click", () => { void exportActiveChat(); });
 
 	nodes.addPaneBtn.addEventListener("click", () => {
 		const chat = getActiveChat();
@@ -2595,6 +2598,7 @@ function renderWorkspace(options = {}) {
 	if (!chat) {
 		nodes.chatTitleInput.value = "";
 		nodes.copyChatIdBtn.disabled = true;
+		nodes.exportChatBtn.disabled = true;
 		nodes.paneControls.innerHTML = "";
 		nodes.paneGrid.innerHTML = "<div class=\"empty-state\">Start a new chat or choose one from the sidebar.</div>";
 		return;
@@ -2602,6 +2606,7 @@ function renderWorkspace(options = {}) {
 
 	nodes.chatTitleInput.value = chat.title;
 	nodes.copyChatIdBtn.disabled = false;
+	nodes.exportChatBtn.disabled = false;
 	nodes.copyChatIdBtn.classList.remove("copied");
 	nodes.copyChatIdBtn.setAttribute("aria-label", "Copy chat ID");
 	nodes.copyChatIdBtn.setAttribute("title", `Copy chat ID: ${chat.id}`);
@@ -2684,6 +2689,28 @@ function renderWorkspace(options = {}) {
 		}
 		scheduleCodeHighlighting(nodes.paneGrid);
 	});
+}
+
+async function exportActiveChat() {
+	const chat = getActiveChat();
+	if (!chat) return;
+	try {
+		const response = await apiFetch(`/api/chats/${encodeURIComponent(chat.id)}/export`);
+		if (!response.ok) throw new Error(`Export failed (${response.status}).`);
+		const contentDisposition = String(response.headers.get("content-disposition") || "");
+		const filename = (contentDisposition.match(/filename="([^"]+)"/) || [])[1] || `chat-${chat.id}-${new Date().toISOString().replace(/[:.]/g, "-")}.md`;
+		const url = URL.createObjectURL(await response.blob());
+		const link = document.createElement("a");
+		link.href = url;
+		link.download = filename;
+		document.body.appendChild(link);
+		link.click();
+		link.remove();
+		window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+		if (nodes.voiceStatus) nodes.voiceStatus.textContent = `Exported ${filename}`;
+	} catch (error) {
+		if (nodes.voiceStatus) nodes.voiceStatus.textContent = `Export failed: ${error.message || "Unknown error"}`;
+	}
 }
 
 function renderPaneControls(chat) {

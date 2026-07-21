@@ -623,6 +623,30 @@ test("GET /api/state can return lightweight chat summaries and hydrate one chat"
 	}
 });
 
+test("GET /api/chats/:chatId/export returns a complete Markdown transcript", async () => {
+	const { runtime, destroy } = createIsolatedRuntime();
+	try {
+		const seeded = runtime.helpers.readState();
+		const chatId = seeded.chats[0].id;
+		const paneId = seeded.chats[0].panes[0].id;
+		runtime.helpers.applyStateChanges({ changes: [{ type: "message_upsert", message: {
+			id: "export-message", pane_id: paneId, role: "assistant", content: "Exported response", thinking: "brief reasoning", usage: null, created_at: Date.now(), sort_order: 0
+		} }] });
+		await withServer(runtime.app, async (baseUrl) => {
+			const response = await fetch(`${baseUrl}/api/chats/${chatId}/export`, { headers: withAuthHeaders() });
+			assert.equal(response.status, 200);
+			assert.match(response.headers.get("content-type"), /^text\/markdown/);
+			assert.match(response.headers.get("content-disposition"), new RegExp(`chat-${chatId}-`));
+			const transcript = await response.text();
+			assert.match(transcript, /# Chat Transcript/);
+			assert.match(transcript, /Exported response/);
+			assert.match(transcript, /brief reasoning/);
+		});
+	} finally {
+		destroy();
+	}
+});
+
 test("POST /api/state/changes persists reusable pane profiles independently", async () => {
 	const { runtime, destroy } = createIsolatedRuntime();
 	try {
