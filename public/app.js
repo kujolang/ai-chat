@@ -65,6 +65,7 @@ const usageSummaryVisibleStorageKey = "ai_chat_usage_summary_visible_v1";
 const collapsedProvidersStorageKey = "ai_chat_collapsed_providers_v1";
 const collapsedToolsStorageKey = "ai_chat_collapsed_tools_v1";
 const stateChangesBatchBytes = 512 * 1024;
+const composerPasteSoftLimitChars = 120000;
 const maxVisibleProjectFolders = 5;
 const sidebarChatPageSize = 5;
 const defaultApiTokenTtlDays = 3650;
@@ -266,10 +267,11 @@ function ensureMinimumState() {
 		state.activeChatId = null;
 	}
 	if (!state.activeChatId) {
-		const fallbackChat = state.chats.find((chat) => !chat.archived) || state.chats[0] || null;
-		if (fallbackChat) {
-			state.activeChatId = fallbackChat.id;
-		}
+		// A fresh window is a new workspace, not a resume action. Keep saved chats
+		// in the sidebar but start with one blank, single-pane chat.
+		const freshChat = createChat("New Chat");
+		state.chats.unshift(freshChat);
+		state.activeChatId = freshChat.id;
 	}
 }
 
@@ -2611,9 +2613,10 @@ function renderMessageNodeHtml(message, paneId) {
 	const meta = metaBits.length > 0 ? `<div class=\"message-meta\">${escapeHtml(metaBits.join(" | "))}</div>` : "";
 	const thinking = renderThinkingBlock(message, paneId);
 	const toolError = renderToolErrorBlock(message);
-	const contentBody = message.role === "assistant"
-		? renderAssistantMarkdown(message.content)
-		: renderPlainText(message.content);
+	const toolActivity = Array.isArray(message.tool_activity) && message.tool_activity.length > 0
+		? `<div class="message-tool-activity" role="status">${message.tool_activity.map((line) => escapeHtml(String(line))).join("<br>")}</div>`
+		: "";
+	const contentBody = renderAssistantMarkdown(message.content);
 	const content = `<div class="message-content-block">${contentBody}</div>`;
 	const screenshots = renderBrowserScreenshotArtifacts(message);
 	const timestamp = formatMessageTime(message.createdAt);
@@ -2626,7 +2629,7 @@ function renderMessageNodeHtml(message, paneId) {
 		const metaFooter = meta || footer
 			? `<div class="message-meta-footer">${meta}${footer}</div>`
 			: "";
-		return `<div class="${messageClasses.join(" ")}" data-message-id="${escapeHtml(message.id)}" data-pane-id="${escapeHtml(paneId)}">${thinking}${content}${toolError}${screenshots}${metaFooter}</div>`;
+		return `<div class="${messageClasses.join(" ")}" data-message-id="${escapeHtml(message.id)}" data-pane-id="${escapeHtml(paneId)}">${thinking}${toolActivity}${content}${toolError}${screenshots}${metaFooter}</div>`;
 	}
 
 	return `<div class="${messageClasses.join(" ")}" data-message-id="${escapeHtml(message.id)}" data-pane-id="${escapeHtml(paneId)}"><div class="message-bubble">${content}${meta}</div>${footer}</div>`;
@@ -4507,6 +4510,10 @@ async function sendFromComposer() {
 	if (!text) {
 		return;
 	}
+	if (text.length > composerPasteSoftLimitChars) {
+		nodes.voiceStatus.textContent = `Message is ${formatNumber(text.length)} characters. Large pastes need attachment support; split this into smaller messages for now.`;
+		return;
+	}
 
 	nodes.composerInput.value = "";
 	chat.updatedAt = Date.now();
@@ -4556,6 +4563,7 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 	assistantMessage.continuation_passes = 0;
 	assistantMessage.retry_count = Math.max(0, Number(options.retryCount) || 0);
 	assistantMessage.trace_id = assistantMessage.id;
+	assistantMessage.tool_activity = [];
 
 	if (!existingUserMessage) {
 		pane.messages.push(userMessage);
@@ -4711,6 +4719,13 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 						assistantMessage.thinking = `${assistantMessage.thinking || ""}${payloadObj.delta || ""}`;
 						scheduleStreamingMessagePatch(chat.id, pane.id, assistantMessage.id);
 					}
+					return;
+				}
+
+				if (eventName === "tool") {
+					const toolName = String(payloadObj.tool_name || "tool").replaceAll("_", " ");
+					assistantMessage.tool_activity = payloadObj.phase === "started" ? [`Using ${toolName}…`] : [];
+					scheduleStreamingMessagePatch(chat.id, pane.id, assistantMessage.id);
 					return;
 				}
 
@@ -4978,6 +4993,7 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 		};
 		assistantMessage.response_time_ms = Math.max(0, Date.now() - Number(assistantMessage.request_started_at || Date.now()));
 		assistantMessage.streaming = false;
+		assistantMessage.tool_activity = [];
 		const shouldMarkPartial = endedLikelyIncomplete || (!assistantMessage.content && assistantMessage.thinking);
 		pane.status = terminalStreamError ? "error" : (shouldMarkPartial ? "partial" : "idle");
 		if (assistantMessage.usage && Number(assistantMessage.usage.total_tokens) > 0) {
@@ -5015,6 +5031,7 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 			completeThinkingTiming();
 			assistantMessage.response_time_ms = Math.max(0, Date.now() - Number(assistantMessage.request_started_at || Date.now()));
 			assistantMessage.streaming = false;
+			assistantMessage.tool_activity = [];
 			pane.status = assistantMessage.content || assistantMessage.thinking ? "partial" : "idle";
 		} else {
 		completeThinkingTiming();
@@ -5056,6 +5073,7 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 		}
 
 		assistantMessage.streaming = false;
+		assistantMessage.tool_activity = [];
 		pane.status = "error";
 		const errorMessage = (error && error.message)
 			? String(error.message)
@@ -6973,7 +6991,7 @@ function renderThinkingBlock(message, paneId) {
 			: "Thought";
 
 	const renderedThinking = renderAssistantMarkdown(thinkingText);
-	return `<div class="message-thinking" role="status" aria-live="polite"><div class="message-thinking-head"><div class="thinking-label">${thinkingLabel}</div>${toggle}${loadingIcon}</div><div class="${contentClass} message-thinking-markdown"><div class="message-content-block">${renderedThinking}</div></div></div>`;
+	return `<div class="message-thinking" role="status" aria-live="polite"><div class="message-thinking-head"><div class="thinking-label">${thinkingLabel}</div>${toggle}</div><div class="${contentClass} message-thinking-markdown"><div class="message-content-block">${renderedThinking}</div></div>${message.streaming && !message.content ? `<div class="thinking-progress">${loadingIcon}</div>` : ""}</div>`;
 }
 
 function thinkingToggleIconSvg(expanded) {

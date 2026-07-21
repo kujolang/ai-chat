@@ -17,7 +17,6 @@
 			<div class="sidebar-main">
 			<div class="brand-row">
 				<div class="brand-meta">
-					<div class="brand-dot"></div>
 					<div>
 						<h1>AI Chat</h1>
 					</div>
@@ -384,9 +383,8 @@
 					<span>Chat</span>
 					<select id="usage-filter-chat"></select>
 				</label>
-				<label>
-					<span>Pane</span>
-					<select id="usage-filter-pane"></select>
+				<label class="hidden" aria-hidden="true">
+					<select id="usage-filter-pane" tabindex="-1"></select>
 				</label>
 				<label>
 					<span>Provider</span>
