@@ -623,6 +623,33 @@ input[type="checkbox"]:disabled {
 	flex-shrink: 0;
 }
 
+#delete-all-archived-btn {
+	width: calc(100% - 16px);
+	margin: 8px;
+	justify-content: center;
+}
+
+.sidebar-delete-confirm {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 3px 5px;
+	border: 1px solid #5a3038;
+	background: #1a1417;
+	font: 10px/1 var(--mono);
+}
+
+.sidebar-delete-confirm button {
+	border: 0;
+	padding: 2px;
+	background: transparent;
+	color: #b8c8d9;
+	font: inherit;
+	cursor: pointer;
+}
+
+.sidebar-delete-confirm button:last-child { color: #ff9a9a; }
+
 .chat-action {
 	border: 0;
 	background: transparent;
@@ -789,6 +816,9 @@ input[type="checkbox"]:disabled {
 	width: 32px;
 	height: 32px;
 	padding: 0;
+	border-color: transparent;
+	background: transparent;
+	box-shadow: none;
 }
 
 .sidebar-toggle-btn {
@@ -1572,6 +1602,17 @@ textarea::-webkit-scrollbar-thumb:hover {
 
 .message-meta-footer .message-meta {
 	margin-top: 0;
+	opacity: 0;
+	max-width: 0;
+	overflow: hidden;
+	white-space: nowrap;
+	transition: opacity 120ms ease, max-width 120ms ease;
+}
+
+.message:hover .message-meta-footer .message-meta,
+.message:focus-within .message-meta-footer .message-meta {
+	opacity: 1;
+	max-width: 620px;
 }
 
 .message-footer {

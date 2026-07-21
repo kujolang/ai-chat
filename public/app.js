@@ -44,6 +44,7 @@ const streamingMessagePatchQueue = new Map();
 const activeStreamControllers = new Set();
 let activeStreamCount = 0;
 let stopStreamingRequested = false;
+let pendingSidebarDeleteChatId = "";
 const hydratingChatIds = new Set();
 let codeHighlightScheduled = false;
 const pendingCodeHighlightRoots = new Set();
@@ -961,6 +962,25 @@ function wireEvents() {
 		const action = actionElement ? actionElement.getAttribute("data-action") : "";
 		const chat = getChatById(chatId);
 		if (!chat) {
+			return;
+		}
+		if (action === "request-delete") {
+			pendingSidebarDeleteChatId = chat.id;
+			renderSidebar();
+			return;
+		}
+		if (action === "cancel-delete") {
+			pendingSidebarDeleteChatId = "";
+			renderSidebar();
+			return;
+		}
+		if (action === "confirm-delete") {
+			markUsageLedgerChatDeleted(chat.id);
+			state.chats = state.chats.filter((item) => item.id !== chat.id);
+			pendingSidebarDeleteChatId = "";
+			if (state.activeChatId === chat.id) state.activeChatId = state.chats[0] ? state.chats[0].id : null;
+			schedulePersist();
+			renderAll();
 			return;
 		}
 
@@ -2387,7 +2407,8 @@ function renderComposerProfileSelect() {
 function renderSidebar() {
 	nodes.showActiveBtn.classList.toggle("active", !state.showArchived);
 	nodes.showArchivedBtn.classList.toggle("active", state.showArchived);
-	nodes.deleteAllArchivedBtn.classList.toggle("hidden", !state.showArchived || !state.chats.some((chat) => chat.archived));
+	const showDeleteAll = state.showArchived && state.chats.some((chat) => chat.archived);
+	nodes.deleteAllArchivedBtn.classList.toggle("hidden", !showDeleteAll);
 	renderProjectFolderList();
 
 	const filtered = state.chats
@@ -2416,6 +2437,7 @@ function renderSidebar() {
 
 	if (pinnedChats.length === 0 && visibleRegularChats.length === 0) {
 		nodes.chatList.innerHTML = `<div class="empty-state">${state.activeProjectPath ? "No chats in this project." : "No chats found."}</div>`;
+		nodes.deleteAllArchivedBtn.remove();
 		return;
 	}
 	const sections = [];
@@ -2447,6 +2469,13 @@ function renderSidebar() {
 	}
 
 	nodes.chatList.innerHTML = sections.join("");
+	if (showDeleteAll) {
+		const recentGroup = Array.from(nodes.chatList.querySelectorAll(".chat-group")).find((group) => group.querySelector(".chat-group-title")?.textContent === "Recent");
+		if (recentGroup) nodes.chatList.insertBefore(nodes.deleteAllArchivedBtn, recentGroup);
+		else nodes.chatList.append(nodes.deleteAllArchivedBtn);
+	} else {
+		nodes.deleteAllArchivedBtn.remove();
+	}
 }
 
 async function deleteAllArchivedChats() {
@@ -2565,6 +2594,11 @@ function renderSidebarChatItems(chats) {
 				? `<button class="chat-action chat-action-danger" data-action="delete" aria-label="Delete" title="Delete"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash-icon lucide-trash" aria-hidden="true"><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>`
 				: "";
 
+			const deleteButtonMarkup = deleteButton.replace('data-action="delete"', 'data-action="request-delete"');
+			const deleteConfirmation = pendingSidebarDeleteChatId === chat.id
+				? `<span class="sidebar-delete-confirm"><button data-action="cancel-delete" type="button">Cancel</button><button data-action="confirm-delete" type="button">Delete</button></span>`
+				: deleteButtonMarkup;
+
 			return `
 				<article class="chat-item ${active}" data-chat-id="${chat.id}">
 					<div class="chat-item-top">
@@ -2578,7 +2612,7 @@ function renderSidebarChatItems(chats) {
 							<button class="chat-action" data-action="archive" aria-label="${archiveLabel}" title="${archiveLabel}">
 								${archiveIcon}
 							</button>
-							${deleteButton}
+							${deleteConfirmation}
 						</div>
 					</div>
 				</article>
