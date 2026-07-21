@@ -103,6 +103,10 @@ Clients may request `GET /api/state?messages=none` to load chat metadata, pane m
 `chat-{ID}-{datetime}.md`. Its header records the chat ID, title, export time,
 pane provider/model selections, and complete user/assistant/thinking transcript.
 
+Chat requests allow a single pasted message up to the existing 200,000-character
+aggregate request limit by default. Set `MAX_MESSAGE_CHARS` lower only when a
+deployment needs a stricter provider-specific limit.
+
 `defaultProfileId` and `defaultModel` identify the provider/model selection used by regular new chats. Clients fall back to the first available configured model when the saved selection is missing or no longer exists.
 
 `agentInstructions` is a bounded (24,000-character) app-wide instruction document. `agentInstructionProfiles` is an optional array of bounded `{id, models_csv, instructions, enabled}` entries; matching comma-separated model names append their instructions when `enabled` is not `false`. The browser prepends the combined text as the first system message for each pane request. These fields are intended to be compatible with concise `AGENTS.md` guidance and must not contain credentials or other secrets.

@@ -4661,9 +4661,8 @@ async function sendFromComposer() {
 	if (!text) {
 		return;
 	}
-	if (text.length > composerPasteSoftLimitChars) {
-		nodes.voiceStatus.textContent = `Message is ${formatNumber(text.length)} characters. Large pastes need attachment support; split this into smaller messages for now.`;
-		return;
+	if (text.length > composerPasteSoftLimitChars && nodes.voiceStatus) {
+		nodes.voiceStatus.textContent = `Sending large pasted text (${formatNumber(text.length)} characters)…`;
 	}
 
 	nodes.composerInput.value = "";

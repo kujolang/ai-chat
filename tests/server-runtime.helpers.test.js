@@ -406,6 +406,11 @@ test("chatRequestPayload applies defaults and validates normalized messages", ()
 		assert.equal(payload.offline_fixture, false);
 		assert.equal(payload.messages.length, 1);
 		assert.deepEqual(payload.tools, []);
+		assert.equal(runtime.helpers.chatRequestPayload({ messages: [{ role: "user", content: "x".repeat(120001) }] }, {}).messages[0].content.length, 120001);
+		assert.throws(
+			() => runtime.helpers.chatRequestPayload({ messages: [{ role: "user", content: "x".repeat(200001) }] }, {}),
+			/maximum allowed length/
+		);
 		const withTool = runtime.helpers.chatRequestPayload({
 			messages: [{ role: "user", content: "hi" }],
 			tools: [{ type: "function", function: { name: "browser-use", description: "Browse", parameters: { type: "object" } } }]
