@@ -666,7 +666,7 @@ test("applyStateChanges upserts messages without replacing unrelated state", () 
 					provider: "openai",
 					model: "gpt-4.1",
 					thinking: "",
-					usage: { total_tokens: 4 },
+					usage: { total_tokens: 4, thinking_duration_ms: 746000, response_time_ms: 760000, tool_activity: ["Searched docs · done"] },
 					created_at: Date.now(),
 					sort_order: 0
 				}
@@ -676,6 +676,9 @@ test("applyStateChanges upserts messages without replacing unrelated state", () 
 		assert.equal(version, before.stateVersion + 1);
 		assert.equal(after.chats.length, before.chats.length);
 		assert.equal(after.chats[0].panes[0].messages[0].content, "durable response");
+		assert.equal(after.chats[0].panes[0].messages[0].thinking_duration_ms, 746000);
+		assert.equal(after.chats[0].panes[0].messages[0].response_time_ms, 760000);
+		assert.deepEqual(after.chats[0].panes[0].messages[0].tool_activity, ["Searched docs · done"]);
 	} finally {
 		destroy();
 	}

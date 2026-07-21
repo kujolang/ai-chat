@@ -45,6 +45,8 @@ const activeStreamControllers = new Set();
 let activeStreamCount = 0;
 let stopStreamingRequested = false;
 let pendingSidebarDeleteChatId = "";
+let chatWatchdogExpanded = false;
+let chatWatchdogChatId = "";
 const hydratingChatIds = new Set();
 let codeHighlightScheduled = false;
 const pendingCodeHighlightRoots = new Set();
@@ -116,6 +118,8 @@ const nodes = {
 	chatList: document.getElementById("chat-list"),
 	chatTitleInput: document.getElementById("chat-title-input"),
 	copyChatIdBtn: document.getElementById("copy-chat-id-btn"),
+	chatWatchdogBtn: document.getElementById("chat-watchdog-btn"),
+	chatWatchdogTrace: document.getElementById("chat-watchdog-trace"),
 	exportChatBtn: document.getElementById("export-chat-btn"),
 	addPaneBtn: document.getElementById("add-pane-btn"),
 	openPaneProfilesBtn: document.getElementById("open-pane-profiles-btn"),
@@ -647,15 +651,22 @@ function wireEvents() {
 		void navigator.clipboard.writeText(String(chat.id)).then(() => {
 			nodes.copyChatIdBtn.classList.add("copied");
 			nodes.copyChatIdBtn.setAttribute("aria-label", "Copied chat ID");
-			nodes.copyChatIdBtn.setAttribute("title", "Copied chat ID");
+			nodes.copyChatIdBtn.setAttribute("data-tooltip", "Copied chat ID");
 			window.setTimeout(() => {
 				nodes.copyChatIdBtn.classList.remove("copied");
 				nodes.copyChatIdBtn.setAttribute("aria-label", "Copy chat ID");
-				nodes.copyChatIdBtn.setAttribute("title", "Copy chat ID");
+				nodes.copyChatIdBtn.setAttribute("data-tooltip", `Copy chat ID: ${chat.id}`);
 			}, 1200);
 		}).catch(() => {
 			// Ignore clipboard failures.
 		});
+	});
+
+	nodes.chatWatchdogBtn.addEventListener("click", () => {
+		chatWatchdogExpanded = !chatWatchdogExpanded;
+		nodes.chatWatchdogBtn.classList.toggle("expanded", chatWatchdogExpanded);
+		nodes.chatWatchdogBtn.setAttribute("aria-expanded", chatWatchdogExpanded ? "true" : "false");
+		nodes.chatWatchdogBtn.setAttribute("aria-label", `${chatWatchdogExpanded ? "Hide" : "Show"} Watchdog trace`);
 	});
 
 	nodes.exportChatBtn.addEventListener("click", () => { void exportActiveChat(); });
@@ -1096,17 +1107,15 @@ function wireEvents() {
 			return;
 		}
 
-		const messageDisclosureButton = event.target.closest("[data-action='toggle-message-disclosure'], [data-action='toggle-watchdog-meta']");
+		const messageDisclosureButton = event.target.closest("[data-action='toggle-message-disclosure']");
 		if (messageDisclosureButton) {
 			const paneId = String(messageDisclosureButton.getAttribute("data-pane-id") || "");
 			const messageId = String(messageDisclosureButton.getAttribute("data-message-id") || "");
-			const action = String(messageDisclosureButton.getAttribute("data-action") || "");
 			const chat = getActiveChat();
 			const pane = chat && chat.panes.find((candidate) => candidate.id === paneId);
 			const message = pane && pane.messages.find((candidate) => candidate.id === messageId);
 			if (!message) return;
-			if (action === "toggle-message-disclosure") message.content_expanded = !Boolean(message.content_expanded);
-			if (action === "toggle-watchdog-meta") message.watchdog_meta_expanded = !Boolean(message.watchdog_meta_expanded);
+			message.content_expanded = !Boolean(message.content_expanded);
 			renderWorkspace({ preserveScroll: true });
 			return;
 		}
@@ -2641,6 +2650,7 @@ function renderWorkspace(options = {}) {
 	if (!chat) {
 		nodes.chatTitleInput.value = "";
 		nodes.copyChatIdBtn.disabled = true;
+		nodes.chatWatchdogBtn.classList.add("hidden");
 		nodes.exportChatBtn.disabled = true;
 		nodes.paneControls.innerHTML = "";
 		nodes.paneGrid.innerHTML = "<div class=\"empty-state\">Start a new chat or choose one from the sidebar.</div>";
@@ -2652,7 +2662,9 @@ function renderWorkspace(options = {}) {
 	nodes.exportChatBtn.disabled = false;
 	nodes.copyChatIdBtn.classList.remove("copied");
 	nodes.copyChatIdBtn.setAttribute("aria-label", "Copy chat ID");
-	nodes.copyChatIdBtn.setAttribute("title", `Copy chat ID: ${chat.id}`);
+	nodes.copyChatIdBtn.removeAttribute("title");
+	nodes.copyChatIdBtn.setAttribute("data-tooltip", `Copy chat ID: ${chat.id}`);
+	renderHeaderWatchdogTrace(chat);
 	renderPaneControls(chat);
 	const paneCount = chat.panes.length;
 	nodes.paneGrid.classList.toggle("cols-2", paneCount === 2);
@@ -2831,13 +2843,12 @@ function renderMessageNodeHtml(message, paneId) {
 	const branchAction = renderBranchAction(message, paneId);
 	const retryAction = message.role === "assistant" ? renderRetryAction(message, paneId) : "";
 	const footer = `<div class="message-footer">${copyAction}${branchAction}${retryAction}<span class="message-time">${escapeHtml(timestamp)}</span></div>`;
-	const watchdogMeta = renderWatchdogMetadata(message, paneId);
 
 	if ("assistant" === message.role) {
 		const metaFooter = meta || footer
 			? `<div class="message-meta-footer">${footer}${meta}</div>`
 			: "";
-		return `<div class="${messageClasses.join(" ")}" data-message-id="${escapeHtml(message.id)}" data-pane-id="${escapeHtml(paneId)}">${thinking}${toolActivity}${content}${toolError}${screenshots}${watchdogMeta}${metaFooter}</div>`;
+		return `<div class="${messageClasses.join(" ")}" data-message-id="${escapeHtml(message.id)}" data-pane-id="${escapeHtml(paneId)}">${thinking}${toolActivity}${content}${toolError}${screenshots}${metaFooter}</div>`;
 	}
 
 	return `<div class="${messageClasses.join(" ")}" data-message-id="${escapeHtml(message.id)}" data-pane-id="${escapeHtml(paneId)}"><div class="message-bubble">${content}${meta}</div>${footer}</div>`;
@@ -2853,11 +2864,28 @@ function renderMessageContent(message, paneId, contentBody) {
 	return `<div class="message-content-block${collapseClass}">${contentBody}</div>${disclosure}`;
 }
 
-function renderWatchdogMetadata(message, paneId) {
-	const traceId = message && message.usage ? String(message.usage.trace_id || "") : "";
-	if (!traceId) return "";
-	const expanded = Boolean(message.watchdog_meta_expanded);
-	return `<div class="message-watchdog"><button type="button" class="message-watchdog-toggle" data-action="toggle-watchdog-meta" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}" aria-expanded="${expanded ? "true" : "false"}" aria-label="${expanded ? "Hide" : "Show"} Watchdog metadata">${expanded ? "⌃" : "⌄"}</button>${expanded ? `<div class="message-watchdog-meta">Watchdog trace: ${escapeHtml(traceId)}</div>` : ""}</div>`;
+function renderHeaderWatchdogTrace(chat) {
+	if (chatWatchdogChatId !== chat.id) {
+		chatWatchdogChatId = chat.id;
+		chatWatchdogExpanded = false;
+		nodes.chatWatchdogBtn.classList.remove("expanded");
+		nodes.chatWatchdogBtn.setAttribute("aria-expanded", "false");
+	}
+	const traced = (chat.panes || [])
+		.flatMap((pane) => pane.messages || [])
+		.filter((message) => message && message.usage && String(message.usage.trace_id || ""))
+		.reduce((latest, message) => !latest || Number(message.createdAt || 0) >= Number(latest.createdAt || 0) ? message : latest, null);
+	const traceId = traced ? String(traced.usage.trace_id || "") : "";
+	nodes.chatWatchdogBtn.classList.toggle("hidden", !traceId);
+	if (!traceId) {
+		chatWatchdogExpanded = false;
+		nodes.chatWatchdogBtn.classList.remove("expanded");
+		nodes.chatWatchdogBtn.setAttribute("aria-expanded", "false");
+		nodes.chatWatchdogTrace.textContent = "";
+		return;
+	}
+	nodes.chatWatchdogTrace.textContent = `Watchdog trace: ${traceId}`;
+	nodes.chatWatchdogBtn.setAttribute("data-tooltip", `Watchdog trace: ${traceId}`);
 }
 
 function renderEmptyPaneState(chat, pane) {
@@ -4917,6 +4945,9 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 				if (!assistantMessage.thinking && streamDonePayload.thinking_text) {
 					assistantMessage.thinking = streamDonePayload.thinking_text;
 				}
+				if (Number(streamDonePayload.thinking_duration_ms) > 0) {
+					assistantMessage.thinking_duration_ms = Number(streamDonePayload.thinking_duration_ms);
+				}
 				finalFinishReason = String(streamDonePayload.finish_reason || "stop");
 
 				if (streamDonePayload.usage && typeof streamDonePayload.usage === "object") {
@@ -5109,6 +5140,13 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 			repair_applied: Boolean(streamMetrics.repair_applied)
 		};
 		assistantMessage.response_time_ms = Math.max(0, Date.now() - Number(assistantMessage.request_started_at || Date.now()));
+		if (assistantMessage.usage) {
+			assistantMessage.usage.thinking_duration_ms = Number(assistantMessage.thinking_duration_ms || 0);
+			assistantMessage.usage.response_time_ms = Number(assistantMessage.response_time_ms || 0);
+			assistantMessage.usage.tool_activity = Array.isArray(assistantMessage.tool_activity)
+				? assistantMessage.tool_activity.slice(0, 32)
+				: [];
+		}
 		assistantMessage.streaming = false;
 		const shouldMarkPartial = endedLikelyIncomplete || (!assistantMessage.content && assistantMessage.thinking);
 		pane.status = terminalStreamError ? "error" : (shouldMarkPartial ? "partial" : "idle");
