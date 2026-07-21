@@ -26,6 +26,7 @@ This project is for end users and teams who want one local web app to:
 - Chat workspace
 	- Create, rename, pin, archive, delete, and search chats
 	- Open to a welcome screen at `/`, then use stable opaque `/c/{routeId}` links for bookmarkable chats without exposing internal chat IDs
+	- Render chat titles with the locally bundled Departure Mono font; no font CDN request is required for it
 	- Persist changed chats, panes, and messages incrementally with visible save status
 - Provider profiles
 	- Store provider profiles and model suggestions in Settings
@@ -358,7 +359,7 @@ The offline fixture path is verified in the local smoke workflow and is the safe
 
 The browser writes normalized state changes through `POST /api/state/changes` instead of resending the complete conversation corpus. Changes are dependency-ordered, split into bounded batches, idempotent when retried, and stored transactionally in SQLite. Conversation growth therefore does not make later saves exceed the global JSON request limit.
 
-The composer always shows `Saving…`, `Saved`, or an explicit `Not saved` state. Failed writes remain in the local cache and retry with bounded backoff; the page also warns before unload while changes are unsaved. `PUT /api/state` remains available for older clients, but new clients should use incremental changes.
+The composer always shows `Saving…`, `Saved`, or an explicit `Not saved` state. Failed writes remain in the local cache and retry with bounded backoff; a linked chat can be recovered from that cache if a reload races its first server write. `PUT /api/state` remains available for older clients, but new clients should use incremental changes.
 
 ## Database Operations
 

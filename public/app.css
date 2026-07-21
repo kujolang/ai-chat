@@ -1,3 +1,11 @@
+@font-face {
+	font-family: "Departure Mono";
+	src: url("/fonts/DepartureMono-Regular.woff2") format("woff2");
+	font-style: normal;
+	font-weight: 400;
+	font-display: swap;
+}
+
 :root {
 	--bg: #070708;
 	--bg-soft: #0d0e10;
@@ -11,6 +19,7 @@
 	--danger: #ff7272;
 	--radius: 14px;
 	--mono: "IBM Plex Mono", monospace;
+	--display: "Departure Mono", "IBM Plex Mono", monospace;
 	--sans: "Space Grotesk", sans-serif;
 	--reading: "Inter", "Segoe UI", sans-serif;
 	--content-max: 980px;
@@ -766,6 +775,7 @@ input[type="checkbox"]:disabled {
 	padding: 0;
 	font-size: 17px;
 	font-weight: 600;
+	font-family: var(--display);
 	color: #f1f4f9;
 	box-shadow: none;
 }

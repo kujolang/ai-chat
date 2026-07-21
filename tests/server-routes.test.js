@@ -582,6 +582,21 @@ test("GET /c/:routeId serves the app for bookmarkable chat links", async () => {
 	}
 });
 
+test("GET /fonts/DepartureMono-Regular.woff2 serves the bundled title font", async () => {
+	const { runtime, destroy } = createIsolatedRuntime();
+	try {
+		await withServer(runtime.app, async (baseUrl) => {
+			const response = await fetch(`${baseUrl}/fonts/DepartureMono-Regular.woff2`);
+			const body = Buffer.from(await response.arrayBuffer());
+			assert.equal(response.status, 200);
+			assert.match(String(response.headers.get("content-type") || ""), /font\/woff2|application\/octet-stream/);
+			assert.equal(body.length > 20000, true);
+		});
+	} finally {
+		destroy();
+	}
+});
+
 test("GET /api/state returns seeded state", async () => {
 	const { runtime, destroy } = createIsolatedRuntime();
 	try {
