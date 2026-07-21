@@ -59,7 +59,7 @@ const legacyApiTokenExpiresAtStorageKey = "kujo_ai_chat_api_token_expires_at";
 const legacyStateCacheStorageKey = "kujo_ai_chat_state_cache_v1";
 const legacyUsageLedgerStorageKey = "kujo_ai_chat_usage_ledger_v1";
 const sidebarCollapsedStorageKey = "ai_chat_sidebar_collapsed_v1";
-const paneInfoVisibleStorageKey = "ai_chat_pane_info_visible_v1";
+const paneInfoVisibleStorageKey = "ai_chat_pane_info_visible_v2";
 const usageSummaryVisibleStorageKey = "ai_chat_usage_summary_visible_v1";
 const collapsedProvidersStorageKey = "ai_chat_collapsed_providers_v1";
 const collapsedToolsStorageKey = "ai_chat_collapsed_tools_v1";
@@ -70,7 +70,7 @@ const sidebarChatPageSize = 5;
 const defaultApiTokenTtlDays = 3650;
 const maxApiTokenTtlDays = 36500;
 let sidebarCollapsed = loadSidebarCollapsedPreference();
-let paneInfoVisible = loadBooleanPreference(paneInfoVisibleStorageKey, true);
+let paneInfoVisible = loadBooleanPreference(paneInfoVisibleStorageKey, false);
 let usageSummaryVisible = loadBooleanPreference(usageSummaryVisibleStorageKey, false);
 const sendButtonSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z\"/><path d=\"m21.854 2.147-10.94 10.939\"/></svg>";
 const stopButtonSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect width=\"14\" height=\"14\" x=\"5\" y=\"5\" rx=\"2\"/></svg>";
@@ -2146,6 +2146,7 @@ function renderAll(options = {}) {
 
 function renderPaneInfoToggle() {
 	nodes.paneControls.classList.toggle("hidden", !paneInfoVisible);
+	document.querySelectorAll(".pane-detail-action").forEach((node) => node.classList.toggle("hidden", !paneInfoVisible));
 	nodes.togglePaneInfoBtn.innerHTML = paneInfoVisible ? chevronRightSvg : chevronLeftSvg;
 	const label = paneInfoVisible ? "Hide pane information" : "Show pane information";
 	nodes.togglePaneInfoBtn.setAttribute("aria-label", label);
@@ -2763,14 +2764,14 @@ function renderMessageNodeHtml(message, paneId) {
 	}
 
 	const metaBits = [];
+	if (message.usage && Number.isFinite(Number(message.usage.total_tokens))) {
+		metaBits.push(`tokens ${message.usage.total_tokens}`);
+	}
 	if (message.provider) {
 		metaBits.push(message.provider);
 	}
 	if (message.model) {
 		metaBits.push(message.model);
-	}
-	if (message.usage && Number.isFinite(Number(message.usage.total_tokens))) {
-		metaBits.push(`tokens ${message.usage.total_tokens}`);
 	}
 	if (Number(message.response_time_ms) > 0) {
 		metaBits.push(`response ${formatDurationMs(message.response_time_ms)}`);
@@ -2801,7 +2802,7 @@ function renderMessageNodeHtml(message, paneId) {
 
 	if ("assistant" === message.role) {
 		const metaFooter = meta || footer
-			? `<div class="message-meta-footer">${meta}${footer}</div>`
+			? `<div class="message-meta-footer">${footer}${meta}</div>`
 			: "";
 		return `<div class="${messageClasses.join(" ")}" data-message-id="${escapeHtml(message.id)}" data-pane-id="${escapeHtml(paneId)}">${thinking}${toolActivity}${content}${toolError}${screenshots}${watchdogMeta}${metaFooter}</div>`;
 	}
@@ -3443,21 +3444,16 @@ function renderComposerUsageSummary() {
 	const totalTokens = records.reduce((sum, record) => sum + record.tokens, 0);
 	const inputTokens = records.reduce((sum, record) => sum + record.input_tokens, 0);
 	const outputTokens = records.reduce((sum, record) => sum + record.output_tokens, 0);
-	const cacheReported = records.some((record) => record.cache_details_reported);
-	const cachedInputTokens = records.reduce((sum, record) => sum + (record.cached_input_tokens || 0), 0);
-	const cacheWriteInputTokens = records.reduce((sum, record) => sum + (record.cache_write_input_tokens || 0), 0);
 	const responseCount = records.length;
 	const average = responseCount > 0 ? Math.round(totalTokens / responseCount) : 0;
-	const cachedLabel = cacheReported ? formatNumber(cachedInputTokens) : "—";
 	const responseLabel = responseCount === 1 ? "response" : "responses";
-	const cacheWriteLabel = cacheReported ? formatNumber(cacheWriteInputTokens) : "—";
 	const responseTimes = records.map((record) => record.response_time_ms).filter((value) => value > 0);
 	const averageResponseTime = responseTimes.length > 0 ? responseTimes.reduce((sum, value) => sum + value, 0) / responseTimes.length : 0;
 	const slowestResponseTime = responseTimes.length > 0 ? Math.max(...responseTimes) : 0;
 	const timingLabel = responseTimes.length > 0
 		? ` · avg ${formatDurationMs(averageResponseTime)} · slowest ${formatDurationMs(slowestResponseTime)}`
 		: "";
-	nodes.composerTokenSummary.textContent = `${formatNumber(totalTokens)} tokens (in ${formatNumber(inputTokens)} · out ${formatNumber(outputTokens)} · cached ${cachedLabel} · cache write ${cacheWriteLabel}) across ${formatNumber(responseCount)} ${responseLabel}${timingLabel}`;
+	nodes.composerTokenSummary.textContent = `${formatNumber(totalTokens)} tokens (in ${formatNumber(inputTokens)} · out ${formatNumber(outputTokens)}) · ${formatNumber(responseCount)} ${responseLabel}${timingLabel}`;
 }
 
 function collectUsageRecords() {
@@ -4809,7 +4805,10 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 				if (eventName === "tool") {
 					const toolName = String(payloadObj.tool_name || "tool").replaceAll("_", " ");
 					const activity = String(payloadObj.activity || "").trim().slice(0, 180);
-					assistantMessage.tool_activity = payloadObj.phase === "started" ? [activity || `Using ${toolName}…`] : [];
+					const status = payloadObj.phase === "started"
+						? (activity || `Using ${toolName}…`)
+						: `${activity || `Used ${toolName}`} · ${payloadObj.phase === "failed" ? "failed" : "done"}`;
+					assistantMessage.tool_activity = Array.from(new Set([...(assistantMessage.tool_activity || []), status]));
 					scheduleStreamingMessagePatch(chat.id, pane.id, assistantMessage.id);
 					return;
 				}
@@ -5078,7 +5077,6 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 		};
 		assistantMessage.response_time_ms = Math.max(0, Date.now() - Number(assistantMessage.request_started_at || Date.now()));
 		assistantMessage.streaming = false;
-		assistantMessage.tool_activity = [];
 		const shouldMarkPartial = endedLikelyIncomplete || (!assistantMessage.content && assistantMessage.thinking);
 		pane.status = terminalStreamError ? "error" : (shouldMarkPartial ? "partial" : "idle");
 		if (assistantMessage.usage && Number(assistantMessage.usage.total_tokens) > 0) {
@@ -5116,7 +5114,6 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 			completeThinkingTiming();
 			assistantMessage.response_time_ms = Math.max(0, Date.now() - Number(assistantMessage.request_started_at || Date.now()));
 			assistantMessage.streaming = false;
-			assistantMessage.tool_activity = [];
 			pane.status = assistantMessage.content || assistantMessage.thinking ? "partial" : "idle";
 		} else {
 		completeThinkingTiming();
@@ -5158,7 +5155,6 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 		}
 
 		assistantMessage.streaming = false;
-		assistantMessage.tool_activity = [];
 		pane.status = "error";
 		const errorMessage = (error && error.message)
 			? String(error.message)
@@ -7072,17 +7068,17 @@ function renderThinkingBlock(message, paneId) {
 
 	const thinkingText = String(message.thinking || "");
 	const expanded = Boolean(message.thinking_expanded);
-	const contentClass = expanded ? "message-thinking-content" : "message-thinking-content collapsed";
-	const toggle = `<button class="thinking-toggle" type="button" data-action="toggle-thinking" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}" aria-expanded="${expanded ? "true" : "false"}" aria-label="${expanded ? "Collapse thinking" : "Expand thinking"}">${thinkingToggleIconSvg(expanded)}</button>`;
-	const loadingIcon = message.streaming ? thinkingLoadingIconSvg : "";
+	const contentClass = expanded || message.streaming ? "message-thinking-content" : "message-thinking-content collapsed";
+	const toggle = message.streaming ? "" : `<button class="thinking-toggle" type="button" data-action="toggle-thinking" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}" aria-expanded="${expanded ? "true" : "false"}" aria-label="${expanded ? "Collapse thinking" : "Expand thinking"}">${thinkingToggleIconSvg(expanded)}</button>`;
+	const loadingIcon = message.streaming ? `<span class="thinking-inline-progress" aria-label="Working">${thinkingLoadingIconSvg}</span>` : "";
 	const thinkingLabel = message.streaming
-		? "Thinking"
+		? "Working"
 		: Number(message.thinking_duration_ms) > 0
-			? `Thought for ${formatThinkingDurationMs(message.thinking_duration_ms)}`
-			: "Thought";
+			? `Worked for ${formatThinkingDurationMs(message.thinking_duration_ms)}`
+			: "Worked";
 
 	const renderedThinking = renderAssistantMarkdown(thinkingText);
-	return `<div class="message-thinking" role="status" aria-live="polite"><div class="message-thinking-head"><div class="thinking-label">${thinkingLabel}</div>${toggle}</div><div class="${contentClass} message-thinking-markdown"><div class="message-content-block">${renderedThinking}</div></div>${message.streaming && !message.content ? `<div class="thinking-progress">${loadingIcon}</div>` : ""}</div>`;
+	return `<div class="message-thinking" role="status" aria-live="polite"><div class="message-thinking-head"><div class="thinking-label">${thinkingLabel}</div>${loadingIcon}${toggle}</div><div class="${contentClass} message-thinking-markdown"><div class="message-content-block">${renderedThinking}</div></div></div>`;
 }
 
 function appendThinkingDelta(previousValue, nextValue) {

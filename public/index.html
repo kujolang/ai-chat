@@ -78,18 +78,18 @@
 					</button>
 				</div>
 				<div class="workspace-actions">
-					<button id="export-chat-btn" class="btn ghost icon-only" type="button" aria-label="Export chat" title="Export chat">
-						<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
-					</button>
-					<div id="pane-controls" class="pane-controls" aria-label="Pane controls"></div>
 					<button id="toggle-pane-info-btn" class="btn ghost icon-only compact-toggle-btn" aria-label="Hide pane information" title="Hide pane information" aria-expanded="true">
 						<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
 					</button>
+					<div id="pane-controls" class="pane-controls" aria-label="Pane controls"></div>
+					<button id="open-pane-profiles-btn" class="btn ghost icon-only pane-detail-action" aria-label="Pane Profiles" title="Pane Profiles">
+						<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/></svg>
+					</button>
+					<button id="export-chat-btn" class="btn ghost icon-only pane-detail-action" type="button" aria-label="Download chat" title="Download chat">
+						<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+					</button>
 					<button id="add-pane-btn" class="btn ghost icon-only" aria-label="Add Panel" title="Add Panel">
 						<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-columns2-icon lucide-columns-2" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M12 3v18"/></svg>
-					</button>
-					<button id="open-pane-profiles-btn" class="btn ghost icon-only" aria-label="Pane Profiles" title="Pane Profiles">
-						<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/></svg>
 					</button>
 				</div>
 			</header>
@@ -98,7 +98,7 @@
 
 			<footer class="composer">
 				<div class="composer-row">
-								<textarea id="composer-input" rows="3" placeholder="Send a message to all panes"></textarea>
+								<textarea id="composer-input" rows="3" placeholder="Ask anything"></textarea>
 				</div>
 				<div class="composer-actions">
 					<div class="composer-status-group">
