@@ -605,6 +605,16 @@ function wireEvents() {
 	nodes.confirmationModal.addEventListener("keydown", (event) => {
 		if (event.key === "Escape") { event.preventDefault(); closeConfirmationModal(null); }
 		if (event.key === "Enter") { event.preventDefault(); nodes.confirmationModalConfirm.click(); }
+		if (event.key === "Tab") {
+			const focusable = Array.from(nodes.confirmationModal.querySelectorAll("button:not([disabled]), input:not([disabled])")).filter((node) => !node.closest(".hidden"));
+			if (focusable.length === 0) return;
+			const currentIndex = focusable.indexOf(document.activeElement);
+			const nextIndex = event.shiftKey
+				? (currentIndex <= 0 ? focusable.length - 1 : currentIndex - 1)
+				: (currentIndex >= focusable.length - 1 ? 0 : currentIndex + 1);
+			event.preventDefault();
+			focusable[nextIndex].focus();
+		}
 	});
 	nodes.clearProjectFolderBtn.addEventListener("click", clearProjectFolderFromModal);
 	nodes.saveProjectFolderBtn.addEventListener("click", saveProjectFolderFromModal);
