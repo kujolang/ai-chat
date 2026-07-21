@@ -178,7 +178,6 @@ const nodes = {
 	usageStatResponseTime: document.getElementById("usage-stat-response-time"),
 	usageStatSlowestResponse: document.getElementById("usage-stat-slowest-response"),
 	usageFilterChat: document.getElementById("usage-filter-chat"),
-	usageFilterPane: document.getElementById("usage-filter-pane"),
 	usageFilterProvider: document.getElementById("usage-filter-provider"),
 	usageFilterModel: document.getElementById("usage-filter-model"),
 	usageFilterWindow: document.getElementById("usage-filter-window"),
@@ -658,7 +657,6 @@ function wireEvents() {
 
 	const usageFilterNodes = [
 		nodes.usageFilterChat,
-		nodes.usageFilterPane,
 		nodes.usageFilterProvider,
 		nodes.usageFilterModel,
 		nodes.usageFilterWindow,
@@ -2612,7 +2610,7 @@ function renderMessageNodeHtml(message, paneId) {
 
 	const meta = metaBits.length > 0 ? `<div class=\"message-meta\">${escapeHtml(metaBits.join(" | "))}</div>` : "";
 	const thinking = renderThinkingBlock(message, paneId);
-	const toolError = renderToolErrorBlock(message);
+	const toolError = renderMessageErrorBlock(message);
 	const toolActivity = Array.isArray(message.tool_activity) && message.tool_activity.length > 0
 		? `<div class="message-tool-activity" role="status">${message.tool_activity.map((line) => escapeHtml(String(line))).join("<br>")}</div>`
 		: "";
@@ -2652,16 +2650,18 @@ function renderRetryAction(message, paneId) {
 	return ` <button type="button" class="message-retry-link" data-action="retry-message" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}" aria-label="Retry response" title="Retry response">${retryIconSvg}</button>`;
 }
 
-function renderToolErrorBlock(message) {
-	const error = message && message.usage && message.usage.tool_error && typeof message.usage.tool_error === "object"
-		? message.usage.tool_error
-		: null;
+function renderMessageErrorBlock(message) {
+	const usage = message && message.usage && typeof message.usage === "object" ? message.usage : {};
+	const toolError = usage.tool_error && typeof usage.tool_error === "object" ? usage.tool_error : null;
+	const error = toolError || (usage.error && typeof usage.error === "object" ? usage.error : null);
 	if (!error || !error.message) return "";
-	const code = String(error.code || "tool_execution_failed");
+	const code = String(error.code || (toolError ? "tool_execution_failed" : "response_failed"));
 	const tools = Array.isArray(error.tool_names) && error.tool_names.length > 0
 		? ` Tool: ${error.tool_names.map((name) => String(name)).join(", ")}.`
 		: "";
-	return `<div class="message-tool-error" role="alert"><strong>Tool run stopped (${escapeHtml(code)})</strong><span>${escapeHtml(String(error.message))}${escapeHtml(tools)}</span></div>`;
+	const title = toolError ? "Tool run stopped" : "Response failed";
+	const retry = error.retryable ? " You can retry this response." : "";
+	return `<div class="message-tool-error" role="alert"><strong>${escapeHtml(title)} (${escapeHtml(code)})</strong><span>${escapeHtml(String(error.message))}${escapeHtml(tools)}${escapeHtml(retry)}</span></div>`;
 }
 
 function renderBrowserScreenshotArtifacts(message) {
@@ -3394,19 +3394,9 @@ function syncUsageFilterOptions(preserveSelections = true) {
 
 	setSelectOptions(nodes.usageFilterChat, chatOptions, selectedChat || "active");
 
-	const chosenChat = resolveUsageChat(nodes.usageFilterChat.value, activeChatId);
-	const paneOptions = [{ value: "all", label: "All panes" }];
-	if (chosenChat) {
-		for (let paneIndex = 0; paneIndex < chosenChat.panes.length; paneIndex += 1) {
-			const pane = chosenChat.panes[paneIndex];
-			paneOptions.push({ value: pane.id, label: `Pane ${paneIndex + 1}` });
-		}
-	}
-	setSelectOptions(nodes.usageFilterPane, paneOptions, preserveSelections ? nodes.usageFilterPane.value : "all");
-
 	const records = filterUsageRecords(collectUsageRecords(), {
 		chat: nodes.usageFilterChat.value,
-		pane: nodes.usageFilterPane.value,
+		pane: "all",
 		provider: "all",
 		model: "all",
 		window: "all"
@@ -3464,7 +3454,7 @@ function renderUsageModalContent() {
 	const activeChatId = activeChat ? activeChat.id : "";
 	const filters = {
 		chat: String(nodes.usageFilterChat.value || "active"),
-		pane: String(nodes.usageFilterPane.value || "all"),
+		pane: "all",
 		provider: String(nodes.usageFilterProvider.value || "all"),
 		model: String(nodes.usageFilterModel.value || "all"),
 		window: String(nodes.usageFilterWindow.value || "30d"),
@@ -4537,7 +4527,7 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 	const profile = getProfileById(pane.profile_id);
 	if (!profile) {
 		pane.status = "error";
-		const errorMessage = makeMessage("assistant", "Error: This pane has no valid provider profile selected.");
+	const errorMessage = makeMessage("assistant", "");
 		errorMessage.usage = { error: { message: "This pane has no valid provider profile selected.", retryable: true } };
 		pane.messages.push(errorMessage);
 		updatePaneMessageCount(pane);
@@ -5079,9 +5069,6 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 		const errorMessage = (error && error.message)
 			? String(error.message)
 			: "Network or server error while streaming provider response.";
-		if (!assistantMessage.content) {
-			assistantMessage.content = `Error: ${errorMessage}`;
-		}
 		assistantMessage.usage = {
 			...(assistantMessage.usage && typeof assistantMessage.usage === "object" ? assistantMessage.usage : {}),
 			error: { message: errorMessage, retryable: true },
