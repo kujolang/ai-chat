@@ -1028,6 +1028,21 @@ function wireEvents() {
 			return;
 		}
 
+		const messageDisclosureButton = event.target.closest("[data-action='toggle-message-disclosure'], [data-action='toggle-watchdog-meta']");
+		if (messageDisclosureButton) {
+			const paneId = String(messageDisclosureButton.getAttribute("data-pane-id") || "");
+			const messageId = String(messageDisclosureButton.getAttribute("data-message-id") || "");
+			const action = String(messageDisclosureButton.getAttribute("data-action") || "");
+			const chat = getActiveChat();
+			const pane = chat && chat.panes.find((candidate) => candidate.id === paneId);
+			const message = pane && pane.messages.find((candidate) => candidate.id === messageId);
+			if (!message) return;
+			if (action === "toggle-message-disclosure") message.content_expanded = !Boolean(message.content_expanded);
+			if (action === "toggle-watchdog-meta") message.watchdog_meta_expanded = !Boolean(message.watchdog_meta_expanded);
+			renderWorkspace({ preserveScroll: true });
+			return;
+		}
+
 		const actionElement = event.target.closest("[data-action][data-pane-id]");
 		const action = actionElement ? actionElement.getAttribute("data-action") : "";
 		const paneId = actionElement ? actionElement.getAttribute("data-pane-id") : "";
@@ -2615,22 +2630,40 @@ function renderMessageNodeHtml(message, paneId) {
 		? `<div class="message-tool-activity" role="status">${message.tool_activity.map((line) => escapeHtml(String(line))).join("<br>")}</div>`
 		: "";
 	const contentBody = renderAssistantMarkdown(message.content);
-	const content = `<div class="message-content-block">${contentBody}</div>`;
+	const content = renderMessageContent(message, paneId, contentBody);
 	const screenshots = renderBrowserScreenshotArtifacts(message);
 	const timestamp = formatMessageTime(message.createdAt);
-	const branchAction = renderBranchAction(message, paneId);
 	const copyAction = `<button type="button" class="message-copy-btn" data-action="copy-message" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}" aria-label="Copy message" title="Copy message">${copyCodeButtonSvg}</button>`;
+	const branchAction = renderBranchAction(message, paneId);
 	const retryAction = message.role === "assistant" ? renderRetryAction(message, paneId) : "";
-	const footer = `<div class="message-footer"><span class="message-time">${escapeHtml(timestamp)}</span>${branchAction}${copyAction}${retryAction}</div>`;
+	const footer = `<div class="message-footer">${copyAction}${branchAction}${retryAction}<span class="message-time">${escapeHtml(timestamp)}</span></div>`;
+	const watchdogMeta = renderWatchdogMetadata(message, paneId);
 
 	if ("assistant" === message.role) {
 		const metaFooter = meta || footer
 			? `<div class="message-meta-footer">${meta}${footer}</div>`
 			: "";
-		return `<div class="${messageClasses.join(" ")}" data-message-id="${escapeHtml(message.id)}" data-pane-id="${escapeHtml(paneId)}">${thinking}${toolActivity}${content}${toolError}${screenshots}${metaFooter}</div>`;
+		return `<div class="${messageClasses.join(" ")}" data-message-id="${escapeHtml(message.id)}" data-pane-id="${escapeHtml(paneId)}">${thinking}${toolActivity}${content}${toolError}${screenshots}${watchdogMeta}${metaFooter}</div>`;
 	}
 
 	return `<div class="${messageClasses.join(" ")}" data-message-id="${escapeHtml(message.id)}" data-pane-id="${escapeHtml(paneId)}"><div class="message-bubble">${content}${meta}</div>${footer}</div>`;
+}
+
+function renderMessageContent(message, paneId, contentBody) {
+	const isLongUserMessage = message.role === "user" && String(message.content || "").split(/\r?\n/).length > 7;
+	const expanded = Boolean(message.content_expanded);
+	const collapseClass = isLongUserMessage && !expanded ? " message-content-clamped" : "";
+	const disclosure = isLongUserMessage
+		? `<button type="button" class="message-disclosure-btn" data-action="toggle-message-disclosure" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}" aria-expanded="${expanded ? "true" : "false"}">${expanded ? "Show less" : "Show more"}</button>`
+		: "";
+	return `<div class="message-content-block${collapseClass}">${contentBody}</div>${disclosure}`;
+}
+
+function renderWatchdogMetadata(message, paneId) {
+	const traceId = message && message.usage ? String(message.usage.trace_id || "") : "";
+	if (!traceId) return "";
+	const expanded = Boolean(message.watchdog_meta_expanded);
+	return `<div class="message-watchdog"><button type="button" class="message-watchdog-toggle" data-action="toggle-watchdog-meta" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}" aria-expanded="${expanded ? "true" : "false"}" aria-label="${expanded ? "Hide" : "Show"} Watchdog metadata">${expanded ? "⌃" : "⌄"}</button>${expanded ? `<div class="message-watchdog-meta">Watchdog trace: ${escapeHtml(traceId)}</div>` : ""}</div>`;
 }
 
 function renderEmptyPaneState(chat, pane) {
@@ -4706,7 +4739,7 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 						if (!Number(assistantMessage.thinking_started_at)) {
 							assistantMessage.thinking_started_at = Date.now();
 						}
-						assistantMessage.thinking = `${assistantMessage.thinking || ""}${payloadObj.delta || ""}`;
+						assistantMessage.thinking = appendThinkingDelta(assistantMessage.thinking, payloadObj.delta);
 						scheduleStreamingMessagePatch(chat.id, pane.id, assistantMessage.id);
 					}
 					return;
@@ -6980,6 +7013,18 @@ function renderThinkingBlock(message, paneId) {
 
 	const renderedThinking = renderAssistantMarkdown(thinkingText);
 	return `<div class="message-thinking" role="status" aria-live="polite"><div class="message-thinking-head"><div class="thinking-label">${thinkingLabel}</div>${toggle}</div><div class="${contentClass} message-thinking-markdown"><div class="message-content-block">${renderedThinking}</div></div>${message.streaming && !message.content ? `<div class="thinking-progress">${loadingIcon}</div>` : ""}</div>`;
+}
+
+function appendThinkingDelta(previousValue, nextValue) {
+	const previous = String(previousValue || "");
+	const next = String(nextValue || "");
+	if (!previous || !next) return `${previous}${next}`;
+	// Providers do not guarantee semantic chunk boundaries. Preserve ordinary
+	// token fragments, but make completed thought sentences and list entries
+	// readable when a subsequent delta begins immediately after them.
+	if (/[.!?]\s*$/.test(previous) && !/^\s/.test(next)) return `${previous}\n${next}`;
+	if (/\n[-*]\s*$/.test(previous) && !/^\s/.test(next)) return `${previous}${next}`;
+	return `${previous}${next}`;
 }
 
 function thinkingToggleIconSvg(expanded) {
