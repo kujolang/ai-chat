@@ -189,14 +189,6 @@ body {
 	border: 0;
 }
 
-.brand-dot {
-	width: 12px;
-	height: 12px;
-	border-radius: 999px;
-	background: linear-gradient(135deg, #6bf1bf, #43c4ff);
-	box-shadow: 0 0 20px rgba(107, 241, 191, 0.5);
-}
-
 .brand-row h1 {
 	font-size: 16px;
 	line-height: 1;
@@ -1667,6 +1659,34 @@ textarea::-webkit-scrollbar-thumb:hover {
 .message-watchdog-meta {
 	max-width: min(100%, 440px);
 	overflow-wrap: anywhere;
+}
+
+/* Final blue-tint compatibility layer for older component-specific rules. */
+* {
+	scrollbar-color: #3d6798 #111519;
+}
+
+*::-webkit-scrollbar-thumb {
+	background: #3d6798;
+	border-color: #111519;
+}
+
+input:focus,
+select:focus,
+textarea:focus,
+.composer-profile-select:focus,
+.composer-model-picker .select2-container--open .select2-selection--single,
+.composer-model-picker .select2-container--focus .select2-selection--single,
+.settings-default-model-field .select2-container--open .select2-selection--single,
+.settings-default-model-field .select2-container--focus .select2-selection--single {
+	border-color: #4f8fd2;
+	box-shadow: 0 0 0 3px rgba(119, 185, 255, 0.16);
+}
+
+.tool-schema-status.valid,
+.save-status.saved,
+.message-copy-btn.copied {
+	color: #8ec8ff;
 }
 
 .empty-state-action {
