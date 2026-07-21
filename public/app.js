@@ -206,6 +206,7 @@ const nodes = {
 	addToolBtn: document.getElementById("add-tool-btn"),
 	addBrowserToolBtn: document.getElementById("add-browser-tool-btn"),
 	addWebSearchToolBtn: document.getElementById("add-web-search-tool-btn"),
+	addSystemToolBtn: document.getElementById("add-system-tool-btn"),
 	addSkillToolBtn: document.getElementById("add-skill-tool-btn"),
 	addLocalToolBtn: document.getElementById("add-local-tool-btn"),
 	addActionToolBtn: document.getElementById("add-action-tool-btn"),
@@ -718,6 +719,14 @@ function wireEvents() {
 	if (nodes.addWebSearchToolBtn) {
 		nodes.addWebSearchToolBtn.addEventListener("click", () => {
 			state.settings.tools.push(createWebSearchToolDefinition());
+			renderSettings();
+			schedulePersist();
+		});
+	}
+
+	if (nodes.addSystemToolBtn) {
+		nodes.addSystemToolBtn.addEventListener("click", () => {
+			if (!state.settings.tools.some((tool) => tool.name === "system_time")) state.settings.tools.push(createSystemTimeToolDefinition());
 			renderSettings();
 			schedulePersist();
 		});
@@ -6055,6 +6064,15 @@ function createWebSearchToolDefinition() {
 			required: ["query"],
 			additionalProperties: false
 		}, null, 2),
+		kind: "preset"
+	});
+}
+
+function createSystemTimeToolDefinition() {
+	return createToolDefinition({
+		name: "system_time",
+		description: "Return the current UTC date and time without accessing the web, local files, or shell.",
+		parameters_json: JSON.stringify({ type: "object", properties: {}, additionalProperties: false }, null, 2),
 		kind: "preset"
 	});
 }
