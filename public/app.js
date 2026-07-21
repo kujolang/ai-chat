@@ -4724,7 +4724,8 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 
 				if (eventName === "tool") {
 					const toolName = String(payloadObj.tool_name || "tool").replaceAll("_", " ");
-					assistantMessage.tool_activity = payloadObj.phase === "started" ? [`Using ${toolName}…`] : [];
+					const activity = String(payloadObj.activity || "").trim().slice(0, 180);
+					assistantMessage.tool_activity = payloadObj.phase === "started" ? [activity || `Using ${toolName}…`] : [];
 					scheduleStreamingMessagePatch(chat.id, pane.id, assistantMessage.id);
 					return;
 				}

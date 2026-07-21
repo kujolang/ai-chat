@@ -89,6 +89,17 @@ test("tool runtime rejects unknown tools and missing search credentials", async 
 	await assert.rejects(() => runtime.execute("web_search", { query: "Kujo" }), (error) => error.code === "web_search_auth_required");
 });
 
+test("system time is available without opting into local tools or shell access", async () => {
+	const runtime = createToolRuntime({ now: () => new Date("2026-07-21T19:00:00.000Z") });
+	assert.equal(runtime.canExecute("system_time"), true);
+	assert.deepEqual(await runtime.execute("system_time", {}), {
+		iso_utc: "2026-07-21T19:00:00.000Z",
+		unix_ms: Date.parse("2026-07-21T19:00:00.000Z"),
+		timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"
+	});
+	assert.equal(runtime.canExecute("local_shell"), false);
+});
+
 test("tool runtime exposes read-only skill tools when a skill runtime is connected", async () => {
 	const runtime = createToolRuntime({
 		skillRuntime: {

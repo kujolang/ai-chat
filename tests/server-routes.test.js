@@ -240,7 +240,8 @@ test("GET /api/health returns runtime metadata", async () => {
 			assert.equal(json.ok, true);
 			assert.equal(typeof json.auth_configured, "boolean");
 			assert.equal(typeof json.ai_sdk_available, "boolean");
-			assert.deepEqual(json.tool_runtime.tools, ["web_search", "skill_list", "skill_read", "skill_file_read"]);
+			assert.deepEqual(json.tool_runtime.tools, ["system_time", "web_search", "skill_list", "skill_read", "skill_file_read"]);
+			assert.equal(json.tool_runtime.schemas.some((schema) => schema.function.name === "system_time"), true);
 			assert.equal(json.tool_runtime.web_search_backend, "ollama");
 			assert.equal(json.tool_runtime.browser.available, false);
 			assert.equal(json.tool_runtime.skills.available, false);
@@ -1754,6 +1755,7 @@ test("POST /api/chat/stream executes web_search and continues to a final answer"
 			});
 			const events = parseSseEvents(await response.text());
 			assert.equal(events.some((entry) => entry.event === "error"), false);
+			assert.equal(events.find((entry) => entry.event === "tool").data.activity, "Searching for “deterministic AI”…");
 			assert.equal(events.filter((entry) => entry.event === "token").map((entry) => entry.data.delta).join(""), "Sourced final answer");
 			assert.equal(events.find((entry) => entry.event === "done").data.tool_calls_executed, 1);
 		});

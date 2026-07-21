@@ -156,6 +156,10 @@ Executable local skill contracts are:
 - `skill_read`: `{ "id": "skill id returned by skill_list" }`
 - `skill_file_read`: `{ "id": "skill id returned by skill_list", "path": "relative/path.md", "max_chars": 48000 }`
 
+The always-available read-only system contract is `system_time: {}`. It returns
+`iso_utc`, `unix_ms`, and the host `timezone`; it does not require a website or
+enable local workspace or shell access.
+
 Skill tool responses are bounded, read-only, and scoped to configured roots. They never return absolute root paths, reject path traversal and symlink escapes, and only read known text file extensions inside a selected skill folder. Skill contents are local workflow context; they do not override user instructions, app safety policy, credential handling, or tool limits.
 
 Executable local workspace contracts are:
@@ -198,7 +202,7 @@ The endpoint returns `text/event-stream` with the following events:
 
 - `token`: `{ "delta": "..." }`
 - `thinking`: `{ "delta": "..." }` (provider-dependent)
-- `tool`: `{ "phase": "started|completed|failed", "tool_name": "...", "error_code": "..." }` (transient progress only; tool arguments and error messages are not exposed)
+- `tool`: `{ "phase": "started|completed|failed", "tool_name": "...", "activity": "...", "error_code": "..." }` (transient progress only; `activity` is a bounded, sanitized human-readable label and tool arguments/error messages are not exposed)
 - `done`: final payload with `provider`, `model`, `finish_reason`, `usage`, `output_text`, `thinking_text`, `tool_artifacts`, `transport` (`direct` or `proxy`), stable `trace_id`, and best-effort `watchdog_trace`. Each browser screenshot artifact has an opaque `artifact_id` and `media_type: "image/png"`.
 - `error`: `{ "code": "...", "message": "..." }`
 

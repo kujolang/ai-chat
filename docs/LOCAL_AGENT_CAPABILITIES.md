@@ -7,6 +7,7 @@ AI Chat exposes local power through explicit provider-neutral tool contracts. Sk
 | Area | Tool contracts | Default | Purpose | Security boundary |
 | --- | --- | --- | --- | --- |
 | Skills | `skill_list`, `skill_read`, `skill_file_read` | Enabled | Read installed `SKILL.md` manuals and referenced text files | Read-only, bounded, scoped to configured skill roots |
+| System time | `system_time` | Enabled | Return the current UTC timestamp and local timezone | Read-only; no web, filesystem, shell, or credential access |
 | Workspace files | `local_workspace_list`, `local_file_list`, `local_file_read` | Disabled | Inspect configured workspaces | Read-only, bounded, sensitive-name denylist, no absolute paths returned |
 | Workspace writes | `local_file_write` | Disabled | Create/overwrite/append bounded text files | Requires `AI_CHAT_LOCAL_WRITE_ENABLED=1`, configured workspace root, known text extensions |
 | Shell | `local_shell` | Disabled | Run allowlisted local commands | Requires `AI_CHAT_LOCAL_SHELL_ENABLED=1`, no shell interpolation, args array only, sanitized environment, timeout/output limits |
