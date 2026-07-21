@@ -2562,7 +2562,6 @@ async function deleteProjectFolder(projectPath) {
 	for (const chat of state.chats) {
 		if (normalizeProjectPath(chat.projectPath || chat.project_path || "") === projectPath) {
 			chat.projectPath = "";
-			chat.updatedAt = Date.now();
 		}
 	}
 	state.projectFolders = state.projectFolders.filter((entry) => entry !== projectPath);
