@@ -110,6 +110,7 @@ const nodes = {
 	openAutomationsBtn: document.getElementById("open-automations-btn"),
 	showActiveBtn: document.getElementById("show-active-btn"),
 	showArchivedBtn: document.getElementById("show-archived-btn"),
+	deleteAllArchivedBtn: document.getElementById("delete-all-archived-btn"),
 	projectFolderList: document.getElementById("project-folder-list"),
 	addProjectFolderBtn: document.getElementById("add-project-folder-btn"),
 	chatList: document.getElementById("chat-list"),
@@ -563,6 +564,7 @@ function wireEvents() {
 		schedulePersist();
 		renderAll();
 	});
+	nodes.deleteAllArchivedBtn.addEventListener("click", () => { void deleteAllArchivedChats(); });
 
 	nodes.projectFolderList.addEventListener("click", (event) => {
 		const deleteNode = event.target.closest("[data-action='delete-project-folder']");
@@ -2372,6 +2374,7 @@ function renderComposerProfileSelect() {
 function renderSidebar() {
 	nodes.showActiveBtn.classList.toggle("active", !state.showArchived);
 	nodes.showArchivedBtn.classList.toggle("active", state.showArchived);
+	nodes.deleteAllArchivedBtn.classList.toggle("hidden", !state.showArchived || !state.chats.some((chat) => chat.archived));
 	renderProjectFolderList();
 
 	const filtered = state.chats
@@ -2431,6 +2434,30 @@ function renderSidebar() {
 	}
 
 	nodes.chatList.innerHTML = sections.join("");
+}
+
+async function deleteAllArchivedChats() {
+	const archived = state.chats.filter((chat) => chat.archived);
+	if (archived.length === 0) return;
+	const confirmed = await openConfirmationModal({
+		title: "Delete all archived chats",
+		message: `Permanently delete ${archived.length} archived ${archived.length === 1 ? "chat" : "chats"}? This cannot be undone.`,
+		confirmLabel: "Delete all",
+		danger: true
+	});
+	if (!confirmed) return;
+	for (const chat of archived) markUsageLedgerChatDeleted(chat.id);
+	state.chats = state.chats.filter((chat) => !chat.archived);
+	if (state.chats.length === 0) {
+		const chat = createChat("New Chat");
+		state.chats.push(chat);
+		state.activeChatId = chat.id;
+	} else if (!getChatById(state.activeChatId)) {
+		state.activeChatId = state.chats[0].id;
+	}
+	state.showArchived = false;
+	schedulePersist();
+	renderAll();
 }
 
 function resetSidebarChatPagination() {
