@@ -2330,12 +2330,9 @@ function initializeModelSelect2() {
 function renderSettingsDefaultModelSelect() {
 	const options = buildProfileModelOptions();
 	const selected = defaultModelOption();
-	nodes.settingsDefaultModel.innerHTML = modelOptionMarkup(
-		options,
-		selected ? selected.profile_id : "",
-		selected ? selected.model : "",
-		"default-model"
-	);
+	nodes.settingsDefaultModel.innerHTML = options.length > 0
+		? modelOptionMarkup(options, selected ? selected.profile_id : "", selected ? selected.model : "", "default-model")
+		: '<option value="" selected>No configured models</option>';
 	nodes.settingsDefaultModel.disabled = options.length === 0;
 	refreshSelect2(nodes.settingsDefaultModel);
 }

@@ -1903,6 +1903,24 @@ textarea {
 	grid-column: 1 / -1;
 }
 
+.settings-default-model-field > select {
+	width: 100%;
+	min-height: 40px;
+	padding: 0 11px;
+	border: 1px solid var(--line-soft);
+	border-radius: 10px;
+	background: rgba(18, 20, 23, 0.98);
+	color: var(--text);
+	font: 13px var(--sans);
+}
+
+.settings-default-model-field > select:disabled {
+	background: rgba(18, 20, 23, 0.88);
+	color: var(--text-dim);
+	opacity: 1;
+	cursor: not-allowed;
+}
+
 .settings-default-model-field .select2-selection--single {
 	height: 40px;
 }
