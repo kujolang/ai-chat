@@ -148,7 +148,7 @@ Bridge/offline path note:
 
 ## 6. Streaming Contract (`POST /api/chat/stream`)
 
-Requests may include `tools`, an array of up to 32 OpenAI-compatible function definitions. The streaming route dispatches executable built-in tools through AI Chat's provider-neutral tool registry, appends the result as a provider-compatible tool message, and continues the conversation within bounded round/call limits. The default budget is 24 rounds / 96 calls, configurable up to 64 rounds / 256 calls. The runtime resolves SearXNG or Ollama Web Search independently of the active model provider, and reads local skill manuals only through configured read-only skill roots. A successful final `done` payload includes `tool_calls_executed`. Other schemas do not grant capabilities: unsupported tool requests emit a terminal `tool_execution_unavailable` error containing `tool_names`. The JSON bridge route retains the explicit HTTP 422 behavior for requested tool execution. Clients must not retry terminal tool errors automatically.
+Requests may include `tools`, an array of up to 32 OpenAI-compatible function definitions. The streaming route dispatches executable built-in tools through AI Chat's provider-neutral tool registry, appends the result as a provider-compatible tool message, and continues the conversation within bounded round/call limits. The default budget is 24 rounds / 96 calls, configurable up to 64 rounds / 256 calls. A failed executable call is appended as a bounded structured error result so the provider can select a fallback; repeated failures still stop at the existing budget. The runtime resolves SearXNG or Ollama Web Search independently of the active model provider, and reads local skill manuals only through configured read-only skill roots. A successful final `done` payload includes `tool_calls_executed`. Other schemas do not grant capabilities: unsupported tool requests emit a terminal `tool_execution_unavailable` error containing `tool_names`. The JSON bridge route retains the explicit HTTP 422 behavior for requested tool execution. Clients must not retry terminal tool errors automatically.
 
 Executable local skill contracts are:
 
@@ -198,6 +198,7 @@ The endpoint returns `text/event-stream` with the following events:
 
 - `token`: `{ "delta": "..." }`
 - `thinking`: `{ "delta": "..." }` (provider-dependent)
+- `tool`: `{ "phase": "started|completed|failed", "tool_name": "...", "error_code": "..." }` (transient progress only; tool arguments and error messages are not exposed)
 - `done`: final payload with `provider`, `model`, `finish_reason`, `usage`, `output_text`, `thinking_text`, `tool_artifacts`, `transport` (`direct` or `proxy`), stable `trace_id`, and best-effort `watchdog_trace`. Each browser screenshot artifact has an opaque `artifact_id` and `media_type: "image/png"`.
 - `error`: `{ "code": "...", "message": "..." }`
 
@@ -210,7 +211,7 @@ Client rules:
 - `finish_reason` may be `stream_closed` when an upstream provider closes the connection without sending a terminal reason; clients should treat that as incomplete and may continue the request.
 - The server consumes the complete upstream body before emitting its terminal `done` event and supports standard multiline SSE `data:` frames.
 - SSE and newline-delimited JSON upstream bodies are forwarded incrementally. Provider `error` events are terminal and are never followed by a misleading `done` event.
-- `web_search` calls run through the bounded tool runtime. Invalid arguments, missing adapter configuration or credentials, upstream search failure, and tool-budget exhaustion emit explicit terminal errors.
+- `web_search` calls run through the bounded tool runtime. Invalid arguments, missing adapter configuration or credentials, and upstream search failure are passed back to the provider as structured tool results; tool-budget exhaustion remains terminal.
 - Browser calls may span multiple provider rounds. Sessions remain scoped to the requesting pane when supplied, otherwise to the chat/request identity; the read-only policy blocks consequential interactions and may return a short-lived `approval_request` object alongside `tool_approval_required`.
 - Browser screenshot artifacts in `done.tool_artifacts` are fetched from the authenticated artifact endpoint. Clients should render supported image artifacts alongside the assistant response and retain their opaque IDs in persisted message metadata.
 - Unsupported provider tool calls remain terminal. The server emits `tool_execution_unavailable` instead of returning an empty successful answer or repeatedly continuing the request.
