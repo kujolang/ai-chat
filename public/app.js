@@ -565,6 +565,13 @@ function wireEvents() {
 	});
 
 	nodes.projectFolderList.addEventListener("click", (event) => {
+		const deleteNode = event.target.closest("[data-action='delete-project-folder']");
+		if (deleteNode) {
+			const projectPath = normalizeProjectPath(deleteNode.getAttribute("data-project-path") || "");
+			if (!projectPath) return;
+			void deleteProjectFolder(projectPath);
+			return;
+		}
 		const actionNode = event.target.closest("[data-action='select-project-folder']");
 		if (!actionNode) {
 			return;
@@ -2471,10 +2478,31 @@ function renderProjectFolderList() {
 		const activeClass = state.activeProjectPath === folderPath ? " active" : "";
 		const folderLabel = projectFolderNameFromPath(folderPath);
 		const folderCount = Number(counts.get(folderPath) || 0);
-		rows.push(`<button class="project-folder-item${activeClass}" data-action="select-project-folder" data-project-path="${escapeHtml(folderPath)}" title="${escapeHtml(folderPath)}">${escapeHtml(folderLabel)} (${folderCount})</button>`);
+		rows.push(`<div class="project-folder-row${activeClass}"><button class="project-folder-item" data-action="select-project-folder" data-project-path="${escapeHtml(folderPath)}" title="${escapeHtml(folderPath)}">${escapeHtml(folderLabel)} (${folderCount})</button><button class="project-folder-delete" type="button" data-action="delete-project-folder" data-project-path="${escapeHtml(folderPath)}" aria-label="Delete project ${escapeHtml(folderLabel)}" title="Delete project">×</button></div>`);
 	}
 
 	nodes.projectFolderList.innerHTML = rows.join("");
+}
+
+async function deleteProjectFolder(projectPath) {
+	const folderName = projectFolderNameFromPath(projectPath);
+	const confirmed = await openConfirmationModal({
+		title: "Delete project folder",
+		message: `Delete “${folderName}”? Chats will remain and return to All.`,
+		confirmLabel: "Delete project",
+		danger: true
+	});
+	if (!confirmed) return;
+	for (const chat of state.chats) {
+		if (normalizeProjectPath(chat.projectPath || chat.project_path || "") === projectPath) {
+			chat.projectPath = "";
+			chat.updatedAt = Date.now();
+		}
+	}
+	state.projectFolders = state.projectFolders.filter((entry) => entry !== projectPath);
+	if (state.activeProjectPath === projectPath) state.activeProjectPath = "";
+	schedulePersist();
+	renderAll();
 }
 
 function renderSidebarChatItems(chats) {

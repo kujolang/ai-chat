@@ -446,6 +446,44 @@ input[type="checkbox"]:disabled {
 	box-shadow: none;
 }
 
+.project-folder-row {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+}
+
+.project-folder-row .project-folder-item {
+	min-width: 0;
+	flex: 1;
+}
+
+.project-folder-delete {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 22px;
+	height: 22px;
+	padding: 0;
+	border: 0;
+	border-radius: 6px;
+	background: transparent;
+	color: var(--text-dim);
+	opacity: 0;
+	cursor: pointer;
+}
+
+.project-folder-row:hover .project-folder-delete,
+.project-folder-row:focus-within .project-folder-delete {
+	opacity: 1;
+}
+
+.project-folder-delete:hover,
+.project-folder-delete:focus-visible {
+	background: rgba(255, 114, 114, 0.12);
+	color: #ff9a9a;
+	transform: none;
+}
+
 .project-folder-item:hover,
 .project-folder-item:focus {
 	border: 0;
@@ -454,7 +492,8 @@ input[type="checkbox"]:disabled {
 	outline: none;
 }
 
-.project-folder-item.active {
+.project-folder-item.active,
+.project-folder-row.active .project-folder-item {
 	border: 0;
 	background: transparent;
 	color: #d9f3e9;
