@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Keep opaque chat links recoverable across reloads, remove the native unsaved-page refresh prompt, and persist newly created chat routes immediately.
 - Open the root URL on a welcome screen, give chats separate long opaque route IDs for bookmarkable links, and keep single-pane status/removal controls hidden until a multi-pane comparison is active.
 - Add manifest-based Action Adapter presets for trusted loopback document, MCP, plugin, and workflow services with bounded JSON calls and health metadata.
 - Add opt-in Local tool presets for configured workspace file inspection, gated text writes, and allowlisted shell commands with path containment, sanitized environments, bounded output, health metadata, docs, and Settings presets.

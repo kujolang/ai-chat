@@ -303,16 +303,33 @@ async function loadStateFromServer() {
 		}
 		const payload = await response.json();
 		if (payload && payload.ok && payload.state) {
-			state = migrateState(payload.state);
+			const serverState = migrateState(payload.state);
+			const serverSnapshot = createPersistenceSnapshot(serverState);
+			state = serverState;
 			const linkedChatRouteId = chatRouteIdFromLocation();
-			const linkedChat = linkedChatRouteId ? getChatByRouteId(linkedChatRouteId) : null;
+			let linkedChat = linkedChatRouteId ? getChatByRouteId(linkedChatRouteId) : null;
+			let recoveredLinkedChat = false;
+			if (linkedChatRouteId && !linkedChat) {
+				const cachedState = loadStateFromCache();
+				const cachedChat = cachedState && Array.isArray(cachedState.chats)
+					? cachedState.chats.find((chat) => normalizeChatRouteId(chat.routeId) === normalizeChatRouteId(linkedChatRouteId))
+					: null;
+				if (cachedChat) {
+					const existingIndex = state.chats.findIndex((chat) => chat.id === cachedChat.id);
+					if (existingIndex >= 0) state.chats[existingIndex] = cachedChat;
+					else state.chats.push(cachedChat);
+					linkedChat = cachedChat;
+					recoveredLinkedChat = true;
+				}
+			}
 			state.activeChatId = linkedChat ? linkedChat.id : null;
 			if (linkedChatRouteId && !linkedChat) resetToWelcomeUrl();
 			if (state.activeChatId) state.showArchived = Boolean(getActiveChat().archived);
 			stateLoadedFromServer = true;
-			lastPersistedSnapshot = createPersistenceSnapshot(state);
+			lastPersistedSnapshot = recoveredLinkedChat ? serverSnapshot : createPersistenceSnapshot(state);
 			saveStateToCache();
 			setSaveStatus("saved", "Saved");
+			if (recoveredLinkedChat) schedulePersist({ immediate: true });
 		}
 	} catch (error) {
 		console.error(error);
@@ -1748,14 +1765,6 @@ function wireEvents() {
 			void persistStateToServer();
 		}
 	});
-
-	window.addEventListener("beforeunload", (event) => {
-		if (!persistInFlight && !persistRequested && !hasUnsavedChanges()) {
-			return;
-		}
-		event.preventDefault();
-		event.returnValue = "";
-	});
 }
 
 function createAndActivateChat() {
@@ -1763,7 +1772,7 @@ function createAndActivateChat() {
 	state.chats.push(chat);
 	state.activeChatId = chat.id;
 	syncActiveChatUrl();
-	schedulePersist();
+	schedulePersist({ immediate: true });
 	renderAll();
 	focusComposerInput();
 }
@@ -1918,7 +1927,7 @@ async function handlePaneProfileAction(event) {
 		state.chats.push(chat);
 		state.activeChatId = chat.id;
 		syncActiveChatUrl();
-		schedulePersist();
+		schedulePersist({ immediate: true });
 		closePaneProfilesModal();
 		renderAll();
 		focusComposerInput();

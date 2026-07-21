@@ -609,7 +609,7 @@ test("startup backfills opaque route ids for existing chats", () => {
 	`);
 	legacyDb.close();
 
-	const runtime = createServerRuntime({
+	const runtimeOptions = {
 		env: {
 			...process.env,
 			ENCRYPTION_SECRET: "unit-test-secret",
@@ -621,12 +621,18 @@ test("startup backfills opaque route ids for existing chats", () => {
 			KUJO_BIN: "/usr/bin/false"
 		},
 		projectRoot: path.resolve(__dirname, "..")
-	});
+	};
+	let runtime = createServerRuntime(runtimeOptions);
 	try {
 		const chat = runtime.helpers.readState().chats.find((candidate) => candidate.id === "legacy-chat");
 		assert.ok(chat);
 		assert.match(chat.routeId, /^[a-f0-9]{48}$/);
 		assert.notEqual(chat.routeId, chat.id);
+		const migratedRouteId = chat.routeId;
+		runtime.close();
+		runtime = createServerRuntime(runtimeOptions);
+		const reopenedChat = runtime.helpers.readState().chats.find((candidate) => candidate.id === "legacy-chat");
+		assert.equal(reopenedChat.routeId, migratedRouteId);
 	} finally {
 		runtime.close();
 		fs.rmSync(tempRoot, { recursive: true, force: true });
