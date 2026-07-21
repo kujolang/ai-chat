@@ -88,6 +88,7 @@ let apiAuthTokenExpiresAt = 0;
 let usageLedger = loadUsageLedgerFromStorage();
 const pendingAutoTitleChatIds = new Set();
 let projectFolderModalContext = null;
+let pendingConfirmation = null;
 let sidebarChatVisibleCount = sidebarChatPageSize;
 let projectFolderSelect2Ready = false;
 let composerModelSelect2Ready = false;
@@ -156,6 +157,14 @@ const nodes = {
 	pluginsModalContent: document.getElementById("plugins-modal-content"),
 	pluginsOpenSettingsBtn: document.getElementById("plugins-open-settings-btn"),
 	projectFolderModal: document.getElementById("project-folder-modal"),
+	confirmationModal: document.getElementById("confirmation-modal"),
+	confirmationModalTitle: document.getElementById("confirmation-modal-title"),
+	confirmationModalMessage: document.getElementById("confirmation-modal-message"),
+	confirmationModalInputWrap: document.getElementById("confirmation-modal-input-wrap"),
+	confirmationModalInputLabel: document.getElementById("confirmation-modal-input-label"),
+	confirmationModalInput: document.getElementById("confirmation-modal-input"),
+	confirmationModalCancel: document.getElementById("confirmation-modal-cancel"),
+	confirmationModalConfirm: document.getElementById("confirmation-modal-confirm"),
 	projectFolderModalTitle: document.getElementById("project-folder-modal-title"),
 	closeProjectFolderBtn: document.getElementById("close-project-folder-btn"),
 	projectFolderInput: document.getElementById("project-folder-input"),
@@ -471,7 +480,7 @@ function wireEvents() {
 			saveCurrentPaneProfile();
 		}
 	});
-	nodes.paneProfileList.addEventListener("click", handlePaneProfileAction);
+	nodes.paneProfileList.addEventListener("click", (event) => { void handlePaneProfileAction(event); });
 	nodes.closeAutomationsBtn.addEventListener("click", closeAutomationsModal);
 
 	nodes.searchModal.addEventListener("click", (event) => {
@@ -579,6 +588,15 @@ function wireEvents() {
 	});
 
 	nodes.closeProjectFolderBtn.addEventListener("click", closeProjectFolderModal);
+	nodes.confirmationModal.addEventListener("click", (event) => {
+		if (event.target.getAttribute("data-close-confirmation") === "true") closeConfirmationModal(null);
+	});
+	nodes.confirmationModalCancel.addEventListener("click", () => closeConfirmationModal(null));
+	nodes.confirmationModalConfirm.addEventListener("click", () => closeConfirmationModal(nodes.confirmationModalInputWrap.classList.contains("hidden") ? true : nodes.confirmationModalInput.value));
+	nodes.confirmationModal.addEventListener("keydown", (event) => {
+		if (event.key === "Escape") { event.preventDefault(); closeConfirmationModal(null); }
+		if (event.key === "Enter") { event.preventDefault(); nodes.confirmationModalConfirm.click(); }
+	});
 	nodes.clearProjectFolderBtn.addEventListener("click", clearProjectFolderFromModal);
 	nodes.saveProjectFolderBtn.addEventListener("click", saveProjectFolderFromModal);
 
@@ -930,7 +948,7 @@ function wireEvents() {
 			return;
 		}
 
-		handleChatAction(chat, action);
+		void handleChatAction(chat, action);
 	});
 
 	nodes.paneGrid.addEventListener("click", (event) => {
@@ -1185,7 +1203,7 @@ function wireEvents() {
 	nodes.profileList.addEventListener("input", onProfileFieldChange);
 	nodes.profileList.addEventListener("change", onProfileFieldChange);
 
-	nodes.profileList.addEventListener("click", (event) => {
+	nodes.profileList.addEventListener("click", async (event) => {
 		const actionNode = event.target.closest("[data-action][data-profile-id]");
 		const action = actionNode ? String(actionNode.getAttribute("data-action") || "") : "";
 		const profileId = actionNode ? String(actionNode.getAttribute("data-profile-id") || "") : "";
@@ -1236,7 +1254,7 @@ function wireEvents() {
 		if (action !== "delete-profile") return;
 
 		if (state.settings.profiles.length <= 1) {
-			window.alert("At least one profile is required.");
+			await openConfirmationModal({ title: "Profile required", message: "At least one profile is required.", confirmLabel: "OK" });
 			return;
 		}
 
@@ -1691,7 +1709,7 @@ function saveCurrentPaneProfile() {
 	renderPaneProfiles();
 }
 
-function handlePaneProfileAction(event) {
+async function handlePaneProfileAction(event) {
 	const actionNode = event.target.closest("[data-pane-profile-action][data-pane-profile-id]");
 	if (!actionNode) return;
 	const paneProfile = state.settings.paneProfiles.find((profile) => profile.id === actionNode.getAttribute("data-pane-profile-id"));
@@ -1711,7 +1729,7 @@ function handlePaneProfileAction(event) {
 		const chat = getActiveChat();
 		if (!chat) return;
 		const hasMessages = chat.panes.some((pane) => Array.isArray(pane.messages) && pane.messages.length > 0);
-		if (hasMessages && !window.confirm("Replace the current panes and their messages with this pane profile?")) return;
+		if (hasMessages && !await openConfirmationModal({ title: "Replace panes", message: "Replace the current panes and their messages with this pane profile?", confirmLabel: "Replace", danger: true })) return;
 		chat.panes = panesFromPaneProfile(paneProfile);
 		chat.updatedAt = Date.now();
 		schedulePersist();
@@ -1719,7 +1737,7 @@ function handlePaneProfileAction(event) {
 		renderAll();
 		return;
 	}
-	if (action === "delete" && window.confirm(`Delete pane profile “${paneProfile.name}”?`)) {
+	if (action === "delete" && await openConfirmationModal({ title: "Delete pane profile", message: `Delete pane profile “${paneProfile.name}”?`, confirmLabel: "Delete", danger: true })) {
 		state.settings.paneProfiles = state.settings.paneProfiles.filter((profile) => profile.id !== paneProfile.id);
 		schedulePersist();
 		renderPaneProfiles();
@@ -2021,7 +2039,7 @@ function loadStateFromCache() {
 	}
 }
 
-function handleChatAction(chat, action) {
+async function handleChatAction(chat, action) {
 	if (action === "pin") {
 		chat.pinned = !chat.pinned;
 		chat.updatedAt = Date.now();
@@ -2034,7 +2052,7 @@ function handleChatAction(chat, action) {
 	}
 
 	if (action === "rename") {
-		const next = window.prompt("Rename chat", chat.title);
+		const next = await openConfirmationModal({ title: "Rename chat", message: "Choose a new title for this chat.", inputLabel: "Chat title", inputValue: chat.title, confirmLabel: "Save" });
 		if (typeof next === "string") {
 			chat.title = cleanTitle(next, chat.title);
 			chat.updatedAt = Date.now();
@@ -2050,7 +2068,7 @@ function handleChatAction(chat, action) {
 	}
 
 	if (action === "delete") {
-		const ok = window.confirm("Delete this chat?");
+		const ok = await openConfirmationModal({ title: "Delete chat", message: "This permanently deletes the chat and its messages.", confirmLabel: "Delete", danger: true });
 		if (ok) {
 			markUsageLedgerChatDeleted(chat.id);
 			state.chats = state.chats.filter((item) => item.id !== chat.id);
@@ -2066,6 +2084,28 @@ function handleChatAction(chat, action) {
 
 	schedulePersist();
 	renderAll();
+}
+
+function openConfirmationModal(options = {}) {
+	if (pendingConfirmation) pendingConfirmation(null);
+	nodes.confirmationModalTitle.textContent = String(options.title || "Confirm action");
+	nodes.confirmationModalMessage.textContent = String(options.message || "");
+	nodes.confirmationModalConfirm.textContent = String(options.confirmLabel || "Confirm");
+	nodes.confirmationModalConfirm.classList.toggle("danger", Boolean(options.danger));
+	const needsInput = Object.prototype.hasOwnProperty.call(options, "inputValue");
+	nodes.confirmationModalInputWrap.classList.toggle("hidden", !needsInput);
+	nodes.confirmationModalInputLabel.textContent = String(options.inputLabel || "Value");
+	nodes.confirmationModalInput.value = needsInput ? String(options.inputValue || "") : "";
+	nodes.confirmationModal.classList.remove("hidden");
+	window.requestAnimationFrame(() => (needsInput ? nodes.confirmationModalInput : nodes.confirmationModalConfirm).focus());
+	return new Promise((resolve) => { pendingConfirmation = resolve; });
+}
+
+function closeConfirmationModal(value) {
+	nodes.confirmationModal.classList.add("hidden");
+	const resolve = pendingConfirmation;
+	pendingConfirmation = null;
+	if (resolve) resolve(value);
 }
 
 function renderAll(options = {}) {

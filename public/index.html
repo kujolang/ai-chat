@@ -462,6 +462,16 @@
 		</div>
 	</div>
 
+	<div id="confirmation-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="confirmation-modal-title">
+		<div class="modal-backdrop" data-close-confirmation="true"></div>
+		<div class="modal-panel confirmation-modal-panel">
+			<div class="modal-head"><h2 id="confirmation-modal-title">Confirm action</h2></div>
+			<p id="confirmation-modal-message" class="settings-note"></p>
+			<label id="confirmation-modal-input-wrap" class="hidden"><span id="confirmation-modal-input-label">Name</span><input id="confirmation-modal-input" type="text" maxlength="160"></label>
+			<div class="project-folder-actions"><button id="confirmation-modal-cancel" class="btn ghost" type="button">Cancel</button><button id="confirmation-modal-confirm" class="btn danger" type="button">Confirm</button></div>
+		</div>
+	</div>
+
 	<template id="pane-template">
 		<article class="pane-card">
 			<header class="pane-head">
