@@ -45,8 +45,6 @@ const activeStreamControllers = new Set();
 let activeStreamCount = 0;
 let stopStreamingRequested = false;
 let pendingSidebarDeleteChatId = "";
-let chatWatchdogExpanded = false;
-let chatWatchdogChatId = "";
 const hydratingChatIds = new Set();
 let codeHighlightScheduled = false;
 const pendingCodeHighlightRoots = new Set();
@@ -95,6 +93,9 @@ let sidebarChatVisibleCount = sidebarChatPageSize;
 let sidebarChatLoadingMore = false;
 let sidebarChatLoadTimer = null;
 let activeTooltipButton = null;
+let paneMenuOpen = false;
+let paneMenuChatId = "";
+const copyFeedbackTimers = new WeakMap();
 let projectFolderSelect2Ready = false;
 let composerModelSelect2Ready = false;
 let settingsDefaultModelSelect2Ready = false;
@@ -123,7 +124,6 @@ const nodes = {
 	chatTitleInput: document.getElementById("chat-title-input"),
 	copyChatIdBtn: document.getElementById("copy-chat-id-btn"),
 	chatWatchdogBtn: document.getElementById("chat-watchdog-btn"),
-	chatWatchdogTrace: document.getElementById("chat-watchdog-trace"),
 	exportChatBtn: document.getElementById("export-chat-btn"),
 	addPaneBtn: document.getElementById("add-pane-btn"),
 	openPaneProfilesBtn: document.getElementById("open-pane-profiles-btn"),
@@ -508,10 +508,22 @@ function initializeButtonTooltips() {
 		}
 	};
 
+	let showTimer = null;
 	const hideTooltip = () => {
+		if (showTimer) window.clearTimeout(showTimer);
+		showTimer = null;
 		activeTooltipButton = null;
 		tooltip.classList.remove("visible");
 		tooltip.setAttribute("aria-hidden", "true");
+	};
+	const queueTooltip = (button) => {
+		if (showTimer) window.clearTimeout(showTimer);
+		showTimer = null;
+		if (button && button.classList.contains("tooltip-delayed")) {
+			showTimer = window.setTimeout(() => showTooltip(button), 700);
+			return;
+		}
+		showTooltip(button);
 	};
 
 	const showTooltip = (button) => {
@@ -546,10 +558,11 @@ function initializeButtonTooltips() {
 
 	document.addEventListener("pointerover", (event) => {
 		const button = event.target.closest && event.target.closest("button[data-tooltip]");
-		if (button) showTooltip(button);
+		if (button) queueTooltip(button);
 	});
 	document.addEventListener("pointerout", (event) => {
-		if (!activeTooltipButton || activeTooltipButton.contains(event.relatedTarget)) return;
+		const button = event.target.closest && event.target.closest("button[data-tooltip]");
+		if (!button || button.contains(event.relatedTarget)) return;
 		hideTooltip();
 	});
 	document.addEventListener("focusin", (event) => {
@@ -563,6 +576,22 @@ function initializeButtonTooltips() {
 	document.addEventListener("click", hideTooltip);
 	window.addEventListener("scroll", hideTooltip, true);
 	window.addEventListener("resize", hideTooltip);
+}
+
+function showCopiedFeedback(button, restoreLabel, restoreTooltip) {
+	const priorTimer = copyFeedbackTimers.get(button);
+	if (priorTimer) window.clearTimeout(priorTimer);
+	button.classList.add("copy-confirmed");
+	button.dataset.copyFeedback = "Copied";
+	button.setAttribute("aria-label", "Copied");
+	button.setAttribute("data-tooltip", "Copied");
+	copyFeedbackTimers.set(button, window.setTimeout(() => {
+		button.classList.remove("copy-confirmed");
+		delete button.dataset.copyFeedback;
+		button.setAttribute("aria-label", restoreLabel);
+		button.setAttribute("data-tooltip", restoreTooltip);
+		copyFeedbackTimers.delete(button);
+	}, 1400));
 }
 
 function wireEvents() {
@@ -799,24 +828,20 @@ function wireEvents() {
 		}
 
 		void navigator.clipboard.writeText(String(chat.id)).then(() => {
-			nodes.copyChatIdBtn.classList.add("copied");
-			nodes.copyChatIdBtn.setAttribute("aria-label", "Copied chat ID");
-			nodes.copyChatIdBtn.setAttribute("data-tooltip", "Copied chat ID");
-			window.setTimeout(() => {
-				nodes.copyChatIdBtn.classList.remove("copied");
-				nodes.copyChatIdBtn.setAttribute("aria-label", "Copy chat ID");
-				nodes.copyChatIdBtn.setAttribute("data-tooltip", `Copy chat ID: ${chat.id}`);
-			}, 1200);
+			showCopiedFeedback(nodes.copyChatIdBtn, "Copy chat ID", `Copy chat ID: ${chat.id}`);
 		}).catch(() => {
 			// Ignore clipboard failures.
 		});
 	});
 
 	nodes.chatWatchdogBtn.addEventListener("click", () => {
-		chatWatchdogExpanded = !chatWatchdogExpanded;
-		nodes.chatWatchdogBtn.classList.toggle("expanded", chatWatchdogExpanded);
-		nodes.chatWatchdogBtn.setAttribute("aria-expanded", chatWatchdogExpanded ? "true" : "false");
-		nodes.chatWatchdogBtn.setAttribute("aria-label", `${chatWatchdogExpanded ? "Hide" : "Show"} Watchdog trace`);
+		const traceId = String(nodes.chatWatchdogBtn.dataset.traceId || "");
+		if (!traceId || !navigator.clipboard || typeof navigator.clipboard.writeText !== "function") return;
+		void navigator.clipboard.writeText(traceId).then(() => {
+			showCopiedFeedback(nodes.chatWatchdogBtn, "Copy Watchdog ID", `Copy Watchdog ID: ${traceId}`);
+		}).catch(() => {
+			// Ignore clipboard failures.
+		});
 	});
 
 	nodes.exportChatBtn.addEventListener("click", () => { void exportActiveChat(); });
@@ -838,6 +863,7 @@ function wireEvents() {
 
 	nodes.togglePaneInfoBtn.addEventListener("click", () => {
 		paneInfoVisible = !paneInfoVisible;
+		if (!paneInfoVisible) paneMenuOpen = false;
 		storeBooleanPreference(paneInfoVisibleStorageKey, paneInfoVisible);
 		renderPaneInfoToggle();
 	});
@@ -1318,7 +1344,7 @@ function wireEvents() {
 	});
 
 	nodes.paneControls.addEventListener("click", (event) => {
-		const actionElement = event.target.closest("[data-action='remove-pane'][data-pane-id]");
+		const actionElement = event.target.closest("[data-action]");
 		if (!actionElement) {
 			return;
 		}
@@ -1328,7 +1354,31 @@ function wireEvents() {
 			return;
 		}
 
-		removePaneFromChat(chat, String(actionElement.getAttribute("data-pane-id") || ""));
+		if (actionElement.getAttribute("data-action") === "toggle-pane-menu") {
+			paneMenuOpen = !paneMenuOpen;
+			paneMenuChatId = chat.id;
+			renderPaneControls(chat);
+			nodes.paneControls.querySelector("[data-action='toggle-pane-menu']")?.focus();
+			return;
+		}
+
+		if (actionElement.getAttribute("data-action") === "remove-pane") {
+			removePaneFromChat(chat, String(actionElement.getAttribute("data-pane-id") || ""));
+		}
+	});
+
+	document.addEventListener("click", (event) => {
+		if (!paneMenuOpen || event.composedPath().includes(nodes.paneControls)) return;
+		paneMenuOpen = false;
+		const chat = getActiveChat();
+		if (chat) renderPaneControls(chat);
+	});
+
+	document.addEventListener("keydown", (event) => {
+		if (event.key !== "Escape" || !paneMenuOpen) return;
+		paneMenuOpen = false;
+		const chat = getActiveChat();
+		if (chat) renderPaneControls(chat);
 	});
 
 	nodes.paneGrid.addEventListener("change", (event) => {
@@ -2990,16 +3040,26 @@ async function exportActiveChat() {
 function renderPaneControls(chat) {
 	const paneCount = chat.panes.length;
 	if (paneCount <= 1) {
+		paneMenuOpen = false;
+		paneMenuChatId = chat.id;
 		nodes.paneControls.innerHTML = "";
 		return;
 	}
-	nodes.paneControls.innerHTML = chat.panes.map((pane, index) => {
+	if (paneMenuChatId !== chat.id) {
+		paneMenuOpen = false;
+		paneMenuChatId = chat.id;
+	}
+	const paneRows = chat.panes.map((pane, index) => {
 		const status = String(pane.status || "idle");
-		const panePrefix = `Pane ${index + 1} · `;
-		const statusLabel = `${panePrefix}${status}`;
-		const statusClass = ["pane-control-status", ["idle", "waiting", "partial", "error"].includes(status) ? status : ""].filter(Boolean).join(" ");
-		return `<div class="pane-control-group is-removable" data-pane-id="${escapeHtml(pane.id)}"><span class="${statusClass}" title="${escapeHtml(statusLabel)}">${escapeHtml(statusLabel)}</span><button class="pane-remove-btn btn ghost icon-only" data-action="remove-pane" data-pane-id="${escapeHtml(pane.id)}" aria-label="Remove ${escapeHtml(panePrefix)}" title="Remove ${escapeHtml(panePrefix)}"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash-icon lucide-trash" aria-hidden="true"><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button></div>`;
+		const statusClass = ["pane-menu-status", ["idle", "waiting", "partial", "error"].includes(status) ? status : ""].filter(Boolean).join(" ");
+		const profile = getProfileById(pane.profile_id);
+		const profileName = profile ? String(profile.name || "Profile") : "Profile";
+		const modelName = profile ? modelForProfileSelection(profile, pane.model) : String(pane.model || "");
+		const paneName = `Pane ${index + 1}`;
+		return `<div class="pane-menu-row" data-pane-id="${escapeHtml(pane.id)}"><span class="pane-menu-copy"><strong>${escapeHtml(paneName)}</strong><small>${escapeHtml([profileName, modelName].filter(Boolean).join(" · "))}</small></span><span class="${statusClass}">${escapeHtml(status)}</span><button class="pane-menu-delete btn ghost icon-only" data-action="remove-pane" data-pane-id="${escapeHtml(pane.id)}" aria-label="Remove ${escapeHtml(paneName)}" title="Remove ${escapeHtml(paneName)}"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button></div>`;
 	}).join("");
+	const label = paneMenuOpen ? "Hide panes" : "Show panes";
+	nodes.paneControls.innerHTML = `<button type="button" class="btn ghost icon-only pane-menu-toggle" data-action="toggle-pane-menu" aria-label="${label}" title="${label}" aria-expanded="${paneMenuOpen ? "true" : "false"}"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg></button><div class="pane-menu-dropdown${paneMenuOpen ? "" : " hidden"}" role="menu" aria-label="Chat panes"><div class="pane-menu-heading"><span>Panes</span><span>${paneCount}</span></div>${paneRows}</div>`;
 }
 
 function renderMessageNodeHtml(message, paneId) {
@@ -3087,12 +3147,6 @@ function messageMetaToggleIconSvg(expanded) {
 }
 
 function renderHeaderWatchdogTrace(chat) {
-	if (chatWatchdogChatId !== chat.id) {
-		chatWatchdogChatId = chat.id;
-		chatWatchdogExpanded = false;
-		nodes.chatWatchdogBtn.classList.remove("expanded");
-		nodes.chatWatchdogBtn.setAttribute("aria-expanded", "false");
-	}
 	const traced = (chat.panes || [])
 		.flatMap((pane) => pane.messages || [])
 		.filter((message) => message && message.usage && String(message.usage.trace_id || ""))
@@ -3101,14 +3155,12 @@ function renderHeaderWatchdogTrace(chat) {
 	nodes.chatWatchdogBtn.dataset.available = traceId ? "true" : "false";
 	nodes.chatWatchdogBtn.classList.toggle("hidden", !traceId || !paneInfoVisible);
 	if (!traceId) {
-		chatWatchdogExpanded = false;
-		nodes.chatWatchdogBtn.classList.remove("expanded");
-		nodes.chatWatchdogBtn.setAttribute("aria-expanded", "false");
-		nodes.chatWatchdogTrace.textContent = "";
+		delete nodes.chatWatchdogBtn.dataset.traceId;
 		return;
 	}
-	nodes.chatWatchdogTrace.textContent = `Watchdog trace: ${traceId}`;
-	nodes.chatWatchdogBtn.setAttribute("data-tooltip", `Watchdog trace: ${traceId}`);
+	nodes.chatWatchdogBtn.dataset.traceId = traceId;
+	nodes.chatWatchdogBtn.setAttribute("aria-label", "Copy Watchdog ID");
+	nodes.chatWatchdogBtn.setAttribute("data-tooltip", `Copy Watchdog ID: ${traceId}`);
 }
 
 function renderEmptyPaneState(chat, pane) {

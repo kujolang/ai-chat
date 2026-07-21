@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Replace inline pane statuses with a compact pane menu, including per-pane details and hover delete actions.
+- Add explicit copied feedback for chat and Watchdog IDs, delay chevron tooltips, and align the Watchdog icon color with other title-bar actions.
 - Bundle Departure Mono and use it for chat titles without a font CDN dependency.
 - Keep opaque chat links recoverable across reloads, remove the native unsaved-page refresh prompt, and persist newly created chat routes immediately.
 - Open the root URL on a welcome screen, give chats separate long opaque route IDs for bookmarkable links, and keep single-pane status/removal controls hidden until a multi-pane comparison is active.

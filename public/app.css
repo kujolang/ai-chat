@@ -874,27 +874,30 @@ input[type="checkbox"]:disabled {
 	padding: 0;
 	border: 0;
 	background: transparent;
-	color: #77b9ff;
 }
 
 .chat-watchdog-btn.hidden { display: none; }
-.chat-watchdog-btn svg { width: 15px; height: 15px; transition: transform 140ms ease; }
-.chat-watchdog-btn.expanded svg { transform: rotate(180deg); }
-.chat-watchdog-trace {
-	display: none;
+.chat-watchdog-btn svg { width: 15px; height: 15px; }
+
+.workspace-top .copy-confirmed::after {
+	content: attr(data-copy-feedback);
 	position: absolute;
 	top: calc(100% + 8px);
-	right: 0;
-	z-index: 29;
+	left: 50%;
+	z-index: 10001;
 	width: max-content;
-	max-width: 360px;
-	padding: 7px 9px;
+	padding: 6px 8px;
 	border: 1px solid #315779;
 	background: #111a24;
-	color: #cfe8ff;
-	font: 10px/1.4 var(--mono);
+	box-shadow: 0 8px 24px rgba(0, 0, 0, .35);
+	color: #dceeff;
+	font: 10px/1.35 var(--mono);
+	pointer-events: none;
+	transform: translateX(-50%);
 }
-.chat-watchdog-btn.expanded .chat-watchdog-trace { display: block; }
+
+.chat-id-copy-btn,
+.chat-watchdog-btn { position: relative; }
 
 .sidebar-toggle-btn {
 	flex: 0 0 auto;
@@ -1055,8 +1058,8 @@ input[type="checkbox"]:disabled {
 	display: flex;
 	align-items: center;
 	justify-content: flex-end;
-	gap: 8px;
 	min-width: 0;
+	position: relative;
 }
 
 .pane-controls.hidden {
@@ -1067,71 +1070,107 @@ input[type="checkbox"]:disabled {
 	display: none;
 }
 
-.pane-control-group {
-	display: inline-flex;
-	align-items: center;
-	min-width: 0;
-	position: relative;
+.pane-menu-toggle.icon-only {
+	width: 30px;
+	height: 30px;
+	min-width: 30px;
 }
 
-.pane-control-status {
-	font-size: 11px;
-	font-family: var(--mono);
-	color: var(--text-dim);
+.pane-menu-dropdown {
+	position: absolute;
+	top: calc(100% + 8px);
+	right: 0;
+	z-index: 30;
+	width: min(310px, calc(100vw - 24px));
+	padding: 6px;
+	border: 1px solid #315779;
+	background: #111a24;
+	box-shadow: 0 18px 42px rgba(0, 0, 0, .42);
+}
+
+.pane-menu-dropdown.hidden { display: none; }
+
+.pane-menu-heading {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 6px 8px 8px;
+	color: #8da4b8;
+	font: 10px/1.2 var(--mono);
+	letter-spacing: .08em;
+	text-transform: uppercase;
+}
+
+.pane-menu-row {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	align-items: center;
+	min-height: 48px;
+	padding: 7px 9px;
+	position: relative;
+	border: 1px solid transparent;
+	transition: border-color 120ms ease, background 120ms ease;
+}
+
+.pane-menu-row:hover,
+.pane-menu-row:focus-within {
+	border-color: #294765;
+	background: #162332;
+}
+
+.pane-menu-copy {
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+	min-width: 0;
+}
+
+.pane-menu-copy strong {
+	overflow: hidden;
+	color: #dce8f4;
+	font: 12px/1.25 var(--sans);
+	text-overflow: ellipsis;
 	white-space: nowrap;
 }
 
-.pane-control-status.waiting {
-	color: #9bd6ff;
+.pane-menu-copy small {
+	overflow: hidden;
+	color: #8197aa;
+	font: 10px/1.25 var(--mono);
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
-.pane-control-status.error {
-	color: #ff9a9a;
+.pane-menu-status {
+	color: var(--text-dim);
+	font: 10px/1 var(--mono);
+	transition: opacity 100ms ease;
 }
 
-.pane-control-status.partial {
-	color: #ffcf85;
-}
+.pane-menu-status.waiting { color: #9bd6ff; }
+.pane-menu-status.error { color: #ff9a9a; }
+.pane-menu-status.partial { color: #ffcf85; }
 
-.pane-controls .pane-remove-btn.icon-only {
-	width: 26px;
-	height: 26px;
-	min-width: 26px;
+.pane-menu-delete.icon-only {
 	position: absolute;
-	right: 0;
+	right: 7px;
 	top: 50%;
-	transform: translateY(-50%);
-	opacity: 0;
-	pointer-events: none;
-}
-
-.workspace-top .pane-controls .pane-remove-btn.icon-only {
-	opacity: 0;
-	pointer-events: none;
-}
-
-.pane-control-group.is-removable:hover .pane-control-status,
-.pane-control-group.is-removable:focus-within .pane-control-status {
-	opacity: 0;
-}
-
-.pane-control-group.is-removable:hover .pane-remove-btn,
-.pane-control-group.is-removable:focus-within .pane-remove-btn {
-	opacity: 1;
-	pointer-events: auto;
-}
-
-.workspace-top .pane-control-group.is-removable:hover .pane-remove-btn,
-.workspace-top .pane-control-group.is-removable:focus-within .pane-remove-btn {
-	opacity: 1;
-	pointer-events: auto;
-}
-
-.pane-remove-btn.icon-only {
 	width: 28px;
 	height: 28px;
 	min-width: 28px;
 	padding: 0;
+	opacity: 0;
+	pointer-events: none;
+	transform: translateY(-50%);
+}
+
+.pane-menu-row:hover .pane-menu-status,
+.pane-menu-row:focus-within .pane-menu-status { opacity: 0; }
+
+.workspace-top .pane-menu-row:hover .pane-menu-delete.icon-only,
+.workspace-top .pane-menu-row:focus-within .pane-menu-delete.icon-only {
+	opacity: 1;
+	pointer-events: auto;
 }
 
 .pane-status {
@@ -3950,4 +3989,12 @@ textarea {
 }
 
 .chat-id-copy-btn.icon-only { color: #fff !important; }
-.chat-watchdog-btn.icon-only { color: #77b9ff !important; }
+.workspace-top .pane-menu-delete.icon-only {
+	opacity: 0;
+	pointer-events: none;
+}
+.workspace-top .pane-menu-row:hover .pane-menu-delete.icon-only,
+.workspace-top .pane-menu-row:focus-within .pane-menu-delete.icon-only {
+	opacity: 1;
+	pointer-events: auto;
+}
