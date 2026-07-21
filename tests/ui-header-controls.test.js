@@ -45,6 +45,8 @@ test("collapsed header keeps Copy Chat visible and expands actions in the reques
 });
 
 test("sidebar chrome and requested response labels use Departure Mono", () => {
+	assert.doesNotMatch(htmlSource, /Space\+Grotesk|Space Grotesk/);
+	assert.match(cssSource, /--sans: "Departure Mono", "IBM Plex Mono", monospace;/);
 	assert.match(cssSource, /\.sidebar\s*\{[^}]*padding: 12px 0;/s);
 	assert.match(cssSource, /\.chat-list\s*\{[^}]*padding: 0;/s);
 	assert.match(cssSource, /\.brand-row h1\s*\{[^}]*font-family: var\(--display\);/s);
@@ -55,4 +57,10 @@ test("sidebar chrome and requested response labels use Departure Mono", () => {
 	assert.match(cssSource, /\.composer-token-summary\s*\{[^}]*font-family: var\(--display\);/s);
 	assert.match(cssSource, /\.modal-head h2\s*\{[^}]*font-family: var\(--display\);/s);
 	assert.match(cssSource, /\.search-chat-item-title,[\s\S]*?\.usage-stat-label,[\s\S]*?font-family: var\(--display\);/);
+});
+
+test("pane list and user identity settings expose the requested labels", () => {
+	assert.match(appSource, /paneMenuOpen \? "Hide panes list" : "Panes list"/);
+	assert.match(htmlSource, /id="settings-user-name"[^>]*maxlength="120"/);
+	assert.doesNotMatch(htmlSource, /SYSTEM_PROMPT\.md/);
 });

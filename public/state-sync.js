@@ -18,6 +18,7 @@
 				maxTokens: finiteNumber(settings.maxTokens, 12000),
 				defaultProfileId: String(settings.defaultProfileId || "").slice(0, 500),
 				defaultModel: String(settings.defaultModel || "").slice(0, 500),
+				userName: String(settings.userName || "").replace(/[\r\n\t]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 120),
 				agentInstructions: String(settings.agentInstructions || "").slice(0, 24000),
 				agentInstructionProfiles: arrayClone(settings.agentInstructionProfiles).slice(0, 64),
 				broadcastToAllPanes: true,

@@ -12,6 +12,7 @@ const defaultState = {
 		maxTokens: 12000,
 		defaultProfileId: "",
 		defaultModel: "",
+		userName: "",
 		agentInstructions: "",
 		agentInstructionProfiles: [],
 		profiles: [],
@@ -211,6 +212,7 @@ const nodes = {
 	settingsTemperature: document.getElementById("settings-temperature"),
 	settingsMaxTokens: document.getElementById("settings-max-tokens"),
 	settingsDefaultModel: document.getElementById("settings-default-model"),
+	settingsUserName: document.getElementById("settings-user-name"),
 	settingsAgentInstructions: document.getElementById("settings-agent-instructions"),
 	addModelInstructionBtn: document.getElementById("add-model-instruction-btn"),
 	modelInstructionList: document.getElementById("model-instruction-list"),
@@ -386,6 +388,9 @@ function migrateState(candidate) {
 			}
 			if (typeof candidate.settings.defaultModel === "string") {
 				merged.settings.defaultModel = candidate.settings.defaultModel.slice(0, 500);
+			}
+			if (typeof candidate.settings.userName === "string") {
+				merged.settings.userName = normalizeUserName(candidate.settings.userName);
 			}
 			if (typeof candidate.settings.agentInstructions === "string") {
 				merged.settings.agentInstructions = candidate.settings.agentInstructions.slice(0, 24000);
@@ -1023,6 +1028,11 @@ function wireEvents() {
 		state.settings.defaultProfileId = String(selectedOption.getAttribute("data-profile-id") || "");
 		state.settings.defaultModel = String(selectedOption.getAttribute("data-model") || "");
 		schedulePersist({ immediate: true });
+	});
+
+	nodes.settingsUserName.addEventListener("input", (event) => {
+		state.settings.userName = normalizeUserName(event.target.value);
+		schedulePersist();
 	});
 
 	nodes.settingsAgentInstructions.addEventListener("input", (event) => {
@@ -3049,7 +3059,7 @@ function renderPaneControls(chat) {
 		const deleteButton = paneCount > 1 ? `<button class="pane-menu-delete btn ghost icon-only" data-action="remove-pane" data-pane-id="${escapeHtml(pane.id)}" aria-label="Remove ${escapeHtml(paneName)}" title="Remove ${escapeHtml(paneName)}"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>` : "";
 		return `<div class="pane-menu-row" data-pane-id="${escapeHtml(pane.id)}"><span class="pane-menu-copy"><strong>${escapeHtml(paneName)}</strong><small>${escapeHtml([profileName, modelName].filter(Boolean).join(" · "))}</small></span><span class="${statusClass}">${escapeHtml(status)}</span>${deleteButton}</div>`;
 	}).join("");
-	const label = paneMenuOpen ? "Hide panes" : "Show panes";
+	const label = paneMenuOpen ? "Hide panes list" : "Panes list";
 	nodes.paneControls.innerHTML = `<button type="button" class="btn ghost icon-only pane-menu-toggle" data-action="toggle-pane-menu" aria-label="${label}" title="${label}" aria-expanded="${paneMenuOpen ? "true" : "false"}"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg></button><div class="pane-menu-dropdown${paneMenuOpen ? "" : " hidden"}" role="menu" aria-label="Chat panes"><div class="pane-menu-heading"><span>Panes</span><span>${paneCount}</span></div>${paneRows}<button type="button" class="pane-menu-add" data-action="add-pane"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg><span>Add pane</span></button></div>`;
 }
 
@@ -4715,6 +4725,7 @@ function renderProfileModels(profile) {
 function renderSettings() {
 	nodes.settingsTemperature.value = String(state.settings.temperature);
 	nodes.settingsMaxTokens.value = String(state.settings.maxTokens);
+	nodes.settingsUserName.value = String(state.settings.userName || "");
 	renderSettingsDefaultModelSelect();
 	nodes.settingsAgentInstructions.value = String(state.settings.agentInstructions || "");
 	renderModelInstructionProfiles();
@@ -5150,6 +5161,7 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 				model: selectedModel,
 				temperature: state.settings.temperature,
 				max_tokens: requestedMaxTokens,
+				user_name: String(state.settings.userName || ""),
 				messages: chatHistory,
 				tools: buildEnabledToolDefinitions(),
 				disable_thinking: forceFinalAnswer
@@ -5769,6 +5781,10 @@ function agentInstructionsForModel(model) {
 		}
 	}
 	return instructions.filter(Boolean).join("\n\n");
+}
+
+function normalizeUserName(value) {
+	return String(value || "").replace(/[\r\n\t]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 120);
 }
 
 function isAbortLikeError(error) {

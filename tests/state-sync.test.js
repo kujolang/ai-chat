@@ -14,6 +14,7 @@ function baseState() {
 			maxTokens: 12000,
 			defaultProfileId: "profile-1",
 			defaultModel: "gpt-4.1",
+			userName: "Robert",
 			agentInstructions: "Be concise.",
 			agentInstructionProfiles: [],
 			paneProfiles: [],
@@ -122,6 +123,16 @@ test("state sync persists agent instructions as app settings", () => {
 
 	assert.deepEqual(changes.map((change) => change.type), ["app_settings_upsert"]);
 	assert.equal(changes[0].settings.agentInstructions, state.settings.agentInstructions);
+});
+
+test("state sync persists the normalized user name as app settings", () => {
+	const state = baseState();
+	const before = stateSync.persistenceSnapshot(state);
+	state.settings.userName = "  Robert\nDeVore  ";
+	const changes = stateSync.buildChanges(before, stateSync.persistenceSnapshot(state));
+
+	assert.deepEqual(changes.map((change) => change.type), ["app_settings_upsert"]);
+	assert.equal(changes[0].settings.userName, "Robert DeVore");
 });
 
 test("state sync persists model-specific agent instructions", () => {

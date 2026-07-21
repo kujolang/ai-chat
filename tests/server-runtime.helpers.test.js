@@ -405,9 +405,13 @@ test("chatRequestPayload applies defaults and validates normalized messages", ()
 		assert.equal(payload.temperature, 0.2);
 		assert.equal(payload.max_tokens, 12000);
 		assert.equal(payload.offline_fixture, false);
-		assert.equal(payload.messages.length, 1);
+		assert.equal(payload.messages.length, 2);
+		assert.match(payload.messages[0].content, /Never run an `rm` command/);
+		assert.equal(payload.messages.at(-1).content, "hi");
 		assert.deepEqual(payload.tools, []);
-		assert.equal(runtime.helpers.chatRequestPayload({ messages: [{ role: "user", content: "x".repeat(120001) }] }, {}).messages[0].content.length, 120001);
+		assert.equal(runtime.helpers.chatRequestPayload({ messages: [{ role: "user", content: "x".repeat(120001) }] }, {}).messages.at(-1).content.length, 120001);
+		const personalized = runtime.helpers.chatRequestPayload({ user_name: "  Robert\nDeVore ", messages: [{ role: "user", content: "hi" }] }, {});
+		assert.match(personalized.messages[1].content, /preferred name is "Robert DeVore"/);
 		assert.throws(
 			() => runtime.helpers.chatRequestPayload({ messages: [{ role: "user", content: "x".repeat(200001) }] }, {}),
 			/maximum allowed length/
@@ -448,7 +452,7 @@ test("chatRequestPayload keeps long saved chats usable with a bounded recent con
 		envMerge: {
 			MAX_MESSAGES_PER_REQUEST: "5",
 			MAX_MESSAGE_CHARS: "250",
-			MAX_TOTAL_MESSAGE_CHARS: "180"
+			MAX_TOTAL_MESSAGE_CHARS: "420"
 		}
 	});
 	try {
@@ -466,7 +470,7 @@ test("chatRequestPayload keeps long saved chats usable with a bounded recent con
 		assert.equal(payload.messages[0].role, "system");
 		assert.equal(payload.messages.at(-1).content, "latest question");
 		assert.ok(payload.messages.length <= 5);
-		assert.ok(payload.messages.reduce((total, message) => total + message.content.length, 0) <= 180);
+		assert.ok(payload.messages.reduce((total, message) => total + message.content.length, 0) <= 420);
 		assert.ok(payload.messages.some((message) => message.content.includes("transcript remains saved")));
 	} finally {
 		destroy();
@@ -708,6 +712,7 @@ test("writeState persists chat title and settings values", () => {
 		state.settings.maxTokens = 1200;
 		state.settings.defaultProfileId = state.settings.profiles[0].id;
 		state.settings.defaultModel = "gpt-4.1-mini";
+		state.settings.userName = "Robert DeVore";
 		state.settings.agentInstructions = "Use concise responses and finish with a durable note.";
 		state.settings.agentInstructionProfiles = [{ id: "coding-models", models_csv: "gpt-4.1", instructions: "Use code-focused instructions.", enabled: false }];
 		state.searchQuery = "abc";
@@ -719,6 +724,7 @@ test("writeState persists chat title and settings values", () => {
 		assert.equal(after.settings.maxTokens, 1200);
 		assert.equal(after.settings.defaultProfileId, state.settings.defaultProfileId);
 		assert.equal(after.settings.defaultModel, "gpt-4.1-mini");
+		assert.equal(after.settings.userName, "Robert DeVore");
 		assert.equal(after.settings.agentInstructions, "Use concise responses and finish with a durable note.");
 		assert.deepEqual(after.settings.agentInstructionProfiles, state.settings.agentInstructionProfiles);
 		assert.equal(after.searchQuery, "abc");
@@ -729,10 +735,12 @@ test("writeState persists chat title and settings values", () => {
 		const legacyState = runtime.helpers.readState();
 		delete legacyState.settings.defaultProfileId;
 		delete legacyState.settings.defaultModel;
+		delete legacyState.settings.userName;
 		runtime.helpers.writeState(legacyState);
 		const afterLegacyWrite = runtime.helpers.readState();
 		assert.equal(afterLegacyWrite.settings.defaultProfileId, state.settings.defaultProfileId);
 		assert.equal(afterLegacyWrite.settings.defaultModel, "gpt-4.1-mini");
+		assert.equal(afterLegacyWrite.settings.userName, "Robert DeVore");
 	} finally {
 		destroy();
 	}

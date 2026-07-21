@@ -6,7 +6,7 @@
 	<title>AI Chat</title>
 	<link rel="preconnect" href="https://fonts.googleapis.com">
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-	<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+	<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.11.1/styles/github-dark.min.css">
 	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css">
 	<link rel="stylesheet" href="/app.css">
@@ -188,6 +188,10 @@
 			<section class="settings-section settings-tab-panel" data-settings-panel="general" role="tabpanel">
 				<h3>Model Defaults</h3>
 				<div class="settings-grid">
+					<label>
+						<span>Your name</span>
+						<input id="settings-user-name" type="text" maxlength="120" autocomplete="name" placeholder="Robert">
+					</label>
 					<label class="settings-default-model-field">
 						<span>Default model for new chats</span>
 						<select id="settings-default-model" aria-label="Default model for new chats"></select>
@@ -201,6 +205,7 @@
 						<input id="settings-max-tokens" type="number" step="1" min="64" max="64000">
 					</label>
 				</div>
+				<p class="settings-note">Your name is shared with chat models so they can address you naturally when it is useful.</p>
 			</section>
 
 			<section class="settings-section settings-section-app-access settings-tab-panel" data-settings-panel="general" role="tabpanel">

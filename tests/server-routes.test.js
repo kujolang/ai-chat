@@ -610,6 +610,7 @@ test("GET /api/state returns seeded state", async () => {
 			assert.deepEqual(json.state.settings.paneProfiles, []);
 			assert.equal(typeof json.state.settings.defaultProfileId, "string");
 			assert.equal(typeof json.state.settings.defaultModel, "string");
+			assert.equal(typeof json.state.settings.userName, "string");
 			assert.equal(Object.prototype.hasOwnProperty.call(json.state.settings.profiles[0], "api_key"), false);
 		});
 	} finally {
@@ -816,6 +817,7 @@ test("POST /api/state/changes persists the default model across state reloads", 
 						maxTokens: seededState.settings.maxTokens,
 						defaultProfileId: targetProfile.id,
 						defaultModel: targetModel,
+						userName: "Robert DeVore",
 						activeChatId: seededState.activeChatId,
 						projectFolders: seededState.projectFolders,
 						tools: seededState.settings.tools,
@@ -831,6 +833,7 @@ test("POST /api/state/changes persists the default model across state reloads", 
 			const after = await fetchJson(baseUrl, "/api/state");
 			assert.equal(after.json.state.settings.defaultProfileId, targetProfile.id);
 			assert.equal(after.json.state.settings.defaultModel, targetModel);
+			assert.equal(after.json.state.settings.userName, "Robert DeVore");
 		});
 	} finally {
 		destroy();

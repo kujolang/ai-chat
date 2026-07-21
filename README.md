@@ -46,6 +46,8 @@ This project is for end users and teams who want one local web app to:
 	- Live assistant text streaming via SSE
 	- Thinking/reasoning deltas shown when available
 - Agent instructions
+	- Apply the repository-owned, non-editable system prompt from `SYSTEM_PROMPT.md` to every model request; change it only by editing that Markdown file and restarting the server
+	- Save your preferred name in General settings so chat models can address you naturally
 	- Set persistent, AGENTS.md-compatible custom instructions once in Settings; add matching comma-separated model groups when a model needs specialized guidance
 	- Enable or disable each model-specific instruction group without deleting its saved text
 - Transcription support
@@ -84,6 +86,8 @@ Use the app as a clear boundary for chat workflows, not as a promise of correctn
 - Backend
 	- `server.js`
 	- `lib/server-runtime.js`
+- Fixed model instructions
+	- `SYSTEM_PROMPT.md`
 - Bridge files
 	- `bridge_chat.kujo`
 - External SDK files are loaded from `AI_SDK_PATH` (not vendored in this repository):
@@ -317,9 +321,10 @@ account-visible inventory before relying on a newly added or marked-retired mode
 3. Enter API keys for each direct-provider profile you plan to use. Watchdog profiles use the server-managed credential file instead.
 4. Add, edit, remove, and drag model rows within each provider profile. Drag provider cards to set their order.
 5. In General settings, choose the default model/provider for regular new chats.
-6. Create a new chat and add panes for side-by-side comparison.
-7. Open Pane Profiles in the chat header to save the current pane/model arrangement for later benchmarks or repeated workflows.
-8. Send a prompt; every pane receives the same prompt automatically.
+6. Optionally add your name so models can address you naturally.
+7. Create a new chat and add panes for side-by-side comparison.
+8. Open Pane Profiles in the chat header to save the current pane/model arrangement for later benchmarks or repeated workflows.
+9. Send a prompt; every pane receives the same prompt automatically.
 
 ## API Endpoints
 

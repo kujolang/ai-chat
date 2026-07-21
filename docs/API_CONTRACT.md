@@ -96,7 +96,7 @@ When `DEBUG_API_ERRORS=0`, provider raw error bodies are not included in stream 
 - `state.showArchived` boolean
 - `state.searchQuery` string
 - `state.broadcastToAllPanes` boolean compatibility field; the UI always persists this as `true` and broadcasts prompts to every pane.
-- `state.settings` object containing `temperature`, `maxTokens`, `defaultProfileId`, `defaultModel`, persistent `agentInstructions`, provider `profiles`, reusable `paneProfiles`, and saved function-tool definitions in `tools`
+- `state.settings` object containing `temperature`, `maxTokens`, `defaultProfileId`, `defaultModel`, optional `userName`, persistent `agentInstructions`, provider `profiles`, reusable `paneProfiles`, and saved function-tool definitions in `tools`
 
 Clients may request `GET /api/state?messages=none` to load chat metadata, pane metadata, and per-pane `messageCount` without message bodies. Use `GET /api/chats/:chatId` to hydrate one chat's panes and messages on demand.
 
@@ -121,6 +121,8 @@ saved transcript and are omitted only from that provider request.
 `defaultProfileId` and `defaultModel` identify the provider/model selection used by regular new chats. Clients fall back to the first available configured model when the saved selection is missing or no longer exists.
 
 `agentInstructions` is a bounded (24,000-character) app-wide instruction document. `agentInstructionProfiles` is an optional array of bounded `{id, models_csv, instructions, enabled}` entries; matching comma-separated model names append their instructions when `enabled` is not `false`. The browser prepends the combined text as the first system message for each pane request. These fields are intended to be compatible with concise `AGENTS.md` guidance and must not contain credentials or other secrets.
+
+`userName` is an optional normalized string of up to 120 characters. The browser sends it as `user_name` on interactive chat requests, and the server adds a bounded system instruction that lets the model address the user naturally. The server also prepends the repository-owned `SYSTEM_PROMPT.md` to every chat request. That fixed prompt is loaded at server startup and is not exposed as an editable state or Settings field.
 
 Each pane profile stores a name plus an ordered `panes` array of provider-profile/model selections. It contains no messages or provider credentials. The normal new-chat action remains a single-pane chat; clients may explicitly create a new chat or replace the current chat's panes from a saved pane profile. The browser asks for confirmation before replacing panes that contain messages.
 
