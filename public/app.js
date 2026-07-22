@@ -83,6 +83,7 @@ const branchIconSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"14\" he
 const askIconSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z\"/><path d=\"m21.854 2.147-10.94 10.939\"/></svg>";
 const chevronLeftSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m15 18-6-6 6-6\"/></svg>";
 const chevronRightSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m9 18 6-6-6-6\"/></svg>";
+const chevronDownSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m6 9 6 6 6-6\"/></svg>";
 const copyCodeButtonSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"code-copy-icon\" aria-hidden=\"true\"><rect width=\"14\" height=\"14\" x=\"8\" y=\"8\" rx=\"2\" ry=\"2\"/><path d=\"M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2\"/></svg>";
 let apiAuthToken = "";
 let apiAuthTokenExpiresAt = 0;
@@ -108,6 +109,7 @@ let toolDropDestination = null;
 let toolPresetMenuOpen = false;
 let automations = [];
 let automationPollTimer = null;
+const automationRunMonitors = new Map();
 let activeSettingsPointerDrag = null;
 let collapsedProviderIds = loadCollapsedProviderIds();
 let collapsedToolIds = loadCollapsedToolIds();
@@ -4562,7 +4564,7 @@ function setToolPresetMenuOpen(open) {
 	nodes.toolPresetDropdown.classList.toggle("hidden", !toolPresetMenuOpen);
 	nodes.toggleToolPresetsBtn.setAttribute("aria-expanded", toolPresetMenuOpen ? "true" : "false");
 	nodes.toggleToolPresetsBtn.setAttribute("aria-label", toolPresetMenuOpen ? "Hide tool presets" : "Show tool presets");
-	nodes.toggleToolPresetsBtn.innerHTML = toolPresetMenuOpen ? chevronRightSvg : chevronLeftSvg;
+	nodes.toggleToolPresetsBtn.innerHTML = toolPresetMenuOpen ? chevronDownSvg : chevronRightSvg;
 }
 
 async function loadAutomations(options = {}) {
@@ -4573,7 +4575,7 @@ async function loadAutomations(options = {}) {
 		if (!response.ok || !payload.ok) throw new Error(payload && payload.error && payload.error.message || "Could not load automations.");
 		automations = Array.isArray(payload.automations) ? payload.automations : [];
 		renderAutomations();
-		nodes.automationStatus.textContent = "";
+		if (!options.quiet) nodes.automationStatus.textContent = "";
 	} catch (error) {
 		nodes.automationStatus.textContent = error.message || "Could not load automations.";
 	}
@@ -4689,11 +4691,67 @@ async function handleAutomationAction(event) {
 				: await apiFetch(`/api/automations/${encodeURIComponent(automation.id)}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...automation, enabled: !automation.enabled }) });
 		const payload = await response.json();
 		if (!response.ok || !payload.ok) throw new Error(payload && payload.error && payload.error.message || "Automation action failed.");
-		nodes.automationStatus.textContent = action === "run" ? "Automation started in a new chat." : "";
+		if (action === "run") {
+			nodes.automationStatus.textContent = "Automation started in a new chat.";
+			await syncAutomationRunChat(payload.run);
+			monitorAutomationRun(automation.id, payload.run);
+		} else {
+			nodes.automationStatus.textContent = "";
+		}
 		await loadAutomations({ quiet: true });
 	} catch (error) {
 		nodes.automationStatus.textContent = error.message || "Automation action failed.";
 	}
+}
+
+async function syncAutomationRunChat(run) {
+	const chatId = String(run && run.chat_id || "");
+	if (!chatId) return false;
+	try {
+		const response = await apiFetch(`/api/chats/${encodeURIComponent(chatId)}`);
+		const payload = await response.json();
+		if (!response.ok || !payload.ok || !payload.chat) return false;
+		const loaded = normalizeIncomingChat(payload.chat);
+		if (!loaded) return false;
+		loaded.messagesLoaded = true;
+		const existingIndex = state.chats.findIndex((chat) => chat.id === loaded.id);
+		if (existingIndex >= 0) state.chats[existingIndex] = { ...state.chats[existingIndex], ...loaded };
+		else state.chats.push(loaded);
+		saveStateToCache();
+		renderSidebar();
+		if (state.activeChatId === loaded.id) renderWorkspace({ preserveScroll: true });
+		return true;
+	} catch (error) {
+		console.error(error);
+		return false;
+	}
+}
+
+function monitorAutomationRun(automationId, initialRun) {
+	const runId = String(initialRun && initialRun.id || "");
+	if (!runId || automationRunMonitors.has(runId)) return;
+	const monitor = (async () => {
+		let currentRun = initialRun;
+		for (let attempt = 0; attempt < 9600 && currentRun && currentRun.status === "running"; attempt += 1) {
+			await new Promise((resolve) => window.setTimeout(resolve, 3000));
+			try {
+				const response = await apiFetch(`/api/automations/${encodeURIComponent(automationId)}/runs`);
+				const payload = await response.json();
+				if (!response.ok || !payload.ok) continue;
+				currentRun = (Array.isArray(payload.runs) ? payload.runs : []).find((run) => run.id === runId) || currentRun;
+			} catch (error) {
+				console.error(error);
+			}
+		}
+		await syncAutomationRunChat(currentRun || initialRun);
+		if (currentRun && currentRun.status !== "running" && !nodes.automationsModal.classList.contains("hidden")) {
+			nodes.automationStatus.textContent = currentRun.status === "completed"
+				? "Automation completed in its new chat."
+				: `Automation failed: ${currentRun.error || "No response was returned."}`;
+			await loadAutomations({ quiet: true });
+		}
+	})().catch((error) => console.error(error)).finally(() => automationRunMonitors.delete(runId));
+	automationRunMonitors.set(runId, monitor);
 }
 
 async function loadAutomationRuns(id) {

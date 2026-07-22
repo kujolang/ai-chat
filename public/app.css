@@ -3491,10 +3491,14 @@ textarea {
 }
 
 .tool-preset-toggle.icon-only {
-	width: 34px;
-	height: 34px;
-	min-width: 34px;
+	width: 32px;
+	height: 32px;
+	min-width: 32px;
 	padding: 0;
+}
+
+.settings-tool-actions .add-profile-btn {
+	height: 32px;
 }
 
 .tool-preset-toggle svg {
