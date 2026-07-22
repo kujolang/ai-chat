@@ -477,13 +477,31 @@ function normalizeIncomingChat(chat) {
 		if (!Array.isArray(pane.messages)) {
 			pane.messages = [];
 		}
+		for (const message of pane.messages) {
+			message.streaming = message.streaming === true;
+		}
 		pane.messageCount = Number.isFinite(Number(pane.messageCount))
 			? Number(pane.messageCount)
 			: pane.messages.length;
+		if (String(pane.status || "") === "waiting" && !pane.messages.some((message) => message && message.streaming)) {
+			const hasAssistantOutput = pane.messages.some((message) => message
+				&& message.role === "assistant"
+				&& (String(message.content || "").trim() || String(message.thinking || "").trim()));
+			pane.status = hasAssistantOutput ? "partial" : "idle";
+		}
 	}
 	normalized.messagesLoaded = normalized.panes.some((pane) => Array.isArray(pane.messages) && pane.messages.length > 0)
 		|| normalized.panes.every((pane) => Number(pane.messageCount || 0) === 0);
 	return normalized;
+}
+
+function chatHasTransientUiState(chat) {
+	return Boolean(chat && Array.isArray(chat.panes) && chat.panes.some((pane) => {
+		if (String(pane && pane.status || "") === "waiting") {
+			return true;
+		}
+		return Array.isArray(pane && pane.messages) && pane.messages.some((message) => message && message.streaming);
+	}));
 }
 
 function reconcilePaneProfileSelection(
@@ -1936,7 +1954,7 @@ async function activateChat(chatId, { persist = false, updateUrl = true } = {}) 
 
 async function hydrateChatMessages(chatId) {
 	const chat = getChatById(chatId);
-	if (!chat || chat.messagesLoaded || hydratingChatIds.has(chat.id)) {
+	if (!chat || (chat.messagesLoaded && !chatHasTransientUiState(chat)) || hydratingChatIds.has(chat.id)) {
 		return;
 	}
 
@@ -3001,7 +3019,6 @@ function renderWorkspace(options = {}) {
 		nodes.paneControls.innerHTML = "";
 		nodes.paneGrid.classList.remove("cols-2", "cols-3");
 		nodes.paneGrid.innerHTML = `<section class="workspace-welcome">
-			<div class="workspace-welcome-kicker">AI Chat</div>
 			<h2>${escapeHtml(welcomeGreeting)}</h2>
 			<p>Start something new or open a saved chat from the sidebar.</p>
 			<div class="workspace-welcome-actions">
