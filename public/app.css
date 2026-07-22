@@ -6,6 +6,38 @@
 	font-display: swap;
 }
 
+@font-face {
+	font-family: "Inter";
+	src: url("/fonts/Inter-400.ttf") format("truetype");
+	font-style: normal;
+	font-weight: 400;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: "Inter";
+	src: url("/fonts/Inter-500.ttf") format("truetype");
+	font-style: normal;
+	font-weight: 500;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: "Inter";
+	src: url("/fonts/Inter-600.ttf") format("truetype");
+	font-style: normal;
+	font-weight: 600;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: "Inter";
+	src: url("/fonts/Inter-700.ttf") format("truetype");
+	font-style: normal;
+	font-weight: 700;
+	font-display: swap;
+}
+
 :root {
 	--bg: #070708;
 	--bg-soft: #0d0e10;
@@ -18,10 +50,10 @@
 	--accent-quiet: rgba(119, 185, 255, 0.14);
 	--danger: #ff7272;
 	--radius: 14px;
-	--mono: "IBM Plex Mono", monospace;
-	--display: "Departure Mono", "IBM Plex Mono", monospace;
-	--sans: "Departure Mono", "IBM Plex Mono", monospace;
-	--reading: "Inter", "Segoe UI", sans-serif;
+	--mono: "Inter", sans-serif;
+	--display: "Departure Mono", "Inter", monospace;
+	--sans: "Inter", sans-serif;
+	--reading: "Inter", sans-serif;
 	--content-max: 980px;
 }
 
