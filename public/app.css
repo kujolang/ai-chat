@@ -4162,8 +4162,32 @@ textarea {
 
 	.pane-grid.cols-2,
 	.pane-grid.cols-3 {
-		display: grid;
-		grid-template-columns: repeat(2, minmax(0, 1fr));
+		display: flex;
+		flex-wrap: nowrap;
+		gap: 0;
+		padding-left: 0;
+		padding-right: 0;
+		overflow-x: auto;
+		overflow-y: hidden;
+		align-items: stretch;
+		scroll-snap-type: x mandatory;
+		-webkit-overflow-scrolling: touch;
+	}
+
+	.pane-grid.cols-2 .pane-card,
+	.pane-grid.cols-3 .pane-card {
+		flex: 0 0 50%;
+		width: 50%;
+		min-width: 50%;
+		height: 100%;
+		overflow: hidden;
+		scroll-snap-align: start;
+	}
+
+	.pane-grid.cols-2 .message-list,
+	.pane-grid.cols-3 .message-list {
+		overflow-y: auto;
+		min-height: 0;
 	}
 
 	.workspace-actions {
@@ -4276,16 +4300,6 @@ textarea {
 @media (max-width: 720px) {
 	.pane-grid.cols-2,
 	.pane-grid.cols-3 {
-		display: flex;
-		flex-wrap: nowrap;
-		gap: 0;
-		padding-left: 0;
-		padding-right: 0;
-		overflow-x: auto;
-		overflow-y: hidden;
-		align-items: stretch;
-		scroll-snap-type: x mandatory;
-		-webkit-overflow-scrolling: touch;
 	}
 
 	.pane-grid.cols-2 .pane-card,
