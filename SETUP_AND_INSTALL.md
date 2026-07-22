@@ -29,7 +29,10 @@ Copy values from `.env.example` and define these variables in your shell or envi
 - WATCHDOG_API_TOKEN_FILE
 - MAX_TOOL_ROUNDS
 - MAX_TOOL_CALLS_PER_REQUEST
+- MAX_TOOL_CALLS_PER_ROUND
+- MAX_TOOL_CONTEXT_CHARS
 - WEB_SEARCH_MAX_RESULTS
+- WEB_SEARCH_MAX_RESULT_BYTES
 - AI_CHAT_SKILLS_ENABLED
 - AI_CHAT_SKILL_ROOTS
 - AI_CHAT_EXTRA_SKILL_ROOTS
@@ -70,8 +73,11 @@ WATCHDOG_TELEMETRY_URL=http://127.0.0.1:7700/api/telemetry/requests
 WATCHDOG_API_TOKEN_FILE=
 MAX_TOOL_ROUNDS=24
 MAX_TOOL_CALLS_PER_REQUEST=96
+MAX_TOOL_CALLS_PER_ROUND=6
+MAX_TOOL_CONTEXT_CHARS=196608
 MAX_MESSAGE_CHARS=200000
 WEB_SEARCH_MAX_RESULTS=5
+WEB_SEARCH_MAX_RESULT_BYTES=12288
 WEB_SEARCH_TIMEOUT_MS=6000
 WEB_SEARCH_CACHE_TTL_MS=5000
 WEB_SEARCH_CACHE_MAX_ENTRIES=64
@@ -219,7 +225,7 @@ Tool cards in Settings can be reordered by dragging their handles and collapsed 
 
 The Web Search preset is executable through AI Chat's provider-neutral tool runtime. For the local-first path, run SearXNG with JSON output enabled and set `SEARXNG_BASE_URL` (loopback HTTP or HTTPS). With `WEB_SEARCH_BACKEND=auto`, AI Chat prefers that adapter; without it, the runtime uses the API key from a custom Ollama profile and Ollama Web Search. You can force `searxng` or `ollama` with `WEB_SEARCH_BACKEND`. The active chat provider only requests `web_search`; it never selects the backend.
 
-Search calls accept `query`, `max_results`, optional `domains`, and optional `freshness`, and are bounded by `MAX_TOOL_ROUNDS`, `MAX_TOOL_CALLS_PER_REQUEST`, and `WEB_SEARCH_MAX_RESULTS`. Results keep the existing `query` plus `results` contract while adding canonical URLs, source domains, retrieval timestamps, optional upstream publication dates, backend capability metadata, and short TTL cache metadata. `WEB_SEARCH_TIMEOUT_MS`, `WEB_SEARCH_CACHE_TTL_MS`, and `WEB_SEARCH_CACHE_MAX_ENTRIES` bound latency and repeated identical lookups without logging queries/snippets in default telemetry mode. Results return to the model as provider-compatible tool messages so it can produce the final answer.
+Search calls accept `query`, `max_results`, optional `domains`, and optional `freshness`; common aliases such as `past_month` normalize to the stable freshness values. Calls are bounded by `MAX_TOOL_ROUNDS`, `MAX_TOOL_CALLS_PER_REQUEST`, `MAX_TOOL_CALLS_PER_ROUND`, and `WEB_SEARCH_MAX_RESULTS`. Results keep the existing `query` plus `results` contract while adding canonical URLs, source domains, retrieval timestamps, optional upstream publication dates, backend capability metadata, and short TTL cache metadata. `WEB_SEARCH_MAX_RESULT_BYTES` bounds each result payload, while `MAX_TOOL_CONTEXT_CHARS` compacts the oldest tool messages during long research runs. `WEB_SEARCH_TIMEOUT_MS`, `WEB_SEARCH_CACHE_TTL_MS`, and `WEB_SEARCH_CACHE_MAX_ENTRIES` bound latency and repeated identical lookups without logging queries/snippets in default telemetry mode. Results return to the model as provider-compatible tool messages so it can produce the final answer.
 
 The Skill presets expose installed local skill manuals to agents through read-only tools:
 

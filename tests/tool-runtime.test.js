@@ -4,6 +4,7 @@ const { test } = require("node:test");
 const {
 	createToolRuntime,
 	canonicalizeResultUrl,
+	normalizeWebSearchArguments,
 	normalizeSearxngBaseUrl
 } = require("../lib/tool-runtime");
 
@@ -169,6 +170,11 @@ test("SearXNG URL policy permits local HTTP and requires HTTPS elsewhere", () =>
 	assert.equal(normalizeSearxngBaseUrl("https://search.example.com/"), "https://search.example.com");
 	assert.throws(() => normalizeSearxngBaseUrl("http://search.example.com"), /HTTPS or loopback HTTP/);
 	assert.throws(() => normalizeSearxngBaseUrl("https://user:pass@search.example.com"), /unsupported URL components/);
+});
+
+test("web search accepts common model freshness aliases", () => {
+	assert.equal(normalizeWebSearchArguments({ query: "agent workflows", freshness: "past_month" }).freshness, "month");
+	assert.equal(normalizeWebSearchArguments({ query: "agent workflows", freshness: "past_week" }).freshness, "week");
 });
 
 test("web search coalesces repeated requests, caches results, and exposes cache metadata", async () => {

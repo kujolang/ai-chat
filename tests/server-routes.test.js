@@ -1945,6 +1945,56 @@ test("POST /api/chat/stream executes web_search and continues to a final answer"
 	}
 });
 
+test("POST /api/chat/stream bounds oversized tool batches and still reaches a final answer", async () => {
+	const providerBodies = [];
+	let searchCalls = 0;
+	const { runtime, destroy } = createIsolatedRuntime({
+		envMerge: { ALLOWED_CUSTOM_PROVIDER_HOSTS: "ollama.com", MAX_TOOL_CALLS_PER_ROUND: "2" },
+		fetchFn: async (url, options) => {
+			if (url === "https://ollama.com/api/web_search") {
+				searchCalls += 1;
+				return mockJsonResponse({ results: [{ title: `Result ${searchCalls}`, url: `https://example.com/${searchCalls}`, content: "Evidence" }] });
+			}
+			providerBodies.push(JSON.parse(options.body));
+			if (providerBodies.length === 1) {
+				return mockSseResponse([
+					{ choices: [{ delta: { tool_calls: [0, 1, 2, 3].map((index) => ({ index, id: `call-${index}`, function: { name: "web_search", arguments: JSON.stringify({ query: `query ${index}`, freshness: "past_month" }) } })) }, finish_reason: null }] },
+					{ choices: [{ delta: {}, finish_reason: "tool_calls" }] }
+				]);
+			}
+			return mockSseResponse([{ choices: [{ delta: { content: "Bounded research answer" }, finish_reason: "stop" }] }]);
+		}
+	});
+	try {
+		const profileId = applyProfileMutation(runtime, (profile) => {
+			profile.provider_id = "custom";
+			profile.base_url = "https://ollama.com/v1";
+			profile.api_key = "ollama-key";
+		});
+		await withServer(runtime.app, async (baseUrl) => {
+			const response = await fetch(`${baseUrl}/api/chat/stream`, {
+				method: "POST",
+				headers: withAuthHeaders({ "Content-Type": "application/json" }),
+				body: JSON.stringify({
+					profile_id: profileId,
+					messages: [{ role: "user", content: "research broadly" }],
+					tools: [{ type: "function", function: { name: "web_search", parameters: { type: "object" } } }]
+				})
+			});
+			const events = parseSseEvents(await response.text());
+			assert.equal(events.some((entry) => entry.event === "error"), false);
+			assert.equal(events.filter((entry) => entry.event === "token").map((entry) => entry.data.delta).join(""), "Bounded research answer");
+			assert.equal(events.find((entry) => entry.event === "done").data.tool_calls_executed, 2);
+		});
+		assert.equal(searchCalls, 2);
+		const toolMessages = providerBodies[1].messages.filter((message) => message.role === "tool");
+		assert.equal(toolMessages.length, 4);
+		assert.equal(toolMessages.filter((message) => message.content.includes("tool_batch_limit")).length, 2);
+	} finally {
+		destroy();
+	}
+});
+
 test("POST /api/chat/stream keeps the search backend independent of the model provider", async () => {
 	const calls = [];
 	let providerCalls = 0;

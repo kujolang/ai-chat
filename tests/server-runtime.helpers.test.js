@@ -527,6 +527,25 @@ test("tool execution errors name requested functions without exposing arguments"
 	}
 });
 
+test("tool context compaction preserves provider protocol while bounding old results", () => {
+	const { runtime, destroy } = createIsolatedRuntime();
+	try {
+		const messages = [
+			{ role: "user", content: "research" },
+			{ role: "tool", tool_call_id: "one", content: "a".repeat(1200) },
+			{ role: "tool", tool_call_id: "two", content: "b".repeat(1200) },
+			{ role: "tool", tool_call_id: "three", content: "c".repeat(1200) }
+		];
+		const compacted = runtime.helpers.compactProviderToolContext(messages, 1700);
+		assert.equal(compacted, 2);
+		assert.match(messages[1].content, /"compacted":true/);
+		assert.match(messages[2].content, /"compacted":true/);
+		assert.equal(messages[3].content.length, 1200);
+	} finally {
+		destroy();
+	}
+});
+
 test("browser_use always advertises the compatibility session contract", () => {
 	const { runtime, destroy } = createIsolatedRuntime({
 		browserRuntime: {
