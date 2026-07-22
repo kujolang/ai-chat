@@ -10,11 +10,14 @@ const apiToken = String(args.apiToken || process.env.BENCHMARK_API_TOKEN || proc
 const testFile = String(args.tests || "").trim();
 const paneProfileName = String(args.paneProfile || "OpenRouter (TUD)").trim();
 const titlePrefix = args.titlePrefix ? String(args.titlePrefix).trim() : "Benchmark ";
-const outputDirectory = path.resolve(args.outputDir || "data/benchmark-runs");
-const concurrency = Math.max(1, Math.min(20, Number(args.concurrency || 1) || 1));
+const outputDirectory = path.resolve(args.outputDir || process.env.BENCHMARK_OUTPUT_DIR || "data/benchmark-runs");
+const requestedConcurrency = Math.max(1, Math.min(20, Number(args.concurrency || process.env.BENCHMARK_CONCURRENCY || 1) || 1));
 const maxAttempts = Math.max(1, Math.min(5, Number(args.maxAttempts || 3) || 3));
 const streamTimeoutMs = Math.max(1000, Number(args.streamTimeoutMs || process.env.BENCHMARK_STREAM_TIMEOUT_MS || process.env.STREAM_REQUEST_TIMEOUT_MS || 240000) || 240000);
 const retryFailures = args.retryFailures === true || args.retryFailures === "true";
+const requiredInstanceRole = String(args.requireInstanceRole || process.env.BENCHMARK_REQUIRE_INSTANCE_ROLE || "benchmark").trim().toLowerCase();
+const allowUnsafeConcurrency = args.allowUnsafeConcurrency === true || args.allowUnsafeConcurrency === "true";
+let concurrency = requestedConcurrency;
 let currentPaneProfile;
 
 if (!apiToken) fail("Missing API_AUTH_TOKEN (or --api-token).");
@@ -37,21 +40,38 @@ const run = {
 void main();
 
 async function main() {
-try {
-	const priorRun = await readPriorRun();
-	if (priorRun?.started_at && !priorRun.finished_at) run.started_at = priorRun.started_at;
-	const tests = parseBenchmarkTests(await fs.readFile(testFile, "utf8"));
-	const state = await requestJson("/api/state");
-	const paneProfile = (state.state?.settings?.paneProfiles || []).find((profile) => profile.name === paneProfileName);
-	if (!paneProfile) fail(`Pane profile not found: ${paneProfileName}`);
+	try {
+		const priorRun = await readPriorRun();
+		if (priorRun?.started_at && !priorRun.finished_at) run.started_at = priorRun.started_at;
+		const tests = parseBenchmarkTests(await fs.readFile(testFile, "utf8"));
+		const health = await requestJson("/api/health");
+		const state = await requestJson("/api/state");
+		applyHealthGuards(health);
+		const paneProfile = (state.state?.settings?.paneProfiles || []).find((profile) => profile.name === paneProfileName);
+		if (!paneProfile) fail(`Pane profile not found: ${paneProfileName}`);
 	if (!Array.isArray(paneProfile.panes) || paneProfile.panes.length === 0) fail(`Pane profile has no panes: ${paneProfileName}`);
 	currentPaneProfile = paneProfile;
 
-	const maxTokens = Number(args.maxTokens) || Number(state.state?.settings?.maxTokens) || 12000;
-	const temperature = Number(state.state?.settings?.temperature);
-	run.summary.total = tests.length * paneProfile.panes.length;
-	console.log(`Benchmark run ${runId}`);
-	console.log(`Started: ${run.started_at}`);
+		const maxTokens = normalizeMaxTokens(Number(args.maxTokens) || Number(state.state?.settings?.maxTokens) || 12000, health);
+		const temperature = Number(state.state?.settings?.temperature);
+		run.health = {
+			instance: health.instance || null,
+			benchmark: health.benchmark || null,
+			watchdog: health.watchdog || null
+		};
+		run.settings = {
+			base_url: baseUrl,
+			required_instance_role: requiredInstanceRole,
+			concurrency,
+			max_attempts: maxAttempts,
+			stream_timeout_ms: streamTimeoutMs,
+			max_tokens: maxTokens,
+			pane_profile: paneProfileName,
+			output_directory: outputDirectory
+		};
+		run.summary.total = tests.length * paneProfile.panes.length;
+		console.log(`Benchmark run ${runId}`);
+		console.log(`Started: ${run.started_at}`);
 	console.log(`${tests.length} tests × ${paneProfile.panes.length} panes = ${run.summary.total} responses (concurrency ${concurrency}, max attempts ${maxAttempts}, stream timeout ${streamTimeoutMs}ms)`);
 
 	for (const benchmark of tests) {
@@ -201,7 +221,16 @@ async function runPane({ chat, pane, benchmark, maxTokens, temperature }) {
 				temperature: Number.isFinite(temperature) ? temperature : 0.2,
 				max_tokens: maxTokens,
 				messages: [{ role: "user", content: benchmark.prompt }],
-				tools: []
+				tools: [],
+				benchmark: {
+					run_id: runId,
+					test_id: `${runId}-test-${String(benchmark.number).padStart(3, "0")}`,
+					test_number: benchmark.number,
+					test_title: benchmark.title,
+					pane_profile: paneProfileName,
+					lane: "watchdog-benchmark",
+					instance_role_required: requiredInstanceRole
+				}
 			});
 			if (!String(streamed.content || "").trim()) throw new Error("Provider returned an empty response.");
 			result = streamed;
@@ -226,7 +255,7 @@ async function runPane({ chat, pane, benchmark, maxTokens, temperature }) {
 }
 
 function isRetryableBenchmarkError(message) {
-	return !/(HTTP 4(00|01|03|04|22|29)|missing an API key|invalid_request|auth_error|stream timed out)/i.test(String(message || ""));
+	return !/(HTTP 4(00|01|03|04|22|29)|missing an API key|invalid_request|auth_error|stream timed out|benchmark_saturated|benchmark_queue_timeout|benchmark_instance_mismatch)/i.test(String(message || ""));
 }
 
 function delay(milliseconds) {
@@ -277,6 +306,32 @@ async function streamChat(payload) {
 	} finally {
 		clearTimeout(timeout);
 	}
+}
+
+function applyHealthGuards(health) {
+	if (!health || health.ok !== true) {
+		fail("Target AI Chat health probe failed.");
+	}
+	if (requiredInstanceRole && requiredInstanceRole !== "any") {
+		const actualRole = String(health.instance && health.instance.role || "").trim().toLowerCase();
+		if (actualRole !== requiredInstanceRole) {
+			fail(`Target instance role mismatch. Expected ${requiredInstanceRole}, got ${actualRole || "unknown"}. Use --require-instance-role any only if you intentionally want the interactive instance.`);
+		}
+	}
+	const recommendedConcurrency = Number(health.benchmark && health.benchmark.recommended_concurrency || 1);
+	const maxConcurrency = Number(health.benchmark && health.benchmark.max_concurrency || recommendedConcurrency || 1);
+	if (!allowUnsafeConcurrency && requestedConcurrency > maxConcurrency) {
+		fail(`Requested concurrency ${requestedConcurrency} exceeds this server's benchmark max ${maxConcurrency}. Pass --allow-unsafe-concurrency true only if you intentionally want to exceed the reviewed limit.`);
+	}
+	concurrency = Math.min(requestedConcurrency, maxConcurrency > 0 ? maxConcurrency : requestedConcurrency);
+}
+
+function normalizeMaxTokens(currentMaxTokens, health) {
+	const reviewedCap = Number(health && health.benchmark && health.benchmark.default_max_response_tokens || 0);
+	if (!Number.isFinite(reviewedCap) || reviewedCap <= 0) {
+		return currentMaxTokens;
+	}
+	return Math.min(currentMaxTokens, reviewedCap);
 }
 
 function applyEvent(event, raw, result) {
