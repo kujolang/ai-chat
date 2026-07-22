@@ -841,7 +841,7 @@ input[type="checkbox"]:disabled {
 	justify-content: space-between;
 	align-items: center;
 	gap: 12px;
-	padding: 14px 24px;
+	padding: 14px 7px;
 	border-bottom: 1px solid var(--line-soft);
 	background: rgba(8, 9, 11, 0.85);
 	backdrop-filter: blur(6px);
@@ -4163,7 +4163,7 @@ textarea {
 	.pane-grid.cols-2,
 	.pane-grid.cols-3 {
 		display: grid;
-		grid-template-columns: 1fr;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
 	}
 
 	.workspace-actions {
@@ -4219,7 +4219,7 @@ textarea {
 		position: static;
 		top: auto;
 		z-index: auto;
-		padding: 10px 16px 8px;
+		padding: 10px 7px 8px;
 	}
 
 	.pane-grid {

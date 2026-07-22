@@ -70,10 +70,13 @@ test("sidebar chrome keeps Departure Mono while other app text uses local Inter"
 });
 
 test("mobile layout keeps sidebar chrome visible and simplifies the single-chat composer", () => {
+	assert.match(cssSource, /\.workspace-top\s*\{[^}]*padding: 14px 7px;/s);
 	assert.match(cssSource, /@media \(max-width: 1100px\)[\s\S]*?\.sidebar-collapsible\s*\{[^}]*max-height: calc\(100vh - 61px\);/s);
 	assert.match(cssSource, /@media \(max-width: 1100px\)[\s\S]*?\.app-shell\.sidebar-collapsed \.sidebar-collapsible\s*\{[^}]*max-height: 0;/s);
 	assert.match(cssSource, /@media \(max-width: 1100px\)[\s\S]*?\.brand-title-row \.mobile-sidebar-toggle-btn\s*\{[^}]*display: inline-flex !important;/s);
 	assert.match(cssSource, /@media \(max-width: 1100px\)[\s\S]*?\.workspace-top \.sidebar-toggle-btn\s*\{[^}]*display: none;/s);
+	assert.match(cssSource, /@media \(max-width: 1100px\)[\s\S]*?\.workspace-top\s*\{[^}]*padding: 10px 7px 8px;/s);
+	assert.match(cssSource, /@media \(max-width: 1100px\)[\s\S]*?\.pane-grid\.cols-2,\s*[\s\S]*?\.pane-grid\.cols-3\s*\{[^}]*display: grid;[^}]*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);/s);
 	assert.match(cssSource, /@media \(max-width: 1100px\)[\s\S]*?\.app-shell\.chat-open \.composer\s*\{[^}]*position: sticky;[^}]*bottom: 0;/s);
 	assert.match(cssSource, /@media \(max-width: 1100px\)[\s\S]*?#toggle-usage-summary-btn,[\s\S]*?display: none !important;/s);
 	assert.match(cssSource, /@media \(max-width: 1100px\)[\s\S]*?\.composer-model-picker\s*\{[^}]*grid-row: 2;[^}]*grid-column: 1;[^}]*width: min\(100%, 220px\);/s);
