@@ -443,6 +443,16 @@ function migrateState(candidate) {
 	if (!Array.isArray(merged.projectFolders)) {
 		merged.projectFolders = [];
 	}
+	for (const chat of merged.chats) {
+		for (const pane of Array.isArray(chat && chat.panes) ? chat.panes : []) {
+			reconcilePaneProfileSelection(
+				pane,
+				merged.settings.profiles,
+				merged.settings.defaultProfileId,
+				merged.settings.defaultModel
+			);
+		}
+	}
 	merged.projectFolders = uniqueProjectFolders(merged.projectFolders.concat(collectProjectFoldersFromChats(merged.chats)));
 	if (merged.activeProjectPath && !merged.projectFolders.includes(merged.activeProjectPath)) {
 		merged.activeProjectPath = "";
@@ -472,6 +482,40 @@ function normalizeIncomingChat(chat) {
 	normalized.messagesLoaded = normalized.panes.some((pane) => Array.isArray(pane.messages) && pane.messages.length > 0)
 		|| normalized.panes.every((pane) => Number(pane.messageCount || 0) === 0);
 	return normalized;
+}
+
+function reconcilePaneProfileSelection(
+	pane,
+	profiles = state.settings.profiles,
+	defaultProfileId = state.settings.defaultProfileId,
+	defaultModel = state.settings.defaultModel
+) {
+	if (!pane || typeof pane !== "object" || !Array.isArray(profiles) || profiles.length === 0) {
+		return null;
+	}
+
+	const currentProfile = profiles.find((profile) => profile.id === pane.profile_id) || null;
+	if (currentProfile) {
+		pane.profile_id = currentProfile.id;
+		pane.model = modelForProfileSelection(currentProfile, pane.model);
+		return currentProfile;
+	}
+
+	const requestedModel = String(pane.model || "").trim();
+	const modelMatchedProfile = requestedModel
+		? profiles.find((profile) => profileModels(profile).includes(requestedModel)) || null
+		: null;
+	const defaultProfile = profiles.find((profile) => profile.id === defaultProfileId) || profiles[0] || null;
+	const fallbackProfile = modelMatchedProfile || defaultProfile;
+	if (!fallbackProfile) {
+		return null;
+	}
+
+	pane.profile_id = fallbackProfile.id;
+	pane.model = modelMatchedProfile
+		? requestedModel
+		: modelForProfileSelection(fallbackProfile, requestedModel || defaultModel);
+	return fallbackProfile;
 }
 
 function normalizePaneProfile(paneProfile) {
@@ -2960,6 +3004,7 @@ function renderWorkspace(options = {}) {
 	const hasMultiplePanes = paneCount > 1;
 	for (let paneIndex = 0; paneIndex < chat.panes.length; paneIndex += 1) {
 		const pane = chat.panes[paneIndex];
+		reconcilePaneProfileSelection(pane);
 		const fragment = nodes.paneTemplate.content.cloneNode(true);
 		const card = fragment.querySelector(".pane-card");
 		const paneSummary = fragment.querySelector(".pane-summary");
@@ -5243,7 +5288,7 @@ function handleComposerSendError(error) {
 }
 
 async function sendMessageToPaneStream(chat, pane, text, options = {}) {
-	const profile = getProfileById(pane.profile_id);
+	const profile = reconcilePaneProfileSelection(pane) || getProfileById(pane.profile_id);
 	if (!profile) {
 		pane.status = "error";
 	const errorMessage = makeMessage("assistant", "");
