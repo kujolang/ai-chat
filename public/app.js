@@ -3240,6 +3240,12 @@ function renderHeaderWatchdogTrace(chat) {
 }
 
 function renderEmptyPaneState(chat, pane) {
+	if (String(pane && pane.status || "") === "waiting") {
+		return `<div class="empty-state empty-state-working" role="status" aria-live="polite"><span class="thinking-inline-progress" aria-hidden="true">${thinkingLoadingIconSvg}</span><span>Working on this automation run...</span></div>`;
+	}
+	if (String(pane && pane.status || "") === "error") {
+		return "<div class=\"empty-state\">This automation run failed before any assistant output was saved.</div>";
+	}
 	if (canAskOriginalQuestionInPane(chat, pane)) {
 		return `<div class="empty-state empty-state-action"><button type="button" class="btn ghost empty-pane-ask-btn" data-action="ask-original-question" data-pane-id="${escapeHtml(pane.id)}" aria-label="Ask original question in this pane" title="Ask original question in this pane">${askIconSvg}<span>Ask Original</span></button></div>`;
 	}
@@ -4784,6 +4790,7 @@ function monitorAutomationRun(automationId, initialRun) {
 				const payload = await response.json();
 				if (!response.ok || !payload.ok) continue;
 				currentRun = (Array.isArray(payload.runs) ? payload.runs : []).find((run) => run.id === runId) || currentRun;
+				await syncAutomationRunChat(currentRun || initialRun);
 			} catch (error) {
 				console.error(error);
 			}
