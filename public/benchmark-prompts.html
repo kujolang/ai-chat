@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Benchmark Prompt Catalog</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4efe6;
+      --panel: rgba(255, 251, 245, 0.92);
+      --panel-strong: #fffaf2;
+      --line: #d2c5b3;
+      --text: #1d1c18;
+      --muted: #615847;
+      --accent: #0f766e;
+      --accent-strong: #115e59;
+      --shadow: 0 24px 60px rgba(66, 44, 18, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(15, 118, 110, 0.18), transparent 32%),
+        radial-gradient(circle at top right, rgba(194, 120, 3, 0.12), transparent 28%),
+        linear-gradient(180deg, #f9f3e8 0%, var(--bg) 100%);
+    }
+
+    main {
+      width: min(1120px, calc(100% - 32px));
+      margin: 32px auto 48px;
+    }
+
+    .hero,
+    .panel {
+      background: var(--panel);
+      border: 1px solid rgba(210, 197, 179, 0.9);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+
+    .hero {
+      padding: 28px;
+      margin-bottom: 20px;
+    }
+
+    .eyebrow {
+      margin: 0 0 10px;
+      color: var(--accent-strong);
+      font: 600 0.82rem/1.2 "IBM Plex Mono", monospace;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2rem, 4vw, 3.35rem);
+      line-height: 0.95;
+      letter-spacing: -0.05em;
+    }
+
+    .hero p {
+      max-width: 70ch;
+      margin: 14px 0 0;
+      color: var(--muted);
+      font-size: 1.02rem;
+      line-height: 1.55;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 340px minmax(0, 1fr);
+      gap: 20px;
+    }
+
+    .panel {
+      padding: 22px;
+    }
+
+    .panel h2 {
+      margin: 0 0 18px;
+      font-size: 1.05rem;
+      letter-spacing: -0.02em;
+    }
+
+    .field {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .field label {
+      font: 600 0.84rem/1.2 "IBM Plex Mono", monospace;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    select {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--panel-strong);
+      color: var(--text);
+      padding: 14px 16px;
+      font: inherit;
+    }
+
+    .run-meta,
+    .test-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .meta-card,
+    .test-list button {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(255, 250, 242, 0.88);
+      padding: 14px 16px;
+    }
+
+    .meta-card strong,
+    .test-list button strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 0.95rem;
+    }
+
+    .meta-card span,
+    .test-list button span {
+      color: var(--muted);
+      line-height: 1.45;
+      font-size: 0.92rem;
+    }
+
+    .test-list button {
+      width: 100%;
+      text-align: left;
+      cursor: pointer;
+      transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+    }
+
+    .test-list button:hover,
+    .test-list button:focus-visible {
+      outline: none;
+      transform: translateY(-1px);
+      border-color: var(--accent);
+    }
+
+    .test-list button.active {
+      background: rgba(15, 118, 110, 0.09);
+      border-color: var(--accent);
+    }
+
+    .prompt-head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .prompt-title {
+      margin: 0;
+      font-size: clamp(1.35rem, 2vw, 1.9rem);
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(15, 118, 110, 0.22);
+      background: rgba(15, 118, 110, 0.08);
+      padding: 8px 12px;
+      font: 600 0.82rem/1 "IBM Plex Mono", monospace;
+      color: var(--accent-strong);
+    }
+
+    .prompt-notes {
+      margin: 0 0 18px;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    pre {
+      margin: 0;
+      padding: 22px;
+      overflow: auto;
+      border-radius: 18px;
+      border: 1px solid rgba(29, 28, 24, 0.08);
+      background: #1f1d18;
+      color: #f8f2e7;
+      font: 0.95rem/1.6 "IBM Plex Mono", monospace;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .small-note {
+      margin-top: 16px;
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 900px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="hero">
+      <p class="eyebrow">Benchmark prompt index</p>
+      <h1>Review the exact questions behind each benchmark run.</h1>
+      <p>
+        Pick one of the four completed runs, then choose a test to inspect the
+        original prompt used in that benchmark. This page is meant to reduce
+        duplicate submissions and make prompt review easy for anyone joining the
+        evaluation process later.
+      </p>
+    </section>
+
+    <section class="layout">
+      <aside class="panel">
+        <h2>Run selection</h2>
+        <div class="field">
+          <label for="run-select">Benchmark run</label>
+          <select id="run-select"></select>
+        </div>
+        <div class="field">
+          <label for="test-select">Test prompt</label>
+          <select id="test-select"></select>
+        </div>
+        <div id="run-meta" class="run-meta"></div>
+        <div class="small-note">
+          The two `RND005/RND006` runs share the same baseline prompt set, and
+          the two `RND007` runs share the same TypeScript / WordPress prompt set.
+        </div>
+      </aside>
+
+      <section class="panel">
+        <div class="prompt-head">
+          <div>
+            <p class="eyebrow" id="prompt-run-label">Run</p>
+            <h2 class="prompt-title" id="prompt-title">Select a benchmark run</h2>
+          </div>
+          <div class="chip" id="prompt-chip">Prompt</div>
+        </div>
+        <p class="prompt-notes" id="prompt-notes"></p>
+        <pre id="prompt-body">Choose a run and test to view the original benchmark prompt.</pre>
+        <div class="small-note" id="source-note"></div>
+      </section>
+    </section>
+  </main>
+
+  <script src="/benchmark-prompts-data.js"></script>
+  <script>
+    (function () {
+      const catalog = window.BENCHMARK_PROMPT_CATALOG;
+      const runSelect = document.getElementById("run-select");
+      const testSelect = document.getElementById("test-select");
+      const runMeta = document.getElementById("run-meta");
+      const promptRunLabel = document.getElementById("prompt-run-label");
+      const promptTitle = document.getElementById("prompt-title");
+      const promptChip = document.getElementById("prompt-chip");
+      const promptNotes = document.getElementById("prompt-notes");
+      const promptBody = document.getElementById("prompt-body");
+      const sourceNote = document.getElementById("source-note");
+
+      function getRun(runId) {
+        return catalog.runs.find((run) => run.id === runId) || catalog.runs[0];
+      }
+
+      function getPromptSet(run) {
+        return catalog.promptSets[run.promptSetId];
+      }
+
+      function getTest(promptSet, testId) {
+        return promptSet.tests.find((test) => test.id === testId) || promptSet.tests[0];
+      }
+
+      function renderRunMeta(run, promptSet) {
+        runMeta.innerHTML = "";
+        const cards = [
+          ["Model group", run.modelGroup],
+          ["Date", run.date],
+          ["Tests", String(run.testCount)],
+          ["Prompt set", promptSet.label]
+        ];
+
+        for (const [label, value] of cards) {
+          const card = document.createElement("div");
+          card.className = "meta-card";
+          card.innerHTML = "<strong>" + label + "</strong><span>" + value + "</span>";
+          runMeta.appendChild(card);
+        }
+      }
+
+      function populateRuns() {
+        for (const run of catalog.runs) {
+          const option = document.createElement("option");
+          option.value = run.id;
+          option.textContent = run.label;
+          runSelect.appendChild(option);
+        }
+      }
+
+      function populateTests(promptSet, selectedTestId) {
+        testSelect.innerHTML = "";
+        for (const test of promptSet.tests) {
+          const option = document.createElement("option");
+          option.value = test.id;
+          option.textContent = test.id + " - " + test.title;
+          if (test.id === selectedTestId) option.selected = true;
+          testSelect.appendChild(option);
+        }
+      }
+
+      function render() {
+        const run = getRun(runSelect.value);
+        const promptSet = getPromptSet(run);
+        const test = getTest(promptSet, testSelect.value);
+
+        if (!testSelect.options.length || ![...testSelect.options].some((option) => option.value === test.id)) {
+          populateTests(promptSet, test.id);
+        }
+
+        renderRunMeta(run, promptSet);
+        promptRunLabel.textContent = run.label;
+        promptTitle.textContent = test.id + " - " + test.title;
+        promptChip.textContent = "Test " + String(test.number).padStart(3, "0");
+        promptNotes.textContent = run.notes;
+        promptBody.textContent = test.prompt;
+        sourceNote.textContent = promptSet.source;
+      }
+
+      runSelect.addEventListener("change", () => {
+        const run = getRun(runSelect.value);
+        const promptSet = getPromptSet(run);
+        populateTests(promptSet, promptSet.tests[0].id);
+        render();
+      });
+
+      testSelect.addEventListener("change", render);
+
+      populateRuns();
+      const initialRun = catalog.runs[0];
+      runSelect.value = initialRun.id;
+      populateTests(getPromptSet(initialRun), getPromptSet(initialRun).tests[0].id);
+      render();
+    }());
+  </script>
+</body>
+</html>
