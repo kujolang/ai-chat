@@ -3189,10 +3189,18 @@ function renderMessageNodeHtml(message, paneId) {
 	if (message.role === "assistant" && message.thinking) {
 		messageClasses.push("with-thinking");
 	}
-	const hasAssistantContent = message.role !== "assistant" || Boolean(String(message.content || "").trim());
+	const hasInlineThinkingActivity = message.role === "assistant"
+		&& message.streaming
+		&& (Boolean(String(message.live_narration || "").trim())
+			|| Boolean(String(message.thinking || "").trim())
+			|| (Array.isArray(message.tool_activity) && message.tool_activity.length > 0));
+	const hasAssistantContent = message.role !== "assistant"
+		|| (Boolean(String(message.content || "").trim()) && !hasInlineThinkingActivity);
 	const hasAssistantThinkingOnly = message.role === "assistant"
 		&& !hasAssistantContent
-		&& Boolean(String(message.thinking || "").trim());
+		&& (Boolean(String(message.thinking || "").trim())
+			|| Boolean(String(message.live_narration || "").trim())
+			|| (Array.isArray(message.tool_activity) && message.tool_activity.length > 0));
 
 	const metaBits = [];
 	if (message.usage && Number.isFinite(Number(message.usage.total_tokens))) {
@@ -3219,9 +3227,6 @@ function renderMessageNodeHtml(message, paneId) {
 	const meta = metaBits.length > 0 ? `<div class="message-meta${metaExpanded ? " expanded" : ""}">${escapeHtml(metaBits.join(" | "))}</div>` : "";
 	const thinking = renderThinkingBlock(message, paneId);
 	const toolError = renderMessageErrorBlock(message);
-	const toolActivity = Array.isArray(message.tool_activity) && message.tool_activity.length > 0
-		? `<div class="message-tool-activity" role="status">${message.tool_activity.map((line) => escapeHtml(String(line))).join("<br>")}</div>`
-		: "";
 	const contentBody = renderAssistantMarkdown(message.role === "assistant" ? normalizeAssistantProseSpacing(message.content) : message.content);
 	const content = hasAssistantThinkingOnly ? "" : renderMessageContent(message, paneId, contentBody);
 	const screenshots = renderBrowserScreenshotArtifacts(message);
@@ -3238,7 +3243,7 @@ function renderMessageNodeHtml(message, paneId) {
 		const metaFooter = meta || footer
 			? `<div class="message-meta-footer">${footer}<div class="message-runtime-details">${meta}${metaToggle}</div></div>`
 			: "";
-		return `<div class="${messageClasses.join(" ")}" data-message-id="${escapeHtml(message.id)}" data-pane-id="${escapeHtml(paneId)}">${thinking}${toolActivity}${content}${toolError}${screenshots}${metaFooter}</div>`;
+		return `<div class="${messageClasses.join(" ")}" data-message-id="${escapeHtml(message.id)}" data-pane-id="${escapeHtml(paneId)}">${thinking}${content}${toolError}${screenshots}${metaFooter}</div>`;
 	}
 
 	return `<div class="${messageClasses.join(" ")}" data-message-id="${escapeHtml(message.id)}" data-pane-id="${escapeHtml(paneId)}"><div class="message-bubble">${content}${meta}</div>${footer}</div>`;
@@ -5574,7 +5579,7 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 					const activity = String(payloadObj.activity || "").trim().slice(0, 180);
 					const status = payloadObj.phase === "started"
 						? (activity || `Using ${toolName}…`)
-						: `${activity || `Used ${toolName}`} · ${payloadObj.phase === "failed" ? "failed" : "done"}`;
+						: `${activity || `Used ${toolName}`} · ${payloadObj.phase === "failed" ? `failed${payloadObj.error_reason ? ` — ${payloadObj.error_reason}` : ""}` : "done"}`;
 					assistantMessage.tool_activity = Array.from(new Set([...(assistantMessage.tool_activity || []), status]));
 					scheduleStreamingMessagePatch(chat.id, pane.id, assistantMessage.id);
 					return;
@@ -7867,7 +7872,12 @@ async function maybeAutoTitleChat(chat, pane, profile, selectedModel) {
 }
 
 function renderThinkingBlock(message, paneId) {
-	if (!message || (!message.thinking && !message.streaming)) {
+	const toolActivityLines = Array.isArray(message?.tool_activity)
+		? message.tool_activity
+			.map((line) => String(line || "").trim())
+			.filter(Boolean)
+		: [];
+	if (!message || (!message.thinking && !message.streaming && toolActivityLines.length === 0 && !message.live_narration)) {
 		return "";
 	}
 
@@ -7889,7 +7899,10 @@ function renderThinkingBlock(message, paneId) {
 			: "Worked";
 
 	const renderedThinking = renderAssistantMarkdown(normalizeAssistantProseSpacing(thinkingText));
-	return `<div class="message-thinking" role="status" aria-live="polite"><div class="message-thinking-head"><div class="thinking-label">${thinkingLabel}</div>${loadingIcon}${toggle}</div><div class="${contentClass} message-thinking-markdown"><div class="message-content-block">${renderedThinking}</div></div></div>`;
+	const toolActivity = toolActivityLines.length > 0
+		? `<div class="message-tool-activity-inline" role="status">${toolActivityLines.map((line) => `<div>${escapeHtml(line)}</div>`).join("")}</div>`
+		: "";
+	return `<div class="message-thinking" role="status" aria-live="polite"><div class="message-thinking-head"><div class="thinking-label">${thinkingLabel}</div>${loadingIcon}${toggle}</div><div class="${contentClass} message-thinking-markdown"><div class="message-content-block">${renderedThinking}</div>${toolActivity}</div></div>`;
 }
 
 function appendThinkingDelta(previousValue, nextValue) {

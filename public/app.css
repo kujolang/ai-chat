@@ -135,6 +135,7 @@ button {
 	display: flex;
 	align-items: center;
 	gap: 2px;
+	margin-top: -1px;
 }
 
 .brand-actions .nav-link.icon-only svg {
@@ -221,7 +222,7 @@ button {
 
 .brand-row h1 {
 	font-family: var(--display);
-	font-size: 16px;
+	font-size: 17px;
 	line-height: 1;
 	margin: 0;
 	white-space: nowrap;
@@ -1357,16 +1358,6 @@ textarea::-webkit-scrollbar-thumb:hover {
 	color: #ff9a9a;
 }
 
-.message-tool-activity {
-	margin: 8px 0;
-	padding: 7px 9px;
-	border-left: 2px solid var(--accent);
-	background: var(--accent-quiet);
-	color: #c9e1ff;
-	font: 11px/1.45 var(--mono);
-	transition: none;
-}
-
 .message-tool-artifact {
 	margin: 0;
 	padding: 0;
@@ -2025,6 +2016,14 @@ textarea:focus,
 	color: #8fc8ff;
 	text-decoration: none;
 	border-bottom: 1px solid rgba(143, 200, 255, .38);
+}
+
+.message-tool-activity-inline {
+	display: grid;
+	gap: 3px;
+	margin-top: 8px;
+	color: #c9e1ff;
+	font: 11px/1.45 var(--mono);
 }
 
 .confirmation-modal-panel {
