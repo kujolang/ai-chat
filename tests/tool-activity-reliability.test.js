@@ -166,7 +166,11 @@ test("toolErrorReason maps known error codes to human-readable reasons", () => {
 		assert.equal(reason("local_path_not_found"), "file not found in selected workspace");
 		assert.equal(reason("local_workspace_not_found"), "workspace not configured");
 		assert.equal(reason("local_shell_command_blocked"), "command not in allowlist");
+		assert.equal(reason("skill_not_found"), "skill not found");
+		assert.equal(reason("action_adapter_timeout"), "action adapter timed out");
+		assert.equal(reason("browser_action_blocked"), "browser action blocked by safety policy");
 		assert.equal(reason("browser_session_not_found"), "browser session expired");
+		assert.equal(reason("tool_approval_required"), "human approval required");
 		assert.equal(reason("tool_execution_unavailable"), "tool not available");
 		assert.equal(reason("tool_execution_failed"), "execution failed");
 		assert.equal(reason("invalid_tool_arguments"), "invalid arguments");
