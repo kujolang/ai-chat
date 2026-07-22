@@ -44,10 +44,10 @@
 			</div>
 
 			<div class="sidebar-projects">
-				<div class="projects-head">
+				<div class="projects-head projects-title-control">
 					<div class="sidebar-subtitle">Projects</div>
 					<button id="add-project-folder-btn" class="project-folder-add-btn" aria-label="Add Project Folder" title="Add Project Folder">
-						<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-folder-plus-icon lucide-folder-plus" aria-hidden="true"><path d="M12 10v6"/><path d="M9 13h6"/><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>
+						<span aria-hidden="true">+</span>
 					</button>
 				</div>
 				<div id="project-folder-list" class="project-folder-list"></div>
@@ -135,7 +135,7 @@
 			<div class="modal-head">
 				<h2>Pane Profiles</h2>
 				<button id="close-pane-profiles-btn" class="modal-close-icon" aria-label="Close pane profiles" title="Close pane profiles">
-					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>
+					<span aria-hidden="true">×</span>
 				</button>
 			</div>
 			<p class="settings-note">Save the current ordered pane and model selections, then reuse them in a new chat. Regular New Chat still starts with one pane.</p>
@@ -154,7 +154,7 @@
 			<div class="modal-head">
 				<h2 id="screenshot-gallery-title">Browser screenshots</h2>
 				<button id="close-screenshot-gallery-btn" class="modal-close-icon" aria-label="Close browser screenshots" title="Close browser screenshots">
-					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>
+					<span aria-hidden="true">×</span>
 				</button>
 			</div>
 			<div class="screenshot-gallery-viewer">
@@ -173,7 +173,7 @@
 			<div class="modal-head">
 				<h2>Settings</h2>
 				<button id="close-settings-btn" class="modal-close-icon" aria-label="Close settings" title="Close settings">
-					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-x-icon lucide-circle-x" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>
+					<span aria-hidden="true">×</span>
 				</button>
 			</div>
 
@@ -261,12 +261,20 @@
 				<div class="settings-row-head">
 				<h3>Tools (Advanced)</h3>
 					<div class="settings-tool-actions">
-						<button id="add-browser-tool-btn" class="btn ghost">Add Browser Tool Presets</button>
-						<button id="add-system-tool-btn" class="btn ghost">Add System Tool Preset</button>
-						<button id="add-web-search-tool-btn" class="btn ghost">Add Web Search Schema</button>
-						<button id="add-skill-tool-btn" class="btn ghost">Add Skill Tool Presets</button>
-						<button id="add-local-tool-btn" class="btn ghost">Add Local Tool Presets</button>
-						<button id="add-action-tool-btn" class="btn ghost">Add Action Adapter Presets</button>
+						<div class="tool-preset-menu">
+							<button id="toggle-tool-presets-btn" class="btn ghost icon-only tool-preset-toggle" type="button" aria-label="Show tool presets" aria-expanded="false">
+								<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+							</button>
+							<div id="tool-preset-dropdown" class="tool-preset-dropdown hidden" role="menu" aria-label="Tool presets">
+								<div class="tool-preset-heading">Tool presets</div>
+								<button id="add-browser-tool-btn" class="tool-preset-option">Browser presets</button>
+								<button id="add-system-tool-btn" class="tool-preset-option">System preset</button>
+								<button id="add-web-search-tool-btn" class="tool-preset-option">Web Search schema</button>
+								<button id="add-skill-tool-btn" class="tool-preset-option">Skill presets</button>
+								<button id="add-local-tool-btn" class="tool-preset-option">Local presets</button>
+								<button id="add-action-tool-btn" class="tool-preset-option">Action Adapter presets</button>
+							</div>
+						</div>
 						<button id="add-tool-btn" class="btn ghost add-profile-btn">
 							<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
 							<span>Add Tool</span>
@@ -287,7 +295,7 @@
 			<div class="modal-head">
 				<h2>Search chats</h2>
 					<button id="close-search-btn" class="modal-close-icon" aria-label="Close search" title="Close search">
-						<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-x-icon lucide-circle-x" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>
+						<span aria-hidden="true">×</span>
 					</button>
 			</div>
 			<div class="search-modal-input-wrap">
@@ -303,7 +311,7 @@
 			<div class="modal-head">
 				<h2>Plugins</h2>
 				<button id="close-plugins-btn" class="modal-close-icon" aria-label="Close plugins" title="Close plugins">
-					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-x-icon lucide-circle-x" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>
+					<span aria-hidden="true">×</span>
 				</button>
 			</div>
 			<p class="settings-note">Manage model provider integrations configured for this workspace.</p>
@@ -320,16 +328,36 @@
 			<div class="modal-head">
 				<h2>Automations</h2>
 				<button id="close-automations-btn" class="modal-close-icon" aria-label="Close automations" title="Close automations">
-					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-x-icon lucide-circle-x" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>
+					<span aria-hidden="true">×</span>
 				</button>
 			</div>
-			<p class="settings-note">Run common workspace actions in one click.</p>
-			<div id="automation-actions" class="automation-actions">
-				<button class="btn automation-action" data-automation-action="new-chat">Start New Chat</button>
-				<button class="btn automation-action" data-automation-action="add-pane">Add Pane</button>
-				<button class="btn automation-action" data-automation-action="open-search">Open Chat Search</button>
-				<button class="btn automation-action" data-automation-action="open-settings">Open Settings</button>
+			<div class="automation-toolbar">
+				<p class="settings-note">Schedule prompts to run automatically in new chats.</p>
+				<button id="new-automation-btn" class="btn" type="button">New automation</button>
 			</div>
+			<div id="automation-status" class="automation-status" role="status" aria-live="polite"></div>
+			<div id="automation-list" class="automation-list"></div>
+			<form id="automation-editor" class="automation-editor hidden">
+				<input id="automation-id" type="hidden">
+				<label><span>Title</span><input id="automation-title" type="text" maxlength="160" required placeholder="Daily research brief"></label>
+				<label><span>Prompt</span><textarea id="automation-prompt" rows="10" maxlength="200000" required placeholder="Describe the research or work to run on schedule."></textarea></label>
+				<div class="automation-section-title">Details</div>
+				<div class="automation-fields">
+					<label><span>Runs in</span><input type="text" value="New chat" disabled></label>
+					<label><span>Project</span><select id="automation-project"></select></label>
+					<label><span>Model</span><select id="automation-model"></select></label>
+				</div>
+				<div class="automation-section-title">Frequency</div>
+				<div class="automation-fields">
+					<label><span>Repeat</span><select id="automation-repeat"><option value="daily">Daily</option><option value="weekdays">Weekdays</option><option value="weekly">Weekly</option></select></label>
+					<label id="automation-weekday-wrap" class="hidden"><span>Day</span><select id="automation-weekday"><option value="0">Sunday</option><option value="1">Monday</option><option value="2">Tuesday</option><option value="3">Wednesday</option><option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option></select></label>
+					<label><span>At</span><input id="automation-time" type="time" required value="09:00"></label>
+					<label><span>Timezone</span><input id="automation-timezone" type="text" required></label>
+					<label class="automation-enabled"><input id="automation-enabled" type="checkbox" checked><span>Active</span></label>
+				</div>
+				<div class="automation-editor-actions"><button id="cancel-automation-btn" class="btn ghost" type="button">Cancel</button><button class="btn" type="submit">Save automation</button></div>
+				<div id="automation-runs" class="automation-runs"></div>
+			</form>
 		</div>
 	</div>
 
@@ -339,7 +367,7 @@
 			<div class="modal-head">
 				<h2>Token Usage</h2>
 				<button id="close-usage-btn" class="modal-close-icon" aria-label="Close token usage" title="Close token usage">
-					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-x-icon lucide-circle-x" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>
+					<span aria-hidden="true">×</span>
 				</button>
 			</div>
 
@@ -460,7 +488,7 @@
 			<div class="modal-head">
 				<h2 id="project-folder-modal-title">Project Folder</h2>
 				<button id="close-project-folder-btn" class="modal-close-icon" aria-label="Close project folder modal" title="Close project folder modal">
-					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-x-icon lucide-circle-x" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>
+					<span aria-hidden="true">×</span>
 				</button>
 			</div>
 			<div class="project-folder-form">

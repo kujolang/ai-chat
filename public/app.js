@@ -105,6 +105,9 @@ let draggedModel = null;
 let profileDropDestination = null;
 let draggedToolId = "";
 let toolDropDestination = null;
+let toolPresetMenuOpen = false;
+let automations = [];
+let automationPollTimer = null;
 let activeSettingsPointerDrag = null;
 let collapsedProviderIds = loadCollapsedProviderIds();
 let collapsedToolIds = loadCollapsedToolIds();
@@ -183,7 +186,23 @@ const nodes = {
 	saveProjectFolderBtn: document.getElementById("save-project-folder-btn"),
 	automationsModal: document.getElementById("automations-modal"),
 	closeAutomationsBtn: document.getElementById("close-automations-btn"),
-	automationActions: document.getElementById("automation-actions"),
+	newAutomationBtn: document.getElementById("new-automation-btn"),
+	automationStatus: document.getElementById("automation-status"),
+	automationList: document.getElementById("automation-list"),
+	automationEditor: document.getElementById("automation-editor"),
+	automationId: document.getElementById("automation-id"),
+	automationTitle: document.getElementById("automation-title"),
+	automationPrompt: document.getElementById("automation-prompt"),
+	automationProject: document.getElementById("automation-project"),
+	automationModel: document.getElementById("automation-model"),
+	automationRepeat: document.getElementById("automation-repeat"),
+	automationWeekdayWrap: document.getElementById("automation-weekday-wrap"),
+	automationWeekday: document.getElementById("automation-weekday"),
+	automationTime: document.getElementById("automation-time"),
+	automationTimezone: document.getElementById("automation-timezone"),
+	automationEnabled: document.getElementById("automation-enabled"),
+	automationRuns: document.getElementById("automation-runs"),
+	cancelAutomationBtn: document.getElementById("cancel-automation-btn"),
 	usageModal: document.getElementById("usage-modal"),
 	closeUsageBtn: document.getElementById("close-usage-btn"),
 	usageStatTotal: document.getElementById("usage-stat-total"),
@@ -229,6 +248,8 @@ const nodes = {
 	addSkillToolBtn: document.getElementById("add-skill-tool-btn"),
 	addLocalToolBtn: document.getElementById("add-local-tool-btn"),
 	addActionToolBtn: document.getElementById("add-action-tool-btn"),
+	toggleToolPresetsBtn: document.getElementById("toggle-tool-presets-btn"),
+	toolPresetDropdown: document.getElementById("tool-preset-dropdown"),
 	appShell: document.getElementById("app"),
 	paneTemplate: document.getElementById("pane-template")
 };
@@ -695,19 +716,11 @@ function wireEvents() {
 		openSettings();
 	});
 
-	nodes.automationActions.addEventListener("click", (event) => {
-		const actionNode = event.target.closest("[data-automation-action]");
-		if (!actionNode) {
-			return;
-		}
-
-		const action = String(actionNode.getAttribute("data-automation-action") || "");
-		if (!action) {
-			return;
-		}
-
-		runAutomationAction(action);
-	});
+	nodes.newAutomationBtn.addEventListener("click", () => showAutomationEditor());
+	nodes.cancelAutomationBtn.addEventListener("click", hideAutomationEditor);
+	nodes.automationRepeat.addEventListener("change", syncAutomationWeekdayField);
+	nodes.automationEditor.addEventListener("submit", (event) => { event.preventDefault(); void saveAutomation(); });
+	nodes.automationList.addEventListener("click", (event) => { void handleAutomationAction(event); });
 
 	nodes.searchModalInput.addEventListener("input", (event) => {
 		state.searchQuery = String(event.target.value || "");
@@ -918,15 +931,18 @@ function wireEvents() {
 
 	nodes.addToolBtn.addEventListener("click", () => {
 		state.settings.tools.push(createToolDefinition());
+		setToolPresetMenuOpen(false);
 		renderSettings();
 		schedulePersist();
 	});
+	nodes.toggleToolPresetsBtn.addEventListener("click", () => setToolPresetMenuOpen(!toolPresetMenuOpen));
 
 	if (nodes.addBrowserToolBtn) {
-		nodes.addBrowserToolBtn.addEventListener("click", () => {
+			nodes.addBrowserToolBtn.addEventListener("click", () => {
 			for (const definition of createBrowserToolDefinitions()) {
 				if (!state.settings.tools.some((tool) => tool.name === definition.name)) state.settings.tools.push(definition);
 			}
+			setToolPresetMenuOpen(false);
 			renderSettings();
 			schedulePersist();
 		});
@@ -935,6 +951,7 @@ function wireEvents() {
 	if (nodes.addWebSearchToolBtn) {
 		nodes.addWebSearchToolBtn.addEventListener("click", () => {
 			state.settings.tools.push(createWebSearchToolDefinition());
+			setToolPresetMenuOpen(false);
 			renderSettings();
 			schedulePersist();
 		});
@@ -943,6 +960,7 @@ function wireEvents() {
 	if (nodes.addSystemToolBtn) {
 		nodes.addSystemToolBtn.addEventListener("click", () => {
 			if (!state.settings.tools.some((tool) => tool.name === "system_time")) state.settings.tools.push(createSystemTimeToolDefinition());
+			setToolPresetMenuOpen(false);
 			renderSettings();
 			schedulePersist();
 		});
@@ -953,6 +971,7 @@ function wireEvents() {
 			for (const definition of createSkillToolDefinitions()) {
 				if (!state.settings.tools.some((tool) => tool.name === definition.name)) state.settings.tools.push(definition);
 			}
+			setToolPresetMenuOpen(false);
 			renderSettings();
 			schedulePersist();
 		});
@@ -963,6 +982,7 @@ function wireEvents() {
 			for (const definition of createLocalToolDefinitions()) {
 				if (!state.settings.tools.some((tool) => tool.name === definition.name)) state.settings.tools.push(definition);
 			}
+			setToolPresetMenuOpen(false);
 			renderSettings();
 			schedulePersist();
 		});
@@ -973,6 +993,7 @@ function wireEvents() {
 			for (const definition of createActionToolDefinitions()) {
 				if (!state.settings.tools.some((tool) => tool.name === definition.name)) state.settings.tools.push(definition);
 			}
+			setToolPresetMenuOpen(false);
 			renderSettings();
 			schedulePersist();
 		});
@@ -1379,12 +1400,19 @@ function wireEvents() {
 		const chat = getActiveChat();
 		if (chat) renderPaneControls(chat);
 	});
+	document.addEventListener("click", (event) => {
+		if (!toolPresetMenuOpen || event.composedPath().includes(nodes.toggleToolPresetsBtn) || event.composedPath().includes(nodes.toolPresetDropdown)) return;
+		setToolPresetMenuOpen(false);
+	});
 
 	document.addEventListener("keydown", (event) => {
-		if (event.key !== "Escape" || !paneMenuOpen) return;
-		paneMenuOpen = false;
-		const chat = getActiveChat();
-		if (chat) renderPaneControls(chat);
+		if (event.key !== "Escape") return;
+		if (paneMenuOpen) {
+			paneMenuOpen = false;
+			const chat = getActiveChat();
+			if (chat) renderPaneControls(chat);
+		}
+		if (toolPresetMenuOpen) setToolPresetMenuOpen(false);
 	});
 
 	nodes.paneGrid.addEventListener("change", (event) => {
@@ -3097,9 +3125,6 @@ function renderMessageNodeHtml(message, paneId) {
 	const toolActivity = Array.isArray(message.tool_activity) && message.tool_activity.length > 0
 		? `<div class="message-tool-activity" role="status">${message.tool_activity.map((line) => escapeHtml(String(line))).join("<br>")}</div>`
 		: "";
-	const liveNarration = message.streaming && String(message.live_narration || "").trim()
-		? `<div class="message-live-narration">${renderAssistantMarkdown(normalizeAssistantProseSpacing(message.live_narration))}</div>`
-		: "";
 	const contentBody = renderAssistantMarkdown(message.role === "assistant" ? normalizeAssistantProseSpacing(message.content) : message.content);
 	const content = renderMessageContent(message, paneId, contentBody);
 	const screenshots = renderBrowserScreenshotArtifacts(message);
@@ -3116,7 +3141,7 @@ function renderMessageNodeHtml(message, paneId) {
 		const metaFooter = meta || footer
 			? `<div class="message-meta-footer">${footer}<div class="message-runtime-details">${meta}${metaToggle}</div></div>`
 			: "";
-		return `<div class="${messageClasses.join(" ")}" data-message-id="${escapeHtml(message.id)}" data-pane-id="${escapeHtml(paneId)}">${thinking}${liveNarration}${toolActivity}${content}${toolError}${screenshots}${metaFooter}</div>`;
+		return `<div class="${messageClasses.join(" ")}" data-message-id="${escapeHtml(message.id)}" data-pane-id="${escapeHtml(paneId)}">${thinking}${toolActivity}${content}${toolError}${screenshots}${metaFooter}</div>`;
 	}
 
 	return `<div class="${messageClasses.join(" ")}" data-message-id="${escapeHtml(message.id)}" data-pane-id="${escapeHtml(paneId)}"><div class="message-bubble">${content}${meta}</div>${footer}</div>`;
@@ -3445,12 +3470,17 @@ function closePluginsModal() {
 	nodes.pluginsModal.classList.add("hidden");
 }
 
-function openAutomationsModal() {
+async function openAutomationsModal() {
 	nodes.automationsModal.classList.remove("hidden");
+	hideAutomationEditor();
+	await loadAutomations();
+	automationPollTimer = window.setInterval(() => { void loadAutomations({ quiet: true }); }, 5000);
 }
 
 function closeAutomationsModal() {
 	nodes.automationsModal.classList.add("hidden");
+	if (automationPollTimer) window.clearInterval(automationPollTimer);
+	automationPollTimer = null;
 }
 
 function openUsageModal() {
@@ -4524,44 +4554,168 @@ function providerLabelForId(providerId) {
 	return providerId || "Unknown Provider";
 }
 
-function runAutomationAction(action) {
-	const chat = getActiveChat();
+function setToolPresetMenuOpen(open) {
+	toolPresetMenuOpen = Boolean(open);
+	nodes.toolPresetDropdown.classList.toggle("hidden", !toolPresetMenuOpen);
+	nodes.toggleToolPresetsBtn.setAttribute("aria-expanded", toolPresetMenuOpen ? "true" : "false");
+	nodes.toggleToolPresetsBtn.setAttribute("aria-label", toolPresetMenuOpen ? "Hide tool presets" : "Show tool presets");
+	nodes.toggleToolPresetsBtn.innerHTML = toolPresetMenuOpen ? chevronRightSvg : chevronLeftSvg;
+}
 
-	if (action === "new-chat") {
-		createAndActivateChat();
-		closeAutomationsModal();
+async function loadAutomations(options = {}) {
+	if (!options.quiet) nodes.automationStatus.textContent = "Loading automations…";
+	try {
+		const response = await apiFetch("/api/automations");
+		const payload = await response.json();
+		if (!response.ok || !payload.ok) throw new Error(payload && payload.error && payload.error.message || "Could not load automations.");
+		automations = Array.isArray(payload.automations) ? payload.automations : [];
+		renderAutomations();
+		nodes.automationStatus.textContent = "";
+	} catch (error) {
+		nodes.automationStatus.textContent = error.message || "Could not load automations.";
+	}
+}
+
+function renderAutomations() {
+	if (automations.length === 0) {
+		nodes.automationList.innerHTML = `<div class="automation-empty">No automations yet. Create one to run a prompt on a schedule.</div>`;
 		return;
 	}
+	nodes.automationList.innerHTML = automations.map((automation) => {
+		const profile = getProfileById(automation.profile_id);
+		const schedule = automation.repeat === "weekly"
+			? `${weekdayName(automation.weekday)} at ${formatAutomationTime(automation.time)}`
+			: `${automation.repeat === "weekdays" ? "Weekdays" : "Daily"} at ${formatAutomationTime(automation.time)}`;
+		const next = automation.next_run_at ? `Next ${new Date(automation.next_run_at).toLocaleString()}` : "Paused";
+		return `<article class="automation-card${automation.enabled ? "" : " paused"}" data-automation-id="${escapeHtml(automation.id)}"><div class="automation-card-copy"><div class="automation-card-title"><span class="automation-state-dot" aria-hidden="true"></span>${escapeHtml(automation.title)}</div><div class="automation-card-meta">${escapeHtml(schedule)} · ${escapeHtml(automation.timezone)} · ${escapeHtml(profile ? profile.name : "Missing profile")}</div><div class="automation-card-next">${escapeHtml(next)}</div></div><div class="automation-card-actions"><button class="btn ghost" type="button" data-automation-action="run">Run now</button><button class="btn ghost" type="button" data-automation-action="edit">Edit</button><button class="btn ghost" type="button" data-automation-action="toggle">${automation.enabled ? "Pause" : "Resume"}</button><button class="btn ghost danger" type="button" data-automation-action="delete">Delete</button></div></article>`;
+	}).join("");
+}
 
-	if (action === "add-pane") {
-		if (!chat) {
-			return;
+function showAutomationEditor(automation = null) {
+	nodes.automationEditor.classList.remove("hidden");
+	nodes.automationList.classList.add("hidden");
+	nodes.newAutomationBtn.classList.add("hidden");
+	nodes.automationId.value = automation ? automation.id : "";
+	nodes.automationTitle.value = automation ? automation.title : "";
+	nodes.automationPrompt.value = automation ? automation.prompt : "";
+	const modelOptions = [];
+	for (const profile of state.settings.profiles) {
+		for (const model of profileModels(profile)) {
+			modelOptions.push(`<option value="${escapeHtml(`${profile.id}::${model}`)}">${escapeHtml(`${profile.name} · ${model}`)}</option>`);
 		}
+	}
+	nodes.automationModel.innerHTML = modelOptions.join("");
+	const selectedProfile = automation ? automation.profile_id : state.settings.defaultProfileId;
+	const selectedModel = automation ? automation.model : state.settings.defaultModel;
+	const selection = `${selectedProfile || (state.settings.profiles[0] || {}).id || ""}::${selectedModel || ""}`;
+	if ([...nodes.automationModel.options].some((option) => option.value === selection)) nodes.automationModel.value = selection;
+	nodes.automationProject.innerHTML = `<option value="">None</option>${(state.projectFolders || []).map((folder) => `<option value="${escapeHtml(folder)}">${escapeHtml(folder)}</option>`).join("")}`;
+	nodes.automationProject.value = automation ? automation.project_path || "" : "";
+	nodes.automationRepeat.value = automation ? automation.repeat : "daily";
+	nodes.automationWeekday.value = String(automation ? automation.weekday : new Date().getDay());
+	nodes.automationTime.value = automation ? automation.time : "09:00";
+	nodes.automationTimezone.value = automation ? automation.timezone : (Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC");
+	nodes.automationEnabled.checked = automation ? automation.enabled : true;
+	nodes.automationRuns.innerHTML = "";
+	syncAutomationWeekdayField();
+	if (automation) void loadAutomationRuns(automation.id);
+	window.requestAnimationFrame(() => nodes.automationTitle.focus());
+}
 
-		const firstProfile = state.settings.profiles[0] || createDefaultProfile();
-		if (state.settings.profiles.length === 0) {
-			state.settings.profiles.push(firstProfile);
-		}
+function hideAutomationEditor() {
+	nodes.automationEditor.classList.add("hidden");
+	nodes.automationList.classList.remove("hidden");
+	nodes.newAutomationBtn.classList.remove("hidden");
+}
 
-		chat.panes.push(createPane(firstProfile.id));
-		chat.updatedAt = Date.now();
-		schedulePersist();
-		renderAll({ preserveWorkspaceScroll: true });
-		closeAutomationsModal();
+function syncAutomationWeekdayField() {
+	nodes.automationWeekdayWrap.classList.toggle("hidden", nodes.automationRepeat.value !== "weekly");
+}
+
+async function saveAutomation() {
+	const [profileId, ...modelParts] = String(nodes.automationModel.value || "").split("::");
+	const id = String(nodes.automationId.value || "");
+	const body = {
+		title: nodes.automationTitle.value,
+		prompt: nodes.automationPrompt.value,
+		profile_id: profileId,
+		model: modelParts.join("::"),
+		project_path: nodes.automationProject.value,
+		repeat: nodes.automationRepeat.value,
+		weekday: Number(nodes.automationWeekday.value),
+		time: nodes.automationTime.value,
+		timezone: nodes.automationTimezone.value,
+		enabled: nodes.automationEnabled.checked
+	};
+	nodes.automationStatus.textContent = "Saving automation…";
+	try {
+		const response = await apiFetch(id ? `/api/automations/${encodeURIComponent(id)}` : "/api/automations", {
+			method: id ? "PUT" : "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify(body)
+		});
+		const payload = await response.json();
+		if (!response.ok || !payload.ok) throw new Error(payload && payload.error && payload.error.message || "Could not save automation.");
+		hideAutomationEditor();
+		await loadAutomations();
+	} catch (error) {
+		nodes.automationStatus.textContent = error.message || "Could not save automation.";
+	}
+}
+
+async function handleAutomationAction(event) {
+	const button = event.target.closest("[data-automation-action]");
+	const card = event.target.closest("[data-automation-id]");
+	if (!button || !card) return;
+	const automation = automations.find((entry) => entry.id === card.getAttribute("data-automation-id"));
+	if (!automation) return;
+	const action = button.getAttribute("data-automation-action");
+	if (action === "edit") {
+		showAutomationEditor(automation);
 		return;
 	}
-
-	if (action === "open-search") {
-		closeAutomationsModal();
-		openSearchModal();
-		return;
+	if (action === "delete") {
+		const confirmed = await openConfirmationModal({ title: "Delete automation", message: `Delete “${automation.title}” and its run history? Chats created by previous runs will remain.`, confirmLabel: "Delete", danger: true });
+		if (!confirmed) return;
 	}
-
-	if (action === "open-settings") {
-		closeAutomationsModal();
-		openSettings();
-		return;
+	try {
+		const response = action === "run"
+			? await apiFetch(`/api/automations/${encodeURIComponent(automation.id)}/run`, { method: "POST" })
+			: action === "delete"
+				? await apiFetch(`/api/automations/${encodeURIComponent(automation.id)}`, { method: "DELETE" })
+				: await apiFetch(`/api/automations/${encodeURIComponent(automation.id)}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...automation, enabled: !automation.enabled }) });
+		const payload = await response.json();
+		if (!response.ok || !payload.ok) throw new Error(payload && payload.error && payload.error.message || "Automation action failed.");
+		nodes.automationStatus.textContent = action === "run" ? "Automation started in a new chat." : "";
+		await loadAutomations({ quiet: true });
+	} catch (error) {
+		nodes.automationStatus.textContent = error.message || "Automation action failed.";
 	}
+}
+
+async function loadAutomationRuns(id) {
+	try {
+		const response = await apiFetch(`/api/automations/${encodeURIComponent(id)}/runs`);
+		const payload = await response.json();
+		if (!response.ok || !payload.ok) return;
+		const runs = Array.isArray(payload.runs) ? payload.runs : [];
+		nodes.automationRuns.innerHTML = runs.length === 0 ? "" : `<div class="automation-section-title">Previous runs</div>${runs.map((run) => {
+			const title = escapeHtml(run.chat_title || "Scheduled chat");
+			const content = run.chat_route_id ? `<a href="/c/${encodeURIComponent(run.chat_route_id)}">${title}</a>` : title;
+			return `<div class="automation-run ${escapeHtml(run.status)}"><span>${content}</span><span>${escapeHtml(run.status)} · ${escapeHtml(new Date(run.started_at).toLocaleString())}</span></div>`;
+		}).join("")}`;
+	} catch (error) {
+		// Run history is supplementary; the editor remains usable.
+	}
+}
+
+function weekdayName(value) {
+	return ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][Number(value)] || "Monday";
+}
+
+function formatAutomationTime(value) {
+	const [hour, minute] = String(value || "09:00").split(":").map(Number);
+	return new Date(2000, 0, 1, hour, minute).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
 
 function removePaneFromChat(chat, paneId) {
@@ -7536,9 +7690,12 @@ function renderThinkingBlock(message, paneId) {
 		return "";
 	}
 
-	const thinkingText = String(message.thinking || "");
+	const thinkingText = message.streaming
+		? String(message.live_narration || "")
+		: String(message.thinking || "");
 	const expanded = Boolean(message.thinking_expanded);
-	const contentClass = expanded && !message.streaming ? "message-thinking-content" : "message-thinking-content collapsed";
+	const showContent = message.streaming ? Boolean(thinkingText.trim()) : expanded;
+	const contentClass = showContent ? "message-thinking-content" : "message-thinking-content collapsed";
 	const toggle = message.streaming ? "" : `<button class="thinking-toggle" type="button" data-action="toggle-thinking" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}" aria-expanded="${expanded ? "true" : "false"}" aria-label="${expanded ? "Collapse thinking" : "Expand thinking"}">${thinkingToggleIconSvg(expanded)}</button>`;
 	const loadingIcon = message.streaming ? `<span class="thinking-inline-progress" aria-label="Working">${thinkingLoadingIconSvg}</span>` : "";
 	const thinkingLabel = message.streaming
@@ -7547,7 +7704,7 @@ function renderThinkingBlock(message, paneId) {
 			? `Worked for ${formatThinkingDurationMs(message.thinking_duration_ms)}`
 			: "Worked";
 
-	const renderedThinking = renderAssistantMarkdown(thinkingText);
+	const renderedThinking = renderAssistantMarkdown(normalizeAssistantProseSpacing(thinkingText));
 	return `<div class="message-thinking" role="status" aria-live="polite"><div class="message-thinking-head"><div class="thinking-label">${thinkingLabel}</div>${loadingIcon}${toggle}</div><div class="${contentClass} message-thinking-markdown"><div class="message-content-block">${renderedThinking}</div></div></div>`;
 }
 
