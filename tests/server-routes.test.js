@@ -657,6 +657,11 @@ test("POST /api/chat/stream runs Codex profiles through the local Codex CLI and 
 			const raw = await response.text();
 			const events = parseSseEvents(raw);
 			assert.equal(events.filter((entry) => entry.event === "token").map((entry) => entry.data.delta).join(""), "Codex review complete.");
+			const toolEvents = events.filter((entry) => entry.event === "tool");
+			assert.equal(toolEvents.length, 2);
+			assert.deepEqual(toolEvents.map((entry) => entry.data.phase), ["started", "completed"]);
+			assert.equal(toolEvents[0].data.tool_name, "command_execution");
+			assert.equal(toolEvents[0].data.command, "git status --short");
 			const doneEvent = events.find((entry) => entry.event === "done");
 			assert.ok(doneEvent);
 			assert.equal(doneEvent.data.provider, "codex");
