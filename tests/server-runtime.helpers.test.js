@@ -290,8 +290,8 @@ test("createServerRuntime defaults host to localhost and allows explicit overrid
 test("createServerRuntime exposes pane-friendly bounded tool and browser defaults", () => {
 	const defaultRuntime = createIsolatedRuntime();
 	try {
-		assert.equal(defaultRuntime.runtime.config.maxToolRounds, 24);
-		assert.equal(defaultRuntime.runtime.config.maxToolCallsPerRequest, 96);
+		assert.equal(defaultRuntime.runtime.config.maxToolRounds, 256);
+		assert.equal(defaultRuntime.runtime.config.maxToolCallsPerRequest, 2048);
 		assert.equal(defaultRuntime.runtime.config.browserMaxSessions, 32);
 		assert.equal(defaultRuntime.runtime.config.browserMaxSessionsPerChat, 8);
 		assert.equal(defaultRuntime.runtime.config.browserMaxActionsPerRequest, 24);
@@ -302,15 +302,15 @@ test("createServerRuntime exposes pane-friendly bounded tool and browser default
 
 	const cappedRuntime = createIsolatedRuntime({
 		envMerge: {
-			MAX_TOOL_ROUNDS: "999",
-			MAX_TOOL_CALLS_PER_REQUEST: "999",
+			MAX_TOOL_ROUNDS: "9999",
+			MAX_TOOL_CALLS_PER_REQUEST: "9999",
 			BROWSER_MAX_SESSIONS: "999",
 			BROWSER_MAX_SESSIONS_PER_CHAT: "999"
 		}
 	});
 	try {
-		assert.equal(cappedRuntime.runtime.config.maxToolRounds, 64);
-		assert.equal(cappedRuntime.runtime.config.maxToolCallsPerRequest, 256);
+		assert.equal(cappedRuntime.runtime.config.maxToolRounds, 512);
+		assert.equal(cappedRuntime.runtime.config.maxToolCallsPerRequest, 4096);
 		assert.equal(cappedRuntime.runtime.config.browserMaxSessions, 128);
 		assert.equal(cappedRuntime.runtime.config.browserMaxSessionsPerChat, 32);
 	} finally {
