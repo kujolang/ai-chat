@@ -90,6 +90,30 @@ test("seeds and upgrades OpenRouter and Watchdog model suggestions from the stat
 	}
 });
 
+test("seeds a Codex profile from the local Codex model cache", () => {
+	const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-codex-cache-"));
+	const cachePath = path.join(tempRoot, "models_cache.json");
+	fs.writeFileSync(cachePath, JSON.stringify({
+		models: [
+			{ slug: "gpt-5.6-sol", visibility: "list", priority: 1, supported_in_api: true },
+			{ slug: "gpt-5.4", visibility: "list", priority: 2, supported_in_api: true }
+		]
+	}));
+	const { runtime, destroy } = createIsolatedRuntime({
+		envMerge: {
+			CODEX_MODEL_CACHE_PATH: cachePath
+		}
+	});
+	try {
+		const codexProfile = runtime.helpers.readState().settings.profiles.find((profile) => profile.provider_id === "codex");
+		assert.ok(codexProfile);
+		assert.equal(codexProfile.models_csv, "gpt-5.6-sol,gpt-5.4");
+	} finally {
+		destroy();
+		fs.rmSync(tempRoot, { recursive: true, force: true });
+	}
+});
+
 test("catalog migration keeps existing model suggestions while appending new candidates", () => {
 	const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-catalog-migration-"));
 	const sdkPath = path.join(tempRoot, "ai-sdk");

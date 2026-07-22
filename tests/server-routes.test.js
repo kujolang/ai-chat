@@ -4,6 +4,7 @@ const fs = require("fs");
 const http = require("http");
 const os = require("os");
 const path = require("path");
+const { PassThrough } = require("stream");
 const { once } = require("events");
 
 const { createServerRuntime } = require("../lib/server-runtime");
@@ -578,16 +579,92 @@ test("API routes allow loopback origins when loopback hosts are allowlisted", as
 });
 
 test("GET /api/providers returns provider catalog", async () => {
-	const { runtime, destroy } = createIsolatedRuntime();
+	const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-codex-provider-catalog-"));
+	const cachePath = path.join(tempRoot, "models_cache.json");
+	fs.writeFileSync(cachePath, JSON.stringify({
+		models: [
+			{ slug: "gpt-5.6-sol", visibility: "list", priority: 1, supported_in_api: true },
+			{ slug: "gpt-5.4", visibility: "list", priority: 2, supported_in_api: true }
+		]
+	}));
+	const { runtime, destroy } = createIsolatedRuntime({
+		envMerge: { CODEX_MODEL_CACHE_PATH: cachePath }
+	});
 	try {
 		await withServer(runtime.app, async (baseUrl) => {
 			const { response, json } = await fetchJson(baseUrl, "/api/providers");
 			assert.equal(response.status, 200);
 			assert.equal(Array.isArray(json.providers), true);
 			assert.equal(json.providers.length >= 4, true);
+			const codexProvider = json.providers.find((provider) => provider.id === "codex");
+			assert.ok(codexProvider);
+			assert.deepEqual(codexProvider.models.slice(0, 2), ["gpt-5.6-sol", "gpt-5.4"]);
 		});
 	} finally {
 		destroy();
+		fs.rmSync(tempRoot, { recursive: true, force: true });
+	}
+});
+
+test("POST /api/chat/stream runs Codex profiles through the local Codex CLI and emits AI Chat SSE", async () => {
+	const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-codex-stream-"));
+	const cachePath = path.join(tempRoot, "models_cache.json");
+	fs.writeFileSync(cachePath, JSON.stringify({
+		models: [
+			{ slug: "gpt-5.6-sol", visibility: "list", priority: 1, supported_in_api: true }
+		]
+	}));
+	const spawnFn = (command, args) => {
+		assert.equal(command, "codex");
+		assert.ok(args.includes("exec"));
+		assert.ok(args.includes("--json"));
+		assert.ok(args.includes("--model"));
+		assert.ok(args.includes("gpt-5.6-sol"));
+		const child = new (require("events").EventEmitter)();
+		child.stdout = new PassThrough();
+		child.stderr = new PassThrough();
+		process.nextTick(() => {
+			child.stdout.write('{"type":"thread.started","thread_id":"codex-thread-1"}\n');
+			child.stdout.write('{"type":"item.completed","item":{"id":"item_0","type":"agent_message","text":"Codex review complete."}}\n');
+			child.stdout.write('{"type":"turn.completed","usage":{"input_tokens":12,"cached_input_tokens":3,"output_tokens":5,"reasoning_output_tokens":2}}\n');
+			child.stdout.end();
+			child.stderr.end();
+			child.emit("close", 0);
+		});
+		child.kill = () => {};
+		return child;
+	};
+	const { runtime, destroy } = createIsolatedRuntime({
+		envMerge: { CODEX_MODEL_CACHE_PATH: cachePath },
+		spawnFn
+	});
+	try {
+		await withServer(runtime.app, async (baseUrl) => {
+			const codexProfile = runtime.helpers.readState().settings.profiles.find((profile) => profile.provider_id === "codex");
+			assert.ok(codexProfile);
+			const response = await fetch(`${baseUrl}/api/chat/stream`, {
+				method: "POST",
+				headers: withAuthHeaders({ "Content-Type": "application/json" }),
+				body: JSON.stringify({
+					profile_id: codexProfile.id,
+					model: "gpt-5.6-sol",
+					messages: [{ role: "user", content: "Review this response." }]
+				})
+			});
+			assert.equal(response.status, 200);
+			const raw = await response.text();
+			const events = parseSseEvents(raw);
+			assert.equal(events.filter((entry) => entry.event === "token").map((entry) => entry.data.delta).join(""), "Codex review complete.");
+			const doneEvent = events.find((entry) => entry.event === "done");
+			assert.ok(doneEvent);
+			assert.equal(doneEvent.data.provider, "codex");
+			assert.equal(doneEvent.data.transport, "local");
+			assert.equal(doneEvent.data.thread_id, "codex-thread-1");
+			assert.equal(doneEvent.data.usage.total_tokens, 19);
+		});
+	} finally {
+		destroy();
+		fs.rmSync(tempRoot, { recursive: true, force: true });
 	}
 });
 
