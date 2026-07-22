@@ -48,6 +48,9 @@ test("sidebar chrome and requested response labels use Departure Mono", () => {
 	assert.doesNotMatch(htmlSource, /Space\+Grotesk|Space Grotesk/);
 	assert.match(cssSource, /--sans: "Departure Mono", "IBM Plex Mono", monospace;/);
 	assert.match(cssSource, /\.sidebar\s*\{[^}]*padding: 12px 0;/s);
+	assert.match(htmlSource, /id="mobile-sidebar-toggle-btn"/);
+	assert.match(htmlSource, /class="sidebar-collapsible"/);
+	assert.match(appSource, /const mobileSidebarMediaQuery = "\(max-width: 1100px\)"/);
 	assert.match(cssSource, /\.chat-list\s*\{[^}]*padding: 0;/s);
 	assert.match(cssSource, /\.brand-row h1\s*\{[^}]*font-family: var\(--display\);/s);
 	assert.match(cssSource, /\.chat-group-title\s*\{[^}]*font-family: var\(--display\);/s);
@@ -57,6 +60,14 @@ test("sidebar chrome and requested response labels use Departure Mono", () => {
 	assert.match(cssSource, /\.composer-token-summary\s*\{[^}]*font-family: var\(--display\);/s);
 	assert.match(cssSource, /\.modal-head h2\s*\{[^}]*font-family: var\(--display\);/s);
 	assert.match(cssSource, /\.search-chat-item-title,[\s\S]*?\.usage-stat-label,[\s\S]*?font-family: var\(--display\);/);
+});
+
+test("mobile layout keeps sidebar chrome visible and simplifies the single-chat composer", () => {
+	assert.match(cssSource, /@media \(max-width: 1100px\)[\s\S]*?\.app-shell\.sidebar-collapsed \.sidebar-collapsible\s*\{[^}]*max-height: 0;/s);
+	assert.match(cssSource, /@media \(max-width: 1100px\)[\s\S]*?\.workspace-top \.sidebar-toggle-btn\s*\{[^}]*display: none;/s);
+	assert.match(cssSource, /@media \(max-width: 680px\)[\s\S]*?\.app-shell\.chat-open \.composer\s*\{[^}]*position: sticky;[^}]*bottom: 0;/s);
+	assert.match(cssSource, /@media \(max-width: 680px\)[\s\S]*?#toggle-usage-summary-btn,[\s\S]*?display: none !important;/s);
+	assert.match(cssSource, /@media \(max-width: 680px\)[\s\S]*?\.composer-model-picker\s*\{[^}]*grid-column: 1 \/ -1;/s);
 });
 
 test("pane list and user identity settings expose the requested labels", () => {

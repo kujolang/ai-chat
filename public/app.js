@@ -71,6 +71,7 @@ const maxVisibleProjectFolders = 5;
 const sidebarChatPageSize = 20;
 const defaultApiTokenTtlDays = 3650;
 const maxApiTokenTtlDays = 36500;
+const mobileSidebarMediaQuery = "(max-width: 1100px)";
 let sidebarCollapsed = loadSidebarCollapsedPreference();
 let paneInfoVisible = loadBooleanPreference(paneInfoVisibleStorageKey, false);
 let usageSummaryVisible = loadBooleanPreference(usageSummaryVisibleStorageKey, false);
@@ -127,6 +128,7 @@ const nodes = {
 	addProjectFolderBtn: document.getElementById("add-project-folder-btn"),
 	sidebarMain: document.querySelector(".sidebar-main"),
 	chatList: document.getElementById("chat-list"),
+	mobileSidebarToggleBtn: document.getElementById("mobile-sidebar-toggle-btn"),
 	chatTitleInput: document.getElementById("chat-title-input"),
 	copyChatIdBtn: document.getElementById("copy-chat-id-btn"),
 	chatWatchdogBtn: document.getElementById("chat-watchdog-btn"),
@@ -971,9 +973,14 @@ function wireEvents() {
 		schedulePersist();
 	});
 
-	nodes.toggleSidebarBtn.addEventListener("click", () => {
-		setSidebarCollapsed(!sidebarCollapsed);
-	});
+	for (const sidebarToggleButton of [nodes.toggleSidebarBtn, nodes.mobileSidebarToggleBtn]) {
+		if (!sidebarToggleButton) {
+			continue;
+		}
+		sidebarToggleButton.addEventListener("click", () => {
+			setSidebarCollapsed(!sidebarCollapsed);
+		});
+	}
 
 	nodes.addToolBtn.addEventListener("click", () => {
 		state.settings.tools.push(createToolDefinition());
@@ -2351,9 +2358,16 @@ function buildCachePayload() {
 
 function loadSidebarCollapsedPreference() {
 	try {
-		return window.localStorage.getItem(sidebarCollapsedStorageKey) === "1";
+		const storedValue = window.localStorage.getItem(sidebarCollapsedStorageKey);
+		if (storedValue === "1") {
+			return true;
+		}
+		if (storedValue === "0") {
+			return false;
+		}
+		return window.matchMedia(mobileSidebarMediaQuery).matches;
 	} catch (error) {
-		return false;
+		return window.matchMedia(mobileSidebarMediaQuery).matches;
 	}
 }
 
@@ -2491,10 +2505,15 @@ function renderSidebarToggle() {
 	}
 
 	nodes.appShell.classList.toggle("sidebar-collapsed", sidebarCollapsed);
-	nodes.toggleSidebarBtn.innerHTML = sidebarCollapsed ? expandSidebarSvg : collapseSidebarSvg;
 	const label = sidebarCollapsed ? "Open sidebar" : "Collapse sidebar";
-	nodes.toggleSidebarBtn.setAttribute("aria-label", label);
-	nodes.toggleSidebarBtn.title = label;
+	for (const sidebarToggleButton of [nodes.toggleSidebarBtn, nodes.mobileSidebarToggleBtn]) {
+		if (!sidebarToggleButton) {
+			continue;
+		}
+		sidebarToggleButton.innerHTML = sidebarCollapsed ? expandSidebarSvg : collapseSidebarSvg;
+		sidebarToggleButton.setAttribute("aria-label", label);
+		sidebarToggleButton.title = label;
+	}
 }
 
 function setSidebarCollapsed(collapsed) {
@@ -2965,6 +2984,7 @@ function renderWorkspace(options = {}) {
 
 	const chat = getActiveChat();
 	nodes.appShell.classList.toggle("welcome-mode", !chat);
+	nodes.appShell.classList.toggle("chat-open", Boolean(chat));
 	if (!chat) {
 		const userName = normalizeUserName(state.settings.userName);
 		const welcomeGreeting = userName ? `Hello, ${userName}` : "Hello there";
