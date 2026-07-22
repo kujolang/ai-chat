@@ -1921,6 +1921,9 @@ async function activateChat(chatId, { persist = false, updateUrl = true } = {}) 
 		return;
 	}
 	state.activeChatId = chat.id;
+	if (window.matchMedia(mobileSidebarMediaQuery).matches && !sidebarCollapsed) {
+		setSidebarCollapsed(true);
+	}
 	if (updateUrl) syncActiveChatUrl();
 	if (persist) {
 		schedulePersist();
