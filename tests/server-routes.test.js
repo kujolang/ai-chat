@@ -625,6 +625,8 @@ test("POST /api/chat/stream runs Codex profiles through the local Codex CLI and 
 		child.stderr = new PassThrough();
 		process.nextTick(() => {
 			child.stdout.write('{"type":"thread.started","thread_id":"codex-thread-1"}\n');
+			child.stdout.write('{"type":"item.started","item":{"id":"call_1","type":"function_call","name":"exec_command","arguments":"{\\"cmd\\":\\"git status --short\\",\\"workdir\\":\\"/tmp/repo\\"}"}}\n');
+			child.stdout.write('{"type":"item.completed","item":{"id":"call_1","type":"function_call","name":"exec_command","arguments":"{\\"cmd\\":\\"git status --short\\",\\"workdir\\":\\"/tmp/repo\\"}","output":"M lib/server-runtime.js\\n"}}\n');
 			child.stdout.write('{"type":"item.completed","item":{"id":"item_0","type":"agent_message","text":"Codex review complete."}}\n');
 			child.stdout.write('{"type":"turn.completed","usage":{"input_tokens":12,"cached_input_tokens":3,"output_tokens":5,"reasoning_output_tokens":2}}\n');
 			child.stdout.end();
@@ -660,6 +662,7 @@ test("POST /api/chat/stream runs Codex profiles through the local Codex CLI and 
 			assert.equal(doneEvent.data.provider, "codex");
 			assert.equal(doneEvent.data.transport, "local");
 			assert.equal(doneEvent.data.thread_id, "codex-thread-1");
+			assert.equal(doneEvent.data.tool_calls_executed, 1);
 			assert.equal(doneEvent.data.usage.total_tokens, 19);
 		});
 	} finally {
@@ -687,6 +690,8 @@ test("POST /api/chat/stream records Codex runs in the Watchdog requests intake",
 		child.stderr = new PassThrough();
 		process.nextTick(() => {
 			child.stdout.write('{"type":"thread.started","thread_id":"codex-thread-watchdog"}\n');
+			child.stdout.write('{"type":"item.started","item":{"id":"call_1","type":"function_call","name":"exec_command","arguments":"{\\"cmd\\":\\"git diff --stat\\",\\"workdir\\":\\"/Users/demo/project\\"}"}}\n');
+			child.stdout.write('{"type":"item.completed","item":{"id":"call_1","type":"function_call","name":"exec_command","arguments":"{\\"cmd\\":\\"git diff --stat\\",\\"workdir\\":\\"/Users/demo/project\\"}","output":"2 files changed\\n"}}\n');
 			child.stdout.write('{"type":"item.completed","item":{"id":"item_0","type":"agent_message","text":"Codex tracked answer."}}\n');
 			child.stdout.write('{"type":"turn.completed","usage":{"input_tokens":10,"cached_input_tokens":2,"output_tokens":4,"reasoning_output_tokens":1}}\n');
 			child.stdout.end();
@@ -716,6 +721,7 @@ test("POST /api/chat/stream records Codex runs in the Watchdog requests intake",
 					model: "gpt-5.6-sol",
 					chat_id: "codex-chat-1",
 					pane_id: "codex-pane-1",
+					trace_id: "trace-codex-pane-1",
 					messages: [{ role: "user", content: "Track this Codex run." }]
 				})
 			});
@@ -725,9 +731,15 @@ test("POST /api/chat/stream records Codex runs in the Watchdog requests intake",
 			assert.equal(observed[0].url, "http://127.0.0.1:7700/api/telemetry/requests");
 			const body = JSON.parse(String(observed[0].options.body || "{}"));
 			assert.equal(body.provider, "codex");
-			assert.equal(body.request_id, "trace-codex-pane-1");
+			assert.equal(body.request_id, "codex-pane-1");
 			assert.equal(body.session_id, "codex-chat-1");
 			assert.equal(body.trace_id, "trace-codex-pane-1");
+			assert.equal(body.tool_calls.length, 1);
+			assert.equal(body.tool_calls[0].tool_name, "exec_command");
+			assert.equal(body.tool_calls[0].arguments.command, "git diff --stat");
+			assert.equal(body.agent_steps.some((step) => step.step_type === "function_call" && step.tool_name === "exec_command"), true);
+			assert.equal(body.spans.some((span) => span.span_kind === "tool" && span.attributes.tool_name === "exec_command"), true);
+			assert.equal(body.events.some((event) => event.event_name === "tool_completed"), true);
 		});
 	} finally {
 		destroy();
