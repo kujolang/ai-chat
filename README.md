@@ -30,6 +30,7 @@ This project is for end users and teams who want one local web app to:
 	- Persist changed chats, panes, and messages incrementally with visible save status
 - Provider profiles
 	- Store provider profiles and model suggestions in Settings
+	- Auto-detect a local Codex install and seed a Codex profile from its cached model catalog when available
 	- Reorder provider cards and their model rows with drag and drop
 	- Collapse provider cards while keeping their order and model count visible
 	- Choose the model/provider that every regular new chat starts with
@@ -128,6 +129,9 @@ Use `.env.example` as your baseline and set:
 - WATCHDOG_TELEMETRY_URL
 - WATCHDOG_API_TOKEN_FILE
 - WATCHDOG_TELEMETRY_CONTENT_MODE
+- CODEX_CLI_PATH
+- CODEX_MODEL_CACHE_PATH
+- CODEX_SANDBOX_MODE
 - MAX_TOOL_ROUNDS
 - MAX_TOOL_CALLS_PER_REQUEST
 - MAX_TOOL_CALLS_PER_ROUND
@@ -195,6 +199,7 @@ Security note:
 - The dedicated Watchdog provider accepts only the configured loopback URL. Its proxy token is read from `WATCHDOG_PROXY_TOKEN_FILE`; it does not copy the upstream Ollama key into AI Chat or its SQLite database.
 - OpenRouter through Watchdog uses the same Watchdog proxy, database, and dashboard as Ollama. Set `WATCHDOG_OPENROUTER_UPSTREAM_PROFILE` to the named upstream configured in Watchdog; the OpenRouter key remains server-side in Watchdog.
 - `Watchdog / Ollama (TUD)` uses the existing Watchdog proxy with a dedicated named upstream profile. Its work Ollama key remains server-side in Watchdog, and it cannot select a personal direct Ollama credential.
+- When `codex` is installed locally, AI Chat reads the cached model list from `CODEX_MODEL_CACHE_PATH` (default: `~/.codex/models_cache.json`) and seeds a managed `Codex` profile that uses your existing Codex login rather than an API key. Codex runs locally and AI Chat records its trace metadata through the configured Watchdog telemetry endpoint; it does not proxy Codex through an OpenAI-compatible upstream URL.
 
 To create the two local credential files without putting the OpenRouter key in AI Chat's SQLite database or `.env`, run:
 

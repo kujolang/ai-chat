@@ -137,6 +137,7 @@ Profile key handling guarantee:
 - Raw API keys are never returned.
 - `api_key_present` is exposed as a boolean indicator.
 - `credential_managed` is `true` for Watchdog profiles whose proxy token comes from the server credential file.
+- `credential_managed` is also `true` for Codex profiles that use the local Codex login and model cache instead of an API key stored in AI Chat.
 
 Provider profiles are returned in their persisted `sort_order`. `models_csv` remains the compatible wire/storage field, with comma-separated entries preserving the ordered model rows shown by the browser UI.
 
@@ -249,6 +250,7 @@ Client rules:
 - Watchdog streams may use a matching direct Ollama profile and asynchronous Watchdog telemetry intake when direct streaming is enabled; otherwise they use the managed proxy fallback.
 - `watchdog_ollama_tud` always uses its managed proxy, preventing a work benchmark from using a matching personal direct Ollama profile.
 - Direct Watchdog telemetry uses `WATCHDOG_API_TOKEN_FILE` when the Watchdog `/api/*` surface requires token authentication. Telemetry remains best effort: a rejected or unreachable intake logs a sanitized server warning but does not change the successful chat stream contract.
+- Codex profiles run through the local Codex CLI rather than an OpenAI-compatible upstream base URL. AI Chat re-emits the final Codex answer through its own SSE contract and can still post Watchdog trace metadata for that local run.
 - Each continuation pass has a unique telemetry `request_id` under one stable `trace_id`. Provider rounds, transport timing, first token, thinking, tool execution, errors, throughput, and committed state persistence are emitted as optional spans/events. The browser persists `usage.trace_id` only when a Watchdog trace was expected.
 - `WATCHDOG_TELEMETRY_CONTENT_MODE=off` is the default and records metadata/counts without prompts, queries, tool results, or response text. `summary` permits bounded structural summaries. `full` explicitly opts into bounded content and remains subject to Watchdog redaction.
 - The telemetry contract does not couple runtimes: the model provider, provider-neutral tool registry, each tool adapter, AI Chat persistence, and Watchdog can all operate independently.

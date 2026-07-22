@@ -27,6 +27,9 @@ Copy values from `.env.example` and define these variables in your shell or envi
 - WATCHDOG_DIRECT_STREAMING
 - WATCHDOG_TELEMETRY_URL
 - WATCHDOG_API_TOKEN_FILE
+- CODEX_CLI_PATH
+- CODEX_MODEL_CACHE_PATH
+- CODEX_SANDBOX_MODE
 - MAX_TOOL_ROUNDS
 - MAX_TOOL_CALLS_PER_REQUEST
 - MAX_TOOL_CALLS_PER_ROUND
@@ -71,6 +74,9 @@ WATCHDOG_OLLAMA_TUD_UPSTREAM_PROFILE=ollama-tud-work
 WATCHDOG_DIRECT_STREAMING=1
 WATCHDOG_TELEMETRY_URL=http://127.0.0.1:7700/api/telemetry/requests
 WATCHDOG_API_TOKEN_FILE=
+CODEX_CLI_PATH=codex
+CODEX_MODEL_CACHE_PATH=/absolute/path/to/.codex/models_cache.json
+CODEX_SANDBOX_MODE=read-only
 MAX_TOOL_ROUNDS=256
 MAX_TOOL_CALLS_PER_REQUEST=2048
 MAX_TOOL_CALLS_PER_ROUND=6
@@ -127,6 +133,7 @@ Important security behavior:
 - `Watchdog / Ollama (TUD)` is the corresponding work-key profile. It uses the same loopback proxy and proxy token as the other Watchdog profiles, but selects `WATCHDOG_OLLAMA_TUD_UPSTREAM_PROFILE`; it always uses the proxy rather than a direct Ollama profile.
 - Watchdog keeps the upstream provider key; AI Chat never stores or receives that upstream key. SignalBox and AI Chat telemetry can therefore share one Watchdog database while remaining distinguishable by source and correlation fields.
 - For true live Watchdog chat streaming, keep an API-key-backed custom Ollama profile with the same model in AI Chat and leave `WATCHDOG_DIRECT_STREAMING=1`. AI Chat uses that direct connection for the stream, then posts non-content completion metrics to `WATCHDOG_TELEMETRY_URL`. When Watchdog protects `/api/*` with token auth, set `WATCHDOG_API_TOKEN_FILE` to a readable file containing `WDG_API_AUTH_TOKEN`; the proxy token file cannot replace this separate API credential unless both Watchdog roles intentionally use the same value. Rejected or unreachable telemetry produces a sanitized server warning without failing the chat.
+- A local Codex install adds a managed `Codex` profile automatically when `CODEX_MODEL_CACHE_PATH` points to a readable Codex model cache. AI Chat shells out to `CODEX_CLI_PATH` with your existing Codex login, so no API key is stored in AI Chat. `CODEX_SANDBOX_MODE` defaults to `read-only`, and Codex runs locally while AI Chat forwards trace metadata to `WATCHDOG_TELEMETRY_URL` for the same dashboard view used by the other providers.
 
 ## 3. Install Dependencies
 
