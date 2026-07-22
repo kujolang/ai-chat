@@ -62,6 +62,8 @@ test("sidebar chrome and requested response labels use Departure Mono", () => {
 test("pane list and user identity settings expose the requested labels", () => {
 	assert.match(appSource, /paneMenuOpen \? "Hide panes list" : "Panes list"/);
 	assert.match(htmlSource, /id="settings-user-name"[^>]*maxlength="120"/);
+	assert.match(appSource, /const welcomeGreeting = userName \? `Hello, \$\{userName\}` : "Hello there"/);
+	assert.match(appSource, /<h2>\$\{escapeHtml\(welcomeGreeting\)\}<\/h2>/);
 	assert.doesNotMatch(htmlSource, /SYSTEM_PROMPT\.md/);
 });
 

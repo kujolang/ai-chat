@@ -1053,6 +1053,7 @@ function wireEvents() {
 
 	nodes.settingsUserName.addEventListener("input", (event) => {
 		state.settings.userName = normalizeUserName(event.target.value);
+		if (!getActiveChat()) renderWorkspace();
 		schedulePersist();
 	});
 
@@ -2919,6 +2920,8 @@ function renderWorkspace(options = {}) {
 	const chat = getActiveChat();
 	nodes.appShell.classList.toggle("welcome-mode", !chat);
 	if (!chat) {
+		const userName = normalizeUserName(state.settings.userName);
+		const welcomeGreeting = userName ? `Hello, ${userName}` : "Hello there";
 		nodes.chatTitleInput.value = "";
 		nodes.copyChatIdBtn.disabled = true;
 		nodes.chatWatchdogBtn.classList.add("hidden");
@@ -2927,7 +2930,7 @@ function renderWorkspace(options = {}) {
 		nodes.paneGrid.classList.remove("cols-2", "cols-3");
 		nodes.paneGrid.innerHTML = `<section class="workspace-welcome">
 			<div class="workspace-welcome-kicker">AI Chat</div>
-			<h2>What are we working on?</h2>
+			<h2>${escapeHtml(welcomeGreeting)}</h2>
 			<p>Start something new or open a saved chat from the sidebar.</p>
 			<div class="workspace-welcome-actions">
 				<button class="btn primary" type="button" data-welcome-action="new-chat">New chat</button>
