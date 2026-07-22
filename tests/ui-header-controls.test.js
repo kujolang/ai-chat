@@ -44,9 +44,14 @@ test("collapsed header keeps Copy Chat visible and expands actions in the reques
 	assert.match(appSource, /let paneInfoVisible = loadBooleanPreference\(paneInfoVisibleStorageKey, false\)/);
 });
 
-test("sidebar chrome and requested response labels use Departure Mono", () => {
+test("sidebar chrome keeps Departure Mono while other app text uses local Inter", () => {
 	assert.doesNotMatch(htmlSource, /Space\+Grotesk|Space Grotesk/);
-	assert.match(cssSource, /--sans: "Departure Mono", "IBM Plex Mono", monospace;/);
+	assert.doesNotMatch(htmlSource, /fonts\.googleapis|fonts\.gstatic/);
+	assert.doesNotMatch(cssSource, /IBM Plex Mono/);
+	assert.match(cssSource, /@font-face\s*\{[\s\S]*?font-family: "Inter";[\s\S]*?Inter-400\.ttf/s);
+	assert.match(cssSource, /--sans: "Inter", sans-serif;/);
+	assert.match(cssSource, /--reading: "Inter", sans-serif;/);
+	assert.match(cssSource, /--display: "Departure Mono", "Inter", monospace;/);
 	assert.match(cssSource, /\.sidebar\s*\{[^}]*padding: 12px 0;/s);
 	assert.match(htmlSource, /id="mobile-sidebar-toggle-btn"/);
 	assert.match(htmlSource, /class="sidebar-collapsible"/);

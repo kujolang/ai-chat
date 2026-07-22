@@ -2943,13 +2943,6 @@ function renderSidebarChatItems(chats) {
 	return chats
 		.map((chat) => {
 			const active = chat.id === state.activeChatId ? "active" : "";
-			const paneCount = Array.isArray(chat.panes) ? chat.panes.length : 0;
-			const count = (chat.panes || []).reduce((sum, pane) => {
-				if (Array.isArray(pane.messages) && pane.messages.length > 0) {
-					return sum + pane.messages.length;
-				}
-				return sum + Number(pane.messageCount || 0);
-			}, 0);
 			const archiveLabel = chat.archived ? "Unarchive" : "Archive";
 			const pinLabel = chat.pinned ? "Unpin" : "Pin";
 			const shouldShowPin = !state.showArchived;
@@ -2971,9 +2964,6 @@ function renderSidebarChatItems(chats) {
 				<article class="chat-item ${active}" data-chat-id="${chat.id}">
 					<div class="chat-item-top">
 						<div class="chat-item-title" title="${escapeHtml(chat.title)}">${escapeHtml(chat.title)}</div>
-					</div>
-					<div class="chat-item-bottom">
-						<div class="chat-item-meta" title="${escapeHtml(projectPath || "No project folder")}">${paneCount} panes | ${count} messages${projectPath ? " | in project" : ""}</div>
 						<div class="chat-item-actions">
 							<button class="chat-action" data-action="project" aria-label="${projectLabel}" title="${projectLabel}"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-folder-icon lucide-folder" aria-hidden="true"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg></button>
 							${shouldShowPin ? `<button class="chat-action" data-action="pin" aria-label="${pinLabel}" title="${pinLabel}"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-pin-icon lucide-pin" aria-hidden="true"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg></button>` : ""}

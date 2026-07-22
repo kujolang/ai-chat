@@ -253,9 +253,43 @@ test("GET /api/health returns runtime metadata", async () => {
 			assert.equal(json.tool_runtime.schemas.some((schema) => schema.function.name === "skill_read"), true);
 			assert.equal(json.tool_runtime.schemas.some((schema) => schema.function.name === "local_shell"), false);
 			assert.equal(json.tool_runtime.schemas.some((schema) => schema.function.name === "action_adapter_call"), false);
+			assert.equal(json.instance.role, "interactive");
+			assert.equal(json.benchmark.default_max_response_tokens, 6000);
+			assert.equal(json.benchmark.output_dir_label, "benchmark-runs");
+			assert.equal(json.watchdog.default.proxy_configured, true);
+			assert.equal(json.watchdog.benchmark.proxy_configured, true);
 		});
 	} finally {
 		destroy();
+	}
+});
+
+test("GET /api/health reports benchmark instance and split watchdog metadata without leaking absolute paths", async () => {
+	const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-health-benchmark-"));
+	try {
+		const { runtime, destroy } = createIsolatedRuntime({
+			envMerge: {
+				AI_CHAT_INSTANCE_ROLE: "benchmark",
+				AI_CHAT_INSTANCE_LABEL: "bench-a",
+				BENCHMARK_OUTPUT_DIR: path.join(tempRoot, "artifacts"),
+				BENCHMARK_WATCHDOG_PROXY_URL: "http://127.0.0.1:8800/proxy/v1",
+				BENCHMARK_WATCHDOG_TELEMETRY_URL: "http://127.0.0.1:9900/api/telemetry/requests"
+			}
+		});
+		try {
+			await withServer(runtime.app, async (baseUrl) => {
+				const { json } = await fetchJson(baseUrl, "/api/health");
+				assert.equal(json.instance.role, "benchmark");
+				assert.equal(json.instance.label, "bench-a");
+				assert.equal(json.benchmark.output_dir_label, "artifacts");
+				assert.equal(json.watchdog.benchmark.telemetry_split_from_proxy, true);
+				assert.equal(JSON.stringify(json).includes(tempRoot), false);
+			});
+		} finally {
+			destroy();
+		}
+	} finally {
+		fs.rmSync(tempRoot, { recursive: true, force: true });
 	}
 });
 
@@ -2637,6 +2671,61 @@ test("POST /api/chat/stream classifies upstream fetch failures as transport erro
 		destroy();
 	}
 });
+
+test("POST /api/chat/stream routes benchmark watchdog traffic through the dedicated benchmark proxy", async () => {
+	const upstreamCalls = [];
+	const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-benchmark-watchdog-"));
+	try {
+		const tokenFile = path.join(tempRoot, "watchdog-token");
+		fs.writeFileSync(tokenFile, "watchdog-token");
+		const { runtime, destroy } = createIsolatedRuntime({
+			envMerge: {
+				AI_CHAT_INSTANCE_ROLE: "benchmark",
+				BENCHMARK_WATCHDOG_PROXY_URL: "http://127.0.0.1:8800/proxy/v1",
+				BENCHMARK_WATCHDOG_TELEMETRY_URL: "http://127.0.0.1:9900/api/telemetry/requests",
+				BENCHMARK_WATCHDOG_PROXY_TOKEN_FILE: tokenFile
+			},
+			fetchFn: async (url, options = {}) => {
+				upstreamCalls.push({ url, options });
+				return mockSseResponse([{ choices: [{ delta: { content: "benchmark ok" }, finish_reason: "stop" }], usage: { prompt_tokens: 2, completion_tokens: 1, total_tokens: 3 } }]);
+			}
+		});
+		try {
+			const profileId = applyProfileMutation(runtime, (profile) => {
+				profile.provider_id = "watchdog_openrouter";
+			});
+			await withServer(runtime.app, async (baseUrl) => {
+				const response = await fetch(`${baseUrl}/api/chat/stream`, {
+					method: "POST",
+					headers: withAuthHeaders({ "Content-Type": "application/json" }),
+					body: JSON.stringify({
+						profile_id: profileId,
+						messages: [{ role: "user", content: "hello" }],
+						benchmark: {
+							run_id: "rnd008",
+							test_id: "rnd008-t001",
+							test_number: 1,
+							test_title: "Long form",
+							pane_profile: "OpenRouter (TUD)",
+							lane: "watchdog-benchmark",
+							instance_role_required: "benchmark"
+						}
+					})
+				});
+				const events = parseSseEvents(await response.text());
+				assert.equal(events.find((entry) => entry.event === "done").data.output_text, "benchmark ok");
+			});
+			assert.equal(upstreamCalls[0].url, "http://127.0.0.1:8800/proxy/v1/chat/completions");
+			assert.equal(upstreamCalls[0].options.headers["X-Observe-Workflow-Id"], "benchmark-run");
+			assert.equal(upstreamCalls[0].options.headers["X-Watchdog-Upstream-Profile"], "openrouter-work");
+		} finally {
+			destroy();
+		}
+	} finally {
+		fs.rmSync(tempRoot, { recursive: true, force: true });
+	}
+});
+
 
 test("POST /api/chat/stream preserves Ollama-style message chunks and detects an unmarked close", async () => {
 	const { runtime, destroy } = createIsolatedRuntime({
