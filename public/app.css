@@ -4278,9 +4278,9 @@ textarea {
 	.pane-grid.cols-3 {
 		display: flex;
 		flex-wrap: nowrap;
-		gap: 16px;
-		padding-left: 16px;
-		padding-right: 16px;
+		gap: 0;
+		padding-left: 0;
+		padding-right: 0;
 		overflow-x: auto;
 		overflow-y: hidden;
 		align-items: stretch;
@@ -4303,6 +4303,16 @@ textarea {
 	.pane-grid.cols-3 .message-list {
 		overflow-y: auto;
 		min-height: 0;
+		padding-left: 16px;
+		padding-right: 16px;
+		box-sizing: border-box;
+	}
+
+	.pane-grid.cols-2 .pane-head,
+	.pane-grid.cols-3 .pane-head {
+		padding-left: 16px;
+		padding-right: 16px;
+		box-sizing: border-box;
 	}
 }
 
