@@ -2025,43 +2025,30 @@ textarea:focus,
 
 .message-tool-activity-inline {
 	display: grid;
-	gap: 3px;
+	gap: 6px;
 	margin-top: 8px;
 	color: #c9e1ff;
 	font: 11px/1.45 var(--mono);
 }
 
-.thinking-command-toggle {
-	display: inline-flex;
-	align-items: center;
-	gap: 6px;
-	margin-top: 10px;
-	padding: 0;
-	border: 0;
-	background: transparent;
-	color: #9bc8ea;
-	font: 11px/1.35 var(--mono);
-}
-
-.thinking-command-toggle:hover {
-	color: #e0eefc;
-}
-
-.message-tool-commands {
+.message-tool-activity-entry {
 	display: grid;
-	gap: 6px;
-	margin-top: 8px;
+	gap: 4px;
+	padding-left: 12px;
+	border-left: 1px solid rgba(143, 200, 255, 0.2);
 }
 
-.message-tool-commands.collapsed {
-	display: none;
+.message-tool-activity-label {
+	color: #c9e1ff;
 }
 
-.message-tool-commands code {
-	display: block;
-	padding: 8px 10px;
+.message-tool-activity-entry code {
+	display: inline-block;
+	width: fit-content;
+	max-width: 100%;
+	padding: 6px 9px;
 	border-radius: 10px;
-	background: rgba(18, 28, 40, 0.9);
+	background: rgba(18, 28, 40, 0.82);
 	color: #dcecff;
 	font: 11px/1.45 var(--mono);
 	white-space: pre-wrap;

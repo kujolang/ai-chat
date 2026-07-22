@@ -1370,30 +1370,6 @@ function wireEvents() {
 			return;
 		}
 
-		const toolCommandsToggleButton = event.target.closest("[data-action='toggle-tool-commands']");
-		if (toolCommandsToggleButton) {
-			const paneId = String(toolCommandsToggleButton.getAttribute("data-pane-id") || "");
-			const messageId = String(toolCommandsToggleButton.getAttribute("data-message-id") || "");
-			if (!paneId || !messageId) {
-				return;
-			}
-			const chat = getActiveChat();
-			if (!chat) {
-				return;
-			}
-			const pane = chat.panes.find((candidate) => candidate.id === paneId);
-			if (!pane) {
-				return;
-			}
-			const message = pane.messages.find((candidate) => candidate.id === messageId);
-			if (!message) {
-				return;
-			}
-			message.tool_commands_expanded = !Boolean(message.tool_commands_expanded);
-			renderWorkspace({ preserveScroll: true });
-			return;
-		}
-
 		const messageMetaToggleButton = event.target.closest("[data-action='toggle-message-meta']");
 		if (messageMetaToggleButton) {
 			const paneId = String(messageMetaToggleButton.getAttribute("data-pane-id") || "");
@@ -7924,8 +7900,6 @@ function renderThinkingBlock(message, paneId) {
 		? String(message.live_narration || "")
 		: String(message.thinking || "");
 	const expanded = Boolean(message.thinking_expanded);
-	const commandEntries = toolActivityEntries.filter((entry) => entry.command);
-	const commandsExpanded = message.streaming ? true : Boolean(message.tool_commands_expanded);
 	const showContent = message.streaming
 		? Boolean(thinkingText.trim())
 		: (expanded || (!String(message.content || "").trim() && Boolean(thinkingText.trim())));
@@ -7941,15 +7915,9 @@ function renderThinkingBlock(message, paneId) {
 
 	const renderedThinking = renderAssistantMarkdown(normalizeAssistantProseSpacing(thinkingText));
 	const toolActivity = toolActivityEntries.length > 0
-		? `<div class="message-tool-activity-inline" role="status">${toolActivityEntries.map((entry) => `<div>${escapeHtml(entry.label)}</div>`).join("")}</div>`
+		? `<div class="message-tool-activity-inline" role="status">${toolActivityEntries.map((entry) => renderToolActivityTimelineEntry(entry)).join("")}</div>`
 		: "";
-	const commandToggle = commandEntries.length > 0
-		? `<button class="thinking-command-toggle" type="button" data-action="toggle-tool-commands" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}" aria-expanded="${commandsExpanded ? "true" : "false"}" aria-label="${commandsExpanded ? "Hide commands" : "Show commands"}">${thinkingToggleIconSvg(commandsExpanded)}<span>${commandsExpanded ? "Hide commands" : "Show commands"}</span></button>`
-		: "";
-	const commandBlock = commandEntries.length > 0
-		? `<div class="message-tool-commands${commandsExpanded ? "" : " collapsed"}">${commandEntries.map((entry) => `<code>${escapeHtml(entry.command)}</code>`).join("")}</div>`
-		: "";
-	return `<div class="message-thinking" role="status" aria-live="polite"><div class="message-thinking-head"><div class="thinking-label">${thinkingLabel}</div>${loadingIcon}${toggle}</div><div class="${contentClass} message-thinking-markdown"><div class="message-content-block">${renderedThinking}</div>${toolActivity}${commandToggle}${commandBlock}</div></div>`;
+	return `<div class="message-thinking" role="status" aria-live="polite"><div class="message-thinking-head"><div class="thinking-label">${thinkingLabel}</div>${loadingIcon}${toggle}</div><div class="${contentClass} message-thinking-markdown"><div class="message-content-block">${renderedThinking}</div>${toolActivity}</div></div>`;
 }
 
 function normalizeToolActivityEntries(entries) {
@@ -7968,6 +7936,15 @@ function normalizeToolActivityEntries(entries) {
 		if (!label) return null;
 		return { label, command: "" };
 	}).filter(Boolean);
+}
+
+function renderToolActivityTimelineEntry(entry) {
+	const label = escapeHtml(entry && entry.label || "");
+	const command = String(entry && entry.command || "").trim();
+	if (!command) {
+		return `<div class="message-tool-activity-entry"><span class="message-tool-activity-label">${label}</span></div>`;
+	}
+	return `<div class="message-tool-activity-entry"><span class="message-tool-activity-label">${label}</span><code>${escapeHtml(command)}</code></div>`;
 }
 
 function appendThinkingDelta(previousValue, nextValue) {
