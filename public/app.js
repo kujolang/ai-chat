@@ -3172,6 +3172,10 @@ function renderMessageNodeHtml(message, paneId) {
 	if (message.role === "assistant" && message.thinking) {
 		messageClasses.push("with-thinking");
 	}
+	const hasAssistantContent = message.role !== "assistant" || Boolean(String(message.content || "").trim());
+	const hasAssistantThinkingOnly = message.role === "assistant"
+		&& !hasAssistantContent
+		&& Boolean(String(message.thinking || "").trim());
 
 	const metaBits = [];
 	if (message.usage && Number.isFinite(Number(message.usage.total_tokens))) {
@@ -3202,7 +3206,7 @@ function renderMessageNodeHtml(message, paneId) {
 		? `<div class="message-tool-activity" role="status">${message.tool_activity.map((line) => escapeHtml(String(line))).join("<br>")}</div>`
 		: "";
 	const contentBody = renderAssistantMarkdown(message.role === "assistant" ? normalizeAssistantProseSpacing(message.content) : message.content);
-	const content = renderMessageContent(message, paneId, contentBody);
+	const content = hasAssistantThinkingOnly ? "" : renderMessageContent(message, paneId, contentBody);
 	const screenshots = renderBrowserScreenshotArtifacts(message);
 	const timestamp = formatMessageTime(message.createdAt);
 	const copyAction = `<button type="button" class="message-copy-btn" data-action="copy-message" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}" aria-label="Copy message" title="Copy message">${copyCodeButtonSvg}</button>`;
@@ -7854,7 +7858,9 @@ function renderThinkingBlock(message, paneId) {
 		? String(message.live_narration || "")
 		: String(message.thinking || "");
 	const expanded = Boolean(message.thinking_expanded);
-	const showContent = message.streaming ? Boolean(thinkingText.trim()) : expanded;
+	const showContent = message.streaming
+		? Boolean(thinkingText.trim())
+		: (expanded || (!String(message.content || "").trim() && Boolean(thinkingText.trim())));
 	const contentClass = showContent ? "message-thinking-content" : "message-thinking-content collapsed";
 	const toggle = message.streaming ? "" : `<button class="thinking-toggle" type="button" data-action="toggle-thinking" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}" aria-expanded="${expanded ? "true" : "false"}" aria-label="${expanded ? "Collapse thinking" : "Expand thinking"}">${thinkingToggleIconSvg(expanded)}</button>`;
 	const loadingIcon = message.streaming ? `<span class="thinking-inline-progress" aria-label="Working">${thinkingLoadingIconSvg}</span>` : "";

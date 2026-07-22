@@ -234,6 +234,10 @@ button {
 	padding: 0;
 }
 
+.brand-title-row .mobile-sidebar-toggle-btn {
+	display: none;
+}
+
 .brand-row p {
 	font-size: 12px;
 	line-height: 1;
