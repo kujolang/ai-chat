@@ -13,6 +13,7 @@ const titlePrefix = args.titlePrefix ? String(args.titlePrefix).trim() : "Benchm
 const outputDirectory = path.resolve(args.outputDir || "data/benchmark-runs");
 const concurrency = Math.max(1, Math.min(20, Number(args.concurrency || 1) || 1));
 const maxAttempts = Math.max(1, Math.min(5, Number(args.maxAttempts || 3) || 3));
+const streamTimeoutMs = Math.max(1000, Number(args.streamTimeoutMs || process.env.BENCHMARK_STREAM_TIMEOUT_MS || process.env.STREAM_REQUEST_TIMEOUT_MS || 240000) || 240000);
 const retryFailures = args.retryFailures === true || args.retryFailures === "true";
 let currentPaneProfile;
 
@@ -51,7 +52,7 @@ try {
 	run.summary.total = tests.length * paneProfile.panes.length;
 	console.log(`Benchmark run ${runId}`);
 	console.log(`Started: ${run.started_at}`);
-	console.log(`${tests.length} tests × ${paneProfile.panes.length} panes = ${run.summary.total} responses (concurrency ${concurrency}, max attempts ${maxAttempts})`);
+	console.log(`${tests.length} tests × ${paneProfile.panes.length} panes = ${run.summary.total} responses (concurrency ${concurrency}, max attempts ${maxAttempts}, stream timeout ${streamTimeoutMs}ms)`);
 
 	for (const benchmark of tests) {
 		const existingChat = (state.state?.chats || []).find((chat) =>
@@ -61,6 +62,7 @@ try {
 		if (!existingChat) await persistInitialChat(chat, benchmark.prompt);
 		const testResult = { number: benchmark.number, title: benchmark.title, chat_id: chat.id, panes: [] };
 		run.tests.push(testResult);
+		await writeRun();
 		const pending = [];
 		for (const pane of chat.panes) {
 			const priorResponse = pane.messages?.find((message) => message.role === "assistant");
@@ -224,7 +226,7 @@ async function runPane({ chat, pane, benchmark, maxTokens, temperature }) {
 }
 
 function isRetryableBenchmarkError(message) {
-	return !/(HTTP 4(00|01|03|04|22|29)|missing an API key|invalid_request|auth_error)/i.test(String(message || ""));
+	return !/(HTTP 4(00|01|03|04|22|29)|missing an API key|invalid_request|auth_error|stream timed out)/i.test(String(message || ""));
 }
 
 function delay(milliseconds) {
@@ -232,37 +234,49 @@ function delay(milliseconds) {
 }
 
 async function streamChat(payload) {
-	const response = await fetch(`${baseUrl}/api/chat/stream`, {
-		method: "POST",
-		headers: { "Content-Type": "application/json", "X-API-Token": apiToken },
-		body: JSON.stringify(payload)
-	});
-	if (!response.ok || !response.body) throw new Error(`HTTP ${response.status}: ${await response.text()}`);
-	const reader = response.body.getReader();
-	const decoder = new TextDecoder();
-	let buffer = "";
-	let event = "message";
-	let lines = [];
-	const result = { ok: true, content: "", thinking: "", usage: null, provider: null, model: null, error: null };
-	const consume = (flush = false) => {
-		const parts = buffer.split(/\r?\n/);
-		buffer = flush ? "" : (parts.pop() || "");
-		for (const line of parts) {
-			if (!line) {
-				if (lines.length) applyEvent(event, lines.join("\n"), result);
-				event = "message"; lines = [];
-			} else if (line.startsWith("event:")) event = line.slice(6).trim();
-			else if (line.startsWith("data:")) lines.push(line.slice(5).replace(/^ /, ""));
+	const controller = new AbortController();
+	const timeout = setTimeout(() => controller.abort(new Error(`Stream timed out after ${streamTimeoutMs}ms.`)), streamTimeoutMs);
+	try {
+		const response = await fetch(`${baseUrl}/api/chat/stream`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json", "X-API-Token": apiToken },
+			body: JSON.stringify(payload),
+			signal: controller.signal
+		});
+		if (!response.ok || !response.body) throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+		const reader = response.body.getReader();
+		const decoder = new TextDecoder();
+		let buffer = "";
+		let event = "message";
+		let lines = [];
+		const result = { ok: true, content: "", thinking: "", usage: null, provider: null, model: null, error: null };
+		const consume = (flush = false) => {
+			const parts = buffer.split(/\r?\n/);
+			buffer = flush ? "" : (parts.pop() || "");
+			for (const line of parts) {
+				if (!line) {
+					if (lines.length) applyEvent(event, lines.join("\n"), result);
+					event = "message"; lines = [];
+				} else if (line.startsWith("event:")) event = line.slice(6).trim();
+				else if (line.startsWith("data:")) lines.push(line.slice(5).replace(/^ /, ""));
+			}
+			if (flush && lines.length) applyEvent(event, lines.join("\n"), result);
+		};
+		while (true) {
+			const { value, done } = await reader.read();
+			if (done) { buffer += decoder.decode(); consume(true); break; }
+			buffer += decoder.decode(value, { stream: true }); consume();
 		}
-		if (flush && lines.length) applyEvent(event, lines.join("\n"), result);
-	};
-	while (true) {
-		const { value, done } = await reader.read();
-		if (done) { buffer += decoder.decode(); consume(true); break; }
-		buffer += decoder.decode(value, { stream: true }); consume();
+		if (!result.ok) throw new Error(result.error || "Provider stream failed.");
+		return result;
+	} catch (error) {
+		if (controller.signal.aborted) {
+			throw controller.signal.reason instanceof Error ? controller.signal.reason : new Error(`Stream timed out after ${streamTimeoutMs}ms.`);
+		}
+		throw error;
+	} finally {
+		clearTimeout(timeout);
 	}
-	if (!result.ok) throw new Error(result.error || "Provider stream failed.");
-	return result;
 }
 
 function applyEvent(event, raw, result) {
