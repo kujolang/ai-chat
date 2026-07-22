@@ -680,6 +680,57 @@ test("running an automation creates a durable chat with the scheduled response",
 	}
 });
 
+test("running an automation does not inherit enabled runtime preset tools", async () => {
+	const upstreamBodies = [];
+	const { runtime, destroy } = createIsolatedRuntime({
+		envMerge: {
+			AI_CHAT_LOCAL_TOOLS_ENABLED: "1",
+			AI_CHAT_LOCAL_WORKSPACE_ROOTS: path.resolve(__dirname, ".."),
+			AI_CHAT_LOCAL_SHELL_ENABLED: "1",
+			AI_CHAT_LOCAL_SHELL_ALLOWLIST: "git,rg,ls,pwd,npm"
+		},
+		fetchFn: async (url, options = {}) => {
+			upstreamBodies.push(JSON.parse(String(options.body || "{}")));
+			return mockJsonResponse({
+				model: "gpt-test",
+				usage: { prompt_tokens: 4, completion_tokens: 6, total_tokens: 10 },
+				choices: [{ finish_reason: "stop", message: { content: "Scheduled research result" } }]
+			});
+		}
+	});
+	try {
+		const state = runtime.helpers.readState();
+		state.settings.tools = [
+			{ id: "local-shell", name: "local_shell", description: "Run shell", parameters_json: "{}", enabled: true, kind: "preset" }
+		];
+		runtime.helpers.writeState(state);
+		const profileId = applyProfileMutation(runtime, (profile) => { profile.api_key = "automation-key"; });
+		await withServer(runtime.app, async (baseUrl) => {
+			const automation = runtime.helpers.automationService.create({
+				title: "Scheduled research",
+				prompt: "Research the latest changes.",
+				profile_id: profileId,
+				model: "gpt-4.1-mini",
+				repeat: "daily",
+				time: "09:00",
+				timezone: "UTC",
+				enabled: true
+			});
+			const queued = await fetchJson(baseUrl, `/api/automations/${automation.id}/run`, { method: "POST" });
+			assert.equal(queued.response.status, 202);
+			for (let attempt = 0; attempt < 100; attempt += 1) {
+				const run = runtime.helpers.automationService.runs(automation.id, 1)[0];
+				if (run && run.status !== "running") break;
+				await new Promise((resolve) => setTimeout(resolve, 10));
+			}
+		});
+		assert.equal(upstreamBodies.length > 0, true);
+		assert.deepEqual(upstreamBodies[0].tools || [], []);
+	} finally {
+		destroy();
+	}
+});
+
 test("GET /c/:routeId serves the app for bookmarkable chat links", async () => {
 	const { runtime, destroy } = createIsolatedRuntime();
 	try {
