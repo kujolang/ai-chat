@@ -12,6 +12,12 @@ Current endpoints:
 - `GET /api/providers`
 - `GET /api/state`
 - `GET /api/chats/:chatId`
+- `GET /api/automations`
+- `POST /api/automations`
+- `PUT /api/automations/:automationId`
+- `DELETE /api/automations/:automationId`
+- `POST /api/automations/:automationId/run`
+- `GET /api/automations/:automationId/runs`
 - `PUT /api/state`
 - `POST /api/state/changes`
 - `POST /api/chat`
@@ -247,7 +253,13 @@ Client rules:
 - `WATCHDOG_TELEMETRY_CONTENT_MODE=off` is the default and records metadata/counts without prompts, queries, tool results, or response text. `summary` permits bounded structural summaries. `full` explicitly opts into bounded content and remains subject to Watchdog redaction.
 - The telemetry contract does not couple runtimes: the model provider, provider-neutral tool registry, each tool adapter, AI Chat persistence, and Watchdog can all operate independently.
 
-## 6a. Browser Approval Contract
+## 6a. Scheduled Automation Contract
+
+Automation objects contain `id`, `title`, `prompt`, `profile_id`, `model`, optional `project_path`, `repeat` (`daily`, `weekdays`, or `weekly`), local `time`, `weekday`, IANA `timezone`, `enabled`, and next/last-run timestamps. Creating or updating an enabled automation calculates its next run in that timezone.
+
+`POST /api/automations/:automationId/run` queues an immediate run and returns HTTP 202 with the run record. Every run creates a new durable chat and records `running`, `completed`, or `failed` history. Scheduled execution occurs only while the server process is running. `GET /api/automations/:automationId/runs` returns newest-first history with the durable chat route when available.
+
+## 6b. Browser Approval Contract
 
 `POST /api/browser/approvals` accepts:
 

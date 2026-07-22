@@ -52,6 +52,9 @@ if (require.main === module) {
 		console.log(`ai-chat running on http://${runtime.config.host}:${runtime.config.port}`);
 		console.log(`AI SDK available: ${runtime.config.aiSdkAvailable ? "yes" : "no"}`);
 		console.log(`API auth configured: ${runtime.config.apiAuthToken ? "yes" : "no"}`);
+		const address = server.address();
+		const schedulerHost = runtime.config.host === "0.0.0.0" || runtime.config.host === "::" ? "127.0.0.1" : runtime.config.host;
+		runtime.startScheduler(`http://${schedulerHost}:${address.port}`);
 	});
 	let shuttingDown = false;
 	const shutdown = () => {

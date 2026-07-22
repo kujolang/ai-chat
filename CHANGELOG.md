@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Replace the placeholder Automations menu with persistent server-side scheduled chats, timezone-aware daily/weekday/weekly schedules, manual runs, pause/resume controls, and durable run history.
+- Use Departure Mono for text buttons, simplify modal close controls, reveal the project add action on title hover, move Tool presets into a pane-style dropdown, and keep live tool narration inside the themed Working block.
 - Keep long-running saved chats usable by sending a bounded recent context window instead of rejecting the entire accumulated transcript.
 - Replace inline pane statuses with a compact pane menu, including per-pane details and hover delete actions.
 - Add explicit copied feedback for chat and Watchdog IDs, delay chevron tooltips, and align the Watchdog icon color with other title-bar actions.

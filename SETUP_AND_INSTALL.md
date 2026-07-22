@@ -209,6 +209,10 @@ Regular New Chat continues to create one pane. To reuse a saved arrangement, ope
 - The backend forwards transcription requests through POST /api/transcribe.
 - Transcript text is inserted into the composer when successful.
 
+## 7a. Scheduled Chat Automations
+
+Open Automations from the sidebar, create a title and prompt, choose a provider/model, then select a daily, weekday, or weekly schedule and local timezone. Each run creates a new durable chat. Automations run in the server process, so `npm run dev` (or the deployed server process) must remain running at the scheduled time. The Automations view can pause or resume schedules, trigger an immediate run, and link back to previous run chats.
+
 ## 8. Tools
 
 Tool cards in Settings can be reordered by dragging their handles and collapsed with their chevrons. The saved order is used when the enabled tool definitions are sent with a request.

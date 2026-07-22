@@ -568,6 +568,95 @@ test("GET /api/providers returns provider catalog", async () => {
 	}
 });
 
+test("automation routes persist schedules and expose run history", async () => {
+	const { runtime, destroy } = createIsolatedRuntime();
+	try {
+		await withServer(runtime.app, async (baseUrl) => {
+			const profile = runtime.helpers.readState().settings.profiles[0];
+			const created = await fetchJson(baseUrl, "/api/automations", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					title: "Daily research brief",
+					prompt: "Research today's provider updates and summarize them.",
+					profile_id: profile.id,
+					model: "gpt-4.1-mini",
+					repeat: "weekdays",
+					time: "08:30",
+					timezone: "America/Detroit",
+					enabled: true
+				})
+			});
+			assert.equal(created.response.status, 201);
+			assert.equal(created.json.automation.title, "Daily research brief");
+			assert.equal(created.json.automation.repeat, "weekdays");
+			assert.equal(Number.isFinite(created.json.automation.next_run_at), true);
+
+			const automationId = created.json.automation.id;
+			const listed = await fetchJson(baseUrl, "/api/automations");
+			assert.equal(listed.json.automations.length, 1);
+
+			const updated = await fetchJson(baseUrl, `/api/automations/${automationId}`, {
+				method: "PUT",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ ...created.json.automation, enabled: false })
+			});
+			assert.equal(updated.response.status, 200);
+			assert.equal(updated.json.automation.enabled, false);
+			assert.equal(updated.json.automation.next_run_at, null);
+
+			const history = await fetchJson(baseUrl, `/api/automations/${automationId}/runs`);
+			assert.deepEqual(history.json.runs, []);
+
+			const removed = await fetchJson(baseUrl, `/api/automations/${automationId}`, { method: "DELETE" });
+			assert.equal(removed.response.status, 200);
+			assert.equal(runtime.helpers.automationService.list().length, 0);
+		});
+	} finally {
+		destroy();
+	}
+});
+
+test("running an automation creates a durable chat with the scheduled response", async () => {
+	const { runtime, destroy } = createIsolatedRuntime({
+		fetchFn: async () => mockJsonResponse({
+			model: "gpt-test",
+			usage: { prompt_tokens: 4, completion_tokens: 6, total_tokens: 10 },
+			choices: [{ finish_reason: "stop", message: { content: "Scheduled research result" } }]
+		})
+	});
+	try {
+		const profileId = applyProfileMutation(runtime, (profile) => { profile.api_key = "automation-key"; });
+		await withServer(runtime.app, async (baseUrl) => {
+			const automation = runtime.helpers.automationService.create({
+				title: "Scheduled research",
+				prompt: "Research the latest changes.",
+				profile_id: profileId,
+				model: "gpt-4.1-mini",
+				repeat: "daily",
+				time: "09:00",
+				timezone: "UTC",
+				enabled: true
+			});
+			const queued = await fetchJson(baseUrl, `/api/automations/${automation.id}/run`, { method: "POST" });
+			assert.equal(queued.response.status, 202);
+			for (let attempt = 0; attempt < 100; attempt += 1) {
+				const run = runtime.helpers.automationService.runs(automation.id, 1)[0];
+				if (run && run.status !== "running") break;
+				await new Promise((resolve) => setTimeout(resolve, 10));
+			}
+			const run = runtime.helpers.automationService.runs(automation.id, 1)[0];
+			assert.equal(run.status, "completed");
+			const chat = runtime.helpers.readChat(run.chat_id);
+			assert.equal(chat.title, "Scheduled research");
+			assert.equal(chat.panes[0].messages[0].content, "Research the latest changes.");
+			assert.equal(chat.panes[0].messages[1].content, "Scheduled research result");
+		});
+	} finally {
+		destroy();
+	}
+});
+
 test("GET /c/:routeId serves the app for bookmarkable chat links", async () => {
 	const { runtime, destroy } = createIsolatedRuntime();
 	try {

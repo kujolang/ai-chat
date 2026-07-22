@@ -42,6 +42,10 @@ This project is for end users and teams who want one local web app to:
 	- Add multiple panes per chat with per-pane profile/model selection
 	- Broadcast one prompt to all panes
 	- Save an ordered pane/model arrangement as a reusable pane profile and start new chats from it
+- Scheduled chat automations
+	- Save prompts that run daily, on weekdays, or weekly in a selected local timezone
+	- Choose the provider/model and optional project for each automation
+	- Run an automation immediately, pause/resume it, and reopen durable chats from previous runs
 - Streaming and thinking UI
 	- Live assistant text streaming via SSE
 	- Thinking/reasoning deltas shown when available
@@ -331,6 +335,10 @@ account-visible inventory before relying on a newly added or marked-retired mode
 - GET /api/health
 - GET /api/providers
 - GET /api/state
+- GET/POST /api/automations
+- PUT/DELETE /api/automations/:automationId
+- POST /api/automations/:automationId/run
+- GET /api/automations/:automationId/runs
 - PUT /api/state
 - POST /api/state/changes
 - POST /api/chat
