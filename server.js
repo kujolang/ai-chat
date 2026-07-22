@@ -48,6 +48,13 @@ const runtime = createServerRuntime({
 });
 
 if (require.main === module) {
+	process.on("unhandledRejection", (error) => {
+		console.error("[ai-chat] unhandledRejection", error);
+	});
+	process.on("uncaughtException", (error) => {
+		console.error("[ai-chat] uncaughtException", error);
+	});
+
 	const server = runtime.app.listen(runtime.config.port, runtime.config.host, () => {
 		console.log(`ai-chat running on http://${runtime.config.host}:${runtime.config.port}`);
 		console.log(`AI SDK available: ${runtime.config.aiSdkAvailable ? "yes" : "no"}`);
