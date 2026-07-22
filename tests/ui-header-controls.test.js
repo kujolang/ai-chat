@@ -81,6 +81,9 @@ test("mobile layout keeps sidebar chrome visible and simplifies the single-chat 
 	assert.match(cssSource, /@media \(max-width: 1100px\)[\s\S]*?#voice-btn\s*\{[^}]*grid-column: 2;/s);
 	assert.match(cssSource, /@media \(max-width: 1100px\)[\s\S]*?#send-btn\s*\{[^}]*grid-column: 3;/s);
 	assert.doesNotMatch(cssSource, /@media \(max-width: 1100px\)[\s\S]*?#whisper-btn\s*\{/s);
+	assert.match(cssSource, /@media \(max-width: 720px\)[\s\S]*?\.pane-grid\.cols-2,\s*[\s\S]*?\.pane-grid\.cols-3\s*\{[^}]*display: flex;[^}]*overflow-x: auto;[^}]*scroll-snap-type: x mandatory;/s);
+	assert.match(cssSource, /@media \(max-width: 720px\)[\s\S]*?\.pane-grid\.cols-2 \.pane-card,\s*[\s\S]*?\.pane-grid\.cols-3 \.pane-card\s*\{[^}]*flex: 0 0 100%;[^}]*min-width: 100%;[^}]*scroll-snap-align: start;/s);
+	assert.match(cssSource, /@media \(max-width: 720px\)[\s\S]*?\.pane-grid\.cols-2 \.message-list,\s*[\s\S]*?\.pane-grid\.cols-3 \.message-list\s*\{[^}]*overflow-y: auto;[^}]*min-height: 0;/s);
 });
 
 test("composer exposes a single mic control that focuses and appends transcript into the textarea", () => {
