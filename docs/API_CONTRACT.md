@@ -82,6 +82,10 @@ When `DEBUG_API_ERRORS=0`, provider raw error bodies are not included in stream 
 - `auth_configured`: boolean
 - `encryption_configured`: boolean
 - `retention_days`: number
+- `instance.role`: `interactive`, `benchmark`, or `hybrid`
+- `instance.label`: bounded local label for the running server instance
+- `benchmark`: reviewed benchmark-lane metadata including `output_dir_label`, response token cap, recommended/max concurrency, queue limits, and current queue counts
+- `watchdog.default` / `watchdog.benchmark`: sanitized managed Watchdog endpoint metadata for the normal interactive lane and the benchmark lane
 - `tool_runtime.tools`: executable provider-neutral tool names
 - `tool_runtime.web_search_backend`: resolved `searxng` or `ollama` adapter
 - `tool_runtime.web_search`: sanitized search backend capabilities, timeout, cache, and policy metadata
@@ -178,6 +182,8 @@ Bridge/offline path note:
 
 Requests may include `tools`, an array of up to 32 OpenAI-compatible function definitions. The streaming route dispatches executable built-in tools through AI Chat's provider-neutral tool registry, appends the result as a provider-compatible tool message, and continues the conversation within bounded round/call limits. The default budget is 256 rounds / 2048 calls, configurable up to 512 rounds / 4096 calls. A failed executable call is appended as a bounded structured error result so the provider can select a fallback; repeated failures still stop at the existing budget. The runtime resolves SearXNG or Ollama Web Search independently of the active model provider, and reads local skill manuals only through configured read-only skill roots. A successful final `done` payload includes `tool_calls_executed`. Other schemas do not grant capabilities: unsupported tool requests emit a terminal `tool_execution_unavailable` error containing `tool_names`. The JSON bridge route retains the explicit HTTP 422 behavior for requested tool execution. Clients must not retry terminal tool errors automatically.
 
+Requests may also include an optional `benchmark` object when the caller is a benchmark runner. Supported fields are bounded strings and numbers such as `run_id`, `test_id`, `test_number`, `test_title`, `pane_profile`, `lane`, and `instance_role_required`. Benchmark metadata does not change the assistant answer shape, but it lets AI Chat clamp benchmark `max_tokens`, refuse the wrong server role before a long run starts, switch managed Watchdog traffic to a dedicated benchmark lane when configured, and apply benchmark queue/saturation controls.
+
 Executable local skill contracts are:
 
 - `skill_list`: `{ "query": "optional text", "source": "optional root label filter", "max_results": 50 }`
@@ -233,6 +239,12 @@ The endpoint returns `text/event-stream` with the following events:
 - `tool`: `{ "phase": "started|completed|failed", "tool_name": "...", "activity": "...", "error_code": "..." }` (transient progress only; `activity` is a bounded, sanitized human-readable label and tool arguments/error messages are not exposed)
 - `done`: final payload with `provider`, `model`, `finish_reason`, `usage`, `output_text`, `thinking_text`, `tool_artifacts`, `transport` (`direct` or `proxy`), stable `trace_id`, and best-effort `watchdog_trace`. Each browser screenshot artifact has an opaque `artifact_id` and `media_type: "image/png"`.
 - `error`: `{ "code": "...", "message": "..." }`
+
+Additional terminal benchmark errors are:
+
+- `benchmark_instance_mismatch`
+- `benchmark_saturated`
+- `benchmark_queue_timeout`
 
 Client rules:
 

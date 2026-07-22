@@ -276,6 +276,7 @@ WATCHDOG_OLLAMA_TUD_UPSTREAM_PROFILE=ollama-tud-work
 - When Watchdog protects `/api/*` with token auth, `WATCHDOG_API_TOKEN_FILE` must point to a readable file containing `WDG_API_AUTH_TOKEN`. This is separate from the proxy authorization token. Rejected or unreachable asynchronous telemetry is logged as a sanitized warning without failing the chat stream.
 - AI Chat emits provider-neutral trace spans/events for provider rounds, connection and first-token timing, thinking, tool execution, errors, throughput, and committed message persistence. `WATCHDOG_TELEMETRY_CONTENT_MODE` defaults to `off`; `summary` keeps bounded structural summaries, while `full` explicitly opts into bounded raw content and should be used only with an appropriate local privacy policy.
 - Watchdog remains an optional passive collector. AI Chat, SearXNG, Ollama Web Search, and every future tool adapter continue to run independently; telemetry failure never becomes a chat or tool dependency.
+- Benchmarks can use a separate managed Watchdog lane through `BENCHMARK_WATCHDOG_*`. When benchmark metadata is present, managed Watchdog profiles switch to that lane, while `/api/health` reports the reviewed benchmark token/concurrency limits plus the default and benchmark Watchdog endpoint status.
 
 ## Quick Start
 
@@ -420,6 +421,42 @@ Benchmark runs default to one request at a time and retry transient or empty
 responses up to three times. This is intentional for shared work keys; use
 `--concurrency 4` only after a stable baseline, and do not increase it merely
 to shorten a run.
+
+For hardened runs, prefer a dedicated benchmark instance with its own port,
+SQLite path, and Watchdog lane:
+
+```bash
+AI_CHAT_INSTANCE_ROLE=benchmark \
+AI_CHAT_INSTANCE_LABEL=benchmark-4175 \
+PORT=4175 \
+DB_PATH=/absolute/path/to/ai-chat/data/benchmark/ai_chat.db \
+DB_BACKUP_DIR=/absolute/path/to/ai-chat/data/benchmark/backups \
+BENCHMARK_OUTPUT_DIR=/absolute/path/to/ai-chat/data/benchmark-runs \
+BENCHMARK_MAX_RESPONSE_TOKENS=6000 \
+BENCHMARK_RECOMMENDED_CONCURRENCY=1 \
+BENCHMARK_MAX_CONCURRENCY=2 \
+BENCHMARK_STREAM_MAX_INFLIGHT=1 \
+BENCHMARK_STREAM_QUEUE_LIMIT=2 \
+BENCHMARK_WATCHDOG_PROXY_URL=http://127.0.0.1:8800/proxy/v1 \
+BENCHMARK_WATCHDOG_PROXY_TOKEN_FILE=/absolute/path/to/benchmark-watchdog-proxy-token \
+BENCHMARK_WATCHDOG_TELEMETRY_URL=http://127.0.0.1:9900/api/telemetry/requests \
+npm run dev
+```
+
+Then point the runner at that server explicitly:
+
+```bash
+API_AUTH_TOKEN=your_app_token npm run benchmark:run -- \
+  --base-url http://127.0.0.1:4175 \
+  --tests "/absolute/path/Benchmark Tests.md" \
+  --pane-profile "OpenRouter (TUD)" \
+  --title-prefix "RND008TST"
+```
+
+The runner now reads `/api/health`, records the target instance metadata in the
+run artifact, clamps benchmark `max_tokens` to the reviewed server limit,
+refuses the wrong instance role unless you override it intentionally, and
+rejects unsafe concurrency unless `--allow-unsafe-concurrency true` is set.
 
 Benchmark files may contain any positive number of tests. Use one `# TEST
 <number>: <title>` or `## TEST <number>: <title>` heading per test, followed by
