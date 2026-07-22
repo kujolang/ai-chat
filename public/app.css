@@ -4146,11 +4146,20 @@ textarea {
 
 @media (max-width: 1100px) {
 	.workspace-top {
-		padding: 12px 16px;
+		padding: 10px 16px 8px;
 	}
 
 	.pane-grid {
 		padding: 0 16px 8px;
+	}
+
+	.pane-card {
+		overflow: visible;
+	}
+
+	.message-list {
+		overflow-y: visible;
+		min-height: auto;
 	}
 
 	.app-shell.chat-open .composer {
