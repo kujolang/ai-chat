@@ -103,6 +103,50 @@ test("browser reuses a request-scoped session for repeated opens without a sessi
 	});
 });
 
+test("browser normalizes blocked navigation failures into bounded tool errors", async () => {
+	const fakePage = {
+		setDefaultNavigationTimeout() {},
+		setDefaultTimeout() {},
+		on() {},
+		async goto() {
+			throw new Error('page.goto: net::ERR_BLOCKED_BY_CLIENT at https://github.com/omkhar/workcell');
+		}
+	};
+	const fakeContext = {
+		async newPage() {
+			return fakePage;
+		},
+		on() {},
+		async route() {},
+		async close() {}
+	};
+	const fakeBrowser = {
+		async newContext() {
+			return fakeContext;
+		},
+		async close() {}
+	};
+	const fakePlaywright = {
+		chromium: {
+			executablePath() {
+				return "/bin/sh";
+			},
+			async launch() {
+				return fakeBrowser;
+			}
+		}
+	};
+	const { runtime, destroy } = createRuntime({ playwrightModule: fakePlaywright });
+	try {
+		await assert.rejects(
+			() => runtime.execute("browser_open", { url: "https://github.com/omkhar/workcell" }, { scopeId: "chat-a", requestState: {} }),
+			(error) => error.code === "browser_url_blocked" && /blocked/i.test(String(error.message || ""))
+		);
+	} finally {
+		await destroy();
+	}
+});
+
 test("browser sessions are isolated, expire, enforce action limits, and close idempotently", async () => {
 	let clock = 1000;
 	await withFixture((req, res) => res.end("<!doctype html><title>Limits</title><p>limits</p>"), async ({ url }) => {
