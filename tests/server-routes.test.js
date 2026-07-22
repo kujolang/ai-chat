@@ -745,6 +745,12 @@ test("POST /api/chat/stream records Codex runs in the Watchdog requests intake",
 			assert.equal(body.agent_steps.some((step) => step.step_type === "command_execution" && step.tool_name === "command_execution"), true);
 			assert.equal(body.spans.some((span) => span.span_kind === "tool" && span.attributes.tool_name === "command_execution"), true);
 			assert.equal(body.events.some((event) => event.event_name === "tool_completed"), true);
+			assert.equal(typeof body.trace.attributes.time_to_first_token_ms, "number");
+			assert.equal(Number.isFinite(body.trace.attributes.time_to_first_token_ms), true);
+			assert.equal(body.trace.attributes.time_to_first_token_ms >= 0, true);
+			assert.equal(typeof body.trace.attributes.output_tokens_per_second, "number");
+			assert.equal(Number.isFinite(body.trace.attributes.output_tokens_per_second), true);
+			assert.equal(body.trace.attributes.output_tokens_per_second >= 0, true);
 		});
 	} finally {
 		destroy();
