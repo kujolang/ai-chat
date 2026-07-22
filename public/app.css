@@ -4188,6 +4188,16 @@ textarea {
 	.pane-grid.cols-3 .message-list {
 		overflow-y: auto;
 		min-height: 0;
+		padding-left: 16px;
+		padding-right: 16px;
+		box-sizing: border-box;
+	}
+
+	.pane-grid.cols-2 .pane-head,
+	.pane-grid.cols-3 .pane-head {
+		padding-left: 16px;
+		padding-right: 16px;
+		box-sizing: border-box;
 	}
 
 	.workspace-actions {

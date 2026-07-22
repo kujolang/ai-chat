@@ -78,7 +78,8 @@ test("mobile layout keeps sidebar chrome visible and simplifies the single-chat 
 	assert.match(cssSource, /@media \(max-width: 1100px\)[\s\S]*?\.workspace-top\s*\{[^}]*padding: 10px 7px 8px;/s);
 	assert.match(cssSource, /@media \(max-width: 1100px\)[\s\S]*?\.pane-grid\.cols-2,\s*[\s\S]*?\.pane-grid\.cols-3\s*\{[^}]*display: flex;[^}]*overflow-x: auto;[^}]*scroll-snap-type: x mandatory;/s);
 	assert.match(cssSource, /@media \(max-width: 1100px\)[\s\S]*?\.pane-grid\.cols-2 \.pane-card,\s*[\s\S]*?\.pane-grid\.cols-3 \.pane-card\s*\{[^}]*flex: 0 0 50%;[^}]*min-width: 50%;[^}]*scroll-snap-align: start;/s);
-	assert.match(cssSource, /@media \(max-width: 1100px\)[\s\S]*?\.pane-grid\.cols-2 \.message-list,\s*[\s\S]*?\.pane-grid\.cols-3 \.message-list\s*\{[^}]*overflow-y: auto;[^}]*min-height: 0;/s);
+	assert.match(cssSource, /@media \(max-width: 1100px\)[\s\S]*?\.pane-grid\.cols-2 \.message-list,\s*[\s\S]*?\.pane-grid\.cols-3 \.message-list\s*\{[^}]*overflow-y: auto;[^}]*min-height: 0;[^}]*padding-left: 16px;[^}]*padding-right: 16px;/s);
+	assert.match(cssSource, /@media \(max-width: 1100px\)[\s\S]*?\.pane-grid\.cols-2 \.pane-head,\s*[\s\S]*?\.pane-grid\.cols-3 \.pane-head\s*\{[^}]*padding-left: 16px;[^}]*padding-right: 16px;/s);
 	assert.match(cssSource, /@media \(max-width: 1100px\)[\s\S]*?\.app-shell\.chat-open \.composer\s*\{[^}]*position: sticky;[^}]*bottom: 0;/s);
 	assert.match(cssSource, /@media \(max-width: 1100px\)[\s\S]*?#toggle-usage-summary-btn,[\s\S]*?display: none !important;/s);
 	assert.match(cssSource, /@media \(max-width: 1100px\)[\s\S]*?\.composer-model-picker\s*\{[^}]*grid-row: 2;[^}]*grid-column: 1;[^}]*width: min\(100%, 220px\);/s);
