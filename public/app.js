@@ -148,7 +148,6 @@ const nodes = {
 	composerProfileSelect: document.getElementById("composer-profile-select"),
 	sendBtn: document.getElementById("send-btn"),
 	voiceBtn: document.getElementById("voice-btn"),
-	whisperBtn: document.getElementById("whisper-btn"),
 	voiceStatus: document.getElementById("voice-status"),
 	settingsModal: document.getElementById("settings-modal"),
 	paneProfilesModal: document.getElementById("pane-profiles-modal"),
@@ -1181,11 +1180,7 @@ function wireEvents() {
 	});
 
 	nodes.voiceBtn.addEventListener("click", () => {
-		toggleVoice();
-	});
-
-	nodes.whisperBtn.addEventListener("click", () => {
-		void toggleWhisperRecording();
+		void toggleVoice();
 	});
 
 	nodes.composerProfileSelect.addEventListener("change", (event) => {
@@ -6609,8 +6604,9 @@ function stripLeadingContinuationBoilerplate(value) {
 function setupSpeechRecognition() {
 	const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 	if (!Recognition) {
-		nodes.voiceStatus.textContent = "Voice: browser speech unavailable";
-		nodes.voiceBtn.disabled = true;
+		nodes.voiceStatus.textContent = supportsWhisperRecording()
+			? "Voice: ready"
+			: "Voice: unavailable";
 		return;
 	}
 
@@ -6621,6 +6617,7 @@ function setupSpeechRecognition() {
 
 	recognition.onstart = () => {
 		isListening = true;
+		focusComposerInput();
 		nodes.voiceStatus.textContent = "Voice: browser listening";
 		nodes.voiceBtn.classList.add("active");
 		nodes.voiceBtn.title = "Stop Voice";
@@ -6644,14 +6641,31 @@ function setupSpeechRecognition() {
 		for (let index = 0; index < event.results.length; index += 1) {
 			transcript += event.results[index][0].transcript;
 		}
-		const existing = nodes.composerInput.value.trim();
-		nodes.composerInput.value = existing ? `${existing} ${transcript}` : transcript;
-		nodes.composerInput.focus();
+		appendTranscriptToComposer(transcript);
 	};
 }
 
-function toggleVoice() {
+function supportsWhisperRecording() {
+	return Boolean(navigator.mediaDevices && typeof MediaRecorder !== "undefined");
+}
+
+function appendTranscriptToComposer(transcript) {
+	const normalizedTranscript = String(transcript || "").trim();
+	if (!normalizedTranscript) {
+		return;
+	}
+
+	const existing = nodes.composerInput.value.trim();
+	nodes.composerInput.value = existing ? `${existing} ${normalizedTranscript}` : normalizedTranscript;
+	focusComposerInput();
+}
+
+async function toggleVoice() {
+	focusComposerInput();
 	if (!recognition) {
+		if (supportsWhisperRecording()) {
+			await toggleWhisperRecording();
+		}
 		return;
 	}
 	if (isListening) {
@@ -6662,14 +6676,13 @@ function toggleVoice() {
 }
 
 function setupWhisperRecorder() {
-	if (!navigator.mediaDevices || typeof MediaRecorder === "undefined") {
-		nodes.whisperBtn.disabled = true;
-		return;
+	if (!supportsWhisperRecording() && !recognition) {
+		nodes.voiceBtn.disabled = true;
 	}
 }
 
 async function toggleWhisperRecording() {
-	if (!navigator.mediaDevices || typeof MediaRecorder === "undefined") {
+	if (!supportsWhisperRecording()) {
 		return;
 	}
 
@@ -6690,9 +6703,9 @@ async function toggleWhisperRecording() {
 
 		mediaRecorder.onstop = async () => {
 			whisperRecording = false;
-			nodes.whisperBtn.classList.remove("active");
-			nodes.whisperBtn.title = "Record";
-			nodes.whisperBtn.setAttribute("aria-label", "Record");
+			nodes.voiceBtn.classList.remove("active");
+			nodes.voiceBtn.title = "Voice";
+			nodes.voiceBtn.setAttribute("aria-label", "Voice");
 			nodes.voiceStatus.textContent = "Voice: transcribing";
 			const blob = new Blob(whisperChunks, { type: mediaRecorder.mimeType || "audio/webm" });
 			await transcribeWhisper(blob);
@@ -6707,12 +6720,13 @@ async function toggleWhisperRecording() {
 
 		mediaRecorder.start();
 		whisperRecording = true;
-		nodes.whisperBtn.classList.add("active");
-		nodes.whisperBtn.title = "Stop Recording";
-		nodes.whisperBtn.setAttribute("aria-label", "Stop Recording");
-		nodes.voiceStatus.textContent = "Voice: whisper recording";
+		focusComposerInput();
+		nodes.voiceBtn.classList.add("active");
+		nodes.voiceBtn.title = "Stop Voice";
+		nodes.voiceBtn.setAttribute("aria-label", "Stop Voice");
+		nodes.voiceStatus.textContent = "Voice: recording";
 	} catch (error) {
-		nodes.voiceStatus.textContent = "Voice: whisper error";
+		nodes.voiceStatus.textContent = "Voice: recording error";
 	}
 }
 
@@ -6750,9 +6764,7 @@ async function transcribeWhisper(audioBlob) {
 			return;
 		}
 
-		const existing = nodes.composerInput.value.trim();
-		nodes.composerInput.value = existing ? `${existing} ${transcript}` : transcript;
-		nodes.composerInput.focus();
+		appendTranscriptToComposer(transcript);
 	} catch (error) {
 		nodes.voiceStatus.textContent = "Voice: transcription error";
 	}

@@ -78,6 +78,19 @@ test("mobile layout keeps sidebar chrome visible and simplifies the single-chat 
 	assert.match(cssSource, /@media \(max-width: 1100px\)[\s\S]*?#toggle-usage-summary-btn,[\s\S]*?display: none !important;/s);
 	assert.match(cssSource, /@media \(max-width: 1100px\)[\s\S]*?\.composer-model-picker\s*\{[^}]*grid-row: 2;[^}]*grid-column: 1;[^}]*width: min\(100%, 220px\);/s);
 	assert.match(cssSource, /@media \(max-width: 1100px\)[\s\S]*?\.composer-status-group\s*\{[^}]*grid-row: 1;[^}]*grid-column: 1 \/ -1;/s);
+	assert.match(cssSource, /@media \(max-width: 1100px\)[\s\S]*?#voice-btn\s*\{[^}]*grid-column: 2;/s);
+	assert.match(cssSource, /@media \(max-width: 1100px\)[\s\S]*?#send-btn\s*\{[^}]*grid-column: 3;/s);
+	assert.doesNotMatch(cssSource, /@media \(max-width: 1100px\)[\s\S]*?#whisper-btn\s*\{/s);
+});
+
+test("composer exposes a single mic control that focuses and appends transcript into the textarea", () => {
+	assert.match(htmlSource, /id="voice-btn"/);
+	assert.match(htmlSource, /id="send-btn"/);
+	assert.doesNotMatch(htmlSource, /id="whisper-btn"/);
+	assert.match(appSource, /function appendTranscriptToComposer\(transcript\)/);
+	assert.match(appSource, /async function toggleVoice\(\)\s*\{\s*focusComposerInput\(\);/s);
+	assert.match(appSource, /if \(!recognition\) \{\s*if \(supportsWhisperRecording\(\)\) \{\s*await toggleWhisperRecording\(\);/s);
+	assert.match(appSource, /recognition\.onstart = \(\) => \{\s*isListening = true;\s*focusComposerInput\(\);/s);
 });
 
 test("pane list and user identity settings expose the requested labels", () => {

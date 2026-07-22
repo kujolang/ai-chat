@@ -4276,14 +4276,9 @@ textarea {
 		grid-column: 2;
 	}
 
-	#whisper-btn {
-		grid-row: 2;
-		grid-column: 3;
-	}
-
 	#send-btn {
 		grid-row: 2;
-		grid-column: 4;
+		grid-column: 3;
 	}
 }
 
