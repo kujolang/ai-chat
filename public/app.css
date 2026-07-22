@@ -110,6 +110,7 @@ button {
 	justify-content: space-between;
 	gap: 8px;
 	padding: 0 12px;
+	margin-top: 5px;
 	margin-bottom: 12px;
 }
 
@@ -2114,7 +2115,6 @@ textarea:focus,
 .message.assistant.with-thinking .message-content-block {
 	margin-top: 10px;
 	padding-top: 10px;
-	border-top: 1px solid #2b3340;
 }
 
 .thinking-label {
@@ -4081,6 +4081,11 @@ textarea {
 
 	.brand-title-row .mobile-sidebar-toggle-btn {
 		display: inline-flex !important;
+	}
+
+	.brand-row {
+		margin-top: 0;
+		margin-bottom: 0;
 	}
 
 	.workspace-top .sidebar-toggle-btn {
