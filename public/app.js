@@ -2518,6 +2518,9 @@ function renderSidebarToggle() {
 
 function setSidebarCollapsed(collapsed) {
 	sidebarCollapsed = Boolean(collapsed);
+	if (!sidebarCollapsed && nodes.sidebarMain) {
+		nodes.sidebarMain.scrollTop = 0;
+	}
 	try {
 		window.localStorage.setItem(sidebarCollapsedStorageKey, sidebarCollapsed ? "1" : "0");
 	} catch (error) {
