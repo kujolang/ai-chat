@@ -554,6 +554,29 @@ test("API routes reject requests when origin does not match allowed origin", asy
 	}
 });
 
+test("API routes allow loopback origins when loopback hosts are allowlisted", async () => {
+	const { runtime, destroy } = createIsolatedRuntime({
+		envMerge: {
+			ALLOWED_ORIGIN: "https://allowed.example",
+			ALLOWED_HOSTS: "localhost,127.0.0.1"
+		}
+	});
+	try {
+		await withServer(runtime.app, async (baseUrl) => {
+			const { response, json } = await fetchJson(baseUrl, "/api/automations", {
+				headers: {
+					Origin: "http://localhost:3000"
+				}
+			});
+			assert.equal(response.status, 200);
+			assert.equal(json.ok, true);
+			assert.equal(Array.isArray(json.automations), true);
+		});
+	} finally {
+		destroy();
+	}
+});
+
 test("GET /api/providers returns provider catalog", async () => {
 	const { runtime, destroy } = createIsolatedRuntime();
 	try {
