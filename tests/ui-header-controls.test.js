@@ -63,11 +63,13 @@ test("sidebar chrome and requested response labels use Departure Mono", () => {
 });
 
 test("mobile layout keeps sidebar chrome visible and simplifies the single-chat composer", () => {
+	assert.match(cssSource, /@media \(max-width: 1100px\)[\s\S]*?\.sidebar-collapsible\s*\{[^}]*max-height: calc\(100vh - 61px\);/s);
 	assert.match(cssSource, /@media \(max-width: 1100px\)[\s\S]*?\.app-shell\.sidebar-collapsed \.sidebar-collapsible\s*\{[^}]*max-height: 0;/s);
 	assert.match(cssSource, /@media \(max-width: 1100px\)[\s\S]*?\.workspace-top \.sidebar-toggle-btn\s*\{[^}]*display: none;/s);
-	assert.match(cssSource, /@media \(max-width: 680px\)[\s\S]*?\.app-shell\.chat-open \.composer\s*\{[^}]*position: sticky;[^}]*bottom: 0;/s);
-	assert.match(cssSource, /@media \(max-width: 680px\)[\s\S]*?#toggle-usage-summary-btn,[\s\S]*?display: none !important;/s);
-	assert.match(cssSource, /@media \(max-width: 680px\)[\s\S]*?\.composer-model-picker\s*\{[^}]*grid-column: 1 \/ -1;/s);
+	assert.match(cssSource, /@media \(max-width: 1100px\)[\s\S]*?\.app-shell\.chat-open \.composer\s*\{[^}]*position: sticky;[^}]*bottom: 0;/s);
+	assert.match(cssSource, /@media \(max-width: 1100px\)[\s\S]*?#toggle-usage-summary-btn,[\s\S]*?display: none !important;/s);
+	assert.match(cssSource, /@media \(max-width: 1100px\)[\s\S]*?\.composer-model-picker\s*\{[^}]*grid-row: 1;[^}]*grid-column: 1 \/ -1;/s);
+	assert.match(cssSource, /@media \(max-width: 1100px\)[\s\S]*?\.composer-status-group\s*\{[^}]*grid-row: 2;[^}]*grid-column: 1 \/ 2;/s);
 });
 
 test("pane list and user identity settings expose the requested labels", () => {

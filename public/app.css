@@ -4072,7 +4072,7 @@ textarea {
 	}
 
 	.sidebar-collapsible {
-		max-height: min(45vh, calc(100vh - 84px));
+		max-height: calc(100vh - 61px);
 		transition: max-height 220ms ease, opacity 180ms ease;
 	}
 
@@ -4144,7 +4144,7 @@ textarea {
 	}
 }
 
-@media (max-width: 680px) {
+@media (max-width: 1100px) {
 	.workspace-top {
 		padding: 12px 16px;
 	}
@@ -4168,15 +4168,18 @@ textarea {
 	}
 
 	.composer-model-picker {
+		grid-row: 1;
 		grid-column: 1 / -1;
 		width: 100%;
 		flex-basis: auto;
 	}
 
 	.composer-status-group {
+		grid-row: 2;
 		grid-column: 1 / 2;
 		margin-right: 0;
 		min-width: 0;
+		align-self: center;
 	}
 
 	#toggle-usage-summary-btn,
@@ -4186,14 +4189,17 @@ textarea {
 	}
 
 	#voice-btn {
+		grid-row: 2;
 		grid-column: 2;
 	}
 
 	#whisper-btn {
+		grid-row: 2;
 		grid-column: 3;
 	}
 
 	#send-btn {
+		grid-row: 2;
 		grid-column: 4;
 	}
 }
