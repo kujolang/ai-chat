@@ -268,10 +268,19 @@
     </section>
   </main>
 
-  <script src="/benchmark-prompts-data.js"></script>
+  <script src="./benchmark-prompts-data.js"></script>
   <script>
     (function () {
       const catalog = window.BENCHMARK_PROMPT_CATALOG;
+      if (!catalog || !catalog.runs || !catalog.promptSets) {
+        const promptTitle = document.getElementById("prompt-title");
+        const promptNotes = document.getElementById("prompt-notes");
+        const promptBody = document.getElementById("prompt-body");
+        promptTitle.textContent = "Prompt catalog failed to load";
+        promptNotes.textContent = "The viewer could not load benchmark-prompts-data.js. Open this file next to the HTML page or serve the public directory over HTTP.";
+        promptBody.textContent = "Expected data file: benchmark-prompts-data.js";
+        return;
+      }
       const runSelect = document.getElementById("run-select");
       const testSelect = document.getElementById("test-select");
       const runMeta = document.getElementById("run-meta");
