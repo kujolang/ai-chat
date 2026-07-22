@@ -4764,6 +4764,27 @@ async function syncAutomationRunChat(run) {
 		if (!response.ok || !payload.ok || !payload.chat) return false;
 		const loaded = normalizeIncomingChat(payload.chat);
 		if (!loaded) return false;
+		const running = String(run && run.status || "") === "running";
+		if (running) {
+			for (const pane of Array.isArray(loaded.panes) ? loaded.panes : []) {
+				const hasAssistantOutput = Array.isArray(pane.messages)
+					&& pane.messages.some((message) => message && message.role === "assistant");
+				if (hasAssistantOutput) continue;
+				pane.messages = (Array.isArray(pane.messages) ? pane.messages : []).concat([{
+					id: `automation-pending-${chatId}-${pane.id}`,
+					role: "assistant",
+					content: "",
+					provider: null,
+					model: String(pane.model || ""),
+					thinking: "",
+					live_narration: "Automation is still running...",
+					streaming: true,
+					usage: null,
+					tool_activity: [],
+					createdAt: Date.now()
+				}]);
+			}
+		}
 		loaded.messagesLoaded = true;
 		const existingIndex = state.chats.findIndex((chat) => chat.id === loaded.id);
 		if (existingIndex >= 0) state.chats[existingIndex] = { ...state.chats[existingIndex], ...loaded };
