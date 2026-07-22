@@ -1370,6 +1370,30 @@ function wireEvents() {
 			return;
 		}
 
+		const toolCommandsToggleButton = event.target.closest("[data-action='toggle-tool-commands']");
+		if (toolCommandsToggleButton) {
+			const paneId = String(toolCommandsToggleButton.getAttribute("data-pane-id") || "");
+			const messageId = String(toolCommandsToggleButton.getAttribute("data-message-id") || "");
+			if (!paneId || !messageId) {
+				return;
+			}
+			const chat = getActiveChat();
+			if (!chat) {
+				return;
+			}
+			const pane = chat.panes.find((candidate) => candidate.id === paneId);
+			if (!pane) {
+				return;
+			}
+			const message = pane.messages.find((candidate) => candidate.id === messageId);
+			if (!message) {
+				return;
+			}
+			message.tool_commands_expanded = !Boolean(message.tool_commands_expanded);
+			renderWorkspace({ preserveScroll: true });
+			return;
+		}
+
 		const messageMetaToggleButton = event.target.closest("[data-action='toggle-message-meta']");
 		if (messageMetaToggleButton) {
 			const paneId = String(messageMetaToggleButton.getAttribute("data-pane-id") || "");
@@ -5579,11 +5603,27 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 						captureToolNarration();
 					}
 					const toolName = String(payloadObj.tool_name || "tool").replaceAll("_", " ");
-					const activity = String(payloadObj.activity || "").trim().slice(0, 180);
+					const activity = String(payloadObj.label || payloadObj.activity || "").trim().slice(0, 220);
 					const status = payloadObj.phase === "started"
 						? (activity || `Using ${toolName}…`)
 						: `${activity || `Used ${toolName}`} · ${payloadObj.phase === "failed" ? `failed${payloadObj.error_reason ? ` — ${payloadObj.error_reason}` : ""}` : "done"}`;
-					assistantMessage.tool_activity = Array.from(new Set([...(assistantMessage.tool_activity || []), status]));
+					const nextEntry = {
+						tool_name: String(payloadObj.tool_name || ""),
+						phase: String(payloadObj.phase || ""),
+						label: status,
+						command: String(payloadObj.command || "").trim()
+					};
+					const existingEntries = normalizeToolActivityEntries(assistantMessage.tool_activity).map((entry) => ({
+						tool_name: "",
+						phase: "",
+						label: entry.label,
+						command: entry.command
+					}));
+					const dedupeKey = `${nextEntry.phase}|${nextEntry.label}|${nextEntry.command}`;
+					assistantMessage.tool_activity = [
+						...existingEntries.filter((entry) => `${entry.phase}|${entry.label}|${entry.command}` !== dedupeKey),
+						nextEntry
+					].slice(-32);
 					scheduleStreamingMessagePatch(chat.id, pane.id, assistantMessage.id);
 					return;
 				}
@@ -7875,12 +7915,8 @@ async function maybeAutoTitleChat(chat, pane, profile, selectedModel) {
 }
 
 function renderThinkingBlock(message, paneId) {
-	const toolActivityLines = Array.isArray(message?.tool_activity)
-		? message.tool_activity
-			.map((line) => String(line || "").trim())
-			.filter(Boolean)
-		: [];
-	if (!message || (!message.thinking && !message.streaming && toolActivityLines.length === 0 && !message.live_narration)) {
+	const toolActivityEntries = normalizeToolActivityEntries(message?.tool_activity);
+	if (!message || (!message.thinking && !message.streaming && toolActivityEntries.length === 0 && !message.live_narration)) {
 		return "";
 	}
 
@@ -7888,11 +7924,13 @@ function renderThinkingBlock(message, paneId) {
 		? String(message.live_narration || "")
 		: String(message.thinking || "");
 	const expanded = Boolean(message.thinking_expanded);
+	const commandEntries = toolActivityEntries.filter((entry) => entry.command);
+	const commandsExpanded = message.streaming ? true : Boolean(message.tool_commands_expanded);
 	const showContent = message.streaming
 		? Boolean(thinkingText.trim())
 		: (expanded || (!String(message.content || "").trim() && Boolean(thinkingText.trim())));
 	const contentClass = showContent ? "message-thinking-content" : "message-thinking-content collapsed";
-	const toggle = message.streaming ? "" : `<button class="thinking-toggle" type="button" data-action="toggle-thinking" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}" aria-expanded="${expanded ? "true" : "false"}" aria-label="${expanded ? "Collapse thinking" : "Expand thinking"}">${thinkingToggleIconSvg(expanded)}</button>`;
+	const toggle = message.streaming ? "" : `<button class="thinking-toggle" type="button" data-action="toggle-thinking" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}" aria-expanded="${expanded ? "true" : "false"}" aria-label="${expanded ? "Collapse working details" : "Expand working details"}">${thinkingToggleIconSvg(expanded)}</button>`;
 	const loadingIcon = message.streaming ? `<span class="thinking-inline-progress" aria-label="Working">${thinkingLoadingIconSvg}</span>` : "";
 	const thinkingDurationMs = resolvedThinkingDurationMs(message);
 	const thinkingLabel = message.streaming
@@ -7902,10 +7940,34 @@ function renderThinkingBlock(message, paneId) {
 			: "Worked";
 
 	const renderedThinking = renderAssistantMarkdown(normalizeAssistantProseSpacing(thinkingText));
-	const toolActivity = toolActivityLines.length > 0
-		? `<div class="message-tool-activity-inline" role="status">${toolActivityLines.map((line) => `<div>${escapeHtml(line)}</div>`).join("")}</div>`
+	const toolActivity = toolActivityEntries.length > 0
+		? `<div class="message-tool-activity-inline" role="status">${toolActivityEntries.map((entry) => `<div>${escapeHtml(entry.label)}</div>`).join("")}</div>`
 		: "";
-	return `<div class="message-thinking" role="status" aria-live="polite"><div class="message-thinking-head"><div class="thinking-label">${thinkingLabel}</div>${loadingIcon}${toggle}</div><div class="${contentClass} message-thinking-markdown"><div class="message-content-block">${renderedThinking}</div>${toolActivity}</div></div>`;
+	const commandToggle = commandEntries.length > 0
+		? `<button class="thinking-command-toggle" type="button" data-action="toggle-tool-commands" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}" aria-expanded="${commandsExpanded ? "true" : "false"}" aria-label="${commandsExpanded ? "Hide commands" : "Show commands"}">${thinkingToggleIconSvg(commandsExpanded)}<span>${commandsExpanded ? "Hide commands" : "Show commands"}</span></button>`
+		: "";
+	const commandBlock = commandEntries.length > 0
+		? `<div class="message-tool-commands${commandsExpanded ? "" : " collapsed"}">${commandEntries.map((entry) => `<code>${escapeHtml(entry.command)}</code>`).join("")}</div>`
+		: "";
+	return `<div class="message-thinking" role="status" aria-live="polite"><div class="message-thinking-head"><div class="thinking-label">${thinkingLabel}</div>${loadingIcon}${toggle}</div><div class="${contentClass} message-thinking-markdown"><div class="message-content-block">${renderedThinking}</div>${toolActivity}${commandToggle}${commandBlock}</div></div>`;
+}
+
+function normalizeToolActivityEntries(entries) {
+	if (!Array.isArray(entries)) return [];
+	return entries.map((entry) => {
+		if (entry && typeof entry === "object" && !Array.isArray(entry)) {
+			const label = String(entry.label || entry.activity || "").trim();
+			const command = String(entry.command || "").trim();
+			if (!label && !command) return null;
+			return {
+				label: label || command,
+				command
+			};
+		}
+		const label = String(entry || "").trim();
+		if (!label) return null;
+		return { label, command: "" };
+	}).filter(Boolean);
 }
 
 function appendThinkingDelta(previousValue, nextValue) {

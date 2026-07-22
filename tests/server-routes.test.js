@@ -668,6 +668,73 @@ test("POST /api/chat/stream runs Codex profiles through the local Codex CLI and 
 	}
 });
 
+test("POST /api/chat/stream records Codex runs in the Watchdog requests intake", async () => {
+	const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-codex-watchdog-"));
+	const cachePath = path.join(tempRoot, "models_cache.json");
+	fs.writeFileSync(cachePath, JSON.stringify({
+		models: [
+			{ slug: "gpt-5.6-sol", visibility: "list", priority: 1, supported_in_api: true }
+		]
+	}));
+	const observed = [];
+	const fetchFn = async (url, options = {}) => {
+		observed.push({ url, options });
+		return mockJsonResponse({ ok: true });
+	};
+	const spawnFn = () => {
+		const child = new (require("events").EventEmitter)();
+		child.stdout = new PassThrough();
+		child.stderr = new PassThrough();
+		process.nextTick(() => {
+			child.stdout.write('{"type":"thread.started","thread_id":"codex-thread-watchdog"}\n');
+			child.stdout.write('{"type":"item.completed","item":{"id":"item_0","type":"agent_message","text":"Codex tracked answer."}}\n');
+			child.stdout.write('{"type":"turn.completed","usage":{"input_tokens":10,"cached_input_tokens":2,"output_tokens":4,"reasoning_output_tokens":1}}\n');
+			child.stdout.end();
+			child.stderr.end();
+			child.emit("close", 0);
+		});
+		child.kill = () => {};
+		return child;
+	};
+	const { runtime, destroy } = createIsolatedRuntime({
+		envMerge: {
+			CODEX_MODEL_CACHE_PATH: cachePath,
+			WATCHDOG_TELEMETRY_URL: "http://127.0.0.1:7700/api/telemetry/requests"
+		},
+		fetchFn,
+		spawnFn
+	});
+	try {
+		await withServer(runtime.app, async (baseUrl) => {
+			const codexProfile = runtime.helpers.readState().settings.profiles.find((profile) => profile.provider_id === "codex");
+			assert.ok(codexProfile);
+			const response = await fetch(`${baseUrl}/api/chat/stream`, {
+				method: "POST",
+				headers: withAuthHeaders({ "Content-Type": "application/json" }),
+				body: JSON.stringify({
+					profile_id: codexProfile.id,
+					model: "gpt-5.6-sol",
+					chat_id: "codex-chat-1",
+					pane_id: "codex-pane-1",
+					messages: [{ role: "user", content: "Track this Codex run." }]
+				})
+			});
+			assert.equal(response.status, 200);
+			await response.text();
+			assert.equal(observed.length, 1);
+			assert.equal(observed[0].url, "http://127.0.0.1:7700/api/telemetry/requests");
+			const body = JSON.parse(String(observed[0].options.body || "{}"));
+			assert.equal(body.provider, "codex");
+			assert.equal(body.request_id, "trace-codex-pane-1");
+			assert.equal(body.session_id, "codex-chat-1");
+			assert.equal(body.trace_id, "trace-codex-pane-1");
+		});
+	} finally {
+		destroy();
+		fs.rmSync(tempRoot, { recursive: true, force: true });
+	}
+});
+
 test("automation routes persist schedules and expose run history", async () => {
 	const { runtime, destroy } = createIsolatedRuntime();
 	try {

@@ -2005,6 +2005,11 @@ textarea:focus,
 
 .message-thinking-content .message-content-block { margin: 0; padding: 0; }
 
+.message.assistant.with-thinking .message-thinking-content .message-content-block {
+	margin-top: 0;
+	padding-top: 0;
+}
+
 .message-thinking .message-content-block {
 	color: #a9bfd2;
 	font-family: var(--display);
@@ -2024,6 +2029,43 @@ textarea:focus,
 	margin-top: 8px;
 	color: #c9e1ff;
 	font: 11px/1.45 var(--mono);
+}
+
+.thinking-command-toggle {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	margin-top: 10px;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: #9bc8ea;
+	font: 11px/1.35 var(--mono);
+}
+
+.thinking-command-toggle:hover {
+	color: #e0eefc;
+}
+
+.message-tool-commands {
+	display: grid;
+	gap: 6px;
+	margin-top: 8px;
+}
+
+.message-tool-commands.collapsed {
+	display: none;
+}
+
+.message-tool-commands code {
+	display: block;
+	padding: 8px 10px;
+	border-radius: 10px;
+	background: rgba(18, 28, 40, 0.9);
+	color: #dcecff;
+	font: 11px/1.45 var(--mono);
+	white-space: pre-wrap;
+	word-break: break-word;
 }
 
 .confirmation-modal-panel {
@@ -2112,8 +2154,8 @@ textarea:focus,
 }
 
 .message.assistant.with-thinking .message-content-block {
-	margin-top: 10px;
-	padding-top: 10px;
+	margin-top: 0;
+	padding-top: 0;
 }
 
 .thinking-label {
