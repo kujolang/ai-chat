@@ -4148,6 +4148,9 @@ textarea {
 
 @media (max-width: 1100px) {
 	.workspace-top {
+		position: static;
+		top: auto;
+		z-index: auto;
 		padding: 10px 16px 8px;
 	}
 
