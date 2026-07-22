@@ -7881,10 +7881,11 @@ function renderThinkingBlock(message, paneId) {
 	const contentClass = showContent ? "message-thinking-content" : "message-thinking-content collapsed";
 	const toggle = message.streaming ? "" : `<button class="thinking-toggle" type="button" data-action="toggle-thinking" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}" aria-expanded="${expanded ? "true" : "false"}" aria-label="${expanded ? "Collapse thinking" : "Expand thinking"}">${thinkingToggleIconSvg(expanded)}</button>`;
 	const loadingIcon = message.streaming ? `<span class="thinking-inline-progress" aria-label="Working">${thinkingLoadingIconSvg}</span>` : "";
+	const thinkingDurationMs = resolvedThinkingDurationMs(message);
 	const thinkingLabel = message.streaming
 		? "Working"
-		: Number(message.thinking_duration_ms) > 0
-			? `Worked for ${formatThinkingDurationMs(message.thinking_duration_ms)}`
+		: thinkingDurationMs > 0
+			? `Worked for ${formatThinkingDurationMs(thinkingDurationMs)}`
 			: "Worked";
 
 	const renderedThinking = renderAssistantMarkdown(normalizeAssistantProseSpacing(thinkingText));
@@ -8262,6 +8263,29 @@ function formatThinkingDurationMs(value) {
 	const minutes = Math.floor(totalSeconds / 60);
 	const seconds = totalSeconds % 60;
 	return minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
+}
+
+function resolvedThinkingDurationMs(message) {
+	if (!message || typeof message !== "object") {
+		return 0;
+	}
+
+	const explicitThinkingMs = Number(message.thinking_duration_ms);
+	const responseTimeMs = Number(message.response_time_ms);
+	const hasThinkingText = Boolean(String(message.thinking || message.live_narration || "").trim());
+
+	if (!hasThinkingText) {
+		return Number.isFinite(explicitThinkingMs) && explicitThinkingMs > 0 ? explicitThinkingMs : 0;
+	}
+
+	if (Number.isFinite(explicitThinkingMs) && explicitThinkingMs > 0) {
+		if (Number.isFinite(responseTimeMs) && responseTimeMs > explicitThinkingMs * 2) {
+			return responseTimeMs;
+		}
+		return explicitThinkingMs;
+	}
+
+	return Number.isFinite(responseTimeMs) && responseTimeMs > 0 ? responseTimeMs : 0;
 }
 
 function formatMessageTime(value) {
