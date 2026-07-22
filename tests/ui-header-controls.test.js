@@ -91,6 +91,12 @@ test("composer exposes a single mic control that focuses and appends transcript 
 	assert.match(appSource, /async function toggleVoice\(\)\s*\{\s*focusComposerInput\(\);/s);
 	assert.match(appSource, /if \(!recognition\) \{\s*if \(supportsWhisperRecording\(\)\) \{\s*await toggleWhisperRecording\(\);/s);
 	assert.match(appSource, /recognition\.onstart = \(\) => \{\s*isListening = true;\s*focusComposerInput\(\);/s);
+	assert.match(appSource, /recognition\.continuous = true;/);
+	assert.match(appSource, /recognition\.interimResults = true;/);
+	assert.match(appSource, /if \(voiceSessionRequested\) \{\s*nodes\.voiceStatus\.textContent = "Voice: listening";/s);
+	assert.match(appSource, /voiceRestartTimer = window\.setTimeout\(\(\) => \{/);
+	assert.match(appSource, /voiceComposerSeed = String\(nodes\.composerInput\.value \|\| ""\)\.trim\(\);/);
+	assert.match(appSource, /nodes\.composerInput\.value = joinVoiceTranscriptParts\(voiceComposerSeed, transcript\);/);
 });
 
 test("pane list and user identity settings expose the requested labels", () => {

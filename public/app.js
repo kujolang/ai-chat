@@ -24,6 +24,11 @@ const defaultState = {
 let state = structuredClone(defaultState);
 let recognition = null;
 let isListening = false;
+let voiceSessionRequested = false;
+let voiceRestartTimer = null;
+let voiceComposerSeed = "";
+let voiceCommittedTranscript = "";
+let voiceInterimTranscript = "";
 let mediaRecorder = null;
 let whisperStream = null;
 let whisperChunks = [];
@@ -6611,8 +6616,8 @@ function setupSpeechRecognition() {
 	}
 
 	recognition = new Recognition();
-	recognition.continuous = false;
-	recognition.interimResults = false;
+	recognition.continuous = true;
+	recognition.interimResults = true;
 	recognition.lang = "en-US";
 
 	recognition.onstart = () => {
@@ -6626,27 +6631,99 @@ function setupSpeechRecognition() {
 
 	recognition.onend = () => {
 		isListening = false;
-		nodes.voiceStatus.textContent = "Voice: idle";
-		nodes.voiceBtn.classList.remove("active");
-		nodes.voiceBtn.title = "Voice";
-		nodes.voiceBtn.setAttribute("aria-label", "Voice");
+		if (voiceSessionRequested) {
+			nodes.voiceStatus.textContent = "Voice: listening";
+			if (voiceRestartTimer) {
+				window.clearTimeout(voiceRestartTimer);
+			}
+			voiceRestartTimer = window.setTimeout(() => {
+				voiceRestartTimer = null;
+				if (!voiceSessionRequested || isListening) {
+					return;
+				}
+				try {
+					recognition.start();
+				} catch (error) {
+					nodes.voiceStatus.textContent = "Voice: resume blocked";
+					resetVoiceSession();
+				}
+			}, 180);
+			return;
+		}
+		resetVoiceSession();
 	};
 
-	recognition.onerror = () => {
+	recognition.onerror = (event) => {
+		const errorCode = String(event && event.error ? event.error : "");
+		if (errorCode === "not-allowed" || errorCode === "service-not-allowed" || errorCode === "audio-capture") {
+			nodes.voiceStatus.textContent = "Voice: microphone unavailable";
+			resetVoiceSession();
+			return;
+		}
+		if (errorCode === "aborted" && !voiceSessionRequested) {
+			nodes.voiceStatus.textContent = "Voice: idle";
+			return;
+		}
+		if (errorCode === "no-speech" && voiceSessionRequested) {
+			nodes.voiceStatus.textContent = "Voice: listening";
+			return;
+		}
 		nodes.voiceStatus.textContent = "Voice: browser error";
 	};
 
 	recognition.onresult = (event) => {
-		let transcript = "";
-		for (let index = 0; index < event.results.length; index += 1) {
-			transcript += event.results[index][0].transcript;
+		let finalizedTranscript = "";
+		let interimTranscript = "";
+		for (let index = event.resultIndex; index < event.results.length; index += 1) {
+			const result = event.results[index];
+			const transcript = result && result[0] ? result[0].transcript : "";
+			if (result && result.isFinal) {
+				finalizedTranscript += transcript;
+			} else {
+				interimTranscript += transcript;
+			}
 		}
-		appendTranscriptToComposer(transcript);
+		if (finalizedTranscript) {
+			voiceCommittedTranscript = joinVoiceTranscriptParts(voiceCommittedTranscript, finalizedTranscript);
+		}
+		voiceInterimTranscript = String(interimTranscript || "").trim();
+		renderVoiceTranscript();
 	};
 }
 
 function supportsWhisperRecording() {
 	return Boolean(navigator.mediaDevices && typeof MediaRecorder !== "undefined");
+}
+
+function joinVoiceTranscriptParts(existing, addition) {
+	const nextPart = String(addition || "").trim();
+	if (!nextPart) {
+		return String(existing || "").trim();
+	}
+
+	const existingPart = String(existing || "").trim();
+	return existingPart ? `${existingPart} ${nextPart}` : nextPart;
+}
+
+function renderVoiceTranscript() {
+	const transcript = joinVoiceTranscriptParts(voiceCommittedTranscript, voiceInterimTranscript);
+	nodes.composerInput.value = joinVoiceTranscriptParts(voiceComposerSeed, transcript);
+	focusComposerInput();
+}
+
+function resetVoiceSession() {
+	voiceSessionRequested = false;
+	voiceComposerSeed = "";
+	voiceCommittedTranscript = "";
+	voiceInterimTranscript = "";
+	if (voiceRestartTimer) {
+		window.clearTimeout(voiceRestartTimer);
+		voiceRestartTimer = null;
+	}
+	nodes.voiceStatus.textContent = "Voice: idle";
+	nodes.voiceBtn.classList.remove("active");
+	nodes.voiceBtn.title = "Voice";
+	nodes.voiceBtn.setAttribute("aria-label", "Voice");
 }
 
 function appendTranscriptToComposer(transcript) {
@@ -6669,8 +6746,17 @@ async function toggleVoice() {
 		return;
 	}
 	if (isListening) {
+		voiceSessionRequested = false;
 		recognition.stop();
 	} else {
+		voiceComposerSeed = String(nodes.composerInput.value || "").trim();
+		voiceCommittedTranscript = "";
+		voiceInterimTranscript = "";
+		voiceSessionRequested = true;
+		if (voiceRestartTimer) {
+			window.clearTimeout(voiceRestartTimer);
+			voiceRestartTimer = null;
+		}
 		recognition.start();
 	}
 }
