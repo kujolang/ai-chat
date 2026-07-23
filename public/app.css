@@ -3910,7 +3910,7 @@ textarea {
 
 .agent-instruction-models-field > select {
 	width: 100%;
-	min-height: 40px;
+	min-height: 36px;
 	padding: 0 11px;
 	border: 1px solid var(--line-soft);
 	border-radius: 10px;
@@ -3920,8 +3920,8 @@ textarea {
 }
 
 .agent-instruction-models-field .select2-selection--multiple {
-	min-height: 40px;
-	padding: 4px 36px 4px 11px;
+	min-height: 36px;
+	padding: 3px 10px;
 	border: 1px solid var(--line-soft) !important;
 	border-radius: 10px !important;
 	background: rgba(18, 20, 23, 0.98) !important;
@@ -3937,18 +3937,23 @@ textarea {
 .agent-instruction-models-field .select2-selection__rendered {
 	display: flex !important;
 	flex-wrap: wrap;
+	align-items: center;
 	gap: 4px;
 	padding: 0 !important;
 }
 
 .agent-instruction-models-field .select2-selection__choice {
 	margin-top: 0 !important;
+	display: inline-flex !important;
+	align-items: center !important;
+	flex-direction: row-reverse !important;
+	gap: 6px;
 	border: 1px solid #315779 !important;
 	border-radius: 999px !important;
 	background: rgba(119, 185, 255, 0.12) !important;
 	color: #dce8f4 !important;
 	font: 11px/1.2 var(--display) !important;
-	padding: 4px 8px !important;
+	padding: 3px 8px 3px 10px !important;
 }
 
 .agent-instruction-models-field .select2-search--inline {
@@ -3957,12 +3962,22 @@ textarea {
 }
 
 .agent-instruction-models-field .select2-selection__choice__remove {
-	margin-right: 6px !important;
+	display: inline-flex !important;
+	align-items: center;
+	justify-content: center;
+	width: 14px;
+	height: 14px;
+	margin: 0 !important;
+	border-radius: 999px;
+	background: rgba(255, 255, 255, 0.08);
 	color: var(--text-dim) !important;
+	font-size: 11px !important;
+	line-height: 1 !important;
 }
 
 .agent-instruction-models-field .select2-search--inline .select2-search__field {
-	margin: 4px 0 !important;
+	margin: 0 !important;
+	min-height: 24px;
 	color: var(--text) !important;
 	font: 12px/1.3 var(--sans) !important;
 }
