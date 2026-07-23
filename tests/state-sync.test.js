@@ -197,3 +197,33 @@ test("state sync persists reordered tools through app settings", () => {
 	assert.deepEqual(changes.map((change) => change.type), ["app_settings_upsert"]);
 	assert.deepEqual(changes[0].settings.tools.map((tool) => tool.id), ["tool-2", "tool-1"]);
 });
+
+test("state sync keeps partial streaming content but omits transient UI fields", () => {
+	const state = baseState();
+	state.chats[0].panes[0].messages = [{
+		id: "message-streaming",
+		role: "assistant",
+		content: "partial answer",
+		thinking: "draft reasoning",
+		streaming: true,
+		live_narration: "Streaming response...",
+		thinking_started_at: 123,
+		tool_activity: [{ label: "Using web search..." }],
+		usage: { total_tokens: 12 },
+		createdAt: 202
+	}];
+
+	const snapshot = stateSync.persistenceSnapshot(state);
+	assert.deepEqual(snapshot.messages, [{
+		id: "message-streaming",
+		pane_id: "pane-1",
+		role: "assistant",
+		content: "partial answer",
+		provider: null,
+		model: null,
+		thinking: "draft reasoning",
+		usage: { total_tokens: 12 },
+		created_at: 202,
+		sort_order: 0
+	}]);
+});

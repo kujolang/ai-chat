@@ -2136,6 +2136,12 @@ textarea:focus,
 	line-height: 1.55;
 }
 
+.message-thinking-statusline {
+	margin-top: 6px;
+	color: #7fa2bf;
+	font: 11px/1.45 var(--mono);
+}
+
 .message-thinking .message-content-block a {
 	color: #8fc8ff;
 	text-decoration: none;

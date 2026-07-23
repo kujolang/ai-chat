@@ -48,6 +48,7 @@ let markdownRenderer = null;
 let workspaceRenderScheduled = false;
 let streamingMessagePatchScheduled = false;
 const streamingMessagePatchQueue = new Map();
+const streamingPersistMetaByMessageId = new Map();
 const activeStreamControllers = new Set();
 let activeStreamCount = 0;
 let stopStreamingRequested = false;
@@ -75,6 +76,8 @@ const collapsedProvidersStorageKey = "ai_chat_collapsed_providers_v1";
 const collapsedToolsStorageKey = "ai_chat_collapsed_tools_v1";
 const collapsedAgentInstructionsStorageKey = "ai_chat_collapsed_agent_instructions_v1";
 const stateChangesBatchBytes = 512 * 1024;
+const streamingPersistDebounceMs = 1500;
+const streamingPersistCharThreshold = 4096;
 const composerPasteSoftLimitChars = 120000;
 const maxVisibleProjectFolders = 5;
 const sidebarChatPageSize = 20;
@@ -3731,6 +3734,52 @@ function applyStreamingMessagePatches(patches) {
 	}
 }
 
+function scheduleStreamingPersist(chatId, paneId, messageId, { immediate = false } = {}) {
+	const chat = getChatById(chatId);
+	if (!chat) return;
+	const pane = Array.isArray(chat.panes) ? chat.panes.find((candidate) => candidate.id === paneId) : null;
+	if (!pane) return;
+	const message = Array.isArray(pane.messages) ? pane.messages.find((candidate) => candidate.id === messageId) : null;
+	if (!message) return;
+
+	const contentChars = String(message.content || "").length;
+	const thinkingChars = String(message.thinking || "").length;
+	const totalChars = contentChars + thinkingChars;
+	const toolEntries = normalizeToolActivityEntries(message.tool_activity).length;
+	const hasError = Boolean(message.usage && message.usage.error);
+	const meta = streamingPersistMetaByMessageId.get(message.id) || {
+		lastScheduledAt: 0,
+		lastChars: 0,
+		lastToolEntries: 0,
+		lastHadError: false
+	};
+	const now = Date.now();
+	const charDelta = totalChars - Number(meta.lastChars || 0);
+	const toolChanged = toolEntries !== Number(meta.lastToolEntries || 0);
+	const errorChanged = hasError !== Boolean(meta.lastHadError);
+	const shouldSchedule = immediate
+		|| charDelta >= streamingPersistCharThreshold
+		|| toolChanged
+		|| errorChanged
+		|| (now - Number(meta.lastScheduledAt || 0)) >= streamingPersistDebounceMs;
+	if (!shouldSchedule) {
+		return;
+	}
+
+	meta.lastScheduledAt = now;
+	meta.lastChars = totalChars;
+	meta.lastToolEntries = toolEntries;
+	meta.lastHadError = hasError;
+	streamingPersistMetaByMessageId.set(message.id, meta);
+	schedulePersist({ immediate });
+}
+
+function clearStreamingPersistState(messageId) {
+	const safeMessageId = String(messageId || "");
+	if (!safeMessageId) return;
+	streamingPersistMetaByMessageId.delete(safeMessageId);
+}
+
 function scheduleCodeHighlighting(rootNode) {
 	const root = rootNode || nodes.paneGrid;
 	if (!root) {
@@ -5855,6 +5904,7 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 					assistantMessage.content = mergeContinuationText(contentBeforePass, continuationText);
 					pane.status = "waiting";
 					scheduleStreamingMessagePatch(chat.id, pane.id, assistantMessage.id);
+					scheduleStreamingPersist(chat.id, pane.id, assistantMessage.id);
 					return;
 				}
 
@@ -5865,6 +5915,7 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 						}
 						assistantMessage.thinking = appendThinkingDelta(assistantMessage.thinking, payloadObj.delta);
 						scheduleStreamingMessagePatch(chat.id, pane.id, assistantMessage.id);
+						scheduleStreamingPersist(chat.id, pane.id, assistantMessage.id);
 					}
 					return;
 				}
@@ -5897,6 +5948,7 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 						nextEntry
 					].slice(-32);
 					scheduleStreamingMessagePatch(chat.id, pane.id, assistantMessage.id);
+					scheduleStreamingPersist(chat.id, pane.id, assistantMessage.id);
 					return;
 				}
 
@@ -5970,10 +6022,12 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 						await revealBufferedStreamText(finalizedPassText, (partialText) => {
 							assistantMessage.content = mergeContinuationText(contentBeforePass, partialText);
 							scheduleStreamingMessagePatch(chat.id, pane.id, assistantMessage.id);
+							scheduleStreamingPersist(chat.id, pane.id, assistantMessage.id);
 						});
 					} else {
 						assistantMessage.content = mergeContinuationText(contentBeforePass, finalizedPassText);
 						scheduleStreamingMessagePatch(chat.id, pane.id, assistantMessage.id);
+						scheduleStreamingPersist(chat.id, pane.id, assistantMessage.id);
 					}
 				}
 				if (!assistantMessage.thinking && streamDonePayload.thinking_text) {
@@ -6125,6 +6179,7 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 					sanitizeContinuationChunk(repairedTail)
 				);
 				scheduleStreamingMessagePatch(chat.id, pane.id, assistantMessage.id);
+				scheduleStreamingPersist(chat.id, pane.id, assistantMessage.id);
 				streamMetrics.repair_applied = true;
 				endedLikelyIncomplete = hasHardIncompleteMarkers(assistantMessage.content);
 			}
@@ -6286,7 +6341,8 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 
 	chat.updatedAt = Date.now();
 	completeThinkingTiming();
-	schedulePersist();
+	scheduleStreamingPersist(chat.id, pane.id, assistantMessage.id, { immediate: true });
+	clearStreamingPersistState(assistantMessage.id);
 	renderWorkspace({ preserveScroll: Boolean(options.preserveInitialScroll) });
 	if (currentStreamController) {
 		activeStreamControllers.delete(currentStreamController);
@@ -8379,8 +8435,11 @@ function renderThinkingBlock(message, paneId) {
 	}
 
 	const thinkingText = message.streaming
-		? streamingNarrationText(message, toolActivityEntries)
+		? streamingThinkingText(message, toolActivityEntries)
 		: String(message.thinking || "");
+	const progressText = message.streaming
+		? streamingNarrationText(message, toolActivityEntries)
+		: "";
 	const expanded = Boolean(message.thinking_expanded);
 	const showContent = message.streaming
 		? Boolean(thinkingText.trim())
@@ -8396,10 +8455,13 @@ function renderThinkingBlock(message, paneId) {
 			: "Worked";
 
 	const renderedThinking = renderAssistantMarkdown(normalizeAssistantProseSpacing(thinkingText));
+	const renderedProgress = progressText && progressText !== thinkingText
+		? `<div class="message-thinking-statusline">${escapeHtml(progressText)}</div>`
+		: "";
 	const toolActivity = toolActivityEntries.length > 0
 		? `<div class="message-tool-activity-inline" role="status">${toolActivityEntries.map((entry) => renderToolActivityTimelineEntry(entry)).join("")}</div>`
 		: "";
-	return `<div class="message-thinking" role="status" aria-live="polite"><div class="message-thinking-head"><div class="thinking-label">${thinkingLabel}</div>${loadingIcon}${toggle}</div><div class="${contentClass} message-thinking-markdown"><div class="message-content-block">${renderedThinking}</div>${toolActivity}</div></div>`;
+	return `<div class="message-thinking" role="status" aria-live="polite"><div class="message-thinking-head"><div class="thinking-label">${thinkingLabel}</div>${loadingIcon}${toggle}</div><div class="${contentClass} message-thinking-markdown"><div class="message-content-block">${renderedThinking}${renderedProgress}</div>${toolActivity}</div></div>`;
 }
 
 function normalizeToolActivityEntries(entries) {
@@ -8426,12 +8488,12 @@ function streamingNarrationText(message, toolActivityEntries = []) {
 		return explicit;
 	}
 
-	const elapsedMs = Math.max(
-		Number(message && message.response_time_ms || 0),
-		Number(message && message.request_started_at || 0) > 0
-			? Date.now() - Number(message.request_started_at)
-			: 0
-	);
+	const thinkingText = String(message && message.thinking || "").trim();
+	if (thinkingText) {
+		const thinkingChars = thinkingText.length;
+		return `Streaming reasoning... ${formatNumber(thinkingChars)} characters received so far.`;
+	}
+
 	const contentChars = String(message && message.content || "").length;
 	if (contentChars > 0) {
 		return `Streaming response... ${formatNumber(contentChars)} characters received so far.`;
@@ -8441,6 +8503,12 @@ function streamingNarrationText(message, toolActivityEntries = []) {
 		return String(toolActivityEntries.at(-1).label || "").trim();
 	}
 
+	const elapsedMs = Math.max(
+		Number(message && message.response_time_ms || 0),
+		Number(message && message.request_started_at || 0) > 0
+			? Date.now() - Number(message.request_started_at)
+			: 0
+	);
 	if (elapsedMs >= 15000) {
 		return "Still waiting for the model to send the first text chunk...";
 	}
@@ -8450,6 +8518,23 @@ function streamingNarrationText(message, toolActivityEntries = []) {
 	}
 
 	return "Request sent. Waiting for the model to start streaming...";
+}
+
+function streamingThinkingText(message, toolActivityEntries = []) {
+	const explicitThinking = String(message && message.thinking || "").trim();
+	if (explicitThinking) {
+		return explicitThinking;
+	}
+
+	const explicitNarration = String(message && message.live_narration || "").trim();
+	if (explicitNarration) {
+		return explicitNarration;
+	}
+
+	if (toolActivityEntries.length > 0) {
+		return String(toolActivityEntries.at(-1).label || "").trim();
+	}
+	return streamingNarrationText(message, toolActivityEntries);
 }
 
 function renderToolActivityTimelineEntry(entry) {
