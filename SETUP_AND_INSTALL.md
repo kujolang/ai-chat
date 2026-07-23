@@ -107,11 +107,17 @@ BENCHMARK_STREAM_QUEUE_TIMEOUT_MS=30000
 CODEX_CLI_PATH=codex
 CODEX_MODEL_CACHE_PATH=/absolute/path/to/.codex/models_cache.json
 CODEX_SANDBOX_MODE=read-only
-MAX_TOOL_ROUNDS=256
-MAX_TOOL_CALLS_PER_REQUEST=2048
+MAX_TOOL_ROUNDS=2048
+MAX_TOOL_CALLS_PER_REQUEST=16384
 MAX_TOOL_CALLS_PER_ROUND=6
-MAX_TOOL_CONTEXT_CHARS=196608
-MAX_MESSAGE_CHARS=200000
+MAX_TOOL_CONTEXT_CHARS=262144
+MAX_MESSAGE_CHARS=1000000
+MAX_TOTAL_MESSAGE_CHARS=4000000
+CONTEXT_COMPACTION_ENABLED=1
+CONTEXT_COMPACTION_STRATEGY=structured_excerpt_v1
+CONTEXT_COMPACTION_TARGET_CHARS=262144
+CONTEXT_COMPACTION_SUMMARY_CHARS=24576
+CONTEXT_COMPACTION_PRESERVE_RECENT_MESSAGES=24
 WEB_SEARCH_MAX_RESULTS=5
 WEB_SEARCH_MAX_RESULT_BYTES=12288
 WEB_SEARCH_TIMEOUT_MS=6000
@@ -246,6 +252,7 @@ Regular New Chat continues to create one pane. To reuse a saved arrangement, ope
 - SSE and NDJSON providers are consumed incrementally; active data resets the stream idle timeout.
 - Partial responses are retained and automatically resumed after token limits, unexpected closes, and bounded transient failures.
 - Chat state is persisted independently from provider streaming through bounded incremental writes, so a large historical chat corpus is never resent as one save request.
+- Oversized request transcripts are accepted up to the larger server body/message limits, then compacted toward a reviewed ~256k-character active context window by replacing older turns with a structured summary plus the newest verbatim turns.
 - The composer displays the durable-save state. Do not close the page while it says `Saving…` or `Not saved`; failed writes remain cached locally and retry automatically.
 
 ## 7. Voice and Transcription

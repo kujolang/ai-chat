@@ -162,6 +162,11 @@ Use `.env.example` as your baseline and set:
 - AI_CHAT_ACTION_MANIFEST_PATH
 - AI_CHAT_ACTION_TIMEOUT_MS
 - AI_CHAT_ACTION_MAX_RESULT_BYTES
+- CONTEXT_COMPACTION_ENABLED
+- CONTEXT_COMPACTION_STRATEGY
+- CONTEXT_COMPACTION_TARGET_CHARS
+- CONTEXT_COMPACTION_SUMMARY_CHARS
+- CONTEXT_COMPACTION_PRESERVE_RECENT_MESSAGES
 - BROWSER_ENABLED
 - BROWSER_HEADLESS
 - BROWSER_SESSION_TTL_MS
@@ -369,7 +374,9 @@ The server forwards SSE and newline-delimited JSON incrementally, keeps the time
 
 When a model requests `web_search`, the server dispatches it through a local registry and selects the configured adapter. `auto` uses SearXNG when `SEARXNG_BASE_URL` is set, otherwise it calls `https://ollama.com/api/web_search` with the configured Ollama credential. The runtime appends the bounded result payload as a provider-compatible tool message and continues until the model produces a final response or reaches the tool budget. The stable arguments are `query`, `max_results`, optional `domains`, and optional `freshness` (`day`, `week`, `month`, or `year`).
 
-The default per-request tool budget is 256 tool rounds and 2048 executed tool calls, configurable with `MAX_TOOL_ROUNDS` and `MAX_TOOL_CALLS_PER_REQUEST` and capped at 512 rounds / 4096 calls. A model can request many calls at once, but AI Chat executes at most `MAX_TOOL_CALLS_PER_ROUND` (default 6), returns deferred results for the remainder, bounds each web-search payload with `WEB_SEARCH_MAX_RESULT_BYTES`, and compacts the oldest tool messages after `MAX_TOOL_CONTEXT_CHARS`. This keeps long research runs from exhausting the provider context before a final answer is produced. If the total cap is reached, the stream reports the active budget in its terminal error.
+The default per-request tool budget is 2048 tool rounds and 16384 executed tool calls, configurable with `MAX_TOOL_ROUNDS` and `MAX_TOOL_CALLS_PER_REQUEST` and capped at 8192 rounds / 65536 calls. A model can request many calls at once, but AI Chat executes at most `MAX_TOOL_CALLS_PER_ROUND` (default 6), returns deferred results for the remainder, bounds each web-search payload with `WEB_SEARCH_MAX_RESULT_BYTES`, and compacts the oldest tool messages after `MAX_TOOL_CONTEXT_CHARS`. This keeps long research runs from exhausting the provider context before a final answer is produced. If the total cap is reached, the stream reports the active budget in its terminal error.
+
+Long saved chats are also compacted before provider dispatch. AI Chat accepts a much larger raw transcript/body budget, then uses the configurable `CONTEXT_COMPACTION_*` settings to target an active request window around 256k characters by preserving fixed system instructions and the newest turns verbatim while replacing older turns with a structured summary block. The full transcript remains saved in SQLite even when the active provider request is compacted.
 
 The stable browser tools are `browser_open(url, session_id?)`, `browser_snapshot(session_id)`, `browser_act(session_id, action)`, and `browser_close(session_id)`. The saved `browser_use` name remains available as a deprecated compatibility adapter. Sessions are isolated per chat, expire automatically, expose opaque IDs only, and are closed during shutdown. Read-only navigation, snapshots, extraction, scrolling, going back, and screenshots remain automatic. Browser snapshots now include the final URL, page title, retrieval timestamp, stable element refs, and provenance metadata while clearly marking page-derived text and links as untrusted content. The default `read-only` action policy returns `tool_approval_required` for non-sensitive typing and other narrowly scoped non-read-only actions, while login, purchase, submit, delete, permission, credential, upload, download, and similarly consequential actions fail closed with `browser_action_blocked`. `BROWSER_ALLOWED_HOSTS` optionally narrows browser use to trusted public domains/subdomains. `BROWSER_ACTION_POLICY=development` remains a deprecated local-testing escape hatch for non-sensitive actions only.
 

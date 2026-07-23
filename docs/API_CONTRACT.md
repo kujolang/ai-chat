@@ -118,15 +118,21 @@ configured local workspace only when both local tools and local writes are opted
 in. It accepts `root_id`, optional safe Markdown `path`, and `create_dirs`; it
 never writes outside the configured workspace or to a sensitive file path.
 
-Chat requests allow a single pasted message up to the existing 200,000-character
-aggregate request limit by default. Set `MAX_MESSAGE_CHARS` lower only when a
-deployment needs a stricter provider-specific limit.
+Chat requests accept much larger raw transcripts by default so long-running
+tasks can continue. The reviewed server defaults are `MAX_JSON_BODY_BYTES=
+8388608`, `MAX_MESSAGES_PER_REQUEST=2000`, `MAX_MESSAGE_CHARS=1000000`, and
+`MAX_TOTAL_MESSAGE_CHARS=4000000`. Set any of them lower only when a deployment
+needs stricter ingress limits.
 
 Stored chats are not capped by the per-request message or character limits. When
 a long conversation outgrows `MAX_MESSAGES_PER_REQUEST` or
 `MAX_TOTAL_MESSAGE_CHARS`, the server keeps system instructions and the newest
-conversation turns within the active request window. Older turns remain in the
-saved transcript and are omitted only from that provider request.
+conversation turns within the active request window, then compacts older turns
+into a structured system summary controlled by `CONTEXT_COMPACTION_ENABLED`,
+`CONTEXT_COMPACTION_STRATEGY`, `CONTEXT_COMPACTION_TARGET_CHARS`,
+`CONTEXT_COMPACTION_SUMMARY_CHARS`, and
+`CONTEXT_COMPACTION_PRESERVE_RECENT_MESSAGES`. Older turns remain in the saved
+transcript and are compacted only for that provider request.
 
 `defaultProfileId` and `defaultModel` identify the provider/model selection used by regular new chats. Clients fall back to the first available configured model when the saved selection is missing or no longer exists.
 
@@ -180,7 +186,7 @@ Bridge/offline path note:
 
 ## 6. Streaming Contract (`POST /api/chat/stream`)
 
-Requests may include `tools`, an array of up to 32 OpenAI-compatible function definitions. The streaming route dispatches executable built-in tools through AI Chat's provider-neutral tool registry, appends the result as a provider-compatible tool message, and continues the conversation within bounded round/call limits. The default budget is 256 rounds / 2048 calls, configurable up to 512 rounds / 4096 calls. A failed executable call is appended as a bounded structured error result so the provider can select a fallback; repeated failures still stop at the existing budget. The runtime resolves SearXNG or Ollama Web Search independently of the active model provider, and reads local skill manuals only through configured read-only skill roots. A successful final `done` payload includes `tool_calls_executed`. Other schemas do not grant capabilities: unsupported tool requests emit a terminal `tool_execution_unavailable` error containing `tool_names`. The JSON bridge route retains the explicit HTTP 422 behavior for requested tool execution. Clients must not retry terminal tool errors automatically.
+Requests may include `tools`, an array of up to 32 OpenAI-compatible function definitions. The streaming route dispatches executable built-in tools through AI Chat's provider-neutral tool registry, appends the result as a provider-compatible tool message, and continues the conversation within bounded round/call limits. The default budget is 2048 rounds / 16384 calls, configurable up to 8192 rounds / 65536 calls. A failed executable call is appended as a bounded structured error result so the provider can select a fallback; repeated failures still stop at the existing budget. The runtime resolves SearXNG or Ollama Web Search independently of the active model provider, and reads local skill manuals only through configured read-only skill roots. A successful final `done` payload includes `tool_calls_executed`. Other schemas do not grant capabilities: unsupported tool requests emit a terminal `tool_execution_unavailable` error containing `tool_names`. The JSON bridge route retains the explicit HTTP 422 behavior for requested tool execution. Clients must not retry terminal tool errors automatically.
 
 Requests may also include an optional `benchmark` object when the caller is a benchmark runner. Supported fields are bounded strings and numbers such as `run_id`, `test_id`, `test_number`, `test_title`, `pane_profile`, `lane`, and `instance_role_required`. Benchmark metadata does not change the assistant answer shape, but it lets AI Chat clamp benchmark `max_tokens`, refuse the wrong server role before a long run starts, switch managed Watchdog traffic to a dedicated benchmark lane when configured, and apply benchmark queue/saturation controls.
 
