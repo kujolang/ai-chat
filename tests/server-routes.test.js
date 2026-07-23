@@ -2758,6 +2758,40 @@ test("POST /api/chat/stream preserves Ollama-style message chunks and detects an
 	}
 });
 
+test("POST /api/chat/stream infers max_tokens when the provider stops at the output cap without a finish reason", async () => {
+	const { runtime, destroy } = createIsolatedRuntime({
+		fetchFn: async () => mockSseResponseFromPayload(
+			`data: ${JSON.stringify({
+				message: { content: "# Definition of Done\n\n## 11" },
+				usage: { prompt_tokens: 12, completion_tokens: 12000, total_tokens: 12012 },
+				done: true
+			})}\n\n`
+		)
+	});
+	try {
+		const profileId = applyProfileMutation(runtime, (profile, state) => {
+			profile.api_key = "stream-key";
+			state.settings.maxTokens = 12000;
+		});
+		await withServer(runtime.app, async (baseUrl) => {
+			const response = await fetch(`${baseUrl}/api/chat/stream`, {
+				method: "POST",
+				headers: withAuthHeaders({ "Content-Type": "application/json" }),
+				body: JSON.stringify({
+					profile_id: profileId,
+					messages: [{ role: "user", content: "hello" }]
+				})
+			});
+			const events = parseSseEvents(await response.text());
+			const doneEvent = events.find((entry) => entry.event === "done");
+			assert.equal(doneEvent.data.finish_reason, "max_tokens");
+			assert.equal(doneEvent.data.usage.output_tokens, 12000);
+		});
+	} finally {
+		destroy();
+	}
+});
+
 test("POST /api/chat/stream handles final upstream SSE line without trailing newline", async () => {
 	const lastEvent = {
 		choices: [

@@ -51,6 +51,7 @@ const streamingMessagePatchQueue = new Map();
 const activeStreamControllers = new Set();
 let activeStreamCount = 0;
 let stopStreamingRequested = false;
+let streamingUiTickTimer = null;
 let pendingSidebarDeleteChatId = "";
 const hydratingChatIds = new Set();
 let codeHighlightScheduled = false;
@@ -5824,6 +5825,8 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 			let currentEvent = "message";
 			let eventDataLines = [];
 			let streamDonePayload = null;
+			let receivedTokenDelta = false;
+			let passOutputTokens = 0;
 
 			const processSseEvent = () => {
 				if (eventDataLines.length === 0) {
@@ -5843,6 +5846,7 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 				}
 
 				if (eventName === "token") {
+					receivedTokenDelta = true;
 					completeThinkingTiming();
 					passOutputText = `${passOutputText}${payloadObj.delta || ""}`;
 					const continuationText = continuationPass > 0
@@ -5962,8 +5966,15 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 					const finalizedPassText = continuationPass > 0
 						? sanitizeContinuationChunk(completedText)
 						: completedText;
-					assistantMessage.content = mergeContinuationText(contentBeforePass, finalizedPassText);
-					scheduleStreamingMessagePatch(chat.id, pane.id, assistantMessage.id);
+					if (!receivedTokenDelta && !streamUsedTools) {
+						await revealBufferedStreamText(finalizedPassText, (partialText) => {
+							assistantMessage.content = mergeContinuationText(contentBeforePass, partialText);
+							scheduleStreamingMessagePatch(chat.id, pane.id, assistantMessage.id);
+						});
+					} else {
+						assistantMessage.content = mergeContinuationText(contentBeforePass, finalizedPassText);
+						scheduleStreamingMessagePatch(chat.id, pane.id, assistantMessage.id);
+					}
 				}
 				if (!assistantMessage.thinking && streamDonePayload.thinking_text) {
 					assistantMessage.thinking = streamDonePayload.thinking_text;
@@ -5974,6 +5985,7 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 				finalFinishReason = String(streamDonePayload.finish_reason || "stop");
 
 				if (streamDonePayload.usage && typeof streamDonePayload.usage === "object") {
+					passOutputTokens = Number(streamDonePayload.usage.output_tokens || 0);
 					totalUsage = mergeUsageTotals(totalUsage, streamDonePayload.usage);
 				}
 				if (Array.isArray(streamDonePayload.tool_artifacts)) {
@@ -6022,7 +6034,11 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 			const looksIncomplete = responseLooksIncomplete(assistantMessage.content);
 			const hardIncomplete = hasHardIncompleteMarkers(assistantMessage.content);
 			const thinkingOnly = !String(assistantMessage.content || "").trim() && Boolean(String(assistantMessage.thinking || "").trim());
-			const shouldContinueForTokenLimit = reachedTokenLimit || finalFinishReason === "stream_closed";
+			const implicitTokenLimit = !reachedTokenLimit
+				&& passOutputTokens > 0
+				&& passOutputTokens >= requestedMaxTokens
+				&& looksIncomplete;
+			const shouldContinueForTokenLimit = reachedTokenLimit || finalFinishReason === "stream_closed" || implicitTokenLimit;
 			const shouldContinueForStreamError = streamErrored
 				&& Boolean(assistantMessage.content)
 				&& streamErrorPayload.retryable !== false
@@ -6461,6 +6477,42 @@ function updateStreamingControls() {
 	nodes.sendBtn.title = streaming ? "Stop streaming" : "Send message";
 	nodes.sendBtn.classList.toggle("streaming-stop", streaming);
 	nodes.sendBtn.disabled = false;
+	syncStreamingUiTicker(streaming);
+}
+
+function syncStreamingUiTicker(streaming) {
+	if (!streaming) {
+		if (streamingUiTickTimer) {
+			window.clearInterval(streamingUiTickTimer);
+			streamingUiTickTimer = null;
+		}
+		return;
+	}
+
+	if (streamingUiTickTimer) {
+		return;
+	}
+
+	streamingUiTickTimer = window.setInterval(() => {
+		let updated = false;
+		for (const chat of state.chats || []) {
+			for (const pane of chat.panes || []) {
+				for (const message of pane.messages || []) {
+					if (!message || !message.streaming) {
+						continue;
+					}
+					const startedAt = Number(message.request_started_at || 0);
+					if (startedAt > 0) {
+						message.response_time_ms = Math.max(0, Date.now() - startedAt);
+						updated = true;
+					}
+				}
+			}
+		}
+		if (updated) {
+			renderWorkspace({ preserveScroll: true });
+		}
+	}, 1000);
 }
 
 function mergeUsageTotals(current, next) {
@@ -6698,6 +6750,14 @@ function responseLooksIncomplete(value) {
 		return true;
 	}
 
+	if (/(^|\n)#{1,6}\s+[^\n]*$/.test(text)) {
+		return true;
+	}
+
+	if (/(^|\n)(?:[-*+]|\d+\.)\s*$/.test(text)) {
+		return true;
+	}
+
 	if (/([*_`\[])$/.test(text)) {
 		return true;
 	}
@@ -6782,6 +6842,38 @@ function continuationMaxTokensForPass(baseValue, continuationPass, providerId = 
 function waitForStreamRetry(retryPass) {
 	const delayMs = Math.min(4000, 500 * Math.max(1, Number(retryPass) || 1));
 	return new Promise((resolve) => window.setTimeout(resolve, delayMs));
+}
+
+function waitForAnimationFrame() {
+	return new Promise((resolve) => window.requestAnimationFrame(resolve));
+}
+
+async function revealBufferedStreamText(finalText, applyText) {
+	const text = String(finalText || "");
+	if (!text) {
+		applyText("");
+		return;
+	}
+
+	if (text.length <= 240) {
+		applyText(text);
+		return;
+	}
+
+	const durationMs = Math.min(1200, Math.max(240, text.length / 55));
+	const totalSteps = Math.min(24, Math.max(6, Math.ceil(text.length / 800)));
+	const startedAt = performance.now();
+	for (let step = 1; step <= totalSteps; step += 1) {
+		const sliceLength = Math.floor((text.length * step) / totalSteps);
+		applyText(text.slice(0, sliceLength));
+		if (step < totalSteps) {
+			const elapsedMs = performance.now() - startedAt;
+			const targetMs = (durationMs * step) / totalSteps;
+			if (elapsedMs < targetMs) {
+				await waitForAnimationFrame();
+			}
+		}
+	}
 }
 
 function continuationAssistantContext(value) {
@@ -8287,7 +8379,7 @@ function renderThinkingBlock(message, paneId) {
 	}
 
 	const thinkingText = message.streaming
-		? String(message.live_narration || "")
+		? streamingNarrationText(message, toolActivityEntries)
 		: String(message.thinking || "");
 	const expanded = Boolean(message.thinking_expanded);
 	const showContent = message.streaming
@@ -8298,7 +8390,7 @@ function renderThinkingBlock(message, paneId) {
 	const loadingIcon = message.streaming ? `<span class="thinking-inline-progress" aria-label="Working">${thinkingLoadingIconSvg}</span>` : "";
 	const thinkingDurationMs = resolvedThinkingDurationMs(message);
 	const thinkingLabel = message.streaming
-		? "Working"
+		? (thinkingDurationMs > 0 ? `Working for ${formatThinkingDurationMs(thinkingDurationMs)}` : "Working")
 		: thinkingDurationMs > 0
 			? `Worked for ${formatThinkingDurationMs(thinkingDurationMs)}`
 			: "Worked";
@@ -8326,6 +8418,38 @@ function normalizeToolActivityEntries(entries) {
 		if (!label) return null;
 		return { label, command: "" };
 	}).filter(Boolean);
+}
+
+function streamingNarrationText(message, toolActivityEntries = []) {
+	const explicit = String(message && message.live_narration || "").trim();
+	if (explicit) {
+		return explicit;
+	}
+
+	const elapsedMs = Math.max(
+		Number(message && message.response_time_ms || 0),
+		Number(message && message.request_started_at || 0) > 0
+			? Date.now() - Number(message.request_started_at)
+			: 0
+	);
+	const contentChars = String(message && message.content || "").length;
+	if (contentChars > 0) {
+		return `Streaming response... ${formatNumber(contentChars)} characters received so far.`;
+	}
+
+	if (toolActivityEntries.length > 0) {
+		return String(toolActivityEntries.at(-1).label || "").trim();
+	}
+
+	if (elapsedMs >= 15000) {
+		return "Still waiting for the model to send the first text chunk...";
+	}
+
+	if (elapsedMs >= 5000) {
+		return "The request is still running. Waiting for streamed output...";
+	}
+
+	return "Request sent. Waiting for the model to start streaming...";
 }
 
 function renderToolActivityTimelineEntry(entry) {

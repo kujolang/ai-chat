@@ -145,9 +145,17 @@ test("modal close controls and project add affordance use compact mono glyphs", 
 });
 
 test("live narration renders inside the themed thinking block", () => {
-	assert.match(appSource, /const thinkingText = message\.streaming\s*\? String\(message\.live_narration/);
+	assert.match(appSource, /const thinkingText = message\.streaming\s*\? streamingNarrationText\(message, toolActivityEntries\)/);
 	assert.doesNotMatch(appSource, /class="message-live-narration"/);
 	assert.match(cssSource, /\.message-thinking \.message-content-block\s*\{[^}]*font-family: var\(--display\);/s);
+});
+
+test("streaming responses show elapsed work time and a fallback status when providers buffer output", () => {
+	assert.match(appSource, /function streamingNarrationText\(message, toolActivityEntries = \[\]\)/);
+	assert.match(appSource, /Request sent\. Waiting for the model to start streaming\.\.\./);
+	assert.match(appSource, /Still waiting for the model to send the first text chunk\.\.\./);
+	assert.match(appSource, /Streaming response\.\.\. \$\{formatNumber\(contentChars\)\} characters received so far\./);
+	assert.match(appSource, /message\.streaming\s*\? \(thinkingDurationMs > 0 \? `Working for \$\{formatThinkingDurationMs\(thinkingDurationMs\)\}` : "Working"\)/);
 });
 
 test("working indicator uses inline svg markup for pane rerenders", () => {
