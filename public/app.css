@@ -709,6 +709,13 @@ input[type="checkbox"]:disabled {
 	background: transparent;
 	cursor: pointer;
 	min-width: 0;
+	transition: border-color 120ms ease, background 120ms ease;
+}
+
+.chat-item:hover,
+.chat-item:focus-within {
+	border-color: #2a3138;
+	background: rgba(255, 255, 255, 0.045);
 }
 
 .chat-item.active {
@@ -747,6 +754,14 @@ input[type="checkbox"]:disabled {
 	align-items: center;
 	min-width: 0;
 	position: relative;
+}
+
+.chat-item-link {
+	display: block;
+	flex: 1;
+	min-width: 0;
+	color: inherit;
+	text-decoration: none;
 }
 
 .chat-item-title {
@@ -858,6 +873,13 @@ input[type="checkbox"]:disabled {
 .chat-item.active .chat-item-actions {
 	opacity: 1;
 	pointer-events: auto;
+}
+
+.chat-item:hover .chat-item-link,
+.chat-item:focus-within .chat-item-link,
+.chat-item.active .chat-item-link {
+	color: inherit;
+	text-decoration: none;
 }
 
 .chat-item:hover .chat-item-title,

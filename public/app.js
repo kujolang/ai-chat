@@ -1316,8 +1316,14 @@ function wireEvents() {
 		const chatId = row.getAttribute("data-chat-id");
 		const actionElement = event.target.closest("[data-action]");
 		const action = actionElement ? actionElement.getAttribute("data-action") : "";
+		const chatLink = event.target.closest("[data-chat-link='true']");
 		const chat = getChatById(chatId);
 		if (!chat) {
+			return;
+		}
+		if (chatLink && !action && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) {
+			event.preventDefault();
+			void activateChat(chat.id, { persist: false });
 			return;
 		}
 		if (action === "request-delete") {
@@ -3170,6 +3176,7 @@ function renderSidebarChatItems(chats) {
 			const shouldShowPin = !state.showArchived;
 			const projectPath = normalizeProjectPath(chat.projectPath || chat.project_path || "");
 			const projectLabel = projectPath ? "Set Project Folder" : "Add To Project Folder";
+			const routeHref = chat.routeId ? `/c/${encodeURIComponent(chat.routeId)}` : "/";
 			const archiveIcon = state.showArchived
 				? "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-archive-restore-icon lucide-archive-restore\" aria-hidden=\"true\"><rect width=\"20\" height=\"5\" x=\"2\" y=\"3\" rx=\"1\"/><path d=\"M4 8v11a2 2 0 0 0 2 2h2\"/><path d=\"M20 8v11a2 2 0 0 1-2 2h-2\"/><path d=\"m9 15 3-3 3 3\"/><path d=\"M12 12v9\"/></svg>"
 				: "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-archive-icon lucide-archive\" aria-hidden=\"true\"><rect width=\"20\" height=\"5\" x=\"2\" y=\"3\" rx=\"1\"/><path d=\"M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8\"/><path d=\"M10 12h4\"/></svg>";
@@ -3185,7 +3192,9 @@ function renderSidebarChatItems(chats) {
 			return `
 				<article class="chat-item ${active}" data-chat-id="${chat.id}">
 					<div class="chat-item-top">
-						<div class="chat-item-title" title="${escapeHtml(chat.title)}">${escapeHtml(chat.title)}</div>
+						<a class="chat-item-link" href="${routeHref}" data-chat-link="true" title="${escapeHtml(chat.title)}">
+							<div class="chat-item-title">${escapeHtml(chat.title)}</div>
+						</a>
 						<div class="chat-item-actions">
 							<button class="chat-action" data-action="project" aria-label="${projectLabel}" title="${projectLabel}"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-folder-icon lucide-folder" aria-hidden="true"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg></button>
 							${shouldShowPin ? `<button class="chat-action" data-action="pin" aria-label="${pinLabel}" title="${pinLabel}"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-pin-icon lucide-pin" aria-hidden="true"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg></button>` : ""}
