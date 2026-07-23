@@ -436,7 +436,7 @@ test("chatRequestPayload applies defaults and validates normalized messages", ()
 		);
 		assert.equal(payload.model, "gpt-4.1-mini");
 		assert.equal(payload.temperature, 0.2);
-		assert.equal(payload.max_tokens, 12000);
+		assert.equal(payload.max_tokens, 24000);
 		assert.equal(payload.offline_fixture, false);
 		assert.equal(payload.messages.length, 2);
 		assert.match(payload.messages[0].content, /Never run an `rm` command/);

@@ -52,7 +52,7 @@ async function main() {
 	if (!Array.isArray(paneProfile.panes) || paneProfile.panes.length === 0) fail(`Pane profile has no panes: ${paneProfileName}`);
 	currentPaneProfile = paneProfile;
 
-		const maxTokens = normalizeMaxTokens(Number(args.maxTokens) || Number(state.state?.settings?.maxTokens) || 12000, health);
+		const maxTokens = normalizeMaxTokens(Number(args.maxTokens) || Number(state.state?.settings?.maxTokens) || 24000, health);
 		const temperature = Number(state.state?.settings?.temperature);
 		run.health = {
 			instance: health.instance || null,

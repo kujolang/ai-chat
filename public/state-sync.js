@@ -15,7 +15,7 @@
 		const snapshot = {
 			appSettings: {
 				temperature: finiteNumber(settings.temperature, 0.2),
-				maxTokens: finiteNumber(settings.maxTokens, 12000),
+				maxTokens: finiteNumber(settings.maxTokens, 24000),
 				defaultProfileId: String(settings.defaultProfileId || "").slice(0, 500),
 				defaultModel: String(settings.defaultModel || "").slice(0, 500),
 				userName: String(settings.userName || "").replace(/[\r\n\t]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 120),

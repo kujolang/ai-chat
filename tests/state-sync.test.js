@@ -11,7 +11,7 @@ function baseState() {
 		searchQuery: "",
 		settings: {
 			temperature: 0.2,
-			maxTokens: 12000,
+			maxTokens: 24000,
 			defaultProfileId: "profile-1",
 			defaultModel: "gpt-4.1",
 			userName: "Robert",

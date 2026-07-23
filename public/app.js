@@ -9,7 +9,7 @@ const defaultState = {
 	broadcastToAllPanes: true,
 	settings: {
 		temperature: 0.2,
-		maxTokens: 12000,
+		maxTokens: 24000,
 		defaultProfileId: "",
 		defaultModel: "",
 		defaultProjectPath: "",
@@ -416,10 +416,10 @@ function migrateState(candidate) {
 			}
 			if (Number.isFinite(Number(candidate.settings.maxTokens))) {
 				merged.settings.maxTokens = Number(candidate.settings.maxTokens) === 3200
-					? 12000
+					? 24000
 					: Number(candidate.settings.maxTokens);
 			} else {
-				merged.settings.maxTokens = 12000;
+				merged.settings.maxTokens = 24000;
 			}
 			if (typeof candidate.settings.defaultProfileId === "string") {
 				merged.settings.defaultProfileId = candidate.settings.defaultProfileId.slice(0, 500);
@@ -1135,7 +1135,7 @@ function wireEvents() {
 
 	nodes.settingsMaxTokens.addEventListener("change", (event) => {
 		const value = Number(event.target.value);
-		state.settings.maxTokens = Number.isFinite(value) ? value : 12000;
+		state.settings.maxTokens = Number.isFinite(value) ? value : 24000;
 		schedulePersist();
 	});
 
@@ -5782,7 +5782,7 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 			}
 
 			const requestedMaxTokens = forceFinalAnswer
-				? Math.min(Math.max(Number(state.settings.maxTokens) || 12000, 4000), 12000)
+				? Math.min(Math.max(Number(state.settings.maxTokens) || 24000, 4000), 24000)
 				: continuationMaxTokensForPass(state.settings.maxTokens, continuationPass, profile.provider_id);
 
 			const payload = {
@@ -6821,7 +6821,7 @@ function hasHardIncompleteMarkers(value) {
 function normalizeMaxTokens(value) {
 	const numeric = Number(value);
 	if (!Number.isFinite(numeric)) {
-		return 12000;
+		return 24000;
 	}
 
 	return Math.max(256, Math.round(numeric));
@@ -6833,7 +6833,7 @@ function continuationMaxTokensForPass(baseValue, continuationPass, providerId = 
 		return baseMaxTokens;
 	}
 
-	const boostedBase = Math.max(baseMaxTokens, 12000);
+	const boostedBase = Math.max(baseMaxTokens, 24000);
 	const boostSteps = Math.min(continuationPass, 6);
 	const boosted = boostedBase + boostSteps * 1200;
 	return Math.min(boosted, 24000);
