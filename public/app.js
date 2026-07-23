@@ -1183,13 +1183,9 @@ function wireEvents() {
 		const field = String(event.target.getAttribute("data-agent-instruction-field") || "");
 		if (!profile) return;
 		if (field === "enabled") {
-			profile.enabled = String(event.target.value || "enabled") !== "disabled";
+			profile.enabled = Boolean(event.target.checked);
 			schedulePersist();
 			return;
-		}
-		if (field === "models_csv") {
-			profile.models_csv = normalizeModelInstructionModels(event.target);
-			schedulePersist();
 		}
 	});
 
@@ -2863,6 +2859,12 @@ function initializeAgentInstructionModelSelects() {
 	if (!jquery || !jquery.fn || typeof jquery.fn.select2 !== "function" || !nodes.modelInstructionList) return;
 	for (const selectNode of nodes.modelInstructionList.querySelectorAll("[data-agent-instruction-model-select='true']")) {
 		const profileId = String(selectNode.getAttribute("data-agent-instruction-id") || "");
+		const syncSelection = () => {
+			const profile = getAgentInstructionProfile(profileId);
+			if (!profile) return;
+			profile.models_csv = normalizeModelInstructionModels(selectNode);
+			schedulePersist();
+		};
 		destroySelect2(selectNode);
 		jquery(selectNode).select2({
 			width: "100%",
@@ -2877,7 +2879,7 @@ function initializeAgentInstructionModelSelects() {
 		}).on("select2:open", () => {
 			const search = document.querySelector(".select2-container--open .select2-search__field");
 			if (search) search.setAttribute("placeholder", "Search models or type a new one…");
-		});
+		}).on("change select2:select select2:unselect select2:clear", syncSelection);
 	}
 }
 
@@ -5453,10 +5455,7 @@ function renderModelInstructionProfiles() {
 					<div class="model-instruction-grid">
 						<label>
 							<span>Status</span>
-							<select data-agent-instruction-id="${escapeHtml(profile.id)}" data-agent-instruction-field="enabled">
-								<option value="enabled" ${profile.enabled !== false ? "selected" : ""}>Enabled</option>
-								<option value="disabled" ${profile.enabled === false ? "selected" : ""}>Disabled</option>
-							</select>
+							<span class="agent-instruction-enabled"><input data-agent-instruction-id="${escapeHtml(profile.id)}" data-agent-instruction-field="enabled" type="checkbox" ${profile.enabled !== false ? "checked" : ""}> Enabled</span>
 						</label>
 						<label class="agent-instruction-models-field">
 							<span>Models</span>

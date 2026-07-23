@@ -476,7 +476,7 @@ input[type="checkbox"]:disabled {
 }
 
 .sidebar-projects {
-	padding: 0 4px;
+	padding: 0 8px;
 	margin-top: 10px;
 	margin-bottom: 14px;
 }
@@ -3882,6 +3882,21 @@ textarea {
 	color: var(--text-dim);
 }
 
+.agent-instruction-enabled {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	min-height: 40px;
+	padding: 0 2px;
+	color: var(--text);
+	font: 12px/1.2 var(--sans);
+}
+
+.agent-instruction-enabled input {
+	width: 16px;
+	min-height: 16px;
+}
+
 .model-instruction-card textarea {
 	min-height: 132px;
 	resize: vertical;
@@ -3893,9 +3908,20 @@ textarea {
 	width: 100% !important;
 }
 
+.agent-instruction-models-field > select {
+	width: 100%;
+	min-height: 40px;
+	padding: 0 11px;
+	border: 1px solid var(--line-soft);
+	border-radius: 10px;
+	background: rgba(18, 20, 23, 0.98);
+	color: var(--text);
+	font: 13px var(--sans);
+}
+
 .agent-instruction-models-field .select2-selection--multiple {
 	min-height: 40px;
-	padding: 3px 34px 3px 6px;
+	padding: 4px 36px 4px 11px;
 	border: 1px solid var(--line-soft) !important;
 	border-radius: 10px !important;
 	background: rgba(18, 20, 23, 0.98) !important;
@@ -3925,19 +3951,33 @@ textarea {
 	padding: 4px 8px !important;
 }
 
+.agent-instruction-models-field .select2-search--inline {
+	display: inline-flex;
+	align-items: center;
+}
+
 .agent-instruction-models-field .select2-selection__choice__remove {
 	margin-right: 6px !important;
 	color: var(--text-dim) !important;
 }
 
 .agent-instruction-models-field .select2-search--inline .select2-search__field {
-	margin: 4px 0 0 !important;
+	margin: 4px 0 !important;
 	color: var(--text) !important;
 	font: 12px/1.3 var(--sans) !important;
 }
 
 .agent-instruction-models-field .select2-search--inline .select2-search__field::placeholder {
 	color: var(--text-dim) !important;
+}
+
+.agent-instruction-models-field .select2-container--default .select2-selection--multiple .select2-selection__placeholder {
+	color: var(--text-dim) !important;
+}
+
+.agent-instruction-models-field .select2-container--default .select2-selection--multiple .select2-selection__choice__remove:hover,
+.agent-instruction-models-field .select2-container--default .select2-selection--multiple .select2-selection__choice__remove:focus {
+	color: var(--text) !important;
 }
 
 @media (max-width: 680px) {
