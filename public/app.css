@@ -750,16 +750,15 @@ input[type="checkbox"]:disabled {
 }
 
 .chat-item-top {
-	display: grid;
-	grid-template-columns: minmax(0, 1fr) auto;
+	display: flex;
 	align-items: center;
-	gap: 6px;
 	min-width: 0;
 	position: relative;
 }
 
 .chat-item-link {
 	display: block;
+	flex: 1;
 	min-width: 0;
 	color: inherit;
 	text-decoration: none;
@@ -782,9 +781,13 @@ input[type="checkbox"]:disabled {
 	gap: 3px;
 	justify-content: flex-end;
 	flex-shrink: 0;
-	opacity: 0.42;
-	pointer-events: auto;
+	opacity: 0;
+	pointer-events: none;
 	transition: opacity 120ms ease;
+	position: absolute;
+	right: 0;
+	top: 50%;
+	transform: translateY(-50%);
 }
 
 #delete-all-archived-btn {
@@ -850,8 +853,8 @@ input[type="checkbox"]:disabled {
 .chat-item-actions .chat-action[data-action="project"],
 .chat-item-actions .chat-action[data-action="pin"],
 .chat-item-actions .chat-action[data-action="archive"] {
-	opacity: 0.46;
-	pointer-events: auto;
+	opacity: 0;
+	pointer-events: none;
 }
 
 .chat-item:hover .chat-item-actions .chat-action[data-action="project"],
@@ -879,6 +882,12 @@ input[type="checkbox"]:disabled {
 .chat-item.active .chat-item-link {
 	color: inherit;
 	text-decoration: none;
+}
+
+.chat-item:hover .chat-item-title,
+.chat-item:focus-within .chat-item-title,
+.chat-item.active .chat-item-title {
+	padding-right: 56px;
 }
 
 .chat-item:hover .chat-item-actions .chat-action[data-action="project"]:hover,
