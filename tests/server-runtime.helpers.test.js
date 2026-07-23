@@ -314,8 +314,17 @@ test("createServerRuntime defaults host to localhost and allows explicit overrid
 test("createServerRuntime exposes pane-friendly bounded tool and browser defaults", () => {
 	const defaultRuntime = createIsolatedRuntime();
 	try {
-		assert.equal(defaultRuntime.runtime.config.maxToolRounds, 256);
-		assert.equal(defaultRuntime.runtime.config.maxToolCallsPerRequest, 2048);
+		assert.equal(defaultRuntime.runtime.config.maxJsonBodyBytes, 8 * 1024 * 1024);
+		assert.equal(defaultRuntime.runtime.config.maxMessagesPerRequest, 2000);
+		assert.equal(defaultRuntime.runtime.config.maxMessageChars, 1000000);
+		assert.equal(defaultRuntime.runtime.config.maxTotalMessageChars, 4000000);
+		assert.equal(defaultRuntime.runtime.config.contextCompactionEnabled, true);
+		assert.equal(defaultRuntime.runtime.config.contextCompactionStrategy, "structured_excerpt_v1");
+		assert.equal(defaultRuntime.runtime.config.contextCompactionTargetChars, 256 * 1024);
+		assert.equal(defaultRuntime.runtime.config.contextCompactionSummaryChars, 24 * 1024);
+		assert.equal(defaultRuntime.runtime.config.contextCompactionPreserveRecentMessages, 24);
+		assert.equal(defaultRuntime.runtime.config.maxToolRounds, 2048);
+		assert.equal(defaultRuntime.runtime.config.maxToolCallsPerRequest, 16384);
 		assert.equal(defaultRuntime.runtime.config.browserMaxSessions, 32);
 		assert.equal(defaultRuntime.runtime.config.browserMaxSessionsPerChat, 8);
 		assert.equal(defaultRuntime.runtime.config.browserMaxActionsPerRequest, 24);
@@ -326,15 +335,15 @@ test("createServerRuntime exposes pane-friendly bounded tool and browser default
 
 	const cappedRuntime = createIsolatedRuntime({
 		envMerge: {
-			MAX_TOOL_ROUNDS: "9999",
-			MAX_TOOL_CALLS_PER_REQUEST: "9999",
+			MAX_TOOL_ROUNDS: "99999",
+			MAX_TOOL_CALLS_PER_REQUEST: "999999",
 			BROWSER_MAX_SESSIONS: "999",
 			BROWSER_MAX_SESSIONS_PER_CHAT: "999"
 		}
 	});
 	try {
-		assert.equal(cappedRuntime.runtime.config.maxToolRounds, 512);
-		assert.equal(cappedRuntime.runtime.config.maxToolCallsPerRequest, 4096);
+		assert.equal(cappedRuntime.runtime.config.maxToolRounds, 8192);
+		assert.equal(cappedRuntime.runtime.config.maxToolCallsPerRequest, 65536);
 		assert.equal(cappedRuntime.runtime.config.browserMaxSessions, 128);
 		assert.equal(cappedRuntime.runtime.config.browserMaxSessionsPerChat, 32);
 	} finally {
@@ -437,7 +446,7 @@ test("chatRequestPayload applies defaults and validates normalized messages", ()
 		const personalized = runtime.helpers.chatRequestPayload({ user_name: "  Robert\nDeVore ", messages: [{ role: "user", content: "hi" }] }, {});
 		assert.match(personalized.messages[1].content, /preferred name is "Robert DeVore"/);
 		assert.throws(
-			() => runtime.helpers.chatRequestPayload({ messages: [{ role: "user", content: "x".repeat(200001) }] }, {}),
+			() => runtime.helpers.chatRequestPayload({ messages: [{ role: "user", content: "x".repeat(1000001) }] }, {}),
 			/maximum allowed length/
 		);
 		const withTool = runtime.helpers.chatRequestPayload({
@@ -471,12 +480,15 @@ test("chatRequestPayload applies defaults and validates normalized messages", ()
 	}
 });
 
-test("chatRequestPayload keeps long saved chats usable with a bounded recent context", () => {
+test("chatRequestPayload keeps long saved chats usable with compacted older context", () => {
 	const { runtime, destroy } = createIsolatedRuntime({
 		envMerge: {
 			MAX_MESSAGES_PER_REQUEST: "5",
 			MAX_MESSAGE_CHARS: "250",
-			MAX_TOTAL_MESSAGE_CHARS: "420"
+			MAX_TOTAL_MESSAGE_CHARS: "420",
+			CONTEXT_COMPACTION_TARGET_CHARS: "320",
+			CONTEXT_COMPACTION_SUMMARY_CHARS: "220",
+			CONTEXT_COMPACTION_PRESERVE_RECENT_MESSAGES: "2"
 		}
 	});
 	try {
@@ -495,7 +507,37 @@ test("chatRequestPayload keeps long saved chats usable with a bounded recent con
 		assert.equal(payload.messages.at(-1).content, "latest question");
 		assert.ok(payload.messages.length <= 5);
 		assert.ok(payload.messages.reduce((total, message) => total + message.content.length, 0) <= 420);
-		assert.ok(payload.messages.some((message) => message.content.includes("transcript remains saved")));
+		assert.ok(payload.messages.some((message) => message.content.includes("[Compacted earlier conversation summary]")));
+	} finally {
+		destroy();
+	}
+});
+
+test("compactConversationContext preserves recent turns and inserts a structured summary", () => {
+	const { runtime, destroy } = createIsolatedRuntime();
+	try {
+		const result = runtime.helpers.compactConversationContext([
+			{ role: "system", content: "System instruction" },
+			{ role: "user", content: "Older user discovery notes ".repeat(12) },
+			{ role: "assistant", content: "Older assistant analysis ".repeat(12) },
+			{ role: "tool", content: "{\"results\":" + "\"x\"".repeat(200) + "}" },
+			{ role: "user", content: "Recent follow-up" },
+			{ role: "assistant", content: "Recent answer" },
+			{ role: "user", content: "Latest ask" }
+		], {
+			requiredPrefixCount: 1,
+			maxMessages: 6,
+			maxChars: 600,
+			targetChars: 420,
+			summaryChars: 220,
+			preserveRecentMessages: 2,
+			strategy: "structured_excerpt_v1"
+		});
+		assert.equal(result.compacted, true);
+		assert.equal(result.messages[0].role, "system");
+		assert.equal(result.messages.at(-1).content, "Latest ask");
+		assert.ok(result.messages.some((message) => message.content.includes("[Compacted earlier conversation summary]")));
+		assert.ok(result.messages.reduce((sum, message) => sum + String(message.content || "").length, 0) <= 600);
 	} finally {
 		destroy();
 	}
