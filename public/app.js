@@ -12,6 +12,7 @@ const defaultState = {
 		maxTokens: 12000,
 		defaultProfileId: "",
 		defaultModel: "",
+		defaultProjectPath: "",
 		userName: "",
 		agentInstructions: "",
 		agentInstructionProfiles: [],
@@ -71,6 +72,7 @@ const paneInfoVisibleStorageKey = "ai_chat_pane_info_visible_v3";
 const usageSummaryVisibleStorageKey = "ai_chat_usage_summary_visible_v1";
 const collapsedProvidersStorageKey = "ai_chat_collapsed_providers_v1";
 const collapsedToolsStorageKey = "ai_chat_collapsed_tools_v1";
+const collapsedAgentInstructionsStorageKey = "ai_chat_collapsed_agent_instructions_v1";
 const stateChangesBatchBytes = 512 * 1024;
 const composerPasteSoftLimitChars = 120000;
 const maxVisibleProjectFolders = 5;
@@ -114,6 +116,8 @@ let draggedModel = null;
 let profileDropDestination = null;
 let draggedToolId = "";
 let toolDropDestination = null;
+let draggedAgentInstructionId = "";
+let agentInstructionDropDestination = null;
 let toolPresetMenuOpen = false;
 let automations = [];
 let automationPollTimer = null;
@@ -121,6 +125,7 @@ const automationRunMonitors = new Map();
 let activeSettingsPointerDrag = null;
 let collapsedProviderIds = loadCollapsedProviderIds();
 let collapsedToolIds = loadCollapsedToolIds();
+let collapsedAgentInstructionIds = loadCollapsedAgentInstructionIds();
 loadApiAuthTokenFromStorage();
 
 const nodes = {
@@ -241,6 +246,7 @@ const nodes = {
 	settingsTemperature: document.getElementById("settings-temperature"),
 	settingsMaxTokens: document.getElementById("settings-max-tokens"),
 	settingsDefaultModel: document.getElementById("settings-default-model"),
+	settingsDefaultProject: document.getElementById("settings-default-project"),
 	settingsUserName: document.getElementById("settings-user-name"),
 	settingsAgentInstructions: document.getElementById("settings-agent-instructions"),
 	addModelInstructionBtn: document.getElementById("add-model-instruction-btn"),
@@ -419,6 +425,9 @@ function migrateState(candidate) {
 			}
 			if (typeof candidate.settings.defaultModel === "string") {
 				merged.settings.defaultModel = candidate.settings.defaultModel.slice(0, 500);
+			}
+			if (typeof candidate.settings.defaultProjectPath === "string") {
+				merged.settings.defaultProjectPath = normalizeProjectPath(candidate.settings.defaultProjectPath);
 			}
 			if (typeof candidate.settings.userName === "string") {
 				merged.settings.userName = normalizeUserName(candidate.settings.userName);
@@ -1139,6 +1148,11 @@ function wireEvents() {
 		schedulePersist({ immediate: true });
 	});
 
+	nodes.settingsDefaultProject.addEventListener("change", (event) => {
+		state.settings.defaultProjectPath = normalizeProjectPath(String(event.target.value || ""));
+		schedulePersist({ immediate: true });
+	});
+
 	nodes.settingsUserName.addEventListener("input", (event) => {
 		state.settings.userName = normalizeUserName(event.target.value);
 		if (!getActiveChat()) renderWorkspace();
@@ -1159,26 +1173,92 @@ function wireEvents() {
 	nodes.modelInstructionList.addEventListener("input", (event) => {
 		const profile = getAgentInstructionProfile(event.target.getAttribute("data-agent-instruction-id"));
 		const field = String(event.target.getAttribute("data-agent-instruction-field") || "");
-		if (!profile || !["models_csv", "instructions"].includes(field)) return;
-		profile[field] = String(event.target.value || "").slice(0, field === "models_csv" ? 2000 : 24000);
+		if (!profile || field !== "instructions") return;
+		profile.instructions = String(event.target.value || "").slice(0, 24000);
 		schedulePersist();
 	});
 
 	nodes.modelInstructionList.addEventListener("change", (event) => {
 		const profile = getAgentInstructionProfile(event.target.getAttribute("data-agent-instruction-id"));
 		const field = String(event.target.getAttribute("data-agent-instruction-field") || "");
-		if (!profile || field !== "enabled") return;
-		profile.enabled = String(event.target.value || "enabled") !== "disabled";
-		schedulePersist();
+		if (!profile) return;
+		if (field === "enabled") {
+			profile.enabled = String(event.target.value || "enabled") !== "disabled";
+			schedulePersist();
+			return;
+		}
+		if (field === "models_csv") {
+			profile.models_csv = normalizeModelInstructionModels(event.target);
+			schedulePersist();
+		}
 	});
 
 	nodes.modelInstructionList.addEventListener("click", (event) => {
+		const cardToggleButton = event.target.closest("[data-agent-instruction-action='toggle-card']");
+		if (cardToggleButton) {
+			const id = String(cardToggleButton.getAttribute("data-agent-instruction-id") || "");
+			if (collapsedAgentInstructionIds.has(id)) collapsedAgentInstructionIds.delete(id);
+			else collapsedAgentInstructionIds.add(id);
+			storeCollapsedAgentInstructionIds();
+			renderModelInstructionProfiles();
+			return;
+		}
 		const removeButton = event.target.closest("[data-agent-instruction-action='delete']");
 		if (!removeButton) return;
 		const id = String(removeButton.getAttribute("data-agent-instruction-id") || "");
 		state.settings.agentInstructionProfiles = state.settings.agentInstructionProfiles.filter((profile) => profile.id !== id);
+		collapsedAgentInstructionIds.delete(id);
+		storeCollapsedAgentInstructionIds();
 		renderModelInstructionProfiles();
 		schedulePersist();
+	});
+
+	nodes.modelInstructionList.addEventListener("keydown", (event) => {
+		const handle = event.target.closest("[data-agent-instruction-drag='true']");
+		if (!handle || !["ArrowUp", "ArrowDown"].includes(event.key)) return;
+		event.preventDefault();
+		moveAgentInstructionBy(String(handle.getAttribute("data-agent-instruction-id") || ""), event.key === "ArrowUp" ? -1 : 1);
+	});
+
+	nodes.modelInstructionList.addEventListener("dragstart", (event) => {
+		const handle = event.target.closest("[data-agent-instruction-drag='true']");
+		if (!handle) {
+			event.preventDefault();
+			return;
+		}
+		draggedAgentInstructionId = String(handle.getAttribute("data-agent-instruction-id") || "");
+		agentInstructionDropDestination = null;
+		handle.closest(".model-instruction-card")?.classList.add("dragging");
+		if (event.dataTransfer) {
+			event.dataTransfer.effectAllowed = "move";
+			event.dataTransfer.setData("text/plain", `instruction:${draggedAgentInstructionId}`);
+		}
+	});
+
+	nodes.modelInstructionList.addEventListener("dragover", (event) => {
+		if (!draggedAgentInstructionId) return;
+		event.preventDefault();
+		if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
+		const target = event.target.closest(".model-instruction-card");
+		if (!target) return;
+		for (const item of nodes.modelInstructionList.querySelectorAll(".drag-over-before, .drag-over-after")) {
+			item.classList.remove("drag-over-before", "drag-over-after");
+		}
+		const rectangle = target.getBoundingClientRect();
+		const placeAfter = event.clientY > rectangle.top + rectangle.height / 2;
+		target.classList.add(placeAfter ? "drag-over-after" : "drag-over-before");
+		agentInstructionDropDestination = { targetInstructionId: String(target.getAttribute("data-agent-instruction-id") || ""), placeAfter };
+	});
+
+	nodes.modelInstructionList.addEventListener("drop", (event) => {
+		if (!draggedAgentInstructionId || !agentInstructionDropDestination) return;
+		event.preventDefault();
+		commitAgentInstructionDrop();
+		resetSettingsDragState();
+	});
+
+	nodes.modelInstructionList.addEventListener("dragend", () => {
+		resetSettingsDragState();
 	});
 
 	nodes.settingsModal.addEventListener("click", (event) => {
@@ -2658,6 +2738,23 @@ function storeCollapsedToolIds() {
 	}
 }
 
+function loadCollapsedAgentInstructionIds() {
+	try {
+		const parsed = JSON.parse(window.localStorage.getItem(collapsedAgentInstructionsStorageKey) || "[]");
+		return new Set(Array.isArray(parsed) ? parsed.map(String) : []);
+	} catch (error) {
+		return new Set();
+	}
+}
+
+function storeCollapsedAgentInstructionIds() {
+	try {
+		window.localStorage.setItem(collapsedAgentInstructionsStorageKey, JSON.stringify(Array.from(collapsedAgentInstructionIds)));
+	} catch (error) {
+		// Keep accordion controls usable when storage is unavailable.
+	}
+}
+
 function buildProfileModelOptions() {
 	if (!Array.isArray(state.settings.profiles)) {
 		return [];
@@ -2666,15 +2763,7 @@ function buildProfileModelOptions() {
 	const options = [];
 	for (const profile of state.settings.profiles) {
 		const models = profileModels(profile);
-		if (models.length === 0) {
-			options.push({
-				profile_id: profile.id,
-				model: "",
-				profile_name: profile.name,
-				label: profile.name
-			});
-			continue;
-		}
+		if (models.length === 0) continue;
 
 		for (const model of models) {
 			options.push({
@@ -2715,6 +2804,14 @@ function modelOptionMarkup(options, selectedProfileId, selectedModel, valuePrefi
 function refreshSelect2(selectNode) {
 	if (!selectNode || !window.jQuery || !window.jQuery.fn || typeof window.jQuery.fn.select2 !== "function") return;
 	window.jQuery(selectNode).trigger("change.select2");
+}
+
+function destroySelect2(selectNode) {
+	if (!selectNode || !window.jQuery || !window.jQuery.fn || typeof window.jQuery.fn.select2 !== "function") return;
+	const instance = window.jQuery(selectNode).data("select2");
+	if (instance) {
+		window.jQuery(selectNode).select2("destroy");
+	}
 }
 
 function initializeModelSelect2() {
@@ -2761,6 +2858,29 @@ function initializeModelSelect2() {
 	if (!settingsDefaultModelSelect2Ready) settingsDefaultModelSelect2Ready = configure(nodes.settingsDefaultModel, jquery(nodes.settingsModal));
 }
 
+function initializeAgentInstructionModelSelects() {
+	const jquery = window.jQuery;
+	if (!jquery || !jquery.fn || typeof jquery.fn.select2 !== "function" || !nodes.modelInstructionList) return;
+	for (const selectNode of nodes.modelInstructionList.querySelectorAll("[data-agent-instruction-model-select='true']")) {
+		const profileId = String(selectNode.getAttribute("data-agent-instruction-id") || "");
+		destroySelect2(selectNode);
+		jquery(selectNode).select2({
+			width: "100%",
+			minimumResultsForSearch: 0,
+			dropdownParent: jquery(nodes.settingsModal),
+			dropdownCssClass: "model-picker-dropdown agent-model-picker-dropdown",
+			containerCssClass: "agent-model-picker-select2",
+			placeholder: "Search current models or add one",
+			tags: true,
+			tokenSeparators: [","],
+			closeOnSelect: false
+		}).on("select2:open", () => {
+			const search = document.querySelector(".select2-container--open .select2-search__field");
+			if (search) search.setAttribute("placeholder", "Search models or type a new one…");
+		});
+	}
+}
+
 function renderSettingsDefaultModelSelect() {
 	const options = buildProfileModelOptions();
 	const selected = defaultModelOption();
@@ -2769,6 +2889,17 @@ function renderSettingsDefaultModelSelect() {
 		: '<option value="" selected>No configured models</option>';
 	nodes.settingsDefaultModel.disabled = options.length === 0;
 	refreshSelect2(nodes.settingsDefaultModel);
+}
+
+function renderSettingsDefaultProjectSelect() {
+	const options = uniqueProjectFolders(state.projectFolders || []);
+	const selected = normalizeProjectPath(state.settings.defaultProjectPath || "");
+	nodes.settingsDefaultProject.innerHTML = [`<option value="">No default project</option>`]
+		.concat(options.map((projectPath) => {
+			const isSelected = projectPath === selected ? "selected" : "";
+			return `<option value="${escapeHtml(projectPath)}" ${isSelected}>${escapeHtml(projectFolderNameFromPath(projectPath))}</option>`;
+		}))
+		.join("");
 }
 
 function renderComposerProfileSelect() {
@@ -3021,6 +3152,9 @@ async function deleteProjectFolder(projectPath) {
 	}
 	state.projectFolders = state.projectFolders.filter((entry) => entry !== projectPath);
 	if (state.activeProjectPath === projectPath) state.activeProjectPath = "";
+	if (normalizeProjectPath(state.settings.defaultProjectPath || "") === projectPath) {
+		state.settings.defaultProjectPath = "";
+	}
 	schedulePersist();
 	renderAll();
 }
@@ -5062,6 +5196,14 @@ function moveToolBy(toolId, delta) {
 	renderToolsSettings();
 }
 
+function moveAgentInstructionBy(profileId, delta) {
+	const fromIndex = state.settings.agentInstructionProfiles.findIndex((profile) => profile.id === profileId);
+	const toIndex = Math.max(0, Math.min(state.settings.agentInstructionProfiles.length - 1, fromIndex + delta));
+	if (!moveListItem(state.settings.agentInstructionProfiles, fromIndex, toIndex)) return;
+	schedulePersist();
+	renderModelInstructionProfiles();
+}
+
 function commitProfileDrop() {
 	const destination = profileDropDestination;
 	if (!destination) return false;
@@ -5097,6 +5239,16 @@ function commitToolDrop() {
 	return true;
 }
 
+function commitAgentInstructionDrop() {
+	if (!draggedAgentInstructionId || !agentInstructionDropDestination) return false;
+	const fromIndex = state.settings.agentInstructionProfiles.findIndex((profile) => profile.id === draggedAgentInstructionId);
+	const targetIndex = state.settings.agentInstructionProfiles.findIndex((profile) => profile.id === agentInstructionDropDestination.targetInstructionId);
+	if (!moveListItemForDrop(state.settings.agentInstructionProfiles, fromIndex, targetIndex, agentInstructionDropDestination.placeAfter)) return false;
+	schedulePersist();
+	renderModelInstructionProfiles();
+	return true;
+}
+
 function clearSettingsDragVisuals() {
 	for (const item of document.querySelectorAll(".dragging, .drag-over-before, .drag-over-after")) {
 		item.classList.remove("dragging", "drag-over-before", "drag-over-after");
@@ -5109,6 +5261,8 @@ function resetSettingsDragState() {
 	profileDropDestination = null;
 	draggedToolId = "";
 	toolDropDestination = null;
+	draggedAgentInstructionId = "";
+	agentInstructionDropDestination = null;
 	activeSettingsPointerDrag = null;
 	clearSettingsDragVisuals();
 }
@@ -5143,6 +5297,7 @@ function renderSettings() {
 	nodes.settingsMaxTokens.value = String(state.settings.maxTokens);
 	nodes.settingsUserName.value = String(state.settings.userName || "");
 	renderSettingsDefaultModelSelect();
+	renderSettingsDefaultProjectSelect();
 	nodes.settingsAgentInstructions.value = String(state.settings.agentInstructions || "");
 	renderModelInstructionProfiles();
 	const tokenConfigured = hasValidApiAuthToken();
@@ -5234,6 +5389,35 @@ function createAgentInstructionProfile() {
 	return { id: uid(), models_csv: "", instructions: "", enabled: true };
 }
 
+function uniqueConfiguredModelNames() {
+	const seen = new Set();
+	const models = [];
+	for (const profile of state.settings.profiles || []) {
+		for (const model of profileModelEntries(profile)) {
+			if (seen.has(model)) continue;
+			seen.add(model);
+			models.push(model);
+		}
+	}
+	return models.sort((left, right) => left.localeCompare(right));
+}
+
+function normalizedModelInstructionEntries(value) {
+	return String(value || "")
+		.split(",")
+		.map((item) => String(item || "").replaceAll(",", "").trim().slice(0, 500))
+		.filter(Boolean);
+}
+
+function normalizeModelInstructionModels(input) {
+	const jquery = window.jQuery;
+	const jqueryValues = input && jquery && typeof jquery === "function" ? jquery(input).val() : null;
+	const values = Array.isArray(jqueryValues)
+		? jqueryValues
+		: Array.from(input?.selectedOptions || []).map((option) => option.value);
+	return normalizedModelInstructionEntries(values.join(",")).join(",");
+}
+
 function getAgentInstructionProfile(id) {
 	return state.settings.agentInstructionProfiles.find((profile) => profile.id === String(id || "")) || null;
 }
@@ -5241,29 +5425,53 @@ function getAgentInstructionProfile(id) {
 function renderModelInstructionProfiles() {
 	if (!nodes.modelInstructionList) return;
 	const profiles = Array.isArray(state.settings.agentInstructionProfiles) ? state.settings.agentInstructionProfiles : [];
-	nodes.modelInstructionList.innerHTML = profiles.map((profile) => `
-		<div class="model-instruction-card">
-			<div class="settings-row-head">
-				<strong>Model-specific instructions</strong>
-				<button class="btn ghost danger" type="button" data-agent-instruction-action="delete" data-agent-instruction-id="${escapeHtml(profile.id)}">Remove</button>
+	const availableModels = uniqueConfiguredModelNames();
+	nodes.modelInstructionList.innerHTML = profiles.map((profile, index) => {
+		const collapsed = collapsedAgentInstructionIds.has(profile.id);
+		const selectedModels = normalizedModelInstructionEntries(profile.models_csv);
+		const allModels = [...new Set([...availableModels, ...selectedModels])];
+		const selectedSummary = selectedModels.length > 0 ? `${selectedModels.length} model${selectedModels.length === 1 ? "" : "s"}` : "All models use the global instructions";
+		const modelOptions = allModels.map((model) => `<option value="${escapeHtml(model)}"${selectedModels.includes(model) ? " selected" : ""}>${escapeHtml(model)}</option>`).join("");
+		return `
+			<div class="model-instruction-card${collapsed ? " collapsed" : ""}" data-agent-instruction-id="${escapeHtml(profile.id)}" data-agent-instruction-index="${index}">
+				<div class="model-instruction-card-head">
+					<button class="profile-drag-handle" type="button" draggable="true" data-agent-instruction-drag="true" data-agent-instruction-id="${escapeHtml(profile.id)}" aria-label="Drag model instructions ${index + 1} to reorder" title="Drag to reorder; arrow keys also move this block">
+						<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/></svg>
+					</button>
+					<div class="model-instruction-card-title">
+						<strong>Model-specific instructions</strong>
+						<span>${escapeHtml(selectedSummary)}</span>
+					</div>
+					<div class="model-instruction-card-actions">
+						<button class="profile-card-toggle btn ghost icon-only" type="button" data-agent-instruction-action="toggle-card" data-agent-instruction-id="${escapeHtml(profile.id)}" aria-label="${collapsed ? "Open" : "Close"} model-specific instructions" aria-expanded="${collapsed ? "false" : "true"}" title="${collapsed ? "Open instructions" : "Close instructions"}">
+							<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+						</button>
+						<button class="btn ghost danger" type="button" data-agent-instruction-action="delete" data-agent-instruction-id="${escapeHtml(profile.id)}">Remove</button>
+					</div>
+				</div>
+				<div class="model-instruction-card-body">
+					<div class="model-instruction-grid">
+						<label>
+							<span>Status</span>
+							<select data-agent-instruction-id="${escapeHtml(profile.id)}" data-agent-instruction-field="enabled">
+								<option value="enabled" ${profile.enabled !== false ? "selected" : ""}>Enabled</option>
+								<option value="disabled" ${profile.enabled === false ? "selected" : ""}>Disabled</option>
+							</select>
+						</label>
+						<label class="agent-instruction-models-field">
+							<span>Models</span>
+							<select data-agent-instruction-id="${escapeHtml(profile.id)}" data-agent-instruction-field="models_csv" data-agent-instruction-model-select="true" multiple>${modelOptions}</select>
+						</label>
+					</div>
+					<label>
+						<span>Instructions for these models</span>
+						<textarea data-agent-instruction-id="${escapeHtml(profile.id)}" data-agent-instruction-field="instructions" rows="7" maxlength="24000" spellcheck="false" placeholder="Give these models their role-specific workflow.">${escapeHtml(profile.instructions)}</textarea>
+					</label>
+				</div>
 			</div>
-			<label>
-				<span>Status</span>
-				<select data-agent-instruction-id="${escapeHtml(profile.id)}" data-agent-instruction-field="enabled">
-					<option value="enabled" ${profile.enabled !== false ? "selected" : ""}>Enabled</option>
-					<option value="disabled" ${profile.enabled === false ? "selected" : ""}>Disabled</option>
-				</select>
-			</label>
-			<label>
-				<span>Models (comma separated)</span>
-				<input data-agent-instruction-id="${escapeHtml(profile.id)}" data-agent-instruction-field="models_csv" type="text" value="${escapeHtml(profile.models_csv)}" placeholder="gpt-4.1, claude-sonnet-4.6">
-			</label>
-			<label>
-				<span>Instructions for these models</span>
-				<textarea data-agent-instruction-id="${escapeHtml(profile.id)}" data-agent-instruction-field="instructions" rows="7" maxlength="24000" spellcheck="false" placeholder="Give these models their role-specific workflow.">${escapeHtml(profile.instructions)}</textarea>
-			</label>
-		</div>
-	`).join("") || '<p class="settings-note model-instruction-empty">No model-specific overrides. The chat-wide instructions apply to every model.</p>';
+		`;
+	}).join("") || '<p class="settings-note model-instruction-empty">No model-specific overrides. The chat-wide instructions apply to every model.</p>';
+	initializeAgentInstructionModelSelects();
 }
 
 function setSettingsTab(tabName) {
@@ -6955,7 +7163,7 @@ function createChat(title) {
 		id: uid(),
 		routeId: createChatRouteId(),
 		title,
-		projectPath: "",
+		projectPath: normalizeProjectPath(state.settings.defaultProjectPath || ""),
 		pinned: false,
 		archived: false,
 		createdAt: Date.now(),
