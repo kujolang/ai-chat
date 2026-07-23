@@ -750,15 +750,16 @@ input[type="checkbox"]:disabled {
 }
 
 .chat-item-top {
-	display: flex;
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) 0;
 	align-items: center;
+	gap: 0;
 	min-width: 0;
-	position: relative;
+	transition: grid-template-columns 120ms ease, gap 120ms ease;
 }
 
 .chat-item-link {
 	display: block;
-	flex: 1;
 	min-width: 0;
 	color: inherit;
 	text-decoration: none;
@@ -784,10 +785,8 @@ input[type="checkbox"]:disabled {
 	opacity: 0;
 	pointer-events: none;
 	transition: opacity 120ms ease;
-	position: absolute;
-	right: 0;
-	top: 50%;
-	transform: translateY(-50%);
+	overflow: hidden;
+	width: 48px;
 }
 
 #delete-all-archived-btn {
@@ -862,32 +861,32 @@ input[type="checkbox"]:disabled {
 .chat-item:hover .chat-item-actions .chat-action[data-action="archive"],
 .chat-item:focus-within .chat-item-actions .chat-action[data-action="project"],
 .chat-item:focus-within .chat-item-actions .chat-action[data-action="pin"],
-.chat-item:focus-within .chat-item-actions .chat-action[data-action="archive"],
-.chat-item.active .chat-item-actions .chat-action[data-action="project"],
-.chat-item.active .chat-item-actions .chat-action[data-action="pin"],
-.chat-item.active .chat-item-actions .chat-action[data-action="archive"] {
+.chat-item:focus-within .chat-item-actions .chat-action[data-action="archive"] {
 	opacity: 0.62;
 	pointer-events: auto;
 }
 
 .chat-item:hover .chat-item-actions,
-.chat-item:focus-within .chat-item-actions,
-.chat-item.active .chat-item-actions {
+.chat-item:focus-within .chat-item-actions {
 	opacity: 1;
 	pointer-events: auto;
 }
 
 .chat-item:hover .chat-item-link,
-.chat-item:focus-within .chat-item-link,
-.chat-item.active .chat-item-link {
+.chat-item:focus-within .chat-item-link {
 	color: inherit;
 	text-decoration: none;
 }
 
+.chat-item:hover .chat-item-top,
+.chat-item:focus-within .chat-item-top {
+	grid-template-columns: minmax(0, 1fr) 48px;
+	gap: 6px;
+}
+
 .chat-item:hover .chat-item-title,
-.chat-item:focus-within .chat-item-title,
-.chat-item.active .chat-item-title {
-	padding-right: 56px;
+.chat-item:focus-within .chat-item-title {
+	padding-right: 0;
 }
 
 .chat-item:hover .chat-item-actions .chat-action[data-action="project"]:hover,
