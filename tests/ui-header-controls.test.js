@@ -137,7 +137,11 @@ test("modal close controls and project add affordance use compact mono glyphs", 
 	assert.match(htmlSource, /class="modal-close-icon"[\s\S]{0,160}<span aria-hidden="true">×<\/span>/);
 	assert.match(htmlSource, /id="add-project-folder-btn"[\s\S]{0,200}<span aria-hidden="true">\+<\/span>/);
 	assert.match(cssSource, /\.project-folder-add-btn\s*\{[^}]*opacity: 0;[^}]*pointer-events: none;/s);
-	assert.match(cssSource, /\.projects-title-control:hover \.project-folder-add-btn/);
+	assert.match(htmlSource, /data-sidebar-section-toggle="projects"/);
+	assert.match(cssSource, /\.sidebar-projects:hover \.project-folder-add-btn/);
+	assert.match(appSource, /const sidebarSectionsStorageKey = "ai_chat_sidebar_sections_v1"/);
+	assert.match(appSource, /function loadSidebarSectionVisibilityPreference\(\)/);
+	assert.match(appSource, /function renderSidebarSectionStates\(\)/);
 });
 
 test("live narration renders inside the themed thinking block", () => {

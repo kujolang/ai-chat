@@ -44,14 +44,17 @@
 						<button id="delete-all-archived-btn" class="btn ghost danger hidden" type="button">Delete All</button>
 					</div>
 
-					<div class="sidebar-projects">
-						<div class="projects-head projects-title-control">
-							<div class="sidebar-subtitle">Projects</div>
+					<div class="sidebar-section sidebar-projects" data-sidebar-section="projects">
+						<div class="sidebar-section-head projects-head">
+							<button class="sidebar-section-toggle projects-title-control" type="button" data-sidebar-section-toggle="projects" aria-expanded="true">
+								<span class="sidebar-section-chevron" aria-hidden="true"></span>
+								<span class="sidebar-subtitle">Projects</span>
+							</button>
 							<button id="add-project-folder-btn" class="project-folder-add-btn" aria-label="Add Project Folder" title="Add Project Folder">
 								<span aria-hidden="true">+</span>
 							</button>
 						</div>
-						<div id="project-folder-list" class="project-folder-list"></div>
+						<div id="project-folder-list" class="sidebar-section-body project-folder-list"></div>
 					</div>
 
 					<div id="chat-list" class="chat-list"></div>

@@ -481,18 +481,70 @@ input[type="checkbox"]:disabled {
 	margin-bottom: 14px;
 }
 
-.projects-head {
+.sidebar-section {
+	display: grid;
+	gap: 6px;
+}
+
+.sidebar-section + .sidebar-section {
+	margin-top: 8px;
+}
+
+.sidebar-section-head {
 	display: flex;
-	justify-content: space-between;
 	align-items: center;
+	justify-content: space-between;
 	gap: 6px;
 	padding: 0 8px;
+}
+
+.sidebar-section-toggle {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: inherit;
+	box-shadow: none;
+	transform: none;
+	min-width: 0;
+}
+
+.sidebar-section-toggle:hover,
+.sidebar-section-toggle:focus,
+.sidebar-section-toggle:active {
+	border: 0;
+	background: transparent;
+	box-shadow: none;
+	transform: none;
+}
+
+.sidebar-section-chevron {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 14px;
+	height: 14px;
+	color: var(--text-dim);
+}
+
+.sidebar-section-chevron svg {
+	width: 14px;
+	height: 14px;
+}
+
+.sidebar-section-body.hidden {
+	display: none;
+}
+
+.projects-head {
 	margin-bottom: 6px;
 }
 
 .projects-title-control {
 	justify-content: flex-start;
-	width: max-content;
+	flex: 1;
 }
 
 .projects-head .sidebar-subtitle {
@@ -595,8 +647,8 @@ input[type="checkbox"]:disabled {
 	font: 18px/1 var(--display);
 }
 
-.projects-title-control:hover .project-folder-add-btn,
-.projects-title-control:focus-within .project-folder-add-btn {
+.sidebar-projects:hover .project-folder-add-btn,
+.sidebar-projects:focus-within .project-folder-add-btn {
 	opacity: 1;
 	pointer-events: auto;
 }
@@ -637,7 +689,8 @@ input[type="checkbox"]:disabled {
 }
 
 .chat-group-title {
-	padding: 0 12px;
+	padding: 0;
+	margin: 0;
 	font-size: 11px;
 	font-weight: 700;
 	letter-spacing: 0.08em;

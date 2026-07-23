@@ -66,6 +66,7 @@ const legacyApiTokenExpiresAtStorageKey = "kujo_ai_chat_api_token_expires_at";
 const legacyStateCacheStorageKey = "kujo_ai_chat_state_cache_v1";
 const legacyUsageLedgerStorageKey = "kujo_ai_chat_usage_ledger_v1";
 const sidebarCollapsedStorageKey = "ai_chat_sidebar_collapsed_v1";
+const sidebarSectionsStorageKey = "ai_chat_sidebar_sections_v1";
 const paneInfoVisibleStorageKey = "ai_chat_pane_info_visible_v3";
 const usageSummaryVisibleStorageKey = "ai_chat_usage_summary_visible_v1";
 const collapsedProvidersStorageKey = "ai_chat_collapsed_providers_v1";
@@ -78,6 +79,7 @@ const defaultApiTokenTtlDays = 3650;
 const maxApiTokenTtlDays = 36500;
 const mobileSidebarMediaQuery = "(max-width: 1100px)";
 let sidebarCollapsed = loadSidebarCollapsedPreference();
+let sidebarSectionVisibility = loadSidebarSectionVisibilityPreference();
 let paneInfoVisible = loadBooleanPreference(paneInfoVisibleStorageKey, false);
 let usageSummaryVisible = loadBooleanPreference(usageSummaryVisibleStorageKey, false);
 const sendButtonSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z\"/><path d=\"m21.854 2.147-10.94 10.939\"/></svg>";
@@ -836,6 +838,17 @@ function wireEvents() {
 		renderAll();
 	});
 	nodes.deleteAllArchivedBtn.addEventListener("click", () => { void deleteAllArchivedChats(); });
+	nodes.sidebarMain.addEventListener("click", (event) => {
+		const toggleButton = event.target.closest("[data-sidebar-section-toggle]");
+		if (!toggleButton) {
+			return;
+		}
+		const sectionId = String(toggleButton.getAttribute("data-sidebar-section-toggle") || "");
+		if (!sectionId) {
+			return;
+		}
+		setSidebarSectionOpen(sectionId, !isSidebarSectionOpen(sectionId));
+	});
 
 	nodes.projectFolderList.addEventListener("click", (event) => {
 		const deleteNode = event.target.closest("[data-action='delete-project-folder']");
@@ -2392,6 +2405,47 @@ function loadSidebarCollapsedPreference() {
 	}
 }
 
+function defaultSidebarSectionVisibility() {
+	return {
+		projects: true,
+		pinned: true,
+		chats: true
+	};
+}
+
+function loadSidebarSectionVisibilityPreference() {
+	try {
+		const storedValue = window.localStorage.getItem(sidebarSectionsStorageKey);
+		if (!storedValue) {
+			return defaultSidebarSectionVisibility();
+		}
+		const parsed = JSON.parse(storedValue);
+		return {
+			...defaultSidebarSectionVisibility(),
+			...(parsed && typeof parsed === "object" ? parsed : {})
+		};
+	} catch (error) {
+		return defaultSidebarSectionVisibility();
+	}
+}
+
+function isSidebarSectionOpen(sectionId) {
+	return sidebarSectionVisibility[sectionId] !== false;
+}
+
+function setSidebarSectionOpen(sectionId, open) {
+	sidebarSectionVisibility = {
+		...sidebarSectionVisibility,
+		[sectionId]: Boolean(open)
+	};
+	try {
+		window.localStorage.setItem(sidebarSectionsStorageKey, JSON.stringify(sidebarSectionVisibility));
+	} catch (error) {
+		// Ignore storage failures so the controls remain usable.
+	}
+	renderSidebar();
+}
+
 function saveStateToCache() {
 	try {
 		const payload = buildCachePayload();
@@ -2755,6 +2809,7 @@ function renderSidebar() {
 	const showDeleteAll = state.showArchived && state.chats.some((chat) => chat.archived);
 	nodes.deleteAllArchivedBtn.classList.toggle("hidden", !showDeleteAll);
 	renderProjectFolderList();
+	renderSidebarSectionStates();
 
 	const filtered = state.chats
 		.filter((chat) => chat.archived === state.showArchived)
@@ -2779,31 +2834,39 @@ function renderSidebar() {
 	const pinnedChats = visibleChats.filter((chat) => Boolean(chat.pinned));
 	const regularChats = visibleChats.filter((chat) => !chat.pinned);
 	const hasMoreChats = filtered.length > visibleChats.length;
-
-	if (pinnedChats.length === 0 && regularChats.length === 0) {
-		nodes.chatList.innerHTML = `<div class="empty-state">${state.activeProjectPath ? "No chats in this project." : "No chats found."}</div>`;
-		nodes.deleteAllArchivedBtn.remove();
-		return;
-	}
 	const sections = [];
+	const chatsOpen = isSidebarSectionOpen("chats");
+	const pinnedOpen = isSidebarSectionOpen("pinned");
 
 	if (pinnedChats.length > 0) {
 		sections.push(`
-			<div class="chat-group">
-				<div class="chat-group-title">Pinned</div>
-				${renderSidebarChatItems(pinnedChats)}
+			<div class="sidebar-section chat-group" data-sidebar-section="pinned">
+				<div class="sidebar-section-head">
+					<button class="sidebar-section-toggle" type="button" data-sidebar-section-toggle="pinned" aria-expanded="${pinnedOpen ? "true" : "false"}">
+						<span class="sidebar-section-chevron" aria-hidden="true">${pinnedOpen ? chevronDownSvg : chevronRightSvg}</span>
+						<span class="chat-group-title">Pinned</span>
+					</button>
+				</div>
+				<div class="sidebar-section-body${pinnedOpen ? "" : " hidden"}">
+					${renderSidebarChatItems(pinnedChats)}
+				</div>
 			</div>
 		`);
 	}
 
-	if (regularChats.length > 0) {
-		sections.push(`
-			<div class="chat-group">
-				<div class="chat-group-title">Recent</div>
-				${renderSidebarChatItems(regularChats)}
+	sections.push(`
+			<div class="sidebar-section chat-group" data-sidebar-section="chats">
+				<div class="sidebar-section-head">
+					<button class="sidebar-section-toggle" type="button" data-sidebar-section-toggle="chats" aria-expanded="${chatsOpen ? "true" : "false"}">
+						<span class="sidebar-section-chevron" aria-hidden="true">${chatsOpen ? chevronDownSvg : chevronRightSvg}</span>
+						<span class="chat-group-title">Chats</span>
+					</button>
+				</div>
+				<div class="sidebar-section-body${chatsOpen ? "" : " hidden"}">
+					${regularChats.length > 0 ? renderSidebarChatItems(regularChats) : `<div class="empty-state">${state.activeProjectPath ? "No chats in this project." : "No chats found."}</div>`}
+				</div>
 			</div>
 		`);
-	}
 
 	if (hasMoreChats && sidebarChatLoadingMore) {
 		sections.push(`
@@ -2815,11 +2878,34 @@ function renderSidebar() {
 
 	nodes.chatList.innerHTML = sections.join("");
 	if (showDeleteAll) {
-		const recentGroup = Array.from(nodes.chatList.querySelectorAll(".chat-group")).find((group) => group.querySelector(".chat-group-title")?.textContent === "Recent");
-		if (recentGroup) nodes.chatList.insertBefore(nodes.deleteAllArchivedBtn, recentGroup);
+		const chatsGroupBody = nodes.chatList.querySelector('[data-sidebar-section="chats"] .sidebar-section-body');
+		if (chatsGroupBody) chatsGroupBody.prepend(nodes.deleteAllArchivedBtn);
 		else nodes.chatList.append(nodes.deleteAllArchivedBtn);
 	} else {
 		nodes.deleteAllArchivedBtn.remove();
+	}
+}
+
+function renderSidebarSectionStates() {
+	const sections = document.querySelectorAll(".sidebar [data-sidebar-section]");
+	for (const section of sections) {
+		const sectionId = String(section.getAttribute("data-sidebar-section") || "");
+		if (!sectionId) {
+			continue;
+		}
+		const isOpen = isSidebarSectionOpen(sectionId);
+		const toggle = section.querySelector("[data-sidebar-section-toggle]");
+		const body = section.querySelector(".sidebar-section-body");
+		const chevron = section.querySelector(".sidebar-section-chevron");
+		if (toggle) {
+			toggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+		}
+		if (body) {
+			body.classList.toggle("hidden", !isOpen);
+		}
+		if (chevron) {
+			chevron.innerHTML = isOpen ? chevronDownSvg : chevronRightSvg;
+		}
 	}
 }
 
