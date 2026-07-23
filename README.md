@@ -346,6 +346,8 @@ account-visible inventory before relying on a newly added or marked-retired mode
 
 ## API Endpoints
 
+- GET /healthz
+- GET /api/healthz
 - GET /api/health
 - GET /api/providers
 - GET /api/state
@@ -367,6 +369,8 @@ The streaming endpoint emits SSE events from POST /api/chat/stream:
 - thinking: incremental reasoning/thinking chunks (provider dependent)
 - done: final metadata and usage payload
 - error: stream error payload
+
+Use `/healthz` or `/api/healthz` for unauthenticated reverse-proxy and tunnel probes. `/api/health` remains the authenticated runtime metadata endpoint for the app UI and diagnostics.
 
 If a provider/model does not emit reasoning deltas, thinking output remains empty.
 

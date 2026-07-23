@@ -264,6 +264,44 @@ test("GET /api/health returns runtime metadata", async () => {
 	}
 });
 
+test("GET /healthz returns a public probe response without API auth", async () => {
+	const { runtime, destroy } = createIsolatedRuntime();
+	try {
+		await withServer(runtime.app, async (baseUrl) => {
+			const response = await fetch(`${baseUrl}/healthz`);
+			const json = await response.json();
+			assert.equal(response.status, 200);
+			assert.equal(response.headers.get("cache-control"), "no-store");
+			assert.deepEqual(json, {
+				ok: true,
+				service: "ai-chat",
+				status: "healthy"
+			});
+		});
+	} finally {
+		destroy();
+	}
+});
+
+test("GET /api/healthz returns a public probe response without API auth", async () => {
+	const { runtime, destroy } = createIsolatedRuntime();
+	try {
+		await withServer(runtime.app, async (baseUrl) => {
+			const response = await fetch(`${baseUrl}/api/healthz`);
+			const json = await response.json();
+			assert.equal(response.status, 200);
+			assert.equal(response.headers.get("cache-control"), "no-store");
+			assert.deepEqual(json, {
+				ok: true,
+				service: "ai-chat",
+				status: "healthy"
+			});
+		});
+	} finally {
+		destroy();
+	}
+});
+
 test("GET /api/health reports benchmark instance and split watchdog metadata without leaking absolute paths", async () => {
 	const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-health-benchmark-"));
 	try {

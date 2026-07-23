@@ -307,9 +307,13 @@ The default `BROWSER_ACTION_POLICY=read-only` automatically permits public navig
 
 The app provides these key endpoints:
 
+- GET /healthz
+- GET /api/healthz
 - GET /api/health
 - GET /api/providers
 - GET /api/state
+
+Use `/healthz` or `/api/healthz` for unauthenticated reverse-proxy and tunnel probes. `/api/health` remains the authenticated runtime metadata endpoint for the app UI and diagnostics.
 
 For dedicated benchmark servers, confirm `/api/health` reports:
 

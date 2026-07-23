@@ -8,6 +8,8 @@ Public API base: same origin, path prefix `/api`.
 
 Current endpoints:
 
+- `GET /healthz`
+- `GET /api/healthz`
 - `GET /api/health`
 - `GET /api/providers`
 - `GET /api/state`
@@ -75,7 +77,13 @@ When `DEBUG_API_ERRORS=0`, provider raw error bodies are not included in stream 
 
 ## 4. Health Contract
 
-`GET /api/health` returns:
+`GET /healthz` and `GET /api/healthz` return a minimal unauthenticated probe payload:
+
+- `ok`: `true`
+- `service`: `"ai-chat"`
+- `status`: `"healthy"`
+
+`GET /api/health` returns authenticated runtime metadata:
 
 - `service`: `"ai-chat"`
 - `ai_sdk_available`: boolean
