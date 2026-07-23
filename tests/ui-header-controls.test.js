@@ -145,3 +145,8 @@ test("live narration renders inside the themed thinking block", () => {
 	assert.doesNotMatch(appSource, /class="message-live-narration"/);
 	assert.match(cssSource, /\.message-thinking \.message-content-block\s*\{[^}]*font-family: var\(--display\);/s);
 });
+
+test("working indicator uses inline svg markup for pane rerenders", () => {
+	assert.match(appSource, /const thinkingLoadingIconSvg = "<svg class=\\"thinking-loading-icon\\"/);
+	assert.doesNotMatch(appSource, /const thinkingLoadingIconSvg = "<img class=\\"thinking-loading-icon\\"/);
+});
