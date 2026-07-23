@@ -764,6 +764,13 @@ input[type="checkbox"]:disabled {
 	text-decoration: none;
 }
 
+.chat-item-link::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	z-index: 1;
+}
+
 .chat-item-title {
 	font-size: 12px;
 	font-weight: 600;
@@ -789,6 +796,7 @@ input[type="checkbox"]:disabled {
 	right: 0;
 	top: 50%;
 	transform: translateY(-50%);
+	z-index: 2;
 }
 
 #delete-all-archived-btn {
@@ -3942,12 +3950,14 @@ textarea {
 }
 
 .agent-instruction-models-field .select2-selection--multiple {
+	height: 36px;
 	min-height: 36px;
 	padding: 3px 10px;
 	border: 1px solid var(--line-soft) !important;
 	border-radius: 10px !important;
 	background: rgba(18, 20, 23, 0.98) !important;
 	box-shadow: none !important;
+	overflow: hidden;
 }
 
 .agent-instruction-models-field .select2-container--focus .select2-selection--multiple,
@@ -3958,10 +3968,17 @@ textarea {
 
 .agent-instruction-models-field .select2-selection__rendered {
 	display: flex !important;
-	flex-wrap: wrap;
+	flex-wrap: nowrap;
 	align-items: center;
 	gap: 4px;
 	padding: 0 !important;
+	overflow-x: auto;
+	overflow-y: hidden;
+	scrollbar-width: none;
+}
+
+.agent-instruction-models-field .select2-selection__rendered::-webkit-scrollbar {
+	display: none;
 }
 
 .agent-instruction-models-field .select2-selection__choice {
@@ -3969,6 +3986,7 @@ textarea {
 	display: inline-flex !important;
 	align-items: center !important;
 	flex-direction: row-reverse !important;
+	flex: 0 0 auto;
 	gap: 6px;
 	border: 1px solid #315779 !important;
 	border-radius: 999px !important;
@@ -3981,15 +3999,24 @@ textarea {
 .agent-instruction-models-field .select2-search--inline {
 	display: inline-flex;
 	align-items: center;
+	flex: 1 0 120px;
+	min-width: 80px;
 }
 
 .agent-instruction-models-field .select2-selection__choice__remove {
+	position: static !important;
+	left: auto !important;
+	top: auto !important;
 	display: inline-flex !important;
 	align-items: center;
 	justify-content: center;
 	width: 14px;
 	height: 14px;
 	margin: 0 !important;
+	padding: 0 !important;
+	border: 0 !important;
+	border-left: 0 !important;
+	border-right: 0 !important;
 	border-radius: 999px;
 	background: rgba(255, 255, 255, 0.08);
 	color: var(--text-dim) !important;
