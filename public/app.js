@@ -6622,22 +6622,30 @@ function syncStreamingUiTicker(streaming) {
 }
 
 function mergeUsageTotals(current, next) {
+	const prior = current && typeof current === "object" ? current : {
+		input_tokens: 0,
+		output_tokens: 0,
+		total_tokens: 0,
+		cached_input_tokens: null,
+		cache_write_input_tokens: null,
+		cache_details_reported: false
+	};
 	const nextInput = finiteUsageValue(next && next.input_tokens);
 	const nextOutput = finiteUsageValue(next && next.output_tokens);
 	const nextTotal = finiteUsageValue(next && next.total_tokens);
 	const nextCached = nullableUsageValue(next && next.cached_input_tokens);
 	const nextCacheWrite = nullableUsageValue(next && next.cache_write_input_tokens);
 	return {
-		input_tokens: finiteUsageValue(current.input_tokens) + nextInput,
-		output_tokens: finiteUsageValue(current.output_tokens) + nextOutput,
-		total_tokens: finiteUsageValue(current.total_tokens) + nextTotal,
-		cached_input_tokens: current.cached_input_tokens === null && nextCached === null
+		input_tokens: finiteUsageValue(prior.input_tokens) + nextInput,
+		output_tokens: finiteUsageValue(prior.output_tokens) + nextOutput,
+		total_tokens: finiteUsageValue(prior.total_tokens) + nextTotal,
+		cached_input_tokens: prior.cached_input_tokens === null && nextCached === null
 			? null
-			: finiteUsageValue(current.cached_input_tokens) + (nextCached || 0),
-		cache_write_input_tokens: current.cache_write_input_tokens === null && nextCacheWrite === null
+			: finiteUsageValue(prior.cached_input_tokens) + (nextCached || 0),
+		cache_write_input_tokens: prior.cache_write_input_tokens === null && nextCacheWrite === null
 			? null
-			: finiteUsageValue(current.cache_write_input_tokens) + (nextCacheWrite || 0),
-		cache_details_reported: Boolean(current.cache_details_reported) || Boolean(next && next.cache_details_reported)
+			: finiteUsageValue(prior.cache_write_input_tokens) + (nextCacheWrite || 0),
+		cache_details_reported: Boolean(prior.cache_details_reported) || Boolean(next && next.cache_details_reported)
 	};
 }
 
