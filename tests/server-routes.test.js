@@ -2258,6 +2258,92 @@ test("POST /api/chat/stream executes web_search and continues to a final answer"
 	}
 });
 
+test("POST /api/chat/stream does not apply tool continuation timeout after provider reconnects", async () => {
+	const calls = [];
+	const encoder = new TextEncoder();
+	const delayedFinalPayload = `data: ${JSON.stringify({ choices: [{ delta: { content: "Delayed final answer" }, finish_reason: "stop" }] })}\n\ndata: [DONE]\n\n`;
+	const { runtime, destroy } = createIsolatedRuntime({
+		envMerge: {
+			ALLOWED_CUSTOM_PROVIDER_HOSTS: "ollama.com",
+			TOOL_CONTINUATION_TIMEOUT_MS: "10",
+			STREAM_REQUEST_TIMEOUT_MS: "0"
+		},
+		fetchFn: async (url, options) => {
+			calls.push({ url, body: JSON.parse(options.body || "{}") });
+			if (url === "https://ollama.com/api/web_search") {
+				return mockJsonResponse({
+					results: [{ title: "Slow evidence", url: "https://example.com/slow", content: "Evidence after tool use" }]
+				});
+			}
+			if (calls.filter((call) => call.url === "https://ollama.com/api/chat").length === 1) {
+				return mockSseResponse([
+					{
+						choices: [{
+							delta: { tool_calls: [{ index: 0, id: "call-slow", function: { name: "web_search", arguments: "{\"query\":\"slow continuation\"}" } }] },
+							finish_reason: "tool_calls"
+						}]
+					}
+				]);
+			}
+			let consumed = false;
+			return {
+				ok: true,
+				status: 200,
+				headers: { get: () => "text/event-stream" },
+				body: {
+					getReader() {
+						return {
+							read() {
+								return new Promise((resolve, reject) => {
+									if (options.signal.aborted) {
+										reject(Object.assign(new Error("aborted"), { name: "AbortError" }));
+										return;
+									}
+									const abort = () => reject(Object.assign(new Error("aborted"), { name: "AbortError" }));
+									options.signal.addEventListener("abort", abort, { once: true });
+									setTimeout(() => {
+										options.signal.removeEventListener("abort", abort);
+										if (consumed) {
+											resolve({ done: true, value: undefined });
+											return;
+										}
+										consumed = true;
+										resolve({ done: false, value: encoder.encode(delayedFinalPayload) });
+									}, 25);
+								});
+							}
+						};
+					}
+				}
+			};
+		}
+	});
+	try {
+		const profileId = applyProfileMutation(runtime, (profile) => {
+			profile.provider_id = "custom";
+			profile.base_url = "https://ollama.com/v1";
+			profile.api_key = "ollama-key";
+		});
+		await withServer(runtime.app, async (baseUrl) => {
+			const response = await fetch(`${baseUrl}/api/chat/stream`, {
+				method: "POST",
+				headers: withAuthHeaders({ "Content-Type": "application/json" }),
+				body: JSON.stringify({
+					profile_id: profileId,
+					messages: [{ role: "user", content: "search then answer slowly" }],
+					tools: [{ type: "function", function: { name: "web_search", parameters: { type: "object" } } }]
+				})
+			});
+			const events = parseSseEvents(await response.text());
+			assert.equal(events.some((entry) => entry.event === "error"), false);
+			assert.equal(events.filter((entry) => entry.event === "token").map((entry) => entry.data.delta).join(""), "Delayed final answer");
+			assert.equal(events.find((entry) => entry.event === "done").data.tool_calls_executed, 1);
+		});
+	} finally {
+		destroy();
+	}
+});
+
 test("POST /api/chat/stream bounds oversized tool batches and still reaches a final answer", async () => {
 	const providerBodies = [];
 	let searchCalls = 0;
