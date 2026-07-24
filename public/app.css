@@ -714,14 +714,14 @@ input[type="checkbox"]:disabled {
 
 .chat-item:hover,
 .chat-item:focus-within {
-	border-color: #2a3138;
+	border-color: transparent;
 	background: rgba(255, 255, 255, 0.045);
 }
 
 .chat-item.active {
 	margin-left: 0;
 	padding-left: 9px;
-	border-color: #2f343a;
+	border-color: transparent;
 	border-left: 0;
 	border-right: 0;
 	background: rgba(255, 255, 255, 0.06);
@@ -1061,6 +1061,11 @@ input[type="checkbox"]:disabled {
 	font: 10px/1.35 var(--mono);
 	pointer-events: none;
 	transform: translateX(-50%);
+}
+
+.workspace-top .chat-id-copy-btn::after {
+	content: none !important;
+	display: none !important;
 }
 
 .chat-id-copy-btn,
@@ -2460,12 +2465,16 @@ textarea {
 }
 
 .composer-model-picker .select2-container,
-.settings-default-model-field .select2-container {
+.settings-default-model-field .select2-container,
+.settings-default-project-field .select2-container,
+.app-single-select2.select2-container {
 	width: 100% !important;
 }
 
 .composer-model-picker .select2-selection--single,
-.settings-default-model-field .select2-selection--single {
+.settings-default-model-field .select2-selection--single,
+.settings-default-project-field .select2-selection--single,
+.app-single-select2 .select2-selection--single {
 	height: 36px;
 	border: 1px solid var(--line-soft);
 	border-radius: 10px;
@@ -2479,7 +2488,10 @@ textarea {
 }
 
 .settings-default-model-field > select,
-.settings-default-project-field > select {
+.settings-default-project-field > select,
+.automation-editor select,
+.usage-filters-grid select,
+.profile-card select {
 	width: 100%;
 	min-height: 40px;
 	padding: 0 11px;
@@ -2488,6 +2500,20 @@ textarea {
 	background: rgba(18, 20, 23, 0.98);
 	color: var(--text);
 	font: 13px var(--sans);
+}
+
+.settings-default-project-field > select,
+.automation-editor select,
+.usage-filters-grid select,
+.profile-card select {
+	appearance: none;
+	-webkit-appearance: none;
+	background-color: rgba(18, 20, 23, 0.98);
+	background-image: linear-gradient(45deg, transparent 50%, var(--text-dim) 50%), linear-gradient(135deg, var(--text-dim) 50%, transparent 50%);
+	background-position: calc(100% - 16px) 50%, calc(100% - 11px) 50%;
+	background-repeat: no-repeat;
+	background-size: 5px 5px, 5px 5px;
+	padding-right: 34px;
 }
 
 .settings-default-model-field > select:disabled,
@@ -2503,7 +2529,9 @@ textarea {
 }
 
 .composer-model-picker .select2-selection--single .select2-selection__rendered,
-.settings-default-model-field .select2-selection--single .select2-selection__rendered {
+.settings-default-model-field .select2-selection--single .select2-selection__rendered,
+.settings-default-project-field .select2-selection--single .select2-selection__rendered,
+.app-single-select2 .select2-selection--single .select2-selection__rendered {
 	padding: 0 34px 0 11px;
 	line-height: 34px;
 	color: var(--text);
@@ -2514,25 +2542,35 @@ textarea {
 	text-overflow: ellipsis;
 }
 
-.settings-default-model-field .select2-selection--single .select2-selection__rendered {
+.settings-default-model-field .select2-selection--single .select2-selection__rendered,
+.settings-default-project-field .select2-selection--single .select2-selection__rendered,
+.app-single-select2 .select2-selection--single .select2-selection__rendered {
 	line-height: 38px;
 	font-size: 13px;
 }
 
 .composer-model-picker .select2-selection--single .select2-selection__arrow,
-.settings-default-model-field .select2-selection--single .select2-selection__arrow {
+.settings-default-model-field .select2-selection--single .select2-selection__arrow,
+.settings-default-project-field .select2-selection--single .select2-selection__arrow,
+.app-single-select2 .select2-selection--single .select2-selection__arrow {
 	height: 34px;
 	right: 7px;
 }
 
-.settings-default-model-field .select2-selection--single .select2-selection__arrow {
+.settings-default-model-field .select2-selection--single .select2-selection__arrow,
+.settings-default-project-field .select2-selection--single .select2-selection__arrow,
+.app-single-select2 .select2-selection--single .select2-selection__arrow {
 	height: 38px;
 }
 
 .composer-model-picker .select2-container--open .select2-selection--single,
 .composer-model-picker .select2-container--focus .select2-selection--single,
 .settings-default-model-field .select2-container--open .select2-selection--single,
-.settings-default-model-field .select2-container--focus .select2-selection--single {
+.settings-default-model-field .select2-container--focus .select2-selection--single,
+.settings-default-project-field .select2-container--open .select2-selection--single,
+.settings-default-project-field .select2-container--focus .select2-selection--single,
+.app-single-select2.select2-container--open .select2-selection--single,
+.app-single-select2.select2-container--focus .select2-selection--single {
 	border-color: #315779;
 	box-shadow: 0 0 0 3px rgba(119, 185, 255, 0.12);
 }
@@ -3141,9 +3179,9 @@ textarea {
 
 .usage-filters-grid input[type="date"] {
 	min-height: 38px;
-	border-color: #315779;
+	border-color: var(--line-soft);
 	color-scheme: dark;
-	background: #111a24;
+	background: rgba(18, 20, 23, 0.98);
 }
 
 .usage-breakdown {
@@ -3261,7 +3299,7 @@ textarea {
 	.automation-editor { display: grid; gap: 14px; }
 	.automation-editor.hidden { display: none; }
 	.automation-editor > label, .automation-fields label { display: grid; gap: 6px; color: var(--text-dim); font: 11px/1.35 var(--display); }
-	.automation-editor input, .automation-editor textarea, .automation-editor select { width: 100%; min-height: 42px; padding: 10px 11px; border: 1px solid #315779; background: #111a24; color: #e7f2fc; font: 12px/1.45 var(--display); outline: none; }
+	.automation-editor input, .automation-editor textarea, .automation-editor select { width: 100%; min-height: 42px; padding: 10px 11px; border: 1px solid var(--line-soft); background: rgba(18, 20, 23, 0.98); color: #e7f2fc; font: 12px/1.45 var(--display); outline: none; }
 	.automation-editor textarea { min-height: 220px; resize: vertical; }
 	.automation-editor input:focus, .automation-editor textarea:focus, .automation-editor select:focus { border-color: #4f8fd2; box-shadow: 0 0 0 3px rgba(119, 185, 255, .14); }
 	.automation-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; border: 1px solid #263d56; background: #263d56; }
@@ -4675,6 +4713,10 @@ textarea {
 .composer-model-picker .select2-container--focus .select2-selection--single,
 .settings-default-model-field .select2-container--open .select2-selection--single,
 .settings-default-model-field .select2-container--focus .select2-selection--single,
+.settings-default-project-field .select2-container--open .select2-selection--single,
+.settings-default-project-field .select2-container--focus .select2-selection--single,
+.app-single-select2.select2-container--open .select2-selection--single,
+.app-single-select2.select2-container--focus .select2-selection--single,
 .project-folder-form .select2-container--default.select2-container--focus .select2-selection--single,
 .project-folder-form .select2-container--default.select2-container--focus .select2-selection--multiple,
 .project-folder-form .select2-container--default.select2-container--open .select2-selection--single,

@@ -115,6 +115,7 @@ const copyFeedbackTimers = new WeakMap();
 let projectFolderSelect2Ready = false;
 let composerModelSelect2Ready = false;
 let settingsDefaultModelSelect2Ready = false;
+let settingsDefaultProjectSelect2Ready = false;
 let draggedProviderId = "";
 let draggedModel = null;
 let profileDropDestination = null;
@@ -281,6 +282,7 @@ async function bootstrap() {
 	initializeButtonTooltips();
 	initializeProjectFolderSelect2();
 	initializeModelSelect2();
+	initializeSharedSelect2Controls();
 	const linkedChatRouteId = chatRouteIdFromLocation();
 	if (!hasValidApiAuthToken()) {
 		nodes.voiceStatus.textContent = "Voice: API token required for server actions";
@@ -2820,6 +2822,45 @@ function destroySelect2(selectNode) {
 	}
 }
 
+function initializeAppSingleSelect2(selectNode, dropdownParent, searchPlaceholder = "Search...") {
+	const jquery = window.jQuery;
+	if (!selectNode || !jquery || !jquery.fn || typeof jquery.fn.select2 !== "function") return false;
+	if (jquery(selectNode).data("select2")) {
+		refreshSelect2(selectNode);
+		return true;
+	}
+	jquery(selectNode).select2({
+		width: "100%",
+		minimumResultsForSearch: 0,
+		dropdownParent,
+		dropdownCssClass: "model-picker-dropdown",
+		containerCssClass: "app-single-select2"
+	}).on("select2:open", () => {
+		const search = document.querySelector(".select2-container--open .select2-search__field");
+		if (search) search.setAttribute("placeholder", searchPlaceholder);
+	}).on("select2:select", () => {
+		selectNode.dispatchEvent(new Event("change", { bubbles: true }));
+	});
+	return true;
+}
+
+function initializeSharedSelect2Controls(root = document) {
+	const jquery = window.jQuery;
+	if (!jquery || !jquery.fn || typeof jquery.fn.select2 !== "function") return;
+	if (nodes.settingsDefaultProject && (!settingsDefaultProjectSelect2Ready || !jquery(nodes.settingsDefaultProject).data("select2"))) {
+		settingsDefaultProjectSelect2Ready = initializeAppSingleSelect2(nodes.settingsDefaultProject, jquery(nodes.settingsModal), "Search projects...");
+	}
+	for (const selectNode of root.querySelectorAll(".profile-card select[data-field=\"provider_id\"]")) {
+		initializeAppSingleSelect2(selectNode, jquery(nodes.settingsModal), "Search providers...");
+	}
+	for (const selectNode of [nodes.automationProject, nodes.automationModel, nodes.automationRepeat, nodes.automationWeekday].filter(Boolean)) {
+		initializeAppSingleSelect2(selectNode, jquery(nodes.automationsModal), selectNode === nodes.automationModel ? "Search models or providers..." : "Search options...");
+	}
+	for (const selectNode of [nodes.usageFilterChat, nodes.usageFilterProvider, nodes.usageFilterModel, nodes.usageFilterWindow, nodes.usageGroupBy, nodes.usageChartType].filter(Boolean)) {
+		initializeAppSingleSelect2(selectNode, jquery(nodes.usageModal), "Search filters...");
+	}
+}
+
 function initializeModelSelect2() {
 	const jquery = window.jQuery;
 	if (!jquery || !jquery.fn || typeof jquery.fn.select2 !== "function") return;
@@ -2912,6 +2953,7 @@ function renderSettingsDefaultProjectSelect() {
 			return `<option value="${escapeHtml(projectPath)}" ${isSelected}>${escapeHtml(projectFolderNameFromPath(projectPath))}</option>`;
 		}))
 		.join("");
+	refreshSelect2(nodes.settingsDefaultProject);
 }
 
 function renderComposerProfileSelect() {
@@ -3865,6 +3907,7 @@ function closeAutomationsModal() {
 function openUsageModal() {
 	nodes.usageModal.classList.remove("hidden");
 	window.requestAnimationFrame(() => {
+		initializeSharedSelect2Controls(nodes.usageModal);
 		syncUsageWindowInputs();
 		syncUsageFilterOptions(false);
 		renderUsageModalContent();
@@ -4363,6 +4406,7 @@ function setSelectOptions(selectNode, options, preferredValue) {
 			return `<option value="${escapeHtml(option.value)}" ${selected}>${escapeHtml(option.label)}</option>`;
 		})
 		.join("");
+	refreshSelect2(selectNode);
 }
 
 function resolveUsageChat(chatFilterValue, activeChatId) {
@@ -4980,7 +5024,7 @@ function showAutomationEditor(automation = null) {
 	const modelOptions = [];
 	for (const profile of state.settings.profiles) {
 		for (const model of profileModels(profile)) {
-			modelOptions.push(`<option value="${escapeHtml(`${profile.id}::${model}`)}">${escapeHtml(`${profile.name} · ${model}`)}</option>`);
+			modelOptions.push(`<option value="${escapeHtml(`${profile.id}::${model}`)}" data-profile-id="${escapeHtml(profile.id)}" data-model="${escapeHtml(model)}" data-profile-name="${escapeHtml(profile.name || "")}">${escapeHtml(`${profile.name} · ${model}`)}</option>`);
 		}
 	}
 	nodes.automationModel.innerHTML = modelOptions.join("");
@@ -4997,6 +5041,11 @@ function showAutomationEditor(automation = null) {
 	nodes.automationEnabled.checked = automation ? automation.enabled : true;
 	nodes.automationRuns.innerHTML = "";
 	syncAutomationWeekdayField();
+	initializeSharedSelect2Controls(nodes.automationsModal);
+	refreshSelect2(nodes.automationModel);
+	refreshSelect2(nodes.automationProject);
+	refreshSelect2(nodes.automationRepeat);
+	refreshSelect2(nodes.automationWeekday);
 	if (automation) void loadAutomationRuns(automation.id);
 	window.requestAnimationFrame(() => nodes.automationTitle.focus());
 }
@@ -5435,6 +5484,7 @@ function renderSettings() {
 			`;
 		})
 		.join("");
+	initializeSharedSelect2Controls(nodes.settingsModal);
 	renderToolsSettings();
 }
 
