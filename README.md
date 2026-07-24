@@ -194,7 +194,7 @@ Security note:
 - For custom providers, set ALLOWED_CUSTOM_PROVIDER_HOSTS to an explicit host allowlist.
 - Set TRUST_PROXY=1 only when AI Chat runs behind a trusted reverse proxy that sets `X-Forwarded-*` headers.
 - Use RATE_LIMIT_MAX_BUCKETS to cap in-memory rate-limit tracker growth under high-cardinality traffic.
-- Use STREAM_REQUEST_TIMEOUT_MS to tune long-running upstream streaming requests.
+- Use `STREAM_REQUEST_TIMEOUT_MS` to tune or cap long-running upstream streaming requests; set `0` to disable AI Chat's stream idle timeout entirely.
 - Use `WEB_SEARCH_TIMEOUT_MS`, `WEB_SEARCH_CACHE_TTL_MS`, and `WEB_SEARCH_CACHE_MAX_ENTRIES` to bound identical search latency/reuse without changing the active model provider.
 - Use `AI_CHAT_SKILL_ROOTS` to replace the default local skill roots or `AI_CHAT_EXTRA_SKILL_ROOTS` to add roots. Skill tools are read-only, scoped to configured roots, bounded by count/depth/read limits, and only return text files inside a selected skill folder.
 - Use `AI_CHAT_LOCAL_TOOLS_ENABLED=1` with `AI_CHAT_LOCAL_WORKSPACE_ROOTS` to expose local workspace tools. File writes and command execution stay disabled until `AI_CHAT_LOCAL_WRITE_ENABLED=1` or `AI_CHAT_LOCAL_SHELL_ENABLED=1`; shell commands must also be named in `AI_CHAT_LOCAL_SHELL_ALLOWLIST`.
