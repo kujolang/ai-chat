@@ -17,13 +17,15 @@
 		"browser:install": "playwright install chromium",
 		"test": "node --test tests/*.test.js",
 		"test:unit": "node --test tests/*.test.js",
+		"test:local": "node --test tests/local-runtime.test.js",
 		"smoke": "node scripts/smoke-test.js",
 		"smoke:browser": "BROWSER_EXPECTED=1 node scripts/smoke-test.js",
 		"benchmark:instance": "AI_CHAT_INSTANCE_ROLE=benchmark node server.js",
 		"benchmark:run": "node scripts/run-benchmark-suite.js",
 		"db:backup": "node scripts/backup-db.js",
 		"db:vacuum": "node scripts/vacuum-db.js",
-		"test:activity": "node --test tests/tool-activity-reliability.test.js"
+		"test:activity": "node --test tests/tool-activity-reliability.test.js",
+		"audit:weekly": "node scripts/weekly-tool-audit.js"
 	},
 	"dependencies": {
 		"better-sqlite3": "^11.7.0",
