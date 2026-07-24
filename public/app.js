@@ -2565,6 +2565,10 @@ async function handleChatAction(chat, action) {
 		chat.archived = !chat.archived;
 		markUsageLedgerChatArchived(chat.id, chat.archived);
 		chat.updatedAt = Date.now();
+		if (state.activeChatId === chat.id && !sidebarChatMatchesCurrentView(chat)) {
+			const nextVisibleChat = sortedSidebarChats().find((item) => item.id !== chat.id);
+			state.activeChatId = nextVisibleChat ? nextVisibleChat.id : null;
+		}
 	}
 
 	if (action === "rename") {
@@ -2996,20 +3000,7 @@ function renderSidebar() {
 	renderProjectFolderList();
 	renderSidebarSectionStates();
 
-	const filtered = state.chats
-		.filter((chat) => chat.archived === state.showArchived)
-		.filter((chat) => {
-			if (!state.activeProjectPath) {
-				return true;
-			}
-			return normalizeProjectPath(chat.projectPath || chat.project_path || "") === state.activeProjectPath;
-		})
-		.sort((left, right) => {
-			if (Boolean(left.pinned) !== Boolean(right.pinned)) {
-				return Boolean(right.pinned) ? 1 : -1;
-			}
-			return Number(right.updatedAt || 0) - Number(left.updatedAt || 0);
-		});
+	const filtered = sortedSidebarChats();
 
 	if (sidebarChatVisibleCount < sidebarChatPageSize) {
 		sidebarChatVisibleCount = sidebarChatPageSize;
@@ -3069,6 +3060,27 @@ function renderSidebar() {
 	} else {
 		nodes.deleteAllArchivedBtn.remove();
 	}
+}
+
+function sidebarChatMatchesCurrentView(chat) {
+	if (!chat || Boolean(chat.archived) !== Boolean(state.showArchived)) {
+		return false;
+	}
+	if (!state.activeProjectPath) {
+		return true;
+	}
+	return normalizeProjectPath(chat.projectPath || chat.project_path || "") === state.activeProjectPath;
+}
+
+function sortedSidebarChats() {
+	return state.chats
+		.filter(sidebarChatMatchesCurrentView)
+		.sort((left, right) => {
+			if (Boolean(left.pinned) !== Boolean(right.pinned)) {
+				return Boolean(right.pinned) ? 1 : -1;
+			}
+			return Number(right.updatedAt || 0) - Number(left.updatedAt || 0);
+		});
 }
 
 function renderSidebarSectionStates() {

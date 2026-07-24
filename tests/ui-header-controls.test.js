@@ -144,6 +144,16 @@ test("modal close controls and project add affordance use compact mono glyphs", 
 	assert.match(appSource, /function renderSidebarSectionStates\(\)/);
 });
 
+test("sidebar chat actions fade without shifting titles and archived chats leave the active view", () => {
+	assert.match(cssSource, /\.chat-item\s*\{[^}]*position: relative;/s);
+	assert.match(cssSource, /\.chat-item-title\s*\{[^}]*padding-right: 58px;/s);
+	assert.match(cssSource, /\.chat-item-actions\s*\{[^}]*position: absolute;[^}]*opacity: 0;[^}]*transition: opacity 140ms ease;/s);
+	assert.doesNotMatch(cssSource, /\.chat-item:hover \.chat-item-top[\s\S]*?grid-template-columns/s);
+	assert.match(appSource, /function sidebarChatMatchesCurrentView\(chat\)/);
+	assert.match(appSource, /if \(state\.activeChatId === chat\.id && !sidebarChatMatchesCurrentView\(chat\)\)/);
+	assert.match(appSource, /state\.activeChatId = nextVisibleChat \? nextVisibleChat\.id : null;/);
+});
+
 test("live narration renders inside the themed thinking block", () => {
 	assert.match(appSource, /const thinkingText = message\.streaming\s*\? streamingThinkingText\(message, toolActivityEntries\)/);
 	assert.match(appSource, /const progressText = message\.streaming\s*\? streamingNarrationText\(message, toolActivityEntries\)/);
