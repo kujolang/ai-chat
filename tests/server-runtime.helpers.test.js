@@ -323,6 +323,8 @@ test("createServerRuntime exposes pane-friendly bounded tool and browser default
 		assert.equal(defaultRuntime.runtime.config.contextCompactionTargetChars, 256 * 1024);
 		assert.equal(defaultRuntime.runtime.config.contextCompactionSummaryChars, 24 * 1024);
 		assert.equal(defaultRuntime.runtime.config.contextCompactionPreserveRecentMessages, 24);
+		assert.equal(defaultRuntime.runtime.config.streamRequestTimeoutMs, 0);
+		assert.equal(defaultRuntime.runtime.config.toolContinuationTimeoutMs, 0);
 		assert.equal(defaultRuntime.runtime.config.maxToolRounds, 2048);
 		assert.equal(defaultRuntime.runtime.config.maxToolCallsPerRequest, 16384);
 		assert.equal(defaultRuntime.runtime.config.browserMaxSessions, 32);
@@ -335,6 +337,7 @@ test("createServerRuntime exposes pane-friendly bounded tool and browser default
 
 	const cappedRuntime = createIsolatedRuntime({
 		envMerge: {
+			STREAM_REQUEST_TIMEOUT_MS: "12345",
 			MAX_TOOL_ROUNDS: "99999",
 			MAX_TOOL_CALLS_PER_REQUEST: "999999",
 			BROWSER_MAX_SESSIONS: "999",
@@ -342,12 +345,27 @@ test("createServerRuntime exposes pane-friendly bounded tool and browser default
 		}
 	});
 	try {
+		assert.equal(cappedRuntime.runtime.config.streamRequestTimeoutMs, 12345);
+		assert.equal(cappedRuntime.runtime.config.toolContinuationTimeoutMs, 12345);
 		assert.equal(cappedRuntime.runtime.config.maxToolRounds, 8192);
 		assert.equal(cappedRuntime.runtime.config.maxToolCallsPerRequest, 65536);
 		assert.equal(cappedRuntime.runtime.config.browserMaxSessions, 128);
 		assert.equal(cappedRuntime.runtime.config.browserMaxSessionsPerChat, 32);
 	} finally {
 		cappedRuntime.destroy();
+	}
+
+	const continuationRuntime = createIsolatedRuntime({
+		envMerge: {
+			STREAM_REQUEST_TIMEOUT_MS: "12345",
+			TOOL_CONTINUATION_TIMEOUT_MS: "67890"
+		}
+	});
+	try {
+		assert.equal(continuationRuntime.runtime.config.streamRequestTimeoutMs, 12345);
+		assert.equal(continuationRuntime.runtime.config.toolContinuationTimeoutMs, 67890);
+	} finally {
+		continuationRuntime.destroy();
 	}
 });
 
