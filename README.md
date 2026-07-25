@@ -222,7 +222,7 @@ chmod 600 "$AI_CHAT_SECRETS_DIR/openrouter-api-key" "$AI_CHAT_SECRETS_DIR/watchd
 Start a second loopback Watchdog instance for OpenRouter (the existing instance stays configured for Ollama Cloud):
 
 ```bash
-WATCHDOG_ROOT=/Users/robertdevore/2026/Kujolang/kujo-repos/watchdog
+WATCHDOG_ROOT=/path/to/watchdog
 AI_CHAT_SECRETS_DIR="${HOME}/.config/ai-chat"
 KUJO_BIN="${KUJO_BIN:-kujo}"
 OPENROUTER_API_KEY="$(<"$AI_CHAT_SECRETS_DIR/openrouter-api-key")" \
@@ -311,7 +311,7 @@ Node.js runtime.
 ```bash
 ENCRYPTION_SECRET=replace_with_strong_secret \
 API_AUTH_TOKEN=replace_with_strong_token \
-KUJO_BIN=/absolute/path/to/kujo \
+KUJO_BIN=kujo \
 AI_SDK_PATH=/path/to/ai-sdk/src \
 AI_CHAT_HOST=127.0.0.1 \
 PORT=4173 \
@@ -520,7 +520,7 @@ cd /path/to/ai-sdk
 AI_CHAT_ROOT=/absolute/path/to/ai-chat
 BRIDGE_PAYLOAD='{"provider_id":"openai","api_key":"x","offline_fixture":true,"messages":[{"role":"user","content":"hello"}]}'
 
-/absolute/path/to/kujo run "$AI_CHAT_ROOT/bridge_chat.kujo" --interpreter -- --payload "$BRIDGE_PAYLOAD"
+kujo run "$AI_CHAT_ROOT/bridge_chat.kujo" --interpreter -- --payload "$BRIDGE_PAYLOAD"
 ```
 
 Expected result: a JSON response with `"ok": true` and non-empty `"output_text"`.
