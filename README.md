@@ -224,7 +224,6 @@ Start a second loopback Watchdog instance for OpenRouter (the existing instance 
 ```bash
 WATCHDOG_ROOT=/path/to/watchdog
 AI_CHAT_SECRETS_DIR="${HOME}/.config/ai-chat"
-KUJO_BIN="${KUJO_BIN:-kujo}"
 OPENROUTER_API_KEY="$(<"$AI_CHAT_SECRETS_DIR/openrouter-api-key")" \
 WDG_PORT=7701 \
 WDG_DB_PATH="$WATCHDOG_ROOT/data/watchdog-openrouter.db" \
@@ -233,7 +232,7 @@ WDG_PROXY_AUTH_MODE=override \
 WDG_UPSTREAM_API_KEY_ENV=OPENROUTER_API_KEY \
 WDG_PROXY_AUTHZ_MODE=token \
 WDG_PROXY_AUTHZ_TOKEN="$(<"$AI_CHAT_SECRETS_DIR/watchdog-openrouter-proxy-token")" \
-"$KUJO_BIN" run --interpreter "$WATCHDOG_ROOT/dashboard_server.kujo"
+kujo run --interpreter "$WATCHDOG_ROOT/dashboard_server.kujo"
 ```
 
 Then point AI Chat at that managed proxy and restart AI Chat:
@@ -311,7 +310,6 @@ Node.js runtime.
 ```bash
 ENCRYPTION_SECRET=replace_with_strong_secret \
 API_AUTH_TOKEN=replace_with_strong_token \
-KUJO_BIN=kujo \
 AI_SDK_PATH=/path/to/ai-sdk/src \
 AI_CHAT_HOST=127.0.0.1 \
 PORT=4173 \
