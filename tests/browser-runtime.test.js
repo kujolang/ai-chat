@@ -136,7 +136,10 @@ test("browser normalizes blocked navigation failures into bounded tool errors", 
 			}
 		}
 	};
-	const { runtime, destroy } = createRuntime({ playwrightModule: fakePlaywright });
+	const { runtime, destroy } = createRuntime({
+		playwrightModule: fakePlaywright,
+		resolveHost: async () => [{ address: "140.82.112.4", family: 4 }]
+	});
 	try {
 		await assert.rejects(
 			() => runtime.execute("browser_open", { url: "https://github.com/omkhar/workcell" }, { scopeId: "chat-a", requestState: {} }),

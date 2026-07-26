@@ -1695,8 +1695,10 @@ test("POST /api/chat/stream authenticates direct Watchdog telemetry and reports 
 	const credentialDir = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-watchdog-direct-"));
 	const tokenFile = path.join(credentialDir, "proxy-token");
 	const apiTokenFile = path.join(credentialDir, "api-token");
+	const modelCachePath = path.join(credentialDir, "models_cache.json");
 	fs.writeFileSync(tokenFile, "managed-watchdog-token\n", { mode: 0o600 });
 	fs.writeFileSync(apiTokenFile, "managed-watchdog-api-token\n", { mode: 0o600 });
+	fs.writeFileSync(modelCachePath, JSON.stringify({ models: [] }), { mode: 0o600 });
 	const calls = [];
 	const warnings = [];
 	let directProviderCalls = 0;
@@ -1706,7 +1708,8 @@ test("POST /api/chat/stream authenticates direct Watchdog telemetry and reports 
 			WATCHDOG_PROXY_TOKEN_FILE: tokenFile,
 			WATCHDOG_API_TOKEN_FILE: apiTokenFile,
 			WATCHDOG_DIRECT_STREAMING: "1",
-			ALLOWED_CUSTOM_PROVIDER_HOSTS: "ollama.com"
+			ALLOWED_CUSTOM_PROVIDER_HOSTS: "ollama.com",
+			CODEX_MODEL_CACHE_PATH: modelCachePath
 		},
 		warnFn: (message) => warnings.push(message),
 		fetchFn: async (url, options) => {
