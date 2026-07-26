@@ -1,6 +1,10 @@
 # Release Checklist
 
-Use this checklist for each release candidate and production release.
+Use this checklist for each release candidate and production release. Local
+release review can complete the repository gates below, but deployed
+production or enterprise readiness still requires separate target-environment
+proof for credentials, reverse proxy/TLS, backup/restore, audit logging,
+identity/access controls, and operational monitoring.
 
 ## 1. Version and Notes
 

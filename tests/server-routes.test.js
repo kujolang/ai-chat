@@ -71,8 +71,15 @@ async function withServer(app, callback) {
 	try {
 		return await callback(baseUrl);
 	} finally {
-		server.close();
-		await once(server, "close");
+		await new Promise((resolve, reject) => {
+			server.close((error) => {
+				if (error) {
+					reject(error);
+					return;
+				}
+				resolve();
+			});
+		});
 	}
 }
 
@@ -978,6 +985,29 @@ test("GET /c/:routeId serves the app for bookmarkable chat links", async () => {
 			assert.equal(response.status, 200);
 			assert.match(response.headers.get("content-type"), /^text\/html/);
 			assert.match(await response.text(), /<title>AI Chat<\/title>/);
+		});
+	} finally {
+		destroy();
+	}
+});
+
+test("GET / serves local vendor assets without CDN script or style dependencies", async () => {
+	const { runtime, destroy } = createIsolatedRuntime();
+	try {
+		await withServer(runtime.app, async (baseUrl) => {
+			const response = await fetch(`${baseUrl}/`);
+			const html = await response.text();
+			assert.equal(response.status, 200);
+			assert.equal(html.includes("https://cdn.jsdelivr.net"), false);
+			assert.equal(html.includes("https://cdnjs.cloudflare.com"), false);
+			assert.equal(html.includes("/vendor/markdown-it/markdown-it.min.js"), true);
+			assert.equal(html.includes("/vendor/select2/js/select2.min.js"), true);
+
+			const markdownIt = await fetch(`${baseUrl}/vendor/markdown-it/markdown-it.min.js`);
+			const select2 = await fetch(`${baseUrl}/vendor/select2/css/select2.min.css`);
+			assert.equal(markdownIt.status, 200);
+			assert.equal(select2.status, 200);
+			assert.equal(markdownIt.headers.get("cache-control"), "no-store");
 		});
 	} finally {
 		destroy();

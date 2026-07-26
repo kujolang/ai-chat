@@ -1,0 +1,20 @@
+{
+  "name": "ai-chat-launch-readiness",
+  "version": "1.0.0",
+  "tests": [
+    {
+      "name": "Unit and contract tests pass",
+      "check": "command_succeeds",
+      "params": {
+        "command": "cd /Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat && PATH=/Users/robertdevore/.nvm/versions/node/v22.17.0/bin:$PATH npm test"
+      }
+    },
+    {
+      "name": "Production dependency audit passes",
+      "check": "command_succeeds",
+      "params": {
+        "command": "cd /Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat && PATH=/Users/robertdevore/.nvm/versions/node/v22.17.0/bin:$PATH npm audit --omit=dev"
+      }
+    }
+  ]
+}
