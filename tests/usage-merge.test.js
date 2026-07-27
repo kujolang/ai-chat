@@ -26,6 +26,25 @@ ${extractFunction("mergeUsageTotals")}
 return { mergeUsageTotals };
 `)();
 
+const { collectUsageRecords } = Function(`
+let usageLedger = [];
+let state = { chats: [] };
+${extractFunction("finiteUsageValue")}
+${extractFunction("nullableUsageValue")}
+${extractFunction("usageTokenCount")}
+${extractFunction("retryCountForMessage")}
+${extractFunction("retryCountForEntry")}
+${extractFunction("parseUsageTimestamp")}
+${extractFunction("collectUsageRecords")}
+return {
+	collectUsageRecords(nextState, nextUsageLedger = []) {
+		state = nextState;
+		usageLedger = nextUsageLedger;
+		return collectUsageRecords();
+	}
+};
+`)();
+
 test("mergeUsageTotals tolerates a null accumulator before the first usage payload", () => {
 	assert.deepEqual(mergeUsageTotals(null, {
 		input_tokens: 10,
@@ -65,4 +84,49 @@ test("mergeUsageTotals preserves reported cache values across multiple usage pay
 		cache_write_input_tokens: 1,
 		cache_details_reported: true
 	});
+});
+
+test("collectUsageRecords tolerates response metadata when usage is null", () => {
+	const records = collectUsageRecords({
+		chats: [{
+			id: "chat-null-usage",
+			title: "Null usage response",
+			archived: false,
+			updatedAt: 1000,
+			panes: [{
+				id: "pane-null-usage",
+				messages: [{
+					id: "message-null-usage",
+					role: "assistant",
+					provider: "watchdog",
+					model: "gemma4",
+					usage: null,
+					response_time_ms: 250,
+					createdAt: 1000
+				}]
+			}]
+		}]
+	});
+
+	assert.deepEqual(records, [{
+		message_id: "message-null-usage",
+		chat_id: "chat-null-usage",
+		chat_title: "Null usage response",
+		chat_archived: false,
+		chat_deleted: false,
+		pane_id: "pane-null-usage",
+		pane_label: "Pane 1",
+		provider: "watchdog",
+		model: "gemma4",
+		role: "assistant",
+		tokens: 0,
+		retry_count: 0,
+		response_time_ms: 250,
+		input_tokens: 0,
+		output_tokens: 0,
+		cached_input_tokens: null,
+		cache_write_input_tokens: null,
+		cache_details_reported: false,
+		createdAt: 1000
+	}]);
 });

@@ -4265,7 +4265,8 @@ function collectUsageRecords() {
 		for (let paneIndex = 0; paneIndex < chat.panes.length; paneIndex += 1) {
 			const pane = chat.panes[paneIndex];
 			for (const message of pane.messages) {
-				const tokenCount = Number(message && message.usage && message.usage.total_tokens);
+				const usage = message && message.usage && typeof message.usage === "object" ? message.usage : {};
+				const tokenCount = Number(usage.total_tokens);
 				const responseTime = Number(message && message.response_time_ms);
 				const retryCount = retryCountForMessage(message);
 				if ((!Number.isFinite(tokenCount) || tokenCount <= 0) && (!Number.isFinite(responseTime) || responseTime <= 0) && retryCount <= 0) {
@@ -4292,11 +4293,11 @@ function collectUsageRecords() {
 					tokens: Number.isFinite(tokenCount) && tokenCount > 0 ? tokenCount : 0,
 					retry_count: retryCount,
 					response_time_ms: Number.isFinite(responseTime) && responseTime > 0 ? responseTime : 0,
-					input_tokens: finiteUsageValue(message.usage.input_tokens),
-					output_tokens: finiteUsageValue(message.usage.output_tokens),
-					cached_input_tokens: nullableUsageValue(message.usage.cached_input_tokens),
-					cache_write_input_tokens: nullableUsageValue(message.usage.cache_write_input_tokens),
-					cache_details_reported: Boolean(message.usage.cache_details_reported),
+					input_tokens: finiteUsageValue(usage.input_tokens),
+					output_tokens: finiteUsageValue(usage.output_tokens),
+					cached_input_tokens: nullableUsageValue(usage.cached_input_tokens),
+					cache_write_input_tokens: nullableUsageValue(usage.cache_write_input_tokens),
+					cache_details_reported: Boolean(usage.cache_details_reported),
 					createdAt
 				});
 			}
