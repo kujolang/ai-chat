@@ -156,7 +156,7 @@ test("browser sessions are isolated, expire, enforce action limits, and close id
 		const { runtime, destroy } = createRuntime({ nowMs: () => clock, sessionTtlMs: 1000, maxActionsPerRequest: 2, maxActionsPerSession: 3 });
 		try {
 			const opened = await runtime.execute("browser_open", { url }, { scopeId: "chat-a", requestState: {} });
-			await assert.rejects(() => runtime.execute("browser_snapshot", { session_id: opened.session_id }, { scopeId: "chat-b", requestState: {} }), (error) => error.code === "browser_session_not_found");
+			await assert.rejects(() => runtime.execute("browser_snapshot", { session_id: opened.session_id }, { scopeId: "chat-b", requestState: {} }), (error) => error.code === "browser_session_not_found" && error.retryable === true);
 			const requestState = {};
 			await runtime.execute("browser_snapshot", { session_id: opened.session_id }, { scopeId: "chat-a", requestState });
 			await runtime.execute("browser_snapshot", { session_id: opened.session_id }, { scopeId: "chat-a", requestState });
@@ -168,7 +168,7 @@ test("browser sessions are isolated, expire, enforce action limits, and close id
 
 			const expiring = await runtime.execute("browser_open", { url }, { scopeId: "chat-a", requestState: {} });
 			clock += 1001;
-			await assert.rejects(() => runtime.execute("browser_snapshot", { session_id: expiring.session_id }, { scopeId: "chat-a", requestState: {} }), (error) => error.code === "browser_session_expired");
+			await assert.rejects(() => runtime.execute("browser_snapshot", { session_id: expiring.session_id }, { scopeId: "chat-a", requestState: {} }), (error) => error.code === "browser_session_expired" && error.retryable === true);
 		} finally {
 			await destroy();
 		}

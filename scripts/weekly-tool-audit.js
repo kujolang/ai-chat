@@ -70,7 +70,25 @@ const ERROR_FAMILY_MAP = {
 	browser_url_blocked: { family: "FF-8", severity: "P3", label: "Browser URL blocked (expected)" },
 	local_shell_timeout: { family: "FF-9", severity: "P2", label: "Shell command timeout" },
 	local_file_missing: { family: "FF-10", severity: "P2", label: "File missing" },
-	local_file_exists: { family: "FF-11", severity: "P3", label: "File exists conflict" }
+	local_file_exists: { family: "FF-11", severity: "P3", label: "File exists conflict" },
+	browser_session_not_found: { family: "FF-12", severity: "P2", label: "Browser session not found (expired or invalid)" },
+	local_path_sensitive: { family: "FF-13", severity: "P2", label: "Sensitive path blocked" },
+	local_file_not_readable: { family: "FF-14", severity: "P2", label: "File not readable (unsupported type)" },
+	local_workspace_not_found: { family: "FF-15", severity: "P1", label: "Workspace not configured" },
+	invalid_tool_arguments: { family: "FF-16", severity: "P2", label: "Invalid tool arguments" },
+	browser_action_limit: { family: "FF-17", severity: "P3", label: "Browser action limit reached" },
+	browser_execution_failed: { family: "FF-18", severity: "P2", label: "Browser execution failed" },
+	browser_output_limit: { family: "FF-19", severity: "P3", label: "Browser output limit exceeded" },
+	browser_navigation_timeout: { family: "FF-20", severity: "P2", label: "Browser navigation timeout" },
+	browser_navigation_blocked: { family: "FF-21", severity: "P3", label: "Browser navigation blocked" },
+	browser_dns_failed: { family: "FF-22", severity: "P2", label: "Browser DNS resolution failed" },
+	tool_approval_required: { family: "FF-23", severity: "P3", label: "Tool approval required" },
+	local_write_disabled: { family: "FF-24", severity: "P1", label: "Local writes not enabled" },
+	local_shell_disabled: { family: "FF-25", severity: "P1", label: "Local shell not enabled" },
+	local_shell_failed: { family: "FF-26", severity: "P2", label: "Shell command failed to start" },
+	local_file_too_large: { family: "FF-27", severity: "P3", label: "File exceeds size limit" },
+	local_path_not_found: { family: "FF-28", severity: "P2", label: "Path not found in workspace" },
+	browser_session_expired: { family: "FF-29", severity: "P2", label: "Browser session expired" }
 };
 const TERMINAL_TOOL_EVENTS = new Set(["tool_failed", "tool_completed"]);
 const FAILURE_SEVERITY_THRESHOLDS = Object.freeze({

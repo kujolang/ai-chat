@@ -279,9 +279,9 @@ test("SSE tool failed event includes error_reason and writes audit log entry", a
 	}
 });
 
-// ── Integration: successful tool does not write audit log entry ───────────────
+// ── Integration: successful tool writes completion audit, not failure audit ───
 
-test("Successful tool execution does not write a tool_failed audit entry", async () => {
+test("Successful tool execution writes a tool_completed audit entry", async () => {
 	let providerRound = 0;
 	const { runtime, destroy, auditLogPath } = createIsolatedRuntime({
 		envMerge: { ALLOWED_CUSTOM_PROVIDER_HOSTS: "ollama.com" },
@@ -349,7 +349,12 @@ test("Successful tool execution does not write a tool_failed audit entry", async
 		const toolFailedEntries = auditLines
 			.map((line) => JSON.parse(line))
 			.filter((entry) => entry.event === "tool_failed");
+		const toolCompletedEntries = auditLines
+			.map((line) => JSON.parse(line))
+			.filter((entry) => entry.event === "tool_completed");
 		assert.equal(toolFailedEntries.length, 0, "no tool_failed audit entries should exist");
+		assert.equal(toolCompletedEntries.length, 1, "exactly one tool_completed audit entry should exist");
+		assert.equal(toolCompletedEntries[0].details.tool_name, "local_file_read");
 	} finally {
 		destroy();
 	}
