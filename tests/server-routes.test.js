@@ -2035,6 +2035,44 @@ test("POST /api/chat/stream emits provider_http_error SSE on upstream failure", 
 	}
 });
 
+test("POST /api/chat/stream reads provider errors from streamed response bodies", async () => {
+	const { runtime, destroy } = createIsolatedRuntime({
+		fetchFn: async () => ({
+			ok: false,
+			status: 403,
+			headers: { get: () => "application/json" },
+			body: new ReadableStream({
+				start(controller) {
+					controller.enqueue(new TextEncoder().encode("streamed upstream denial"));
+					controller.close();
+				}
+			})
+		})
+	});
+	try {
+		const profileId = applyProfileMutation(runtime, (profile) => {
+			profile.api_key = "stream-key";
+		});
+		await withServer(runtime.app, async (baseUrl) => {
+			const response = await fetch(`${baseUrl}/api/chat/stream`, {
+				method: "POST",
+				headers: withAuthHeaders({ "Content-Type": "application/json" }),
+				body: JSON.stringify({
+					profile_id: profileId,
+					messages: [{ role: "user", content: "hi" }]
+				})
+			});
+			const body = await response.text();
+			const events = parseSseEvents(body);
+			assert.equal(events[0].event, "error");
+			assert.equal(events[0].data.code, "provider_http_error");
+			assert.equal(events[0].data.status, 403);
+		});
+	} finally {
+		destroy();
+	}
+});
+
 test("POST /api/chat/stream emits token and done for non-SSE upstream responses", async () => {
 	const { runtime, destroy } = createIsolatedRuntime({
 		fetchFn: async () => mockJsonResponse({
