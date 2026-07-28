@@ -81,9 +81,11 @@ test("seeds and upgrades OpenRouter and Watchdog model suggestions from the stat
 		assert.ok(watchdogOllamaTud);
 		assert.match(openRouter.models_csv, /moonshotai\/kimi-k2\.7-code/);
 		assert.match(openRouter.models_csv, /openai\/gpt-4\.1-mini/);
+		assert.match(watchdog.models_csv, /kimi-k3:cloud/);
 		assert.match(watchdog.models_csv, /gemma4:31b/);
 		assert.match(watchdog.models_csv, /mistral-large-3:675b/);
 		assert.match(watchdogOpenRouter.models_csv, /moonshotai\/kimi-k2\.7-code/);
+		assert.match(watchdogOllamaTud.models_csv, /kimi-k3:cloud/);
 		assert.match(watchdogOllamaTud.models_csv, /mistral-large-3:675b/);
 	} finally {
 		destroy();

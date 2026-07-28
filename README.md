@@ -38,7 +38,7 @@ This project is for end users and teams who want one local web app to:
 - Model picker
 	- Search the full configured model catalog in real time from the composer
 	- Scroll long result lists in a styled, keyboard-friendly dropdown
-- Seed OpenRouter and Ollama Cloud (Watchdog) with the July 17, 2026 catalog snapshot; existing profiles receive any newly cataloged suggestions without replacing their current models, except the intentionally curated `Watchdog / OpenRouter (TUD)` benchmark profile
+- Seed OpenRouter and Ollama Cloud (Watchdog) with the July 28, 2026 catalog snapshot; existing profiles receive any newly cataloged suggestions without replacing their current models, except the intentionally curated `Watchdog / OpenRouter (TUD)` benchmark profile
 - Multi-pane comparisons
 	- Add multiple panes per chat with per-pane profile/model selection
 	- Broadcast one prompt to all panes
