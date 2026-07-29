@@ -732,6 +732,15 @@ function wireEvents() {
 		void activateChat(chat.id, { persist: false, updateUrl: false });
 	});
 
+	window.addEventListener("focus", () => {
+		void refreshActiveChatFromServer();
+	});
+	document.addEventListener("visibilitychange", () => {
+		if (document.visibilityState === "visible") {
+			void refreshActiveChatFromServer();
+		}
+	});
+
 	window.addEventListener("keydown", (event) => {
 		if (!event.metaKey || !event.shiftKey || event.ctrlKey || event.altKey) {
 			return;
@@ -2024,6 +2033,15 @@ function wireEvents() {
 	});
 }
 
+async function refreshActiveChatFromServer() {
+	const chat = getActiveChat();
+	if (!chat || hydratingChatIds.has(chat.id)) {
+		return;
+	}
+	await hydrateChatMessages(chat.id, { force: chatHasTransientUiState(chat) });
+	renderAll();
+}
+
 function createAndActivateChat() {
 	const chat = createChat("New Chat");
 	state.chats.push(chat);
@@ -2053,9 +2071,10 @@ async function activateChat(chatId, { persist = false, updateUrl = true } = {}) 
 	focusComposerInput();
 }
 
-async function hydrateChatMessages(chatId) {
+async function hydrateChatMessages(chatId, options = {}) {
 	const chat = getChatById(chatId);
-	if (!chat || (chat.messagesLoaded && !chatHasTransientUiState(chat)) || hydratingChatIds.has(chat.id)) {
+	const force = Boolean(options.force);
+	if (!chat || (!force && chat.messagesLoaded && !chatHasTransientUiState(chat)) || hydratingChatIds.has(chat.id)) {
 		return;
 	}
 
@@ -5816,7 +5835,8 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 	pane.status = "waiting";
 	chat.updatedAt = Date.now();
 	renderWorkspace({ preserveScroll: Boolean(options.preserveInitialScroll) });
-	schedulePersist();
+	schedulePersist({ immediate: true });
+	await persistStateToServer();
 
 	let totalUsage = {
 		input_tokens: 0,
@@ -5904,6 +5924,9 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 				continuation_pass: continuationPass,
 				chat_id: chat.id,
 				pane_id: pane.id,
+				assistant_message_id: assistantMessage.id,
+				assistant_created_at: assistantMessage.createdAt,
+				assistant_sort_order: Math.max(0, pane.messages.findIndex((message) => message.id === assistantMessage.id)),
 				session_id: chat.id,
 				correlation_id: pane.id,
 				model: selectedModel,

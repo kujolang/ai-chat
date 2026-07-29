@@ -2073,6 +2073,98 @@ test("POST /api/chat/stream reads provider errors from streamed response bodies"
 	}
 });
 
+test("POST /api/chat/stream keeps detached mobile streams running and persists the assistant turn", async () => {
+	let releaseUpstream = null;
+	let upstreamSignal = null;
+	const upstreamReleased = new Promise((resolve) => {
+		releaseUpstream = resolve;
+	});
+	const encoder = new TextEncoder();
+	const { runtime, destroy } = createIsolatedRuntime({
+		fetchFn: async (_url, options = {}) => {
+			upstreamSignal = options.signal;
+			let index = 0;
+			return {
+				ok: true,
+				status: 200,
+				headers: { get: () => "text/event-stream" },
+				body: {
+					getReader() {
+						return {
+							async read() {
+								index += 1;
+								if (index === 1) {
+									return { done: false, value: encoder.encode(`data: ${JSON.stringify({ choices: [{ delta: { content: "detached " } }] })}\n\n`) };
+								}
+								if (index === 2) {
+									await upstreamReleased;
+									return { done: false, value: encoder.encode(`data: ${JSON.stringify({ choices: [{ delta: { content: "complete" }, finish_reason: "stop" }], usage: { prompt_tokens: 2, completion_tokens: 2, total_tokens: 4 } })}\n\ndata: [DONE]\n\n`) };
+								}
+								return { done: true, value: undefined };
+							}
+						};
+					}
+				}
+			};
+		}
+	});
+	try {
+		const profileId = applyProfileMutation(runtime, (profile) => {
+			profile.api_key = "stream-key";
+			profile.models_csv = "gpt-stream";
+		});
+		const chatId = "chat-detached";
+		const paneId = "pane-detached";
+		const assistantMessageId = "assistant-detached";
+		runtime.helpers.applyStateChanges({
+			changes: [
+				{ type: "chat_upsert", chat: { id: chatId, title: "Detached", created_at: Date.now(), updated_at: Date.now(), sort_order: 0 } },
+				{ type: "pane_upsert", pane: { id: paneId, chat_id: chatId, profile_id: profileId, model: "gpt-stream", status: "waiting", sort_order: 0 } },
+				{ type: "message_upsert", message: { id: "user-detached", pane_id: paneId, role: "user", content: "hi", created_at: Date.now(), sort_order: 0 } },
+				{ type: "message_upsert", message: { id: assistantMessageId, pane_id: paneId, role: "assistant", content: "", provider: "openai", model: "gpt-stream", thinking: "", created_at: Date.now(), sort_order: 1 } }
+			]
+		});
+
+		await withServer(runtime.app, async (baseUrl) => {
+			const controller = new AbortController();
+			const response = await fetch(`${baseUrl}/api/chat/stream`, {
+				method: "POST",
+				headers: withAuthHeaders({ "Content-Type": "application/json" }),
+				body: JSON.stringify({
+					profile_id: profileId,
+					model: "gpt-stream",
+					chat_id: chatId,
+					pane_id: paneId,
+					assistant_message_id: assistantMessageId,
+					assistant_sort_order: 1,
+					messages: [{ role: "user", content: "hi" }]
+				}),
+				signal: controller.signal
+			});
+			const reader = response.body.getReader();
+			await reader.read();
+			controller.abort();
+			await new Promise((resolve) => setTimeout(resolve, 25));
+			assert.equal(upstreamSignal.aborted, false);
+			releaseUpstream();
+			for (let attempt = 0; attempt < 40; attempt += 1) {
+				const loaded = runtime.helpers.readChat(chatId);
+				const pane = loaded.panes.find((candidate) => candidate.id === paneId);
+				const message = pane.messages.find((candidate) => candidate.id === assistantMessageId);
+				if (message && message.content === "detached complete" && pane.status === "idle") {
+					assert.equal(message.usage.total_tokens, 4);
+					return;
+				}
+				await new Promise((resolve) => setTimeout(resolve, 25));
+			}
+			assert.fail("detached stream did not persist final assistant content");
+		});
+	} finally {
+		if (releaseUpstream) releaseUpstream();
+		destroy();
+	}
+});
+
 test("POST /api/chat/stream emits token and done for non-SSE upstream responses", async () => {
 	const { runtime, destroy } = createIsolatedRuntime({
 		fetchFn: async () => mockJsonResponse({
