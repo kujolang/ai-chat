@@ -305,6 +305,9 @@ npm run rebuild:native
 it automatically when the installed native binary was compiled for a different
 Node.js runtime.
 
+If the configured port is already serving AI Chat, startup prints the existing
+local URL and exits cleanly instead of dumping a Node listen stack trace.
+
 2. Start the app
 
 ```bash

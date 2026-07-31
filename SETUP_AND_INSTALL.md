@@ -230,6 +230,10 @@ Open:
 http://127.0.0.1:4173
 ```
 
+If startup says AI Chat is already running on that URL, leave the existing
+server alone and open the printed address. If a different app owns the port,
+stop that process or restart AI Chat with a different `PORT`.
+
 ## 5. First-Time In-App Setup
 
 1. Open Settings.
