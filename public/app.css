@@ -751,8 +751,10 @@ input[type="checkbox"]:disabled {
 }
 
 .chat-item-top {
-	display: block;
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) 65px;
 	align-items: center;
+	gap: 6px;
 	min-width: 0;
 }
 
@@ -770,15 +772,12 @@ input[type="checkbox"]:disabled {
 	overflow: hidden;
 	text-overflow: ellipsis;
 	min-width: 0;
-	padding-right: 76px;
+	padding-right: 0;
 }
 
 .chat-item-actions {
-	position: absolute;
-	right: 9px;
-	top: 50%;
-	transform: translateY(-50%);
-	display: flex;
+	position: static;
+	display: inline-flex;
 	align-items: center;
 	gap: 3px;
 	justify-content: flex-end;
@@ -786,9 +785,10 @@ input[type="checkbox"]:disabled {
 	opacity: 0;
 	pointer-events: none;
 	transition: opacity 140ms ease;
-	overflow: visible;
-	width: auto;
-	min-width: 48px;
+	overflow: hidden;
+	width: 65px;
+	min-width: 65px;
+	transform: none;
 }
 
 #delete-all-archived-btn {
