@@ -1921,6 +1921,56 @@ test("POST /api/chat succeeds with offline fixture bridge response", async () =>
 	}
 });
 
+test("POST /api/chat offline fixture bypasses live custom provider URL validation", async () => {
+	let bridgePayload = null;
+	const { runtime, destroy } = createIsolatedRuntime({
+		envMerge: {
+			ALLOWED_CUSTOM_PROVIDER_HOSTS: ""
+		},
+		spawnSyncFn(command, args) {
+			const payloadIndex = args.indexOf("--payload");
+			bridgePayload = JSON.parse(args[payloadIndex + 1]);
+			return {
+				error: null,
+				stdout: JSON.stringify({
+					ok: true,
+					provider: "openai",
+					model: "gpt-4.1-mini",
+					output_text: "fixture response"
+				}),
+				stderr: ""
+			};
+		}
+	});
+	try {
+		const profileId = applyProfileMutation(runtime, (profile) => {
+			profile.provider_id = "custom";
+			profile.base_url = "http://127.0.0.1:11434/v1";
+			profile.api_key = "";
+			profile.api_key_cipher = "";
+			profile.api_key_iv = "";
+			profile.api_key_tag = "";
+		});
+		await withServer(runtime.app, async (baseUrl) => {
+			const result = await fetchJson(baseUrl, "/api/chat", {
+				method: "POST",
+				headers: withAuthHeaders({ "Content-Type": "application/json" }),
+				body: JSON.stringify({
+					profile_id: profileId,
+					offline_fixture: true,
+					messages: [{ role: "user", content: "hi" }]
+				})
+			});
+			assert.equal(result.response.status, 200);
+			assert.equal(result.json.ok, true);
+			assert.equal(bridgePayload.base_url, "https://api.openai.com/v1");
+			assert.equal(bridgePayload.offline_fixture, true);
+		});
+	} finally {
+		destroy();
+	}
+});
+
 test("POST /api/chat returns 422 when the bridge requests tool execution", async () => {
 	const { runtime, destroy } = createIsolatedRuntime({
 		spawnSyncFn() {
