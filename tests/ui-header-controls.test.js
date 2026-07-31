@@ -148,11 +148,11 @@ test("sidebar chat actions fade without shifting titles and archived chats leave
 	assert.match(cssSource, /\.chat-item\s*\{[^}]*position: relative;/s);
 	assert.match(cssSource, /\.chat-item-title\s*\{[^}]*text-overflow: ellipsis;[^}]*padding-right: 0;/s);
 	assert.match(cssSource, /\.chat-item-actions\s*\{[^}]*position: static;[^}]*opacity: 0;[^}]*transition: opacity 140ms ease;[^}]*width: 65px;/s);
-	assert.match(cssSource, /\.chat-item-top\s*\{[^}]*grid-template-columns: minmax\(0, 1fr\) 65px;/s);
+	assert.match(cssSource, /\.chat-item-top\s*\{[^}]*grid-template-columns: minmax\(0, 1fr\) 0;[^}]*transition: grid-template-columns 140ms ease, gap 140ms ease;/s);
+	assert.match(cssSource, /\.chat-item:hover \.chat-item-top,[\s\S]*?grid-template-columns: minmax\(0, 1fr\) 65px;/s);
 	assert.match(cssSource, /\.chat-action-more\s*\{[^}]*font: 700 16px\/12px var\(--display\);/s);
 	assert.match(appSource, /class="chat-action chat-action-more" data-action="rename"/);
-	assert.match(htmlSource, /app\.css\?v=20260731-sidebar-hover-5/);
-	assert.doesNotMatch(cssSource, /\.chat-item:hover \.chat-item-top[\s\S]*?grid-template-columns/s);
+	assert.match(htmlSource, /app\.css\?v=20260731-sidebar-hover-6/);
 	assert.match(appSource, /function sidebarChatMatchesCurrentView\(chat\)/);
 	assert.match(appSource, /if \(state\.activeChatId === chat\.id && !sidebarChatMatchesCurrentView\(chat\)\)/);
 	assert.match(appSource, /state\.activeChatId = nextVisibleChat \? nextVisibleChat\.id : null;/);

@@ -752,10 +752,12 @@ input[type="checkbox"]:disabled {
 
 .chat-item-top {
 	display: grid;
-	grid-template-columns: minmax(0, 1fr) 65px;
+	grid-template-columns: minmax(0, 1fr) 0;
 	align-items: center;
-	gap: 6px;
+	gap: 0;
 	min-width: 0;
+	overflow: hidden;
+	transition: grid-template-columns 140ms ease, gap 140ms ease;
 }
 
 .chat-item-link {
@@ -877,6 +879,12 @@ input[type="checkbox"]:disabled {
 .chat-item:focus-within .chat-item-actions {
 	opacity: 1;
 	pointer-events: auto;
+}
+
+.chat-item:hover .chat-item-top,
+.chat-item:focus-within .chat-item-top {
+	grid-template-columns: minmax(0, 1fr) 65px;
+	gap: 6px;
 }
 
 .chat-item:hover .chat-item-link,
