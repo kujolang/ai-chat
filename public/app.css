@@ -770,7 +770,7 @@ input[type="checkbox"]:disabled {
 	overflow: hidden;
 	text-overflow: ellipsis;
 	min-width: 0;
-	padding-right: 58px;
+	padding-right: 76px;
 }
 
 .chat-item-actions {
@@ -786,8 +786,9 @@ input[type="checkbox"]:disabled {
 	opacity: 0;
 	pointer-events: none;
 	transition: opacity 140ms ease;
-	overflow: hidden;
-	width: 48px;
+	overflow: visible;
+	width: auto;
+	min-width: 48px;
 }
 
 #delete-all-archived-btn {
@@ -848,6 +849,11 @@ input[type="checkbox"]:disabled {
 .chat-action svg {
 	width: 13px;
 	height: 13px;
+}
+
+.chat-action-more {
+	font: 700 16px/12px var(--display);
+	letter-spacing: 0.04em;
 }
 
 .chat-item-actions .chat-action[data-action="project"],

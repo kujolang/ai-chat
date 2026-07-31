@@ -146,8 +146,11 @@ test("modal close controls and project add affordance use compact mono glyphs", 
 
 test("sidebar chat actions fade without shifting titles and archived chats leave the active view", () => {
 	assert.match(cssSource, /\.chat-item\s*\{[^}]*position: relative;/s);
-	assert.match(cssSource, /\.chat-item-title\s*\{[^}]*padding-right: 58px;/s);
+	assert.match(cssSource, /\.chat-item-title\s*\{[^}]*padding-right: 76px;/s);
 	assert.match(cssSource, /\.chat-item-actions\s*\{[^}]*position: absolute;[^}]*opacity: 0;[^}]*transition: opacity 140ms ease;/s);
+	assert.match(cssSource, /\.chat-action-more\s*\{[^}]*font: 700 16px\/12px var\(--display\);/s);
+	assert.match(appSource, /class="chat-action chat-action-more" data-action="rename"/);
+	assert.match(htmlSource, /app\.css\?v=20260731-sidebar-hover-4/);
 	assert.doesNotMatch(cssSource, /\.chat-item:hover \.chat-item-top[\s\S]*?grid-template-columns/s);
 	assert.match(appSource, /function sidebarChatMatchesCurrentView\(chat\)/);
 	assert.match(appSource, /if \(state\.activeChatId === chat\.id && !sidebarChatMatchesCurrentView\(chat\)\)/);
