@@ -1,0 +1,51 @@
+[
+  {
+    "provider": "deepseek",
+    "model": "deepseek-v4-pro",
+    "tool": "local_file_read",
+    "input": { "filePath": "docs/[API_CONTRACT.md](http://API_CONTRACT.md)", "offset": null, "limit": "30" },
+    "expected_types": ["canonical_alias", "markdown_path", "null_optional", "numeric_coercion", "relational_default"]
+  },
+  {
+    "provider": "ollama",
+    "model": "qwen3-coder",
+    "tool": "local_shell",
+    "input": { "command": "rg", "args": "[\"tool\",\"README.md\"]", "timeoutMs": "15000" },
+    "expected_types": ["canonical_alias", "stringified_array", "numeric_coercion"]
+  },
+  {
+    "provider": "openrouter",
+    "model": "glm-4.5",
+    "tool": "local_file_write",
+    "input": { "path": "notes/report.md", "content": "ok", "createDirs": "true", "mode": null },
+    "expected_types": ["canonical_alias", "boolean_coercion", "null_optional"]
+  },
+  {
+    "provider": "anthropic",
+    "model": "claude-sonnet",
+    "tool": "action_adapter_call",
+    "input": { "adapterId": "fixture_adapter", "input": "{\"format\":\"json\"}" },
+    "expected_types": ["canonical_alias", "stringified_object"]
+  },
+  {
+    "provider": "openai",
+    "model": "gpt-5",
+    "tool": "skill_read",
+    "input": "strata-memory",
+    "expected_types": ["bare_scalar_wrap"]
+  },
+  {
+    "provider": "deepseek",
+    "model": "deepseek-flash",
+    "tool": "webSearch",
+    "input": { "query": "agent tool repair", "domains": "[\"anthropic.com\"]", "freshness": "past_month", "maxResults": "5" },
+    "expected_types": ["tool_alias", "canonical_alias", "stringified_array", "numeric_coercion"]
+  },
+  {
+    "provider": "ollama",
+    "model": "qwen3-coder",
+    "tool": "action_adapter_call",
+    "input": { "id": "fixture_adapter" },
+    "expected_types": ["relational_default"]
+  }
+]
