@@ -613,6 +613,44 @@ test("tool execution errors name requested functions without exposing arguments"
 	}
 });
 
+test("local read telemetry is bounded and records recovery metadata without paths", () => {
+	const { runtime, destroy } = createIsolatedRuntime();
+	try {
+		const argumentsSummary = runtime.helpers.summarizeToolArguments("local_file_read", {
+			path: "private/project/README.md", offset: 3, column: 4, limit: 10, max_bytes: 4096, max_line_chars: 200
+		});
+		assert.equal(argumentsSummary.path, undefined);
+		assert.equal(argumentsSummary.path_chars, "private/project/README.md".length);
+		assert.equal(argumentsSummary.offset, 3);
+		assert.equal(argumentsSummary.column, 4);
+		const resultSummary = runtime.helpers.summarizeToolResult("local_file_read", {
+			content: "3\tline",
+			truncated: true,
+			complete: false,
+			next_offset: 4,
+			next_column: 1,
+			meta: { source_bytes: 9000, returned_bytes: 6, lines_returned: 1, lines_scanned: 3, truncation_reason: "line_limit", clamped_lines: [] }
+		});
+		assert.deepEqual(resultSummary.local_read, {
+			content_chars: 6,
+			source_bytes: 9000,
+			returned_bytes: 6,
+			lines_returned: 1,
+			lines_scanned: 3,
+			truncation_reason: "line_limit",
+			clamped_line_count: 0,
+			empty: false,
+			past_eof: false,
+			deduplicated: false,
+			complete: false,
+			next_offset: 4,
+			next_column: 1
+		});
+	} finally {
+		destroy();
+	}
+});
+
 test("tool context compaction preserves provider protocol while bounding old results", () => {
 	const { runtime, destroy } = createIsolatedRuntime();
 	try {

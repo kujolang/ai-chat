@@ -7612,17 +7612,22 @@ function createLocalToolDefinitions() {
 			},
 			additionalProperties: false
 		}],
-		["local_file_read", "Read a bounded non-sensitive text file inside an exposed local workspace.", {
+		["local_file_read", "Read a line-numbered paginated window from a non-sensitive UTF-8 file. Follow next_offset and next_column exactly when truncated.", {
 			type: "object",
 			properties: {
 				root_id: { type: "string" },
 				path: { type: "string" },
-				max_chars: { type: "integer", minimum: 1000, maximum: 200000 }
+				offset: { type: "integer", minimum: 1 },
+				column: { type: "integer", minimum: 1 },
+				limit: { type: "integer", minimum: 1, maximum: 10000 },
+				max_chars: { type: "integer", minimum: 1000, maximum: 200000 },
+				max_bytes: { type: "integer", minimum: 1024, maximum: 524288 },
+				max_line_chars: { type: "integer", minimum: 100, maximum: 20000 }
 			},
 			required: ["path"],
 			additionalProperties: false
 		}],
-		["local_file_write", "Create, overwrite, or append a bounded non-sensitive text file inside an exposed local workspace. Requires server write opt-in.", {
+		["local_file_write", "Create, overwrite, or append a bounded non-sensitive text file inside an exposed local workspace. Overwrite requires a complete unchanged read in the current request. Requires server write opt-in.", {
 			type: "object",
 			properties: {
 				root_id: { type: "string" },

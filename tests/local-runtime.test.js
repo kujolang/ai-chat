@@ -29,9 +29,157 @@ test("local runtime lists and reads bounded non-sensitive workspace files", () =
 		assert.deepEqual(listed.entries.map((entry) => entry.name), ["README.md"]);
 
 		const read = runtime.readFile({ root_id: "workspace_0", path: "README.md" });
-		assert.equal(read.content, "# Hello\n");
+		assert.equal(read.content, "1\t# Hello");
+		assert.equal(read.complete, true);
+		assert.equal(read.truncated, false);
 		assert.throws(() => runtime.readFile({ root_id: "workspace_0", path: ".env" }), (error) => error.code === "local_path_sensitive");
 		assert.throws(() => runtime.readFile({ root_id: "workspace_0", path: "../README.md" }), (error) => error.code === "local_path_blocked" || error.code === "local_path_not_found");
+	} finally {
+		fs.rmSync(tempRoot, { recursive: true, force: true });
+	}
+});
+
+test("local reads expose deterministic line pagination and recovery notes", () => {
+	const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-local-"));
+	try {
+		fs.writeFileSync(path.join(tempRoot, "lines.txt"), "one\ntwo\nthree\nfour");
+		fs.writeFileSync(path.join(tempRoot, "empty.txt"), "");
+		const runtime = createLocalRuntime({ env: { AI_CHAT_LOCAL_TOOLS_ENABLED: "1", AI_CHAT_LOCAL_WORKSPACE_ROOTS: tempRoot }, homeDir: tempRoot, projectRoot: tempRoot });
+		const first = runtime.readFile({ path: "lines.txt", limit: 2 });
+		assert.equal(first.content, "1\tone\n2\ttwo");
+		assert.equal(first.truncated, true);
+		assert.equal(first.meta.truncation_reason, "line_limit");
+		assert.equal(first.next_offset, 3);
+		assert.equal(first.next_column, 1);
+		const second = runtime.readFile({ path: "lines.txt", offset: first.next_offset, column: first.next_column, limit: 2 });
+		assert.equal(second.content, "3\tthree\n4\tfour");
+		assert.equal(second.truncated, false);
+		assert.equal(second.complete, false);
+		const empty = runtime.readFile({ path: "empty.txt" });
+		assert.equal(empty.content, "");
+		assert.match(empty.note, /empty/i);
+		const eof = runtime.readFile({ path: "lines.txt", offset: 99 });
+		assert.equal(eof.content, "");
+		assert.match(eof.note, /beyond the end/i);
+		assert.equal(eof.meta.past_eof, true);
+	} finally {
+		fs.rmSync(tempRoot, { recursive: true, force: true });
+	}
+});
+
+test("local reads are Unicode safe, exact at boundaries, and strict about numeric inputs", () => {
+	const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-local-"));
+	try {
+		fs.writeFileSync(path.join(tempRoot, "exact.txt"), "x".repeat(1000));
+		fs.writeFileSync(path.join(tempRoot, "unicode.txt"), `${"a".repeat(999)}😀tail`);
+		const runtime = createLocalRuntime({ env: { AI_CHAT_LOCAL_TOOLS_ENABLED: "1", AI_CHAT_LOCAL_WORKSPACE_ROOTS: tempRoot }, homeDir: tempRoot, projectRoot: tempRoot });
+		const exact = runtime.readFile({ path: "exact.txt", max_chars: 1000, max_line_chars: 2000 });
+		assert.equal(exact.truncated, false);
+		assert.equal(exact.complete, true);
+		const unicode = runtime.readFile({ path: "unicode.txt", max_chars: 1000, max_line_chars: 2000 });
+		assert.equal(unicode.truncated, true);
+		assert.equal(unicode.next_column, 1000);
+		assert.doesNotMatch(unicode.content, /[\uD800-\uDBFF]$/);
+		assert.throws(() => runtime.readFile({ path: "exact.txt", max_chars: "2abc" }), (error) => error.code === "invalid_tool_arguments");
+		assert.throws(() => runtime.readFile({ path: "exact.txt", offset: 1.5 }), (error) => error.code === "invalid_tool_arguments");
+		assert.equal(runtime.readFile({ path: "exact.txt", max_chars: "1000" }).complete, true);
+	} finally {
+		fs.rmSync(tempRoot, { recursive: true, force: true });
+	}
+});
+
+test("local reads clamp huge lines, stream oversized files, and resume by column", () => {
+	const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-local-"));
+	try {
+		fs.writeFileSync(path.join(tempRoot, "bundle.js"), "z".repeat(600 * 1024));
+		const runtime = createLocalRuntime({ env: { AI_CHAT_LOCAL_TOOLS_ENABLED: "1", AI_CHAT_LOCAL_WORKSPACE_ROOTS: tempRoot }, homeDir: tempRoot, projectRoot: tempRoot });
+		const first = runtime.readFile({ path: "bundle.js", max_line_chars: 100, max_chars: 4000 });
+		assert.equal(first.complete, false);
+		assert.equal(first.truncated, true);
+		assert.equal(first.meta.truncation_reason, "line_character_limit");
+		assert.equal(first.next_offset, 1);
+		assert.equal(first.next_column, 101);
+		assert.ok(first.content.length < 300);
+		assert.equal(first.meta.source_bytes, 600 * 1024);
+		assert.equal(first.meta.clamped_lines[0].next_column, 101);
+		const resumed = runtime.readFile({ path: "bundle.js", column: 101, max_line_chars: 100, max_chars: 4000 });
+		assert.match(resumed.content, /^1\tz{100}/);
+	} finally {
+		fs.rmSync(tempRoot, { recursive: true, force: true });
+	}
+});
+
+test("local reads repair invisible Unicode filenames and suggest nearby names", () => {
+	const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-local-"));
+	try {
+		fs.writeFileSync(path.join(tempRoot, "Screenshot 3.04\u202fPM.txt"), "image note");
+		fs.writeFileSync(path.join(tempRoot, "AGENTS.md"), "rules");
+		const runtime = createLocalRuntime({ env: { AI_CHAT_LOCAL_TOOLS_ENABLED: "1", AI_CHAT_LOCAL_WORKSPACE_ROOTS: tempRoot }, homeDir: tempRoot, projectRoot: tempRoot });
+		assert.match(runtime.readFile({ path: "Screenshot 3.04 PM.txt" }).content, /image note/);
+		assert.throws(() => runtime.readFile({ path: "AGENT.md" }), (error) => error.code === "local_path_not_found" && /AGENTS\.md/.test(error.retry_hint));
+	} finally {
+		fs.rmSync(tempRoot, { recursive: true, force: true });
+	}
+});
+
+test("local read dedup consumes hits and overwrite ledger prevents unseen or stale writes", () => {
+	const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-local-"));
+	try {
+		const file = path.join(tempRoot, "note.md");
+		fs.writeFileSync(file, "one\ntwo\n");
+		const runtime = createLocalRuntime({ env: { AI_CHAT_LOCAL_TOOLS_ENABLED: "1", AI_CHAT_LOCAL_WRITE_ENABLED: "1", AI_CHAT_LOCAL_WORKSPACE_ROOTS: tempRoot }, homeDir: tempRoot, projectRoot: tempRoot });
+		const context = { requestState: {}, enforceReadLedger: true };
+		assert.throws(() => runtime.writeFile({ path: "note.md", content: "new", mode: "overwrite" }, context), (error) => error.code === "local_file_not_read");
+		const first = runtime.readFile({ path: "note.md" }, context);
+		assert.equal(first.complete, true);
+		const dedup = runtime.readFile({ path: "note.md" }, context);
+		assert.equal(dedup.deduplicated, true);
+		assert.equal(runtime.readFile({ path: "note.md" }, context).deduplicated, undefined);
+		const partialContext = { requestState: {}, enforceReadLedger: true };
+		assert.equal(runtime.readFile({ path: "note.md", limit: 1 }, partialContext).deduplicated, undefined);
+		assert.equal(runtime.readFile({ path: "note.md", limit: 1 }, partialContext).deduplicated, true);
+		assert.equal(runtime.readFile({ path: "note.md", limit: 1 }, partialContext).deduplicated, undefined);
+		fs.writeFileSync(file, "changed elsewhere\n");
+		assert.throws(() => runtime.writeFile({ path: "note.md", content: "new", mode: "overwrite" }, context), (error) => error.code === "local_file_changed_since_read");
+		const freshContext = { requestState: {}, enforceReadLedger: true };
+		runtime.readFile({ path: "note.md" }, freshContext);
+		assert.equal(runtime.writeFile({ path: "note.md", content: "new\n", mode: "overwrite" }, freshContext).ok, true);
+	} finally {
+		fs.rmSync(tempRoot, { recursive: true, force: true });
+	}
+});
+
+test("local reads normalize BOM and CRLF and distinguish partial overwrite state", () => {
+	const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-local-"));
+	try {
+		fs.writeFileSync(path.join(tempRoot, "windows.txt"), "\uFEFFalpha\r\nbeta\r\ngamma\r\n");
+		const runtime = createLocalRuntime({ env: { AI_CHAT_LOCAL_TOOLS_ENABLED: "1", AI_CHAT_LOCAL_WRITE_ENABLED: "1", AI_CHAT_LOCAL_WORKSPACE_ROOTS: tempRoot }, homeDir: tempRoot, projectRoot: tempRoot });
+		const context = { requestState: {}, enforceReadLedger: true };
+		const partial = runtime.readFile({ path: "windows.txt", limit: 1 }, context);
+		assert.equal(partial.content, "1\talpha");
+		assert.equal(partial.meta.truncation_reason, "line_limit");
+		assert.throws(() => runtime.writeFile({ path: "windows.txt", content: "replacement", mode: "overwrite" }, context), (error) => error.code === "local_file_partially_read" && /next_offset/.test(error.retry_hint));
+		const middle = runtime.readFile({ path: "windows.txt", offset: partial.next_offset, column: partial.next_column, limit: 1 }, context);
+		const final = runtime.readFile({ path: "windows.txt", offset: middle.next_offset, column: middle.next_column, limit: 1 }, context);
+		assert.equal(final.complete, true);
+		assert.equal(runtime.writeFile({ path: "windows.txt", content: "replacement\n", mode: "overwrite" }, context).ok, true);
+	} finally {
+		fs.rmSync(tempRoot, { recursive: true, force: true });
+	}
+});
+
+test("local reads apply byte ceilings without splitting UTF-8 and reject binary files", () => {
+	const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-local-"));
+	try {
+		fs.writeFileSync(path.join(tempRoot, "wide.txt"), "😀".repeat(600));
+		fs.writeFileSync(path.join(tempRoot, "binary.txt"), Buffer.from([65, 0, 66]));
+		const runtime = createLocalRuntime({ env: { AI_CHAT_LOCAL_TOOLS_ENABLED: "1", AI_CHAT_LOCAL_WORKSPACE_ROOTS: tempRoot }, homeDir: tempRoot, projectRoot: tempRoot });
+		const read = runtime.readFile({ path: "wide.txt", max_bytes: 1024, max_chars: 4000, max_line_chars: 2000 });
+		assert.equal(read.meta.truncation_reason, "byte_limit");
+		assert.equal(read.meta.returned_bytes, 1024);
+		assert.equal(read.next_column, 257);
+		assert.doesNotMatch(read.content, /[\uD800-\uDBFF]$/);
+		assert.throws(() => runtime.readFile({ path: "binary.txt" }), (error) => error.code === "local_file_not_readable");
 	} finally {
 		fs.rmSync(tempRoot, { recursive: true, force: true });
 	}

@@ -121,20 +121,27 @@ test("tool runtime exposes read-only skill tools when a skill runtime is connect
 });
 
 test("tool runtime exposes local tools when a local runtime is connected", async () => {
+	let readContext = null;
+	let writeContext = null;
 	const runtime = createToolRuntime({
 		localRuntime: {
 			canExecute: () => true,
 			status: () => ({ enabled: true, available: true, workspace_count: 1 }),
 			listWorkspaces: () => ({ workspaces: [{ id: "workspace_0", label: "demo" }] }),
 			listFiles: () => ({ entries: [] }),
-			readFile: () => ({ path: "README.md", content: "hi" }),
-			writeFile: () => ({ ok: true, path: "README.md" }),
+			readFile: (_args, context) => { readContext = context; return { path: "README.md", content: "hi" }; },
+			writeFile: (_args, context) => { writeContext = context; return { ok: true, path: "README.md" }; },
 			runCommand: async () => ({ command: "pwd", args: [], exit_code: 0, stdout: "", stderr: "" })
 		}
 	});
 	assert.equal(runtime.canExecute("local_workspace_list"), true);
 	assert.equal(runtime.schemas().some((schema) => schema.function.name === "local_shell"), true);
-	assert.deepEqual(await runtime.execute("local_file_read", { path: "README.md" }), { path: "README.md", content: "hi" });
+	const requestState = {};
+	assert.deepEqual(await runtime.execute("local_file_read", { path: "README.md" }, { requestState }), { path: "README.md", content: "hi" });
+	assert.equal(readContext.requestState, requestState);
+	assert.deepEqual(await runtime.execute("local_file_write", { path: "README.md", content: "new" }, { requestState }), { ok: true, path: "README.md" });
+	assert.equal(writeContext.requestState, requestState);
+	assert.equal(writeContext.enforceReadLedger, true);
 });
 
 test("tool runtime exposes action adapter tools when an action runtime is connected", async () => {

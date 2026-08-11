@@ -23,6 +23,9 @@ test("FF-RETRY-1: permanent local errors set retryable=false", () => {
 		"local_file_exists",
 		"local_file_missing",
 		"local_file_too_large",
+		"local_file_not_read",
+		"local_file_partially_read",
+		"local_file_changed_since_read",
 		"local_write_disabled",
 		"invalid_tool_arguments"
 	];
