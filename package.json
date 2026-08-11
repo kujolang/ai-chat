@@ -22,6 +22,7 @@
 		"smoke:browser": "BROWSER_EXPECTED=1 node scripts/smoke-test.js",
 		"benchmark:instance": "AI_CHAT_INSTANCE_ROLE=benchmark node server.js",
 		"benchmark:run": "node scripts/run-benchmark-suite.js",
+		"benchmark:tool-repair:fixture": "node scripts/tool-repair-fixture-benchmark.js",
 		"db:backup": "node scripts/backup-db.js",
 		"db:vacuum": "node scripts/vacuum-db.js",
 		"test:activity": "node --test tests/tool-activity-reliability.test.js",

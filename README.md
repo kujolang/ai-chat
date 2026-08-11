@@ -136,6 +136,7 @@ Use `.env.example` as your baseline and set:
 - MAX_TOOL_CALLS_PER_REQUEST
 - MAX_TOOL_CALLS_PER_ROUND
 - MAX_TOOL_CONTEXT_CHARS
+- MAX_TOOL_RESULT_BYTES
 - WEB_SEARCH_MAX_RESULTS
 - WEB_SEARCH_MAX_RESULT_BYTES
 - WEB_SEARCH_BACKEND
@@ -183,7 +184,7 @@ Use `.env.example` as your baseline and set:
 
 Offline fixture mode is supported in the bridge and smoke workflow for safe local validation without live provider credentials.
 
-Tool note: Web Search, Skill, Local, Action Adapter, and Browser presets are executable through AI Chat's provider-neutral tool runtime. `WEB_SEARCH_BACKEND=auto` prefers `SEARXNG_BASE_URL` when configured and otherwise uses an API-key-backed custom Ollama profile. Search results keep the stable `query` and `results` shape but now add canonical URLs, source domains, retrieval timestamps, optional upstream publication dates, explicit capability/policy metadata, and short read-only cache metadata for safer citations. Skill presets expose bounded read-only access to local `SKILL.md` manuals under configured skill roots, defaulting to common Codex, agent, and Claude skill folders. Local reads return 1-indexed streamed windows with line, byte, total-character, and per-line ceilings plus exact continuation coordinates; model-requested overwrite requires a complete unchanged read in the same request. Local presets expose configured workspaces through explicit file and allowlisted command tools only when `AI_CHAT_LOCAL_TOOLS_ENABLED=1`; write and shell actions each require their own opt-in. Action Adapter presets call trusted loopback services declared in a manifest so document, MCP, plugin, or workflow capabilities can be added without giving the model arbitrary system access. See `docs/LOCAL_AGENT_CAPABILITIES.md` for the full capability matrix. With `BROWSER_ENABLED=1`, the stable browser contracts use local Playwright Chromium; the model provider never selects or sees that backend. Browser schemas are not advertised when Chromium is unavailable. Custom tools still require a registered executor.
+Tool note: Web Search, Skill, Local, Action Adapter, and Browser presets are executable through AI Chat's provider-neutral tool runtime. Calls are validated unchanged first; only schema-invalid calls enter the bounded repair path for null optionals, encoded containers, scalar wrapping, canonical aliases, markdown-linked paths, safe scalar coercion, and explicit relational defaults. Repair notes are returned to the model, while health and Watchdog traces keep only per-model/per-tool counts and repair kinds—not argument values. `MAX_TOOL_RESULT_BYTES` is the final context guard after each executor's narrower native bounds. See `docs/TOOL_CALL_REPAIR.md` for the audited boundary and benchmark workflow. `WEB_SEARCH_BACKEND=auto` prefers `SEARXNG_BASE_URL` when configured and otherwise uses an API-key-backed custom Ollama profile. Search results keep the stable `query` and `results` shape but now add canonical URLs, source domains, retrieval timestamps, optional upstream publication dates, explicit capability/policy metadata, and short read-only cache metadata for safer citations. Skill presets expose bounded read-only access to local `SKILL.md` manuals under configured skill roots, defaulting to common Codex, agent, and Claude skill folders. Local reads return 1-indexed streamed windows with line, byte, total-character, and per-line ceilings plus exact continuation coordinates; model-requested overwrite requires a complete unchanged read in the same request. Local presets expose configured workspaces through explicit file and allowlisted command tools only when `AI_CHAT_LOCAL_TOOLS_ENABLED=1`; write and shell actions each require their own opt-in. Action Adapter presets call trusted loopback services declared in a manifest so document, MCP, plugin, or workflow capabilities can be added without giving the model arbitrary system access. See `docs/LOCAL_AGENT_CAPABILITIES.md` for the full capability matrix. With `BROWSER_ENABLED=1`, the stable browser contracts use local Playwright Chromium; the model provider never selects or sees that backend. Browser schemas are not advertised when Chromium is unavailable. Custom tools still require a registered executor.
 
 Security note:
 
@@ -380,7 +381,7 @@ The server forwards SSE and newline-delimited JSON incrementally, keeps the time
 
 When a model requests `web_search`, the server dispatches it through a local registry and selects the configured adapter. `auto` uses SearXNG when `SEARXNG_BASE_URL` is set, otherwise it calls `https://ollama.com/api/web_search` with the configured Ollama credential. The runtime appends the bounded result payload as a provider-compatible tool message and continues until the model produces a final response or reaches the tool budget. The stable arguments are `query`, `max_results`, optional `domains`, and optional `freshness` (`day`, `week`, `month`, or `year`).
 
-The default per-request tool budget is 2048 tool rounds and 16384 executed tool calls, configurable with `MAX_TOOL_ROUNDS` and `MAX_TOOL_CALLS_PER_REQUEST` and capped at 8192 rounds / 65536 calls. A model can request many calls at once, but AI Chat executes at most `MAX_TOOL_CALLS_PER_ROUND` (default 6), returns deferred results for the remainder, bounds each web-search payload with `WEB_SEARCH_MAX_RESULT_BYTES`, and compacts the oldest tool messages after `MAX_TOOL_CONTEXT_CHARS`. This keeps long research runs from exhausting the provider context before a final answer is produced. If the total cap is reached, the stream reports the active budget in its terminal error.
+The default per-request tool budget is 2048 tool rounds and 16384 executed tool calls, configurable with `MAX_TOOL_ROUNDS` and `MAX_TOOL_CALLS_PER_REQUEST` and capped at 8192 rounds / 65536 calls. A model can request many calls at once, but AI Chat executes at most `MAX_TOOL_CALLS_PER_ROUND` (default 6), returns deferred results for the remainder, bounds every executor result with `MAX_TOOL_RESULT_BYTES`, bounds each web-search payload more narrowly with `WEB_SEARCH_MAX_RESULT_BYTES`, and compacts the oldest tool messages after `MAX_TOOL_CONTEXT_CHARS`. This keeps long research runs from exhausting the provider context before a final answer is produced. If the total cap is reached, the stream reports the active budget in its terminal error.
 
 Long saved chats are also compacted before provider dispatch. AI Chat accepts a much larger raw transcript/body budget, then uses the configurable `CONTEXT_COMPACTION_*` settings to target an active request window around 256k characters by preserving fixed system instructions and the newest turns verbatim while replacing older turns with a structured summary block. The full transcript remains saved in SQLite even when the active provider request is compacted.
 
@@ -539,6 +540,26 @@ Unit test check:
 ```bash
 npm test
 ```
+
+Deterministic malformed-call benchmark:
+
+```bash
+npm run benchmark:tool-repair:fixture
+```
+
+For a live multi-provider Watchdog run, start a dedicated benchmark instance
+with a throwaway read-only workspace and use a pane profile containing the
+provider/model lanes:
+
+```bash
+API_AUTH_TOKEN=your_app_token npm run benchmark:run -- \
+  --tests benchmarks/tool-call-repair.md \
+  --pane-profile "Tool Repair Matrix" \
+  --tool-preset tool-repair
+```
+
+The run JSON records task completion, retries, tool repairs, provider rounds,
+input/output/total tokens, latency, and Watchdog trace ids per lane.
 
 CI gates on push/PR to `main`:
 

@@ -10,9 +10,11 @@ const { once } = require("events");
 function createTestEnv() {
 	const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-startup-"));
 	const sdkPath = path.join(tempRoot, "ai-sdk");
+	const codexModelCachePath = path.join(tempRoot, "models_cache.json");
 	fs.mkdirSync(sdkPath, { recursive: true });
 	fs.writeFileSync(path.join(sdkPath, "ai_sdk.kujo"), "# test sdk placeholder\n");
 	fs.writeFileSync(path.join(sdkPath, "providers.kujo"), "# test providers placeholder\n");
+	fs.writeFileSync(codexModelCachePath, JSON.stringify({ models: [] }));
 	return {
 		tempRoot,
 		env: {
@@ -20,6 +22,7 @@ function createTestEnv() {
 			ENCRYPTION_SECRET: "startup-test-secret",
 			API_AUTH_TOKEN: "startup-test-token",
 			AI_SDK_PATH: sdkPath,
+			CODEX_MODEL_CACHE_PATH: codexModelCachePath,
 			DB_PATH: path.join(tempRoot, "data", "test.db"),
 			DB_BACKUP_DIR: path.join(tempRoot, "backups"),
 			KUJO_BIN: "/usr/bin/false",

@@ -36,7 +36,18 @@ const run = {
 	pane_profile: paneProfileName,
 	title_prefix: titlePrefix,
 	tests: [],
-	summary: { total: 0, completed: 0, failed: 0 }
+	summary: {
+		total: 0,
+		completed: 0,
+		failed: 0,
+		retry_count: 0,
+		tool_calls_executed: 0,
+		tool_input_repairs: 0,
+		provider_rounds: 0,
+		latency_ms_total: 0,
+		latency_samples: 0,
+		token_use: { input_tokens: 0, output_tokens: 0, total_tokens: 0 }
+	}
 };
 
 void main();
@@ -96,8 +107,10 @@ async function main() {
 				const priorError = String(priorResponse.content || "").startsWith("Error:")
 					? String(priorResponse.content).slice("Error:".length).trim()
 					: null;
-				testResult.panes.push({ model: pane.model, profile_id: pane.profile_id, ok: !priorError, reused: true, error: priorError, duration_ms: null, usage: priorResponse.usage || null });
+				const reusedResult = { model: pane.model, profile_id: pane.profile_id, ok: !priorError, reused: true, error: priorError, duration_ms: null, usage: priorResponse.usage || null, attempts: 0, retry_count: 0, tool_calls_executed: 0, tool_input_repairs: 0, provider_rounds: 0 };
+				testResult.panes.push(reusedResult);
 				run.summary[priorError ? "failed" : "completed"] += 1;
+				accumulateMetrics(reusedResult);
 			} else {
 				pending.push({ ...pane, retry_message_id: priorResponse?.id || null });
 			}
@@ -106,6 +119,7 @@ async function main() {
 			const paneResult = await runPane({ chat, pane, benchmark, maxTokens, temperature });
 			testResult.panes.push(paneResult);
 			run.summary[paneResult.ok ? "completed" : "failed"] += 1;
+			accumulateMetrics(paneResult);
 			await writeRun();
 			console.log(`[${run.summary.completed + run.summary.failed}/${run.summary.total}] Test ${benchmark.number} · ${pane.model} · ${paneResult.ok ? "ok" : "failed"} · ${paneResult.duration_ms}ms`);
 		});
@@ -117,6 +131,9 @@ async function main() {
 } finally {
 	run.finished_at = new Date().toISOString();
 	run.duration_ms = Date.parse(run.finished_at) - Date.parse(run.started_at);
+	run.summary.task_completion_rate = ratio(run.summary.completed, run.summary.total);
+	run.summary.repair_rate = ratio(run.summary.tool_input_repairs, run.summary.tool_calls_executed);
+	run.summary.average_latency_ms = run.summary.latency_samples ? Math.round(run.summary.latency_ms_total / run.summary.latency_samples) : null;
 	await writeRun();
 	console.log(`Finished: ${run.finished_at}`);
 	console.log(`Duration: ${formatDuration(run.duration_ms)}`);
@@ -256,7 +273,39 @@ async function runPane({ chat, pane, benchmark, maxTokens, temperature }) {
 		} },
 		{ type: "pane_upsert", pane: { ...pane, status: "idle" } }
 	] } });
-	return { model: pane.model, profile_id: pane.profile_id, ok: result.ok, error: result.error || null, attempts, duration_ms: duration, usage: result.usage || null, tool_calls_executed: Number(result.tool_calls_executed || 0), trace_id: result.trace_id || null };
+	return {
+		model: pane.model,
+		profile_id: pane.profile_id,
+		ok: result.ok,
+		error: result.error || null,
+		attempts,
+		retry_count: Math.max(0, attempts - 1),
+		duration_ms: duration,
+		usage: result.usage || null,
+		tool_calls_executed: Number(result.tool_calls_executed || 0),
+		tool_input_repairs: Number(result.tool_input_repairs || 0),
+		provider_rounds: Number(result.provider_rounds || 0),
+		trace_id: result.trace_id || null
+	};
+}
+
+function accumulateMetrics(result) {
+	run.summary.retry_count += Number(result.retry_count || 0);
+	run.summary.tool_calls_executed += Number(result.tool_calls_executed || 0);
+	run.summary.tool_input_repairs += Number(result.tool_input_repairs || 0);
+	run.summary.provider_rounds += Number(result.provider_rounds || 0);
+	if (result.duration_ms !== null && result.duration_ms !== undefined && Number.isFinite(Number(result.duration_ms))) {
+		run.summary.latency_ms_total += Number(result.duration_ms);
+		run.summary.latency_samples += 1;
+	}
+	const usage = result.usage && typeof result.usage === "object" ? result.usage : {};
+	run.summary.token_use.input_tokens += Number(usage.input_tokens || 0);
+	run.summary.token_use.output_tokens += Number(usage.output_tokens || 0);
+	run.summary.token_use.total_tokens += Number(usage.total_tokens || 0);
+}
+
+function ratio(value, total) {
+	return total ? Number((Number(value || 0) / total).toFixed(4)) : 0;
 }
 
 function isRetryableBenchmarkError(message) {
@@ -283,7 +332,7 @@ async function streamChat(payload) {
 		let buffer = "";
 		let event = "message";
 		let lines = [];
-		const result = { ok: true, content: "", thinking: "", usage: null, provider: null, model: null, error: null, tool_calls_executed: 0, trace_id: null };
+		const result = { ok: true, content: "", thinking: "", usage: null, provider: null, model: null, error: null, tool_calls_executed: 0, tool_input_repairs: 0, provider_rounds: 0, trace_id: null };
 		const consume = (flush = false) => {
 			const parts = buffer.split(/\r?\n/);
 			buffer = flush ? "" : (parts.pop() || "");
@@ -354,6 +403,8 @@ function applyEvent(event, raw, result) {
 		result.provider = payload.provider || null;
 		result.model = payload.model || null;
 		result.tool_calls_executed = Number(payload.tool_calls_executed || 0);
+		result.tool_input_repairs = Number(payload.tool_input_repairs || 0);
+		result.provider_rounds = Number(payload.provider_rounds || 0);
 		result.trace_id = payload.trace_id || null;
 	}
 }
@@ -361,10 +412,11 @@ function applyEvent(event, raw, result) {
 function resolveBenchmarkTools(health, preset) {
 	if (!preset || preset === "none") return [];
 	const presets = {
-		"local-read": ["local_workspace_list", "local_file_list", "local_file_read"]
+		"local-read": ["local_workspace_list", "local_file_list", "local_file_read"],
+		"tool-repair": ["local_workspace_list", "local_file_list", "local_file_read"]
 	};
 	const names = presets[preset];
-	if (!names) fail(`Unknown benchmark tool preset: ${preset}. Supported: none, local-read.`);
+	if (!names) fail(`Unknown benchmark tool preset: ${preset}. Supported: none, local-read, tool-repair.`);
 	const schemas = Array.isArray(health && health.tool_runtime && health.tool_runtime.schemas)
 		? health.tool_runtime.schemas
 		: [];
