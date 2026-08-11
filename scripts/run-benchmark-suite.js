@@ -17,8 +17,10 @@ const streamTimeoutMs = Math.max(1000, Number(args.streamTimeoutMs || process.en
 const retryFailures = args.retryFailures === true || args.retryFailures === "true";
 const requiredInstanceRole = String(args.requireInstanceRole || process.env.BENCHMARK_REQUIRE_INSTANCE_ROLE || "benchmark").trim().toLowerCase();
 const allowUnsafeConcurrency = args.allowUnsafeConcurrency === true || args.allowUnsafeConcurrency === "true";
+const toolPreset = String(args.toolPreset || process.env.BENCHMARK_TOOL_PRESET || "none").trim().toLowerCase();
 let concurrency = requestedConcurrency;
 let currentPaneProfile;
+let benchmarkTools = [];
 
 if (!apiToken) fail("Missing API_AUTH_TOKEN (or --api-token).");
 if (!testFile) fail("Pass --tests <benchmark markdown file>.");
@@ -47,6 +49,7 @@ async function main() {
 		const health = await requestJson("/api/health");
 		const state = await requestJson("/api/state");
 		applyHealthGuards(health);
+		benchmarkTools = resolveBenchmarkTools(health, toolPreset);
 		const paneProfile = (state.state?.settings?.paneProfiles || []).find((profile) => profile.name === paneProfileName);
 		if (!paneProfile) fail(`Pane profile not found: ${paneProfileName}`);
 	if (!Array.isArray(paneProfile.panes) || paneProfile.panes.length === 0) fail(`Pane profile has no panes: ${paneProfileName}`);
@@ -67,6 +70,8 @@ async function main() {
 			stream_timeout_ms: streamTimeoutMs,
 			max_tokens: maxTokens,
 			pane_profile: paneProfileName,
+			tool_preset: toolPreset,
+			tool_names: benchmarkTools.map((tool) => tool.function.name),
 			output_directory: outputDirectory
 		};
 		run.summary.total = tests.length * paneProfile.panes.length;
@@ -221,7 +226,7 @@ async function runPane({ chat, pane, benchmark, maxTokens, temperature }) {
 				temperature: Number.isFinite(temperature) ? temperature : 0.2,
 				max_tokens: maxTokens,
 				messages: [{ role: "user", content: benchmark.prompt }],
-				tools: [],
+				tools: benchmarkTools,
 				benchmark: {
 					run_id: runId,
 					test_id: `${runId}-test-${String(benchmark.number).padStart(3, "0")}`,
@@ -251,7 +256,7 @@ async function runPane({ chat, pane, benchmark, maxTokens, temperature }) {
 		} },
 		{ type: "pane_upsert", pane: { ...pane, status: "idle" } }
 	] } });
-	return { model: pane.model, profile_id: pane.profile_id, ok: result.ok, error: result.error || null, attempts, duration_ms: duration, usage: result.usage || null };
+	return { model: pane.model, profile_id: pane.profile_id, ok: result.ok, error: result.error || null, attempts, duration_ms: duration, usage: result.usage || null, tool_calls_executed: Number(result.tool_calls_executed || 0), trace_id: result.trace_id || null };
 }
 
 function isRetryableBenchmarkError(message) {
@@ -278,7 +283,7 @@ async function streamChat(payload) {
 		let buffer = "";
 		let event = "message";
 		let lines = [];
-		const result = { ok: true, content: "", thinking: "", usage: null, provider: null, model: null, error: null };
+		const result = { ok: true, content: "", thinking: "", usage: null, provider: null, model: null, error: null, tool_calls_executed: 0, trace_id: null };
 		const consume = (flush = false) => {
 			const parts = buffer.split(/\r?\n/);
 			buffer = flush ? "" : (parts.pop() || "");
@@ -348,7 +353,25 @@ function applyEvent(event, raw, result) {
 		result.usage = payload.usage || null;
 		result.provider = payload.provider || null;
 		result.model = payload.model || null;
+		result.tool_calls_executed = Number(payload.tool_calls_executed || 0);
+		result.trace_id = payload.trace_id || null;
 	}
+}
+
+function resolveBenchmarkTools(health, preset) {
+	if (!preset || preset === "none") return [];
+	const presets = {
+		"local-read": ["local_workspace_list", "local_file_list", "local_file_read"]
+	};
+	const names = presets[preset];
+	if (!names) fail(`Unknown benchmark tool preset: ${preset}. Supported: none, local-read.`);
+	const schemas = Array.isArray(health && health.tool_runtime && health.tool_runtime.schemas)
+		? health.tool_runtime.schemas
+		: [];
+	const byName = new Map(schemas.map((schema) => [String(schema && schema.function && schema.function.name || ""), schema]));
+	const missing = names.filter((name) => !byName.has(name));
+	if (missing.length) fail(`Benchmark tool preset ${preset} is unavailable on the target server: ${missing.join(", ")}.`);
+	return names.map((name) => byName.get(name));
 }
 
 async function requestJson(endpoint, options = {}) {

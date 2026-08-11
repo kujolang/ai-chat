@@ -183,7 +183,7 @@ Use `.env.example` as your baseline and set:
 
 Offline fixture mode is supported in the bridge and smoke workflow for safe local validation without live provider credentials.
 
-Tool note: Web Search, Skill, Local, Action Adapter, and Browser presets are executable through AI Chat's provider-neutral tool runtime. `WEB_SEARCH_BACKEND=auto` prefers `SEARXNG_BASE_URL` when configured and otherwise uses an API-key-backed custom Ollama profile. Search results keep the stable `query` and `results` shape but now add canonical URLs, source domains, retrieval timestamps, optional upstream publication dates, explicit capability/policy metadata, and short read-only cache metadata for safer citations. Skill presets expose bounded read-only access to local `SKILL.md` manuals under configured skill roots, defaulting to common Codex, agent, and Claude skill folders. Local presets expose configured workspaces through explicit file and allowlisted command tools only when `AI_CHAT_LOCAL_TOOLS_ENABLED=1`; write and shell actions each require their own opt-in. Action Adapter presets call trusted loopback services declared in a manifest so document, MCP, plugin, or workflow capabilities can be added without giving the model arbitrary system access. See `docs/LOCAL_AGENT_CAPABILITIES.md` for the full capability matrix. With `BROWSER_ENABLED=1`, the stable browser contracts use local Playwright Chromium; the model provider never selects or sees that backend. Browser schemas are not advertised when Chromium is unavailable. Custom tools still require a registered executor.
+Tool note: Web Search, Skill, Local, Action Adapter, and Browser presets are executable through AI Chat's provider-neutral tool runtime. `WEB_SEARCH_BACKEND=auto` prefers `SEARXNG_BASE_URL` when configured and otherwise uses an API-key-backed custom Ollama profile. Search results keep the stable `query` and `results` shape but now add canonical URLs, source domains, retrieval timestamps, optional upstream publication dates, explicit capability/policy metadata, and short read-only cache metadata for safer citations. Skill presets expose bounded read-only access to local `SKILL.md` manuals under configured skill roots, defaulting to common Codex, agent, and Claude skill folders. Local reads return 1-indexed streamed windows with line, byte, total-character, and per-line ceilings plus exact continuation coordinates; model-requested overwrite requires a complete unchanged read in the same request. Local presets expose configured workspaces through explicit file and allowlisted command tools only when `AI_CHAT_LOCAL_TOOLS_ENABLED=1`; write and shell actions each require their own opt-in. Action Adapter presets call trusted loopback services declared in a manifest so document, MCP, plugin, or workflow capabilities can be added without giving the model arbitrary system access. See `docs/LOCAL_AGENT_CAPABILITIES.md` for the full capability matrix. With `BROWSER_ENABLED=1`, the stable browser contracts use local Playwright Chromium; the model provider never selects or sees that backend. Browser schemas are not advertised when Chromium is unavailable. Custom tools still require a registered executor.
 
 Security note:
 
@@ -475,6 +475,14 @@ Benchmark files may contain any positive number of tests. Use one `# TEST
 <number>: <title>` or `## TEST <number>: <title>` heading per test, followed by
 an `## Prompt` section. Test numbers should be sequential for predictable chat
 titles.
+
+To benchmark the local read harness through a tool-capable provider profile,
+start the target server with `AI_CHAT_LOCAL_TOOLS_ENABLED=1` and a throwaway
+`AI_CHAT_LOCAL_WORKSPACE_ROOTS`, then pass `--tool-preset local-read`. The runner
+loads the live `local_workspace_list`, `local_file_list`, and `local_file_read`
+schemas from `/api/health`, records tool names and executed-call counts in the
+run artifact, and fails before provider traffic if any required executor is
+unavailable.
 
 Use `--title-prefix` when benchmark chats need a sortable run identifier; the
 runner appends a three-digit test number, for example `RND005TST001`.

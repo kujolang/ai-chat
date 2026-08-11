@@ -290,8 +290,8 @@ By default, AI Chat checks common local folders: `~/.codex/skills`, `~/.agents/s
 The Local presets make skills actionable through separate permissioned executors:
 
 - `local_workspace_list` lists configured local workspace ids.
-- `local_file_list` and `local_file_read` inspect bounded non-sensitive text files.
-- `local_file_write` creates, overwrites, or appends bounded non-sensitive text files when `AI_CHAT_LOCAL_WRITE_ENABLED=1`.
+- `local_file_list` and `local_file_read` inspect line-numbered, streamed text windows bounded independently by lines, bytes, total characters, and per-line characters. Follow returned `next_offset` and `next_column` exactly.
+- `local_file_write` creates, overwrites, or appends bounded non-sensitive text files when `AI_CHAT_LOCAL_WRITE_ENABLED=1`; model-requested overwrite requires a complete unchanged read in that request.
 - `local_shell` runs one allowlisted command as executable plus args, without shell interpolation, when `AI_CHAT_LOCAL_SHELL_ENABLED=1`.
 
 Local tools are disabled by default. Set `AI_CHAT_LOCAL_TOOLS_ENABLED=1` and optionally `AI_CHAT_LOCAL_WORKSPACE_ROOTS`; if omitted, the current AI Chat project root is the only workspace. Command execution uses a sanitized environment, bounded output, command timeouts, no provider credentials, and `AI_CHAT_LOCAL_SHELL_ALLOWLIST`. See `docs/LOCAL_AGENT_CAPABILITIES.md` for the full capability map and a throwaway-workspace test command.
@@ -328,6 +328,12 @@ For dedicated benchmark servers, confirm `/api/health` reports:
 - reviewed `benchmark.max_concurrency`
 - expected `watchdog.default` and `watchdog.benchmark` endpoints
 - `watchdog.benchmark.telemetry_split_from_proxy=true` when dashboard/API traffic is intentionally separated from proxy traffic
+
+For a local-read harness benchmark, expose only a throwaway fixture workspace
+with `AI_CHAT_LOCAL_TOOLS_ENABLED=1` and `AI_CHAT_LOCAL_WORKSPACE_ROOTS`, then
+run `npm run benchmark:run -- --tool-preset local-read ...`. The runner obtains
+the three read-only local schemas from authenticated health metadata and records
+their tool-call counts and trace ids in the generated run artifact.
 
 Run smoke checks after server startup:
 

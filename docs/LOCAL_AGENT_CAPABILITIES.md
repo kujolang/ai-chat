@@ -8,8 +8,8 @@ AI Chat exposes local power through explicit provider-neutral tool contracts. Sk
 | --- | --- | --- | --- | --- |
 | Skills | `skill_list`, `skill_read`, `skill_file_read` | Enabled | Read installed `SKILL.md` manuals and referenced text files | Read-only, bounded, scoped to configured skill roots |
 | System time | `system_time` | Enabled | Return the current UTC timestamp and local timezone | Read-only; no web, filesystem, shell, or credential access |
-| Workspace files | `local_workspace_list`, `local_file_list`, `local_file_read` | Disabled | Inspect configured workspaces | Read-only, bounded, sensitive-name denylist, no absolute paths returned |
-| Workspace writes | `local_file_write` | Disabled | Create/overwrite/append bounded text files | Requires `AI_CHAT_LOCAL_WRITE_ENABLED=1`, configured workspace root, known text extensions |
+| Workspace files | `local_workspace_list`, `local_file_list`, `local_file_read` | Disabled | Inspect configured workspaces with line/column pagination | Read-only, streamed and bounded by lines/bytes/characters/per-line size, sensitive-name denylist, no absolute paths returned |
+| Workspace writes | `local_file_write` | Disabled | Create/overwrite/append bounded text files | Requires `AI_CHAT_LOCAL_WRITE_ENABLED=1`; overwrite also requires a complete unchanged read in the current request |
 | Shell | `local_shell` | Disabled | Run allowlisted local commands | Requires `AI_CHAT_LOCAL_SHELL_ENABLED=1`, no shell interpolation, args array only, sanitized environment, timeout/output limits |
 | Action adapters | `action_adapter_list`, `action_adapter_call` | Disabled | Bridge document, MCP, plugin, and workflow actions through local adapter services | Requires a manifest, loopback-only HTTP POST, structured JSON input, bounded JSON output |
 | Browser | `browser_open`, `browser_snapshot`, `browser_act`, `browser_close` | Disabled | Inspect public web pages | Existing Playwright isolation and approval policy |
@@ -89,3 +89,7 @@ Use this list when adding additional action classes:
 - Action adapters are the supported bridge for MCP/plugin/document actions. AI Chat does not broker OAuth, secrets, or plugin credentials; the local adapter service owns those concerns.
 - Shell commands are intentionally allowlisted. If a skill requires `npm`, `kujo`, or another executable, add that command to `AI_CHAT_LOCAL_SHELL_ALLOWLIST` only for a trusted workspace.
 - The tool runtime does not perform interactive command approval prompts yet. Keep write and shell switches off except in workspaces where model-initiated local actions are acceptable.
+
+## Read Continuation Contract
+
+Start at `offset=1`, `column=1`. When `truncated=true`, pass the returned `next_offset` and `next_column` unchanged to the next call. `complete=true` means the entire file was returned from its beginning; per-line clamping sets `truncated=true` and returns the exact line/column continuation both at the top level and in `meta.clamped_lines`. Empty files and offsets beyond EOF return notes rather than ambiguous silence. A repeated unchanged window may return a short consume-on-hit dedup note; retrying once returns the content again.

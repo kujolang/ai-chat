@@ -216,11 +216,15 @@ Executable local workspace contracts are:
 
 - `local_workspace_list`: `{}`
 - `local_file_list`: `{ "root_id": "workspace_0", "path": ".", "max_entries": 100 }`
-- `local_file_read`: `{ "root_id": "workspace_0", "path": "README.md", "max_chars": 64000 }`
+- `local_file_read`: `{ "root_id": "workspace_0", "path": "README.md", "offset": 1, "column": 1, "limit": 2000, "max_chars": 64000, "max_bytes": 131072, "max_line_chars": 2000 }`
 - `local_file_write`: `{ "root_id": "workspace_0", "path": "notes/example.md", "content": "...", "mode": "create|overwrite|append", "create_dirs": true }`
 - `local_shell`: `{ "root_id": "workspace_0", "cwd": ".", "command": "rg", "args": ["pattern", "README.md"], "timeout_ms": 15000 }`
 
-Local workspace tools are disabled unless `AI_CHAT_LOCAL_TOOLS_ENABLED=1`. Write and shell actions additionally require `AI_CHAT_LOCAL_WRITE_ENABLED=1` and `AI_CHAT_LOCAL_SHELL_ENABLED=1`. Shell execution uses `spawn` without shell interpolation, an args array, an allowlist from `AI_CHAT_LOCAL_SHELL_ALLOWLIST`, sanitized environment variables, timeout and output bounds, and configured workspace cwd containment. Local file tools reject path traversal, symlink escapes, sensitive filenames, oversized files, hidden dependency/runtime folders in listings, and unknown/binary file extensions.
+Local workspace tools are disabled unless `AI_CHAT_LOCAL_TOOLS_ENABLED=1`. Write and shell actions additionally require `AI_CHAT_LOCAL_WRITE_ENABLED=1` and `AI_CHAT_LOCAL_SHELL_ENABLED=1`. Shell execution uses `spawn` without shell interpolation, an args array, an allowlist from `AI_CHAT_LOCAL_SHELL_ALLOWLIST`, sanitized environment variables, timeout and output bounds, and configured workspace cwd containment.
+
+`local_file_read` returns 1-indexed line prefixes plus `complete`, `truncated`, `next_offset`, `next_column`, and bounded `meta`. It independently limits lines, returned bytes, total characters, and characters per line; streams large files without loading them whole; normalizes BOM/CRLF safely; never splits a Unicode code point; labels empty and past-EOF reads; and supplies exact continuation coordinates. Invisible macOS filename variants (NFC/NFD, narrow spaces, straight/curly quotes) are retried inside the workspace boundary before a bounded `Did you mean` hint is returned. Exact unchanged reads use consume-on-hit deduplication so a retry always recovers real content if earlier tool context was compacted.
+
+An existing file may be overwritten through the model-facing `local_file_write` only after a complete unchanged read in the same request. Partial and stale reads return distinct recovery errors. Create and append retain their existing behavior, and internal transcript export remains outside the model read ledger. Local file tools reject path traversal, symlink escapes, sensitive filenames, device/process pseudo-files, hidden dependency/runtime folders in listings, and unknown or binary file content.
 
 Executable action adapter contracts are:
 
