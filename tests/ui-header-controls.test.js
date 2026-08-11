@@ -152,10 +152,17 @@ test("sidebar chat actions fade without shifting titles and archived chats leave
 	assert.match(cssSource, /\.chat-item:hover \.chat-item-top,[\s\S]*?grid-template-columns: minmax\(0, 1fr\) 65px;/s);
 	assert.match(cssSource, /\.chat-action-more\s*\{[^}]*font: 700 16px\/12px var\(--display\);/s);
 	assert.match(appSource, /class="chat-action chat-action-more" data-action="rename"/);
-	assert.match(htmlSource, /app\.css\?v=20260731-sidebar-hover-6/);
+	assert.match(htmlSource, /app\.css\?v=20260811-select-options-1/);
 	assert.match(appSource, /function sidebarChatMatchesCurrentView\(chat\)/);
 	assert.match(appSource, /if \(state\.activeChatId === chat\.id && !sidebarChatMatchesCurrentView\(chat\)\)/);
 	assert.match(appSource, /state\.activeChatId = nextVisibleChat \? nextVisibleChat\.id : null;/);
+});
+
+test("native and enhanced select option lists use the application dark theme", () => {
+	assert.match(cssSource, /select\s*\{[^}]*color-scheme: dark;/s);
+	assert.match(cssSource, /select option,\s*select optgroup\s*\{[^}]*background-color: var\(--bg-elev\);[^}]*color: var\(--text\);/s);
+	assert.match(cssSource, /select option:checked\s*\{[^}]*background-color: #263d56;[^}]*color: #e7f5ff;/s);
+	assert.match(cssSource, /\.select2-container--default \.select2-results__option--disabled\s*\{[^}]*background: rgba\(18, 20, 23, 0\.98\);[^}]*color: var\(--text-dim\);/s);
 });
 
 test("live narration renders inside the themed thinking block", () => {

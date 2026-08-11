@@ -385,6 +385,29 @@ select,
 	font-size: 13px;
 }
 
+/* Keep native select popovers aligned with the dark UI when Select2 is not used
+   or has not initialized yet. Chromium uses color-scheme for its popup chrome,
+   while explicit option colors cover browsers that expose option styling. */
+select {
+	color-scheme: dark;
+}
+
+select option,
+select optgroup {
+	background-color: var(--bg-elev);
+	color: var(--text);
+}
+
+select option:checked {
+	background-color: #263d56;
+	color: #e7f5ff;
+}
+
+select option:disabled,
+select optgroup:disabled {
+	color: var(--text-dim);
+}
+
 .search-wrap input:focus,
 .workspace-title input:focus,
 textarea:focus,
@@ -3604,6 +3627,11 @@ textarea {
 .select2-container--default .select2-results__option--selected {
 	background: rgba(255, 255, 255, 0.06);
 	color: #dbe7f4;
+}
+
+.select2-container--default .select2-results__option--disabled {
+	background: rgba(18, 20, 23, 0.98);
+	color: var(--text-dim);
 }
 
 .project-folder-error {
