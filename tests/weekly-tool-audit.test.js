@@ -4,6 +4,7 @@ const { test } = require("node:test");
 const {
 	buildFailureInventory,
 	buildMetrics,
+	buildRepairMetrics,
 	checkThresholds,
 	formatPercent,
 	isToolEvent
@@ -62,4 +63,18 @@ test("weekly audit only accepts terminal tool events", () => {
 	assert.equal(isToolEvent({ event: "tool_failed" }), true);
 	assert.equal(isToolEvent({ event: "tool_completed" }), true);
 	assert.equal(isToolEvent({ event: "tool_activity" }), false);
+});
+
+test("weekly audit reports schema-guided tool input repairs without treating them as terminal calls", () => {
+	const repairs = buildRepairMetrics([
+		{ event: "tool_input_repaired", details: { tool_name: "local_shell", count: 2, kinds: ["json_array_parse", "integer_string_coerce"] } },
+		{ event: "tool_input_repaired", details: { tool_name: "local_shell", count: 1, kinds: ["json_array_parse"] } },
+		{ event: "tool_input_repaired", details: { tool_name: "browser_act", count: 1, kinds: ["json_object_parse"] } }
+	]);
+	assert.deepEqual(repairs, {
+		events: 3,
+		total: 4,
+		by_tool: { local_shell: 3, browser_act: 1 },
+		by_kind: { json_array_parse: 2, integer_string_coerce: 1, json_object_parse: 1 }
+	});
 });

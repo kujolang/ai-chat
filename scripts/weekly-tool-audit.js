@@ -131,9 +131,10 @@ function main() {
 	const toolEntries = windowEntries.filter((entry) => isToolEvent(entry));
 	const failedEntries = toolEntries.filter((entry) => entry.event === "tool_failed");
 	const completedEntries = toolEntries.filter((entry) => entry.event === "tool_completed");
+	const repairEntries = windowEntries.filter((entry) => entry.event === "tool_input_repaired");
 
 	// Build metrics
-	const metrics = buildMetrics(toolEntries, failedEntries, completedEntries);
+	const metrics = buildMetrics(toolEntries, failedEntries, completedEntries, repairEntries);
 
 	// Build failure inventory
 	const inventory = buildFailureInventory(failedEntries, windowStart, now);
@@ -159,6 +160,7 @@ function main() {
 	console.log(`Failed: ${failedEntries.length}`);
 	console.log(`Failure rate: ${(metrics.failure_rate * 100).toFixed(1)}%`);
 	console.log(`Failure families: ${inventory.failure_families.length}`);
+	console.log(`Tool input repairs: ${metrics.input_repairs.total}`);
 	console.log(`Threshold breaches: ${breaches.length}`);
 	console.log("");
 	console.log(`Reports written:`);
@@ -200,7 +202,7 @@ function isToolEvent(entry) {
 
 // --- Metrics ---
 
-function buildMetrics(toolEntries, failedEntries, completedEntries) {
+function buildMetrics(toolEntries, failedEntries, completedEntries, repairEntries = []) {
 	const total = toolEntries.length;
 	const failed = failedEntries.length;
 	const successful = completedEntries.length;
@@ -270,8 +272,27 @@ function buildMetrics(toolEntries, failedEntries, completedEntries) {
 		timeout_count: timeoutCount,
 		wrong_workspace_incidents: wrongWorkspaceCount,
 		incorrect_success_status: 0,
-		unique_request_ids: Object.keys(byRequest).length
+		unique_request_ids: Object.keys(byRequest).length,
+		input_repairs: buildRepairMetrics(repairEntries)
 	};
+}
+
+function buildRepairMetrics(entries) {
+	const byTool = {};
+	const byKind = {};
+	let total = 0;
+	for (const entry of Array.isArray(entries) ? entries : []) {
+		const details = entry && entry.details && typeof entry.details === "object" ? entry.details : {};
+		const tool = String(details.tool_name || "unknown");
+		const count = Math.max(0, Number(details.count || 0));
+		total += count;
+		byTool[tool] = (byTool[tool] || 0) + count;
+		for (const kind of Array.isArray(details.kinds) ? details.kinds : []) {
+			const normalized = String(kind || "").slice(0, 80);
+			if (normalized) byKind[normalized] = (byKind[normalized] || 0) + 1;
+		}
+	}
+	return { events: Array.isArray(entries) ? entries.length : 0, total, by_tool: byTool, by_kind: byKind };
 }
 
 // --- Failure Inventory ---
@@ -467,7 +488,8 @@ function buildJsonReport(metrics, inventory, breaches, windowStart, now, previou
 			failure_rate: metrics.failure_rate,
 			retry_rate: metrics.retry_rate,
 			recovery_rate: metrics.recovery_rate,
-			has_success_samples: metrics.has_success_samples
+			has_success_samples: metrics.has_success_samples,
+			input_repairs: metrics.input_repairs
 		},
 		by_tool: Object.fromEntries(
 			Object.entries(metrics.by_tool).map(([tool, counts]) => ({
@@ -514,8 +536,21 @@ function buildMarkdownReport(metrics, inventory, breaches, windowStart, now, pre
 	lines.push(`- Retry rate: ${(metrics.retry_rate * 100).toFixed(1)}%`);
 	lines.push(`- Timeout count: ${metrics.timeout_count}`);
 	lines.push(`- Unique requests with failures: ${metrics.unique_request_ids}`);
+	lines.push(`- Tool input repairs: ${metrics.input_repairs.total} across ${metrics.input_repairs.events} calls`);
 	if (!metrics.has_success_samples) {
 		lines.push("- Success coverage: unavailable in this window because the audit log does not contain any `tool_completed` events.");
+	}
+	lines.push("");
+
+	lines.push("## Tool Input Repairs");
+	lines.push("");
+	if (metrics.input_repairs.total === 0) {
+		lines.push("No schema-guided input repairs were recorded in this window.");
+	} else {
+		for (const [tool, count] of Object.entries(metrics.input_repairs.by_tool).sort((a, b) => b[1] - a[1])) lines.push(`- ${tool}: ${count}`);
+		lines.push("");
+		lines.push("Repair kinds:");
+		for (const [kind, count] of Object.entries(metrics.input_repairs.by_kind).sort((a, b) => b[1] - a[1])) lines.push(`- ${kind}: ${count}`);
 	}
 	lines.push("");
 
@@ -615,6 +650,7 @@ module.exports = {
 	ERROR_FAMILY_MAP,
 	TERMINAL_TOOL_EVENTS,
 	buildFailureInventory,
+	buildRepairMetrics,
 	buildJsonReport,
 	buildMarkdownReport,
 	buildMetrics,

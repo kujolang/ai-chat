@@ -2,6 +2,8 @@
 
 AI Chat exposes local power through explicit provider-neutral tool contracts. Skill files remain read-only context; local actions are separate capabilities that must be enabled and configured by the server owner.
 
+Every built-in contract shares the same schema boundary before execution. Valid argument values remain semantically unchanged; common finite shape errors are repaired deterministically, reported back to the model, and counted without values in telemetry. Inputs that remain invalid never reach the local, browser, search, skill, or action executor.
+
 ## Capability Map
 
 | Area | Tool contracts | Default | Purpose | Security boundary |
