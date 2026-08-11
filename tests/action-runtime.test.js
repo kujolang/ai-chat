@@ -95,3 +95,43 @@ test("action runtime rejects non-loopback URLs and adapter failures are sanitize
 		fs.rmSync(tempRoot, { recursive: true, force: true });
 	}
 });
+
+test("action runtime validates then repairs manifest-specific input schemas", async () => {
+	const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-actions-"));
+	try {
+		const manifestPath = path.join(tempRoot, "actions.json");
+		fs.writeFileSync(manifestPath, JSON.stringify({
+			adapters: [{
+				id: "batch",
+				url: "http://127.0.0.1:8787/batch",
+				input_schema: {
+					type: "object",
+					properties: {
+						files: { type: "array", items: { type: "string" }, maxItems: 5 },
+						limit: { type: "integer", minimum: 1, maximum: 100 },
+						note: { type: "string" }
+					},
+					required: ["files"],
+					additionalProperties: false
+				}
+			}]
+		}));
+		let body = null;
+		let repairs = null;
+		const runtime = createActionRuntime({
+			env: { AI_CHAT_ACTIONS_ENABLED: "1", AI_CHAT_ACTION_MANIFEST_PATH: manifestPath },
+			fetchFn: async (_url, options) => { body = JSON.parse(options.body); return jsonResponse({ ok: true }); }
+		});
+		await runtime.call({ id: "batch", input: { files: '["a.md","b.md"]', limit: "20", note: null } }, {
+			reportInputRepairs(entries) { repairs = entries; }
+		});
+		assert.deepEqual(body, { input: { files: ["a.md", "b.md"], limit: 20 } });
+		assert.deepEqual(repairs.map((entry) => entry.kind), ["json_array_parse", "integer_string_coerce", "optional_null_omit"]);
+		await assert.rejects(
+			() => runtime.call({ id: "batch", input: { files: [], limit: "2abc" } }),
+			(error) => error.code === "invalid_tool_arguments" && /\$\.input\.limit expected integer/.test(error.message)
+		);
+	} finally {
+		fs.rmSync(tempRoot, { recursive: true, force: true });
+	}
+});
