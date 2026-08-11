@@ -227,6 +227,8 @@ Local workspace tools are disabled unless `AI_CHAT_LOCAL_TOOLS_ENABLED=1`. Write
 
 An existing file may be overwritten through the model-facing `local_file_write` only after a complete unchanged read in the same request. Partial and stale reads return distinct recovery errors. Create and append retain their existing behavior, and internal transcript export remains outside the model read ledger. Local file tools reject path traversal, symlink escapes, sensitive filenames, device/process pseudo-files, hidden dependency/runtime folders in listings, and unknown or binary file content.
 
+`local_file_write` applies its byte ceiling to the resulting file, including existing bytes during append, and `overwrite` never creates a missing target. `local_shell` preserves argument strings exactly, shares one output-character budget across stdout/stderr, sets `truncated` only when content is actually omitted, returns `exit_code: null` for externally signaled processes, and returns `local_shell_aborted` when request cancellation terminates the command.
+
 Executable action adapter contracts are:
 
 - `action_adapter_list`: `{}`

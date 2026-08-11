@@ -3,8 +3,24 @@ const { test } = require("node:test");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
+const { EventEmitter } = require("events");
+const { PassThrough } = require("stream");
 
 const { createLocalRuntime } = require("../lib/local-runtime");
+
+function fakeChild(run) {
+	const child = new EventEmitter();
+	child.stdout = new PassThrough();
+	child.stderr = new PassThrough();
+	child.kills = [];
+	child.kill = (signal) => {
+		child.kills.push(signal);
+		queueMicrotask(() => child.emit("close", null, signal));
+		return true;
+	};
+	queueMicrotask(() => run(child));
+	return child;
+}
 
 test("local runtime lists and reads bounded non-sensitive workspace files", () => {
 	const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-local-"));
@@ -34,6 +50,24 @@ test("local runtime lists and reads bounded non-sensitive workspace files", () =
 		assert.equal(read.truncated, false);
 		assert.throws(() => runtime.readFile({ root_id: "workspace_0", path: ".env" }), (error) => error.code === "local_path_sensitive");
 		assert.throws(() => runtime.readFile({ root_id: "workspace_0", path: "../README.md" }), (error) => error.code === "local_path_blocked" || error.code === "local_path_not_found");
+	} finally {
+		fs.rmSync(tempRoot, { recursive: true, force: true });
+	}
+});
+
+test("local file listing reports truncation only when eligible entries remain", () => {
+	const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-local-"));
+	try {
+		fs.writeFileSync(path.join(tempRoot, "one.md"), "one");
+		fs.writeFileSync(path.join(tempRoot, "two.md"), "two");
+		const runtime = createLocalRuntime({
+			env: { AI_CHAT_LOCAL_TOOLS_ENABLED: "1", AI_CHAT_LOCAL_WORKSPACE_ROOTS: tempRoot, AI_CHAT_LOCAL_MAX_ENTRIES: "2" },
+			homeDir: tempRoot,
+			projectRoot: tempRoot
+		});
+		assert.equal(runtime.listFiles({ max_entries: 2 }).truncated, false);
+		fs.writeFileSync(path.join(tempRoot, "three.md"), "three");
+		assert.equal(runtime.listFiles({ max_entries: 2 }).truncated, true);
 	} finally {
 		fs.rmSync(tempRoot, { recursive: true, force: true });
 	}
@@ -216,6 +250,63 @@ test("local runtime writes only when enabled and blocks sensitive paths", () => 
 	}
 });
 
+test("local writes block symlink escapes from existing targets and parent directories", { skip: process.platform === "win32" }, () => {
+	const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-local-"));
+	const outside = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-outside-"));
+	try {
+		fs.writeFileSync(path.join(outside, "target.md"), "outside");
+		fs.symlinkSync(path.join(outside, "target.md"), path.join(tempRoot, "linked.md"));
+		fs.symlinkSync(outside, path.join(tempRoot, "linked-dir"));
+		const runtime = createLocalRuntime({
+			env: { AI_CHAT_LOCAL_TOOLS_ENABLED: "1", AI_CHAT_LOCAL_WRITE_ENABLED: "1", AI_CHAT_LOCAL_WORKSPACE_ROOTS: tempRoot },
+			homeDir: tempRoot,
+			projectRoot: tempRoot
+		});
+		assert.throws(() => runtime.writeFile({ path: "linked.md", content: "changed", mode: "overwrite" }), (error) => error.code === "local_path_blocked");
+		assert.throws(() => runtime.writeFile({ path: "linked-dir/new.md", content: "changed", create_dirs: true }), (error) => error.code === "local_path_blocked");
+		assert.equal(fs.readFileSync(path.join(outside, "target.md"), "utf8"), "outside");
+		assert.equal(fs.existsSync(path.join(outside, "new.md")), false);
+	} finally {
+		fs.rmSync(tempRoot, { recursive: true, force: true });
+		fs.rmSync(outside, { recursive: true, force: true });
+	}
+});
+
+test("local appends enforce the resulting file-size ceiling", () => {
+	const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-local-"));
+	try {
+		const file = path.join(tempRoot, "large.txt");
+		fs.writeFileSync(file, "a".repeat(512 * 1024));
+		const runtime = createLocalRuntime({
+			env: { AI_CHAT_LOCAL_TOOLS_ENABLED: "1", AI_CHAT_LOCAL_WRITE_ENABLED: "1", AI_CHAT_LOCAL_WORKSPACE_ROOTS: tempRoot },
+			homeDir: tempRoot,
+			projectRoot: tempRoot
+		});
+		assert.throws(() => runtime.writeFile({ path: "large.txt", content: "b", mode: "append" }), (error) => error.code === "local_file_too_large");
+		assert.equal(fs.statSync(file).size, 512 * 1024);
+	} finally {
+		fs.rmSync(tempRoot, { recursive: true, force: true });
+	}
+});
+
+test("overwrite mode never creates a missing file through create_dirs", () => {
+	const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-local-"));
+	try {
+		const runtime = createLocalRuntime({
+			env: { AI_CHAT_LOCAL_TOOLS_ENABLED: "1", AI_CHAT_LOCAL_WRITE_ENABLED: "1", AI_CHAT_LOCAL_WORKSPACE_ROOTS: tempRoot },
+			homeDir: tempRoot,
+			projectRoot: tempRoot
+		});
+		assert.throws(
+			() => runtime.writeFile({ path: "nested/missing.md", content: "new", mode: "overwrite", create_dirs: true }),
+			(error) => error.code === "local_file_missing"
+		);
+		assert.equal(fs.existsSync(path.join(tempRoot, "nested", "missing.md")), false);
+	} finally {
+		fs.rmSync(tempRoot, { recursive: true, force: true });
+	}
+});
+
 test("local shell uses allowlisted commands without shell interpolation", async () => {
 	const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-local-"));
 	try {
@@ -234,6 +325,83 @@ test("local shell uses allowlisted commands without shell interpolation", async 
 		assert.equal(result.exit_code, 0);
 		assert.match(result.stdout, /needle/);
 		await assert.rejects(() => runtime.runCommand({ command: "node", args: ["-e", "console.log(1)"] }), (error) => error.code === "local_shell_command_blocked");
+	} finally {
+		fs.rmSync(tempRoot, { recursive: true, force: true });
+	}
+});
+
+test("local shell preserves argument whitespace exactly", async () => {
+	const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-local-"));
+	let observedArgs = null;
+	try {
+		const runtime = createLocalRuntime({
+			env: { AI_CHAT_LOCAL_TOOLS_ENABLED: "1", AI_CHAT_LOCAL_SHELL_ENABLED: "1", AI_CHAT_LOCAL_SHELL_ALLOWLIST: "rg", AI_CHAT_LOCAL_WORKSPACE_ROOTS: tempRoot },
+			homeDir: tempRoot,
+			projectRoot: tempRoot,
+			spawnFn: (_command, args) => {
+				observedArgs = args;
+				return fakeChild((child) => child.emit("close", 0, null));
+			}
+		});
+		await runtime.runCommand({ command: "rg", args: ["a  b", " leading "] });
+		assert.deepEqual(observedArgs, ["a  b", " leading "]);
+	} finally {
+		fs.rmSync(tempRoot, { recursive: true, force: true });
+	}
+});
+
+test("local shell cancellation rejects instead of reporting a successful signaled exit", async () => {
+	const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-local-"));
+	try {
+		let child;
+		const runtime = createLocalRuntime({
+			env: { AI_CHAT_LOCAL_TOOLS_ENABLED: "1", AI_CHAT_LOCAL_SHELL_ENABLED: "1", AI_CHAT_LOCAL_SHELL_ALLOWLIST: "pwd", AI_CHAT_LOCAL_WORKSPACE_ROOTS: tempRoot },
+			homeDir: tempRoot,
+			projectRoot: tempRoot,
+			spawnFn: () => { child = fakeChild(() => {}); return child; }
+		});
+		const controller = new AbortController();
+		const pending = runtime.runCommand({ command: "pwd", args: [] }, { signal: controller.signal });
+		controller.abort();
+		await assert.rejects(pending, (error) => error.code === "local_shell_aborted");
+		assert.deepEqual(child.kills, ["SIGTERM"]);
+	} finally {
+		fs.rmSync(tempRoot, { recursive: true, force: true });
+	}
+});
+
+test("local shell preserves null exit codes for externally signaled processes", async () => {
+	const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-local-"));
+	try {
+		const runtime = createLocalRuntime({
+			env: { AI_CHAT_LOCAL_TOOLS_ENABLED: "1", AI_CHAT_LOCAL_SHELL_ENABLED: "1", AI_CHAT_LOCAL_SHELL_ALLOWLIST: "pwd", AI_CHAT_LOCAL_WORKSPACE_ROOTS: tempRoot },
+			homeDir: tempRoot,
+			projectRoot: tempRoot,
+			spawnFn: () => fakeChild((child) => child.emit("close", null, "SIGTERM"))
+		});
+		const result = await runtime.runCommand({ command: "pwd", args: [] });
+		assert.equal(result.exit_code, null);
+		assert.equal(result.signal, "SIGTERM");
+	} finally {
+		fs.rmSync(tempRoot, { recursive: true, force: true });
+	}
+});
+
+test("local shell marks output truncated only after content exceeds the shared ceiling", async () => {
+	const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-local-"));
+	try {
+		const makeRuntime = (output) => createLocalRuntime({
+			env: { AI_CHAT_LOCAL_TOOLS_ENABLED: "1", AI_CHAT_LOCAL_SHELL_ENABLED: "1", AI_CHAT_LOCAL_SHELL_ALLOWLIST: "pwd", AI_CHAT_LOCAL_WORKSPACE_ROOTS: tempRoot, AI_CHAT_LOCAL_MAX_OUTPUT_CHARS: "1000" },
+			homeDir: tempRoot,
+			projectRoot: tempRoot,
+			spawnFn: () => fakeChild((child) => { child.stdout.write(output); child.stdout.end(); child.emit("close", 0, null); })
+		});
+		const exact = await makeRuntime("x".repeat(1000)).runCommand({ command: "pwd", args: [] });
+		assert.equal(exact.stdout.length, 1000);
+		assert.equal(exact.truncated, false);
+		const overflow = await makeRuntime("x".repeat(1001)).runCommand({ command: "pwd", args: [] });
+		assert.equal(overflow.stdout.length, 1000);
+		assert.equal(overflow.truncated, true);
 	} finally {
 		fs.rmSync(tempRoot, { recursive: true, force: true });
 	}
