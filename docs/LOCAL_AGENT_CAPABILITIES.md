@@ -4,6 +4,8 @@ AI Chat exposes local power through explicit provider-neutral tool contracts. Sk
 
 Every built-in contract shares the same schema boundary before execution. Valid argument values remain semantically unchanged; common finite shape errors are repaired deterministically, reported back to the model, and counted without values in telemetry. Inputs that remain invalid never reach the local, browser, search, skill, or action executor.
 
+Skill reads reject binary or invalid UTF-8 content even when it uses a text extension. Character limits preserve complete Unicode code points, and `truncated` means additional content actually exists beyond the returned window.
+
 ## Capability Map
 
 | Area | Tool contracts | Default | Purpose | Security boundary |

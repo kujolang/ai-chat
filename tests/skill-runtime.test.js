@@ -54,6 +54,41 @@ test("skill runtime discovers configured roots and reads bounded skill files", (
 	}
 });
 
+test("skill reads distinguish exact limits from truncation and preserve Unicode code points", () => {
+	const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-skills-"));
+	try {
+		makeSkill(tempRoot, "exact", "x".repeat(1000), {
+			"references/unicode.md": "😀".repeat(1001)
+		});
+		const runtime = createSkillRuntime({
+			env: { AI_CHAT_SKILL_ROOTS: tempRoot, AI_CHAT_SKILLS_MAX_READ_CHARS: "1000" },
+			homeDir: tempRoot
+		});
+		const id = runtime.list().skills[0].id;
+		const exact = runtime.read({ id });
+		assert.equal(exact.content.length, 1000);
+		assert.equal(exact.truncated, false);
+		const unicode = runtime.readFile({ id, path: "references/unicode.md", max_chars: 1000 });
+		assert.equal(Array.from(unicode.content).length, 1000);
+		assert.equal(unicode.truncated, true);
+		assert.doesNotMatch(unicode.content, /[\uD800-\uDBFF]$/);
+	} finally {
+		fs.rmSync(tempRoot, { recursive: true, force: true });
+	}
+});
+
+test("skill reads reject binary content disguised with a text extension", () => {
+	const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-skills-"));
+	try {
+		makeSkill(tempRoot, "binary", "# Binary\n", { "references/payload.md": Buffer.from([65, 0, 66]) });
+		const runtime = createSkillRuntime({ env: { AI_CHAT_SKILL_ROOTS: tempRoot }, homeDir: tempRoot });
+		const id = runtime.list().skills[0].id;
+		assert.throws(() => runtime.readFile({ id, path: "references/payload.md" }), (error) => error.code === "skill_file_not_readable");
+	} finally {
+		fs.rmSync(tempRoot, { recursive: true, force: true });
+	}
+});
+
 test("skill runtime follows symlinked skill directories", () => {
 	const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-skills-"));
 	const externalRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-external-skills-"));
