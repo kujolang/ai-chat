@@ -122,14 +122,15 @@ test("action runtime validates then repairs manifest-specific input schemas", as
 			env: { AI_CHAT_ACTIONS_ENABLED: "1", AI_CHAT_ACTION_MANIFEST_PATH: manifestPath },
 			fetchFn: async (_url, options) => { body = JSON.parse(options.body); return jsonResponse({ ok: true }); }
 		});
-		await runtime.call({ id: "batch", input: { files: '["a.md","b.md"]', limit: "20", note: null } }, {
-			reportInputRepairs(entries) { repairs = entries; }
+		const result = await runtime.call({ id: "batch", input: { files: '["a.md","b.md"]', limit: "20", note: null } }, {
+			onToolInputRepair(metadata) { repairs = metadata; }
 		});
 		assert.deepEqual(body, { input: { files: ["a.md", "b.md"], limit: 20 } });
-		assert.deepEqual(repairs.map((entry) => entry.kind), ["json_array_parse", "integer_string_coerce", "optional_null_omit"]);
+		assert.deepEqual(repairs.repair_types, ["stringified_array", "numeric_coercion", "null_optional"]);
+		assert.deepEqual(result.action_input_repair, repairs);
 		await assert.rejects(
 			() => runtime.call({ id: "batch", input: { files: [], limit: "2abc" } }),
-			(error) => error.code === "invalid_tool_arguments" && /\$\.input\.limit expected integer/.test(error.message)
+			(error) => error.code === "invalid_tool_arguments" && /\$\.limit: expected integer/.test(error.message)
 		);
 	} finally {
 		fs.rmSync(tempRoot, { recursive: true, force: true });

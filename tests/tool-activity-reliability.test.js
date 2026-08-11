@@ -360,6 +360,71 @@ test("Successful tool execution writes a tool_completed audit entry", async () =
 	}
 });
 
+test("streaming repairs malformed calls, surfaces notes, and exposes value-free model/tool telemetry", async () => {
+	let providerRound = 0;
+	let continuationBody = null;
+	let observedArguments = null;
+	const { runtime, destroy } = createIsolatedRuntime({
+		envMerge: { ALLOWED_CUSTOM_PROVIDER_HOSTS: "ollama.com" },
+		fetchFn: async (url, options) => {
+			if (!String(url).includes("/api/chat")) return mockSseResponse([{ choices: [{ delta: { content: "fallback" }, finish_reason: "stop" }] }]);
+			providerRound += 1;
+			if (providerRound === 1) {
+				return mockSseResponse([
+					{ choices: [{ delta: { tool_calls: [{ index: 0, id: "repair-call", function: {
+						name: "local_file_read",
+						arguments: JSON.stringify({ filePath: "[README.md](http://README.md)", limit: "10", offset: null })
+					} }] }, finish_reason: null }] },
+					{ choices: [{ delta: {}, finish_reason: "tool_calls" }] }
+				]);
+			}
+			continuationBody = JSON.parse(options.body);
+			return mockSseResponse([{ choices: [{ delta: { content: "Repair handled." }, finish_reason: "stop" }] }]);
+		},
+		localRuntime: mockLocalRuntime((args) => {
+			observedArguments = args;
+			return { path: args.path, content: "sensitive-result-value", complete: true };
+		})
+	});
+	try {
+		const profileId = applyProfileMutation(runtime, (profile) => {
+			profile.provider_id = "custom";
+			profile.base_url = "https://ollama.com/v1";
+			profile.api_key = "ollama-key";
+		});
+		await withServer(runtime.app, async (baseUrl) => {
+			const response = await fetch(`${baseUrl}/api/chat/stream`, {
+				method: "POST",
+				headers: withAuthHeaders({ "Content-Type": "application/json" }),
+				body: JSON.stringify({
+					profile_id: profileId,
+					model: "fixture-model",
+					messages: [{ role: "user", content: "read README.md" }],
+					tools: [{ type: "function", function: { name: "local_file_read", parameters: { type: "object" } } }]
+				})
+			});
+			const events = parseSseEvents(await response.text());
+			const done = events.find((entry) => entry.event === "done");
+			assert.equal(done.data.tool_input_repairs, 1);
+			assert.equal(done.data.provider_rounds, 2);
+
+			const healthResponse = await fetch(`${baseUrl}/api/health`, { headers: withAuthHeaders() });
+			const health = await healthResponse.json();
+			const row = health.tool_runtime.repairs.models.find((entry) => entry.model === "fixture-model" && entry.tool_name === "local_file_read");
+			assert.equal(row.repaired_calls, 1);
+			assert.equal(JSON.stringify(row).includes("sensitive-result-value"), false);
+		});
+
+		assert.deepEqual(observedArguments, { path: "README.md", limit: 10, offset: 1 });
+		const toolMessage = continuationBody.messages.find((message) => message.role === "tool");
+		const toolResult = JSON.parse(toolMessage.content);
+		assert.equal(toolResult.tool_input_repair.repaired, true);
+		assert.ok(toolResult.tool_input_repair.repair_types.includes("relational_default"));
+	} finally {
+		destroy();
+	}
+});
+
 // ── Integration: unknown error code produces empty error_reason ───────────────
 
 test("SSE tool failed event with unknown error code produces empty error_reason", async () => {

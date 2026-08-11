@@ -49,6 +49,7 @@ Copy values from `.env.example` and define these variables in your shell or envi
 - MAX_TOOL_CALLS_PER_REQUEST
 - MAX_TOOL_CALLS_PER_ROUND
 - MAX_TOOL_CONTEXT_CHARS
+- MAX_TOOL_RESULT_BYTES
 - WEB_SEARCH_MAX_RESULTS
 - WEB_SEARCH_MAX_RESULT_BYTES
 - AI_CHAT_SKILLS_ENABLED
@@ -113,6 +114,7 @@ MAX_TOOL_ROUNDS=2048
 MAX_TOOL_CALLS_PER_REQUEST=16384
 MAX_TOOL_CALLS_PER_ROUND=6
 MAX_TOOL_CONTEXT_CHARS=262144
+MAX_TOOL_RESULT_BYTES=262144
 MAX_MESSAGE_CHARS=1000000
 MAX_TOTAL_MESSAGE_CHARS=4000000
 CONTEXT_COMPACTION_ENABLED=1
@@ -275,9 +277,9 @@ Open Automations from the sidebar, create a title and prompt, choose a provider/
 
 Tool cards in Settings can be reordered by dragging their handles and collapsed with their chevrons. The saved order is used when the enabled tool definitions are sent with a request.
 
-All executable built-in tools use a provider-neutral validate-then-repair boundary. Valid calls are untouched; a bounded set of common model serialization mistakes is repaired against the advertised schema, while ambiguous or still-invalid input is returned to the model with retry guidance. Repair telemetry contains field paths and repair kinds, never argument values, and appears in weekly tool-audit output.
-
 The Web Search preset is executable through AI Chat's provider-neutral tool runtime. For the local-first path, run SearXNG with JSON output enabled and set `SEARXNG_BASE_URL` (loopback HTTP or HTTPS). With `WEB_SEARCH_BACKEND=auto`, AI Chat prefers that adapter; without it, the runtime uses the API key from a custom Ollama profile and Ollama Web Search. You can force `searxng` or `ollama` with `WEB_SEARCH_BACKEND`. The active chat provider only requests `web_search`; it never selects the backend.
+
+All executable calls use validate-then-repair: valid inputs pass through untouched, while schema-invalid inputs receive only bounded schema-directed repairs. The result includes a value-free repair note for model self-correction. Per-model/per-tool repair telemetry records counts and repair kinds without argument values. `MAX_TOOL_RESULT_BYTES` rejects any executor result that exceeds the shared context boundary; executor-specific limits remain narrower where configured.
 
 Search calls accept `query`, `max_results`, optional `domains`, and optional `freshness`; common aliases such as `past_month` normalize to the stable freshness values. Calls are bounded by `MAX_TOOL_ROUNDS`, `MAX_TOOL_CALLS_PER_REQUEST`, `MAX_TOOL_CALLS_PER_ROUND`, and `WEB_SEARCH_MAX_RESULTS`. Results keep the existing `query` plus `results` contract while adding canonical URLs, source domains, retrieval timestamps, optional upstream publication dates, backend capability metadata, and short TTL cache metadata. `WEB_SEARCH_MAX_RESULT_BYTES` bounds each result payload, while `MAX_TOOL_CONTEXT_CHARS` compacts the oldest tool messages during long research runs. `WEB_SEARCH_TIMEOUT_MS`, `WEB_SEARCH_CACHE_TTL_MS`, and `WEB_SEARCH_CACHE_MAX_ENTRIES` bound latency and repeated identical lookups without logging queries/snippets in default telemetry mode. Results return to the model as provider-compatible tool messages so it can produce the final answer.
 

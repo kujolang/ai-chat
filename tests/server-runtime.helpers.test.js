@@ -625,7 +625,6 @@ test("local read telemetry is bounded and records recovery metadata without path
 		assert.equal(argumentsSummary.column, 4);
 		const resultSummary = runtime.helpers.summarizeToolResult("local_file_read", {
 			content: "3\tline",
-			input_repairs: [{ path: "$.offset", kind: "integer_string_coerce" }],
 			truncated: true,
 			complete: false,
 			next_offset: 4,
@@ -646,11 +645,6 @@ test("local read telemetry is bounded and records recovery metadata without path
 			complete: false,
 			next_offset: 4,
 			next_column: 1
-		});
-		assert.deepEqual(resultSummary.input_repairs, {
-			count: 1,
-			kinds: ["integer_string_coerce"],
-			paths: ["$.offset"]
 		});
 	} finally {
 		destroy();
@@ -745,7 +739,7 @@ test("executeWebSearchTool validates arguments and bounds Ollama results", async
 		assert.equal(result.results[0].content, "Evidence");
 		await assert.rejects(
 			() => runtime.helpers.executeWebSearchTool({}, "key", new AbortController().signal),
-			/query expected required field/
+			/query must contain/
 		);
 	} finally {
 		destroy();
