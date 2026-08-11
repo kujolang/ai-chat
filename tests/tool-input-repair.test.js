@@ -78,6 +78,17 @@ test("adversarial multi-provider fixtures repair to the advertised schemas", () 
 	}
 });
 
+test("web search recency_days remains reachable through its advertised schema and camelCase alias", () => {
+	const prepared = validateThenRepairToolCall({
+		name: "web_search",
+		input: { query: "recent agent news", recencyDays: "7" },
+		schema: schemaByName.get("web_search"),
+		canExecute: () => true
+	});
+	assert.deepEqual(prepared.input, { query: "recent agent news", recency_days: 7 });
+	assert.deepEqual(prepared.repair_types, ["canonical_alias", "numeric_coercion"]);
+});
+
 test("repairs are surfaced and telemetry records only model/tool counters", async () => {
 	let observed;
 	const runtime = createToolRuntime({
