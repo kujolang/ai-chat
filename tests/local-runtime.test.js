@@ -156,6 +156,41 @@ test("local reads repair invisible Unicode filenames and suggest nearby names", 
 	}
 });
 
+test("local file paths preserve repeated spaces exactly", () => {
+	const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-local-"));
+	try {
+		fs.writeFileSync(path.join(tempRoot, "two  spaces.txt"), "exact path");
+		const runtime = createLocalRuntime({
+			projectRoot: tempRoot,
+			env: {
+				AI_CHAT_LOCAL_TOOLS_ENABLED: "1",
+				AI_CHAT_LOCAL_WRITE_ENABLED: "1",
+				AI_CHAT_LOCAL_WORKSPACE_ROOTS: tempRoot
+			}
+		});
+
+		assert.match(runtime.readFile({ path: "two  spaces.txt" }).content, /exact path/);
+		runtime.writeFile({ path: "new  note.md", content: "created", mode: "create" });
+		assert.equal(fs.readFileSync(path.join(tempRoot, "new  note.md"), "utf8"), "created");
+		assert.equal(fs.existsSync(path.join(tempRoot, "new note.md")), false);
+
+		const firstDir = "a".repeat(200);
+		const secondDir = "b".repeat(200);
+		const targetName = `${"c".repeat(95)}.md`;
+		const targetPath = `${firstDir}/${secondDir}/${targetName}`;
+		fs.mkdirSync(path.join(tempRoot, firstDir, secondDir), { recursive: true });
+		fs.writeFileSync(path.join(tempRoot, targetPath), "unchanged");
+		assert.equal(targetPath.length, 500);
+		assert.throws(
+			() => runtime.writeFile({ path: `${targetPath}-different`, content: "wrong target", mode: "overwrite" }),
+			(error) => error.code === "invalid_tool_arguments"
+		);
+		assert.equal(fs.readFileSync(path.join(tempRoot, targetPath), "utf8"), "unchanged");
+	} finally {
+		fs.rmSync(tempRoot, { recursive: true, force: true });
+	}
+});
+
 test("local read dedup consumes hits and overwrite ledger prevents unseen or stale writes", () => {
 	const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-local-"));
 	try {
