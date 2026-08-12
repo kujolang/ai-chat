@@ -237,6 +237,34 @@ test("web search enforces timeout and cancellation with sanitized errors", async
 	await assert.rejects(() => promise, (error) => error.code === "web_search_aborted");
 });
 
+test("cancelling one web search does not cancel an identical concurrent caller", async () => {
+	let calls = 0;
+	const runtime = createToolRuntime({
+		searchBackend: "searxng",
+		searxngBaseUrl: "http://127.0.0.1:8080",
+		searchRetryCount: 0,
+		fetchFn: async (_url, options) => {
+			calls += 1;
+			return new Promise((resolve, reject) => {
+				const timer = setTimeout(() => resolve(jsonResponse({ results: [] })), 30);
+				options.signal.addEventListener("abort", () => {
+					clearTimeout(timer);
+					reject(Object.assign(new Error("aborted"), { name: "AbortError" }));
+				}, { once: true });
+			});
+		}
+	});
+	const controller = new AbortController();
+	const cancelled = runtime.execute("web_search", { query: "shared cancellation" }, { signal: controller.signal });
+	const independent = runtime.execute("web_search", { query: "shared cancellation" });
+	controller.abort();
+
+	await assert.rejects(() => cancelled, (error) => error.code === "web_search_aborted");
+	const result = await independent;
+	assert.equal(result.query, "shared cancellation");
+	assert.equal(calls, 1);
+});
+
 test("canonicalizeResultUrl strips hashes, rejects unsafe schemes, and removes credentials", () => {
 	assert.equal(canonicalizeResultUrl("https://example.com/path#hash").url, "https://example.com/path");
 	assert.equal(canonicalizeResultUrl("https://user:pass@example.com/private"), null);
