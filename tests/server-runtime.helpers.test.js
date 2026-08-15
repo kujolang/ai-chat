@@ -460,8 +460,12 @@ test("chatRequestPayload applies defaults and validates normalized messages", ()
 		assert.equal(payload.offline_fixture, false);
 		assert.equal(payload.messages.length, 2);
 		assert.match(payload.messages[0].content, /Never run an `rm` command/);
+		assert.match(payload.messages[0].content, /Use `system_time`/);
+		assert.match(payload.messages[0].content, /Use `web_search`/);
+		assert.match(payload.messages[0].content, /use `skill_list`/);
+		assert.ok(payload.messages[0].content.length < 4000);
 		assert.equal(payload.messages.at(-1).content, "hi");
-		assert.deepEqual(payload.tools, []);
+		assert.deepEqual(payload.tools.map((tool) => tool.function.name), ["system_time"]);
 		assert.equal(runtime.helpers.chatRequestPayload({ messages: [{ role: "user", content: "x".repeat(120001) }] }, {}).messages.at(-1).content.length, 120001);
 		const personalized = runtime.helpers.chatRequestPayload({ user_name: "  Robert\nDeVore ", messages: [{ role: "user", content: "hi" }] }, {});
 		assert.match(personalized.messages[1].content, /preferred name is "Robert DeVore"/);
@@ -473,12 +477,12 @@ test("chatRequestPayload applies defaults and validates normalized messages", ()
 			messages: [{ role: "user", content: "hi" }],
 			tools: [{ type: "function", function: { name: "browser-use", description: "Browse", parameters: { type: "object" } } }]
 		}, {});
-		assert.equal(withTool.tools[0].function.name, "browser-use");
+		assert.ok(withTool.tools.some((tool) => tool.function.name === "browser-use"));
 		const unavailableBrowser = runtime.helpers.chatRequestPayload({
 			messages: [{ role: "user", content: "hi" }],
 			tools: [{ type: "function", function: { name: "browser_open", parameters: {} } }]
 		}, {});
-		assert.deepEqual(unavailableBrowser.tools, []);
+		assert.deepEqual(unavailableBrowser.tools.map((tool) => tool.function.name), ["system_time"]);
 		const duplicateTools = runtime.helpers.chatRequestPayload({
 			messages: [{ role: "user", content: "hi" }],
 			tools: [
@@ -486,7 +490,7 @@ test("chatRequestPayload applies defaults and validates normalized messages", ()
 				{ type: "function", function: { name: "same", parameters: {} } }
 			]
 		}, {});
-		assert.equal(duplicateTools.tools.length, 1);
+		assert.equal(duplicateTools.tools.filter((tool) => tool.function.name === "same").length, 1);
 		assert.throws(
 			() => runtime.helpers.chatRequestPayload({ messages: [{ role: "tool", content: "x" }] }, {}),
 			/At least one message is required/
@@ -504,9 +508,9 @@ test("chatRequestPayload keeps long saved chats usable with compacted older cont
 	const { runtime, destroy } = createIsolatedRuntime({
 		envMerge: {
 			MAX_MESSAGES_PER_REQUEST: "5",
-			MAX_MESSAGE_CHARS: "250",
-			MAX_TOTAL_MESSAGE_CHARS: "420",
-			CONTEXT_COMPACTION_TARGET_CHARS: "320",
+			MAX_MESSAGE_CHARS: "1200",
+			MAX_TOTAL_MESSAGE_CHARS: "3600",
+			CONTEXT_COMPACTION_TARGET_CHARS: "3500",
 			CONTEXT_COMPACTION_SUMMARY_CHARS: "220",
 			CONTEXT_COMPACTION_PRESERVE_RECENT_MESSAGES: "2"
 		}
@@ -515,8 +519,8 @@ test("chatRequestPayload keeps long saved chats usable with compacted older cont
 		const payload = runtime.helpers.chatRequestPayload({
 			messages: [
 				{ role: "system", content: "Keep this instruction." },
-				{ role: "user", content: "old user context ".repeat(6) },
-				{ role: "assistant", content: "old assistant context ".repeat(6) },
+				{ role: "user", content: "old user context ".repeat(55) },
+				{ role: "assistant", content: "old assistant context ".repeat(45) },
 				{ role: "user", content: "recent question" },
 				{ role: "assistant", content: "recent answer" },
 				{ role: "user", content: "latest question" }
@@ -526,7 +530,7 @@ test("chatRequestPayload keeps long saved chats usable with compacted older cont
 		assert.equal(payload.messages[0].role, "system");
 		assert.equal(payload.messages.at(-1).content, "latest question");
 		assert.ok(payload.messages.length <= 5);
-		assert.ok(payload.messages.reduce((total, message) => total + message.content.length, 0) <= 420);
+		assert.ok(payload.messages.reduce((total, message) => total + message.content.length, 0) <= 3600);
 		assert.ok(payload.messages.some((message) => message.content.includes("[Compacted earlier conversation summary]")));
 	} finally {
 		destroy();
@@ -587,10 +591,25 @@ test("chatRequestPayload augments stale requests with enabled runtime presets fr
 			tools: [{ type: "function", function: { name: "skill_read", parameters: { type: "object", properties: {} } } }]
 		}, {});
 		const names = payload.tools.map((tool) => tool.function.name);
+		assert.ok(names.includes("system_time"));
 		assert.ok(names.includes("skill_read"));
 		assert.ok(names.includes("local_shell"));
 		assert.ok(names.includes("local_file_write"));
 		assert.equal(payload.tools.find((tool) => tool.function.name === "local_shell").function.parameters.properties.command.type, "string");
+	} finally {
+		destroy();
+	}
+});
+
+test("interactive chat requests always advertise the read-only system time tool", () => {
+	const { runtime, destroy } = createIsolatedRuntime();
+	try {
+		const payload = runtime.helpers.chatRequestPayload({
+			messages: [{ role: "user", content: "What time is it?" }],
+			tools: []
+		}, {});
+
+		assert.deepEqual(payload.tools.map((tool) => tool.function.name), ["system_time"]);
 	} finally {
 		destroy();
 	}
@@ -684,7 +703,9 @@ test("browser_use always advertises the compatibility session contract", () => {
 			messages: [{ role: "user", content: "hi" }],
 			tools: [{ type: "function", function: { name: "browser_use", parameters: { type: "object", properties: { action: { type: "string" } } } } }]
 		}, {});
-		const parameters = payload.tools[0].function.parameters;
+		const browserTool = payload.tools.find((tool) => tool.function.name === "browser_use");
+		assert.ok(browserTool);
+		const parameters = browserTool.function.parameters;
 		assert.ok(parameters.properties.session_id);
 		assert.ok(parameters.properties.url);
 		assert.equal(parameters.properties.url.pattern, "^https?://");
