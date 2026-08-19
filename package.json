@@ -36,6 +36,19 @@
 		"markdown-it": "^14.1.0",
 		"multer": "^2.0.0",
 		"playwright": "^1.61.1",
-		"select2": "^4.1.0-rc.0"
-	}
+		"select2": "^4.1.0-rc.0",
+		"three": "^0.170.0"
+	},
+	"directories": {
+		"doc": "docs",
+		"lib": "lib",
+		"test": "tests"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git@robertdevore-GitHub:kujolang/ai-chat.git"
+	},
+	"keywords": [],
+	"author": "",
+	"license": "ISC"
 }

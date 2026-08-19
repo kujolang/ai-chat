@@ -78,6 +78,7 @@ const collapsedAgentInstructionsStorageKey = "ai_chat_collapsed_agent_instructio
 const stateChangesBatchBytes = 512 * 1024;
 const streamingPersistDebounceMs = 1500;
 const streamingPersistCharThreshold = 4096;
+const streamInactivityTimeoutMs = 90000;
 const composerPasteSoftLimitChars = 120000;
 const maxVisibleProjectFolders = 5;
 const sidebarChatPageSize = 20;
@@ -5963,6 +5964,24 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 			let streamDonePayload = null;
 			let receivedTokenDelta = false;
 			let passOutputTokens = 0;
+			let streamInactivityTimedOut = false;
+			let streamInactivityTimer = null;
+			const clearStreamInactivityTimer = () => {
+				if (streamInactivityTimer) {
+					window.clearTimeout(streamInactivityTimer);
+					streamInactivityTimer = null;
+				}
+			};
+			const resetStreamInactivityTimer = () => {
+				clearStreamInactivityTimer();
+				if (streamInactivityTimeoutMs <= 0) {
+					return;
+				}
+				streamInactivityTimer = window.setTimeout(() => {
+					streamInactivityTimedOut = true;
+					controller.abort();
+				}, streamInactivityTimeoutMs);
+			};
 
 			const processSseEvent = () => {
 				if (eventDataLines.length === 0) {
@@ -6079,16 +6098,31 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 				}
 			};
 
-			while (true) {
-				const { value, done } = await reader.read();
-				if (done) {
-					buffer += decoder.decode();
-					consumeBufferedSseLines(true);
-					break;
-				}
+			resetStreamInactivityTimer();
+			try {
+				while (true) {
+					const { value, done } = await reader.read();
+					if (done) {
+						buffer += decoder.decode();
+						consumeBufferedSseLines(true);
+						break;
+					}
 
-				buffer += decoder.decode(value, { stream: true });
-				consumeBufferedSseLines(false);
+					buffer += decoder.decode(value, { stream: true });
+					resetStreamInactivityTimer();
+					consumeBufferedSseLines(false);
+				}
+			} catch (streamReadError) {
+				if (streamInactivityTimedOut) {
+					streamErrorPayload = {
+						code: "stream_stalled",
+						message: `No stream updates for ${Math.floor(streamInactivityTimeoutMs / 1000)} seconds. Retry the request.`,
+						retryable: true
+					};
+				}
+				throw streamReadError;
+			} finally {
+				clearStreamInactivityTimer();
 			}
 			activeStreamControllers.delete(controller);
 			if (currentStreamController === controller) {
@@ -6145,7 +6179,7 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 
 			const progressChars = assistantMessage.content.length - contentLengthBeforePass;
 			const thinkingProgressChars = String(assistantMessage.thinking || "").length - thinkingLengthBeforePass;
-			if (progressChars <= 0 && thinkingProgressChars <= 0) {
+			if (progressChars <= 0) {
 				noProgressPasses += 1;
 			} else {
 				noProgressPasses = 0;
@@ -6179,7 +6213,7 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 				&& passOutputTokens > 0
 				&& passOutputTokens >= requestedMaxTokens
 				&& looksIncomplete;
-			const shouldContinueForTokenLimit = reachedTokenLimit || finalFinishReason === "stream_closed" || implicitTokenLimit;
+			const shouldContinueForTokenLimit = reachedTokenLimit || implicitTokenLimit;
 			const shouldContinueForStreamError = streamErrored
 				&& Boolean(assistantMessage.content)
 				&& streamErrorPayload.retryable !== false
@@ -6273,7 +6307,7 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 		}
 
 		if (!String(assistantMessage.content || "").trim()) {
-			throw new Error("The model returned reasoning without a final answer after recovery attempts. Please retry the request.");
+		throw new Error("The model returned reasoning but no final response text. Please retry the request.");
 		}
 		completeThinkingTiming();
 

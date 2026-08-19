@@ -93,6 +93,9 @@ if (require.main === module) {
 	});
 
 	const server = runtime.app.listen(runtime.config.port, runtime.config.host, () => {
+		server.requestTimeout = 0;
+		server.headersTimeout = 0;
+		server.setTimeout(0);
 		console.log(`ai-chat running on ${displayUrl(runtime.config)}`);
 		console.log(`AI SDK available: ${runtime.config.aiSdkAvailable ? "yes" : "no"}`);
 		console.log(`API auth configured: ${runtime.config.apiAuthToken ? "yes" : "no"}`);

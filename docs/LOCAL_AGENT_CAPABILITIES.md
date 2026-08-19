@@ -31,7 +31,9 @@ AI_CHAT_LOCAL_TOOLS_ENABLED=1 \
 AI_CHAT_LOCAL_WORKSPACE_ROOTS=/tmp/ai-chat-local-tools \
 AI_CHAT_LOCAL_WRITE_ENABLED=1 \
 AI_CHAT_LOCAL_SHELL_ENABLED=1 \
-AI_CHAT_LOCAL_SHELL_ALLOWLIST=git,rg,ls,pwd \
+AI_CHAT_LOCAL_SHELL_ALLOWLIST=git,rg,ls,pwd,npm,kujo \
+KUJO_BIN=/absolute/path/to/kujo \
+AI_SDK_PATH=/absolute/path/to/ai-sdk/src \
 ENCRYPTION_SECRET=replace_with_strong_secret \
 API_AUTH_TOKEN=replace_with_strong_token \
 npm run dev
@@ -91,7 +93,8 @@ Use this list when adding additional action classes:
 
 - There is no arbitrary MCP or plugin bridge yet. Add each connector as a separate server-side adapter with the checklist above.
 - Action adapters are the supported bridge for MCP/plugin/document actions. AI Chat does not broker OAuth, secrets, or plugin credentials; the local adapter service owns those concerns.
-- Shell commands are intentionally allowlisted. If a skill requires `npm`, `kujo`, or another executable, add that command to `AI_CHAT_LOCAL_SHELL_ALLOWLIST` only for a trusted workspace.
+- Shell commands are intentionally allowlisted. `kujo` is now allowlisted for the trusted workspace so Kujo programs can be executed through `local_shell`; add `kujo` (and any other required executable such as `npm`) to `AI_CHAT_LOCAL_SHELL_ALLOWLIST` only for a trusted workspace.
+- The Kujo interpreter is resolved through `KUJO_BIN` (absolute path to the compiled binary) and `AI_SDK_PATH` (directory containing `ai_sdk.kujo` and `providers.kujo`). See `docs/KUJO_EXECUTION_SETUP.md` for build, wiring, and smoke-test steps.
 - The tool runtime does not perform interactive command approval prompts yet. Keep write and shell switches off except in workspaces where model-initiated local actions are acceptable.
 
 ## Read Continuation Contract

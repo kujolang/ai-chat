@@ -1498,11 +1498,13 @@ textarea::-webkit-scrollbar-thumb:hover {
 	display: grid;
 	gap: 3px;
 	margin-top: 10px;
-	padding: 9px 10px;
-	border: 1px solid rgba(255, 114, 114, 0.7);
-	background: rgba(255, 114, 114, 0.08);
-	color: #ffd2d2;
+	padding: 11px 12px;
+	border: 1px solid rgba(255, 114, 114, 0.95);
+	border-left: 3px solid #ff8080;
+	background: rgba(255, 114, 114, 0.14);
+	color: #ffe4e4;
 	font-size: 12px;
+	font-weight: 500;
 }
 
 .message-tool-error strong {
