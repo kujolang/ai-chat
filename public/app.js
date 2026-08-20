@@ -6119,8 +6119,9 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 						message: `No stream updates for ${Math.floor(streamInactivityTimeoutMs / 1000)} seconds. Retry the request.`,
 						retryable: true
 					};
+				} else {
+					throw streamReadError;
 				}
-				throw streamReadError;
 			} finally {
 				clearStreamInactivityTimer();
 			}

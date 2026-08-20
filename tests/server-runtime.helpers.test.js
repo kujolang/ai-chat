@@ -325,8 +325,8 @@ test("createServerRuntime exposes pane-friendly bounded tool and browser default
 		assert.equal(defaultRuntime.runtime.config.contextCompactionTargetChars, 256 * 1024);
 		assert.equal(defaultRuntime.runtime.config.contextCompactionSummaryChars, 24 * 1024);
 		assert.equal(defaultRuntime.runtime.config.contextCompactionPreserveRecentMessages, 24);
-		assert.equal(defaultRuntime.runtime.config.streamRequestTimeoutMs, 0);
-		assert.equal(defaultRuntime.runtime.config.toolContinuationTimeoutMs, 0);
+		assert.equal(defaultRuntime.runtime.config.streamRequestTimeoutMs, 180000);
+		assert.equal(defaultRuntime.runtime.config.toolContinuationTimeoutMs, 120000);
 		assert.equal(defaultRuntime.runtime.config.maxToolRounds, 2048);
 		assert.equal(defaultRuntime.runtime.config.maxToolCallsPerRequest, 16384);
 		assert.equal(defaultRuntime.runtime.config.browserMaxSessions, 32);
