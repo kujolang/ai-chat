@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## [1.1.0] - 2026-08-22
 
 - Add a launch-readiness Spec and deterministic Eval suite for the local AI Chat release review.
 - Clarify that local release review does not by itself prove deployed production or enterprise readiness.
@@ -36,8 +36,6 @@
 All notable changes to AI Chat should be documented in this file.
 
 The format is inspired by Keep a Changelog and semantic versioning.
-
-## [Unreleased]
 
 ### Changed
 
