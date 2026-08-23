@@ -436,6 +436,10 @@ responses up to three times. This is intentional for shared work keys; use
 `--concurrency 4` only after a stable baseline, and do not increase it merely
 to shorten a run.
 
+The default `--tool-preset none` path sends no tools and does not inherit saved
+runtime presets from the interactive app. Pass an explicit benchmark tool
+preset when the suite is intended to measure tool execution.
+
 For hardened runs, prefer a dedicated benchmark instance with its own port,
 SQLite path, and Watchdog lane:
 

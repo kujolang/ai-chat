@@ -244,6 +244,7 @@ async function runPane({ chat, pane, benchmark, maxTokens, temperature }) {
 				max_tokens: maxTokens,
 				messages: [{ role: "user", content: benchmark.prompt }],
 				tools: benchmarkTools,
+				include_saved_runtime_presets: toolPreset !== "none",
 				benchmark: {
 					run_id: runId,
 					test_id: `${runId}-test-${String(benchmark.number).padStart(3, "0")}`,

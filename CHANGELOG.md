@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Prevent tool-free benchmark runs from inheriting saved interactive runtime
+  tool presets, keeping `--tool-preset none` deterministic and bounded.
+
 ## [1.1.0] - 2026-08-22
 
 - Add a launch-readiness Spec and deterministic Eval suite for the local AI Chat release review.
