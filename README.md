@@ -32,6 +32,7 @@ This project is for end users and teams who want one local web app to:
 	- Store provider profiles and model suggestions in Settings
 	- Auto-detect a local Codex install and seed a Codex profile from its cached model catalog when available
 	- Seed a managed Hermes / Nous Portal profile with the account-visible free model catalog
+	- Seed a separate managed Hermes / xAI Grok OAuth profile for X subscription access
 	- Reorder provider cards and their model rows with drag and drop
 	- Collapse provider cards while keeping their order and model count visible
 	- Choose the model/provider that every regular new chat starts with
@@ -134,6 +135,7 @@ Use `.env.example` as your baseline and set:
 - CODEX_MODEL_CACHE_PATH
 - CODEX_SANDBOX_MODE
 - HERMES_PROXY_URL
+- HERMES_XAI_PROXY_URL
 - HERMES_PROXY_TOKEN
 - MAX_TOOL_ROUNDS
 - MAX_TOOL_CALLS_PER_REQUEST
@@ -211,6 +213,7 @@ Security note:
 - `Watchdog / Ollama (TUD)` uses the existing Watchdog proxy with a dedicated named upstream profile. Its work Ollama key remains server-side in Watchdog, and it cannot select a personal direct Ollama credential.
 - When `codex` is installed locally, AI Chat reads the cached model list from `CODEX_MODEL_CACHE_PATH` (default: `~/.codex/models_cache.json`) and seeds a managed `Codex` profile that uses your existing Codex login rather than an API key. Codex runs locally and AI Chat records its trace metadata through the configured Watchdog telemetry endpoint; it does not proxy Codex through an OpenAI-compatible upstream URL.
 - The managed Hermes profile connects only to `HERMES_PROXY_URL` on loopback (default `http://127.0.0.1:8645/v1`). Start it with `hermes proxy start --provider nous`; Hermes attaches your Nous Portal credential, while AI Chat sends only the non-secret `HERMES_PROXY_TOKEN` placeholder.
+- The managed Hermes xAI profile connects only to `HERMES_XAI_PROXY_URL` on loopback (default `http://127.0.0.1:8646/v1`). Authenticate with `hermes auth add xai-oauth --type oauth`, then run `hermes proxy start --provider xai --port 8646`; the xAI OAuth credential stays inside Hermes.
 
 To create the two local credential files without putting the OpenRouter key in AI Chat's SQLite database or `.env`, run:
 

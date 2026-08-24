@@ -46,6 +46,7 @@ Copy values from `.env.example` and define these variables in your shell or envi
 - CODEX_MODEL_CACHE_PATH
 - CODEX_SANDBOX_MODE
 - HERMES_PROXY_URL
+- HERMES_XAI_PROXY_URL
 - HERMES_PROXY_TOKEN
 - MAX_TOOL_ROUNDS
 - MAX_TOOL_CALLS_PER_REQUEST
@@ -113,6 +114,7 @@ CODEX_CLI_PATH=codex
 CODEX_MODEL_CACHE_PATH=/absolute/path/to/.codex/models_cache.json
 CODEX_SANDBOX_MODE=read-only
 HERMES_PROXY_URL=http://127.0.0.1:8645/v1
+HERMES_XAI_PROXY_URL=http://127.0.0.1:8646/v1
 HERMES_PROXY_TOKEN=ai-chat-local
 MAX_TOOL_ROUNDS=2048
 MAX_TOOL_CALLS_PER_REQUEST=16384
@@ -181,6 +183,7 @@ Important security behavior:
 - `AI_CHAT_INSTANCE_ROLE=benchmark` marks a dedicated benchmark server. `/api/health` then reports the instance role plus reviewed benchmark queue, concurrency, and token settings so the runner can refuse the wrong server before a long run starts.
 - A local Codex install adds a managed `Codex` profile automatically when `CODEX_MODEL_CACHE_PATH` points to a readable Codex model cache. AI Chat shells out to `CODEX_CLI_PATH` with your existing Codex login, so no API key is stored in AI Chat. `CODEX_SANDBOX_MODE` defaults to `read-only`, and Codex runs locally while AI Chat forwards trace metadata to `WATCHDOG_TELEMETRY_URL` for the same dashboard view used by the other providers.
 - A local Hermes install adds a managed `Hermes / Nous Portal (Free)` profile. Run `hermes proxy start --provider nous` before chatting. AI Chat accepts only the exact loopback `HERMES_PROXY_URL`, and Hermes attaches your Nous Portal credential upstream; the configured `HERMES_PROXY_TOKEN` is only the arbitrary bearer placeholder required by the local proxy.
+- An authenticated xAI OAuth credential adds a separate managed `Hermes / xAI Grok (OAuth)` profile. Run `hermes auth add xai-oauth --type oauth` once, then keep `hermes proxy start --provider xai --port 8646` running. AI Chat accepts only the exact loopback `HERMES_XAI_PROXY_URL`; it never receives the xAI OAuth credential.
 
 ## 3. Install Dependencies
 
