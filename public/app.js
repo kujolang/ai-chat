@@ -216,6 +216,7 @@ const nodes = {
 	automationPrompt: document.getElementById("automation-prompt"),
 	automationProject: document.getElementById("automation-project"),
 	automationModel: document.getElementById("automation-model"),
+	automationTools: document.getElementById("automation-tools"),
 	automationRepeat: document.getElementById("automation-repeat"),
 	automationWeekdayWrap: document.getElementById("automation-weekday-wrap"),
 	automationWeekday: document.getElementById("automation-weekday"),
@@ -2877,7 +2878,7 @@ function initializeSharedSelect2Controls(root = document) {
 	for (const selectNode of root.querySelectorAll(".profile-card select[data-field=\"provider_id\"]")) {
 		initializeAppSingleSelect2(selectNode, jquery(nodes.settingsModal), "Search providers...");
 	}
-	for (const selectNode of [nodes.automationProject, nodes.automationModel, nodes.automationRepeat, nodes.automationWeekday].filter(Boolean)) {
+	for (const selectNode of [nodes.automationProject, nodes.automationModel, nodes.automationTools, nodes.automationRepeat, nodes.automationWeekday].filter(Boolean)) {
 		initializeAppSingleSelect2(selectNode, jquery(nodes.automationsModal), selectNode === nodes.automationModel ? "Search models or providers..." : "Search options...");
 	}
 	for (const selectNode of [nodes.usageFilterChat, nodes.usageFilterProvider, nodes.usageFilterModel, nodes.usageFilterWindow, nodes.usageGroupBy, nodes.usageChartType].filter(Boolean)) {
@@ -5068,6 +5069,13 @@ function showAutomationEditor(automation = null) {
 	if ([...nodes.automationModel.options].some((option) => option.value === selection)) nodes.automationModel.value = selection;
 	nodes.automationProject.innerHTML = `<option value="">None</option>${(state.projectFolders || []).map((folder) => `<option value="${escapeHtml(folder)}">${escapeHtml(folder)}</option>`).join("")}`;
 	nodes.automationProject.value = automation ? automation.project_path || "" : "";
+	const automationToolNames = ["system_time", ...(state.settings.tools || [])
+		.filter((tool) => tool && tool.enabled !== false && tool.kind === "preset")
+		.map((tool) => String(tool.name || "").trim())]
+		.filter((name, index, source) => name && source.indexOf(name) === index);
+	nodes.automationTools.innerHTML = automationToolNames.map((name) => `<option value="${escapeHtml(name)}">${escapeHtml(name.replaceAll("_", " "))}</option>`).join("");
+	const selectedTools = automation && Array.isArray(automation.tools) ? automation.tools : [];
+	for (const option of nodes.automationTools.options) option.selected = selectedTools.includes(option.value);
 	nodes.automationRepeat.value = automation ? automation.repeat : "daily";
 	nodes.automationWeekday.value = String(automation ? automation.weekday : new Date().getDay());
 	nodes.automationTime.value = automation ? automation.time : "09:00";
@@ -5078,6 +5086,7 @@ function showAutomationEditor(automation = null) {
 	initializeSharedSelect2Controls(nodes.automationsModal);
 	refreshSelect2(nodes.automationModel);
 	refreshSelect2(nodes.automationProject);
+	refreshSelect2(nodes.automationTools);
 	refreshSelect2(nodes.automationRepeat);
 	refreshSelect2(nodes.automationWeekday);
 	if (automation) void loadAutomationRuns(automation.id);
@@ -5103,6 +5112,7 @@ async function saveAutomation() {
 		profile_id: profileId,
 		model: modelParts.join("::"),
 		project_path: nodes.automationProject.value,
+		tools: [...nodes.automationTools.selectedOptions].map((option) => option.value),
 		repeat: nodes.automationRepeat.value,
 		weekday: Number(nodes.automationWeekday.value),
 		time: nodes.automationTime.value,

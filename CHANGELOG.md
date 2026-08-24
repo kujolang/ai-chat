@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Add explicit per-automation runtime tool selection and reject provider-generated textual tool-call envelopes as terminal protocol errors instead of saving them as successful answers.
 - Prevent tool-free benchmark runs from inheriting saved interactive runtime
   tool presets, keeping `--tool-preset none` deterministic and bounded.
 

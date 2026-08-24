@@ -282,6 +282,7 @@ Client rules:
 - Browser calls may span multiple provider rounds. Sessions remain scoped to the requesting pane when supplied, otherwise to the chat/request identity; the read-only policy blocks consequential interactions and may return a short-lived `approval_request` object alongside `tool_approval_required`.
 - Browser screenshot artifacts in `done.tool_artifacts` are fetched from the authenticated artifact endpoint. Clients should render supported image artifacts alongside the assistant response and retain their opaque IDs in persisted message metadata.
 - Unsupported provider tool calls remain terminal. The server emits `tool_execution_unavailable` instead of returning an empty successful answer or repeatedly continuing the request.
+- Provider output that consists only of textual `<tool_call>` or `<tool_calls>` markup is terminal with `invalid_provider_tool_call`. The server does not treat provider-generated markup as an executable call or a successful final answer.
 - Watchdog streams may use a matching direct Ollama profile and asynchronous Watchdog telemetry intake when direct streaming is enabled; otherwise they use the managed proxy fallback.
 - `watchdog_ollama_tud` always uses its managed proxy, preventing a work benchmark from using a matching personal direct Ollama profile.
 - Direct Watchdog telemetry uses `WATCHDOG_API_TOKEN_FILE` when the Watchdog `/api/*` surface requires token authentication. Telemetry remains best effort: a rejected or unreachable intake logs a sanitized server warning but does not change the successful chat stream contract.
@@ -292,9 +293,9 @@ Client rules:
 
 ## 6a. Scheduled Automation Contract
 
-Automation objects contain `id`, `title`, `prompt`, `profile_id`, `model`, optional `project_path`, `repeat` (`daily`, `weekdays`, or `weekly`), local `time`, `weekday`, IANA `timezone`, `enabled`, and next/last-run timestamps. Creating or updating an enabled automation calculates its next run in that timezone.
+Automation objects contain `id`, `title`, `prompt`, `profile_id`, `model`, optional `project_path`, `tools` (an explicit array of up to 32 executable runtime tool names), `repeat` (`daily`, `weekdays`, or `weekly`), local `time`, `weekday`, IANA `timezone`, `enabled`, and next/last-run timestamps. Creating or updating an enabled automation calculates its next run in that timezone. Automations do not inherit the interactive app's enabled tools; only the names saved on that automation are advertised to its provider request.
 
-`POST /api/automations/:automationId/run` queues an immediate run and returns HTTP 202 with the run record. Every run creates a new durable chat and records `running`, `completed`, or `failed` history. Scheduled execution occurs only while the server process is running. `GET /api/automations/:automationId/runs` returns newest-first history with the durable chat route when available.
+`POST /api/automations/:automationId/run` queues an immediate run and returns HTTP 202 with the run record. Every run creates a new durable chat and records `running`, `completed`, or `failed` history. A textual tool-call envelope fails the run and stores a bounded failure message instead of marking the markup as a completed answer. Scheduled execution occurs only while the server process is running. `GET /api/automations/:automationId/runs` returns newest-first history with the durable chat route when available.
 
 ## 6b. Browser Approval Contract
 

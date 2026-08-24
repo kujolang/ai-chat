@@ -45,7 +45,7 @@ This project is for end users and teams who want one local web app to:
 	- Save an ordered pane/model arrangement as a reusable pane profile and start new chats from it
 - Scheduled chat automations
 	- Save prompts that run daily, on weekdays, or weekly in a selected local timezone
-	- Choose the provider/model and optional project for each automation
+	- Choose the provider/model, optional project, and explicit tool set for each automation
 	- Run an automation immediately, pause/resume it, and reopen durable chats from previous runs
 - Streaming and thinking UI
 	- Live assistant text streaming via SSE
@@ -378,6 +378,8 @@ Use `/healthz` or `/api/healthz` for unauthenticated reverse-proxy and tunnel pr
 If a provider/model does not emit reasoning deltas, thinking output remains empty.
 
 The server forwards SSE and newline-delimited JSON incrementally, keeps the timeout idle-based while data is arriving, and treats provider error events as terminal. The client automatically resumes token-limited, unexpectedly closed, and transiently failed partial responses without discarding text already received.
+
+Provider output that consists only of textual `<tool_call>` or `<tool_calls>` markup is rejected as a protocol error. AI Chat executes only structured provider tool calls and never stores tool-call markup as a successful scheduled response.
 
 When a model requests `web_search`, the server dispatches it through a local registry and selects the configured adapter. `auto` uses SearXNG when `SEARXNG_BASE_URL` is set, otherwise it calls `https://ollama.com/api/web_search` with the configured Ollama credential. The runtime appends the bounded result payload as a provider-compatible tool message and continues until the model produces a final response or reaches the tool budget. The stable arguments are `query`, `max_results`, optional `domains`, and optional `freshness` (`day`, `week`, `month`, or `year`).
 

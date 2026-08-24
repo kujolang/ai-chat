@@ -121,12 +121,14 @@ test("scheduled automation and compact tool controls replace placeholder actions
 	assert.match(htmlSource, /id="automation-editor"/);
 	assert.match(htmlSource, /id="automation-repeat"/);
 	assert.match(htmlSource, /id="automation-timezone"/);
+	assert.match(htmlSource, /id="automation-tools"[^>]*multiple/);
 	assert.doesNotMatch(htmlSource, /data-automation-action="new-chat"/);
 	assert.match(htmlSource, /id="toggle-tool-presets-btn"/);
 	assert.match(htmlSource, /id="tool-preset-dropdown" class="tool-preset-dropdown hidden"/);
 	assert.match(appSource, /toolPresetMenuOpen \? chevronDownSvg : chevronRightSvg/);
 	assert.match(appSource, /await syncAutomationRunChat\(payload\.run\)/);
 	assert.match(appSource, /monitorAutomationRun\(automation\.id, payload\.run\)/);
+	assert.match(appSource, /tools: \[\.\.\.nodes\.automationTools\.selectedOptions\]/);
 	assert.match(cssSource, /\.tool-preset-toggle\.icon-only\s*\{[^}]*height: 32px;/s);
 	assert.match(cssSource, /\.settings-tool-actions \.add-profile-btn\s*\{[^}]*height: 32px;/s);
 	assert.match(cssSource, /button\s*\{\s*font-family: var\(--display\);/s);
