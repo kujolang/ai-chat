@@ -1715,6 +1715,36 @@ test("POST /api/chat/stream routes Watchdog profiles through the managed local p
 	}
 });
 
+test("POST /api/chat/stream routes Hermes profiles through the managed local proxy", async () => {
+	const observed = [];
+	const { runtime, destroy } = createIsolatedRuntime({
+		envMerge: {
+			HERMES_PROXY_URL: "http://127.0.0.1:8645/v1",
+			HERMES_PROXY_TOKEN: "test-hermes-placeholder"
+		},
+		fetchFn: async (url, options) => {
+			observed.push({ url, options });
+			return mockSseResponse([{ choices: [{ delta: { content: "Hermes ok" }, finish_reason: "stop" }], usage: { prompt_tokens: 2, completion_tokens: 2, total_tokens: 4 } }]);
+		}
+	});
+	try {
+		const profile = runtime.helpers.readState().settings.profiles.find((entry) => entry.provider_id === "hermes");
+		await withServer(runtime.app, async (baseUrl) => {
+			const response = await fetch(`${baseUrl}/api/chat/stream`, {
+				method: "POST",
+				headers: withAuthHeaders({ "Content-Type": "application/json" }),
+				body: JSON.stringify({ profile_id: profile.id, model: "stealth/ox-alpha", messages: [{ role: "user", content: "hi" }] })
+			});
+			const events = parseSseEvents(await response.text());
+			assert.equal(events.find((entry) => entry.event === "done").data.output_text, "Hermes ok");
+		});
+		assert.equal(observed[0].url, "http://127.0.0.1:8645/v1/chat/completions");
+		assert.equal(observed[0].options.headers.Authorization, "Bearer test-hermes-placeholder");
+	} finally {
+		destroy();
+	}
+});
+
 test("POST /api/chat/stream routes the Ollama TUD profile through the shared proxy upstream", async () => {
 	const credentialDir = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-watchdog-ollama-tud-token-"));
 	const tokenFile = path.join(credentialDir, "proxy-token");

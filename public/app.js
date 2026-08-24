@@ -5009,6 +5009,10 @@ function providerLabelForId(providerId) {
 		return "Watchdog (Ollama TUD)";
 	}
 
+	if (providerId === "hermes") {
+		return "Hermes (Nous Portal Free)";
+	}
+
 	return providerId || "Unknown Provider";
 }
 
@@ -5465,11 +5469,13 @@ function renderSettings() {
 
 	nodes.profileList.innerHTML = state.settings.profiles
 		.map((profile, profileIndex) => {
-			const managedCredential = profile.provider_id === "watchdog" || profile.provider_id === "watchdog_openrouter" || profile.provider_id === "watchdog_ollama_tud" || profile.provider_id === "codex" || profile.credential_managed;
+			const managedCredential = profile.provider_id === "watchdog" || profile.provider_id === "watchdog_openrouter" || profile.provider_id === "watchdog_ollama_tud" || profile.provider_id === "hermes" || profile.provider_id === "codex" || profile.credential_managed;
 			const collapsed = collapsedProviderIds.has(profile.id);
 			const modelCount = profileModelEntries(profile).length;
 			const keyStatus = profile.provider_id === "codex"
 				? "Managed by local Codex login"
+				: profile.provider_id === "hermes"
+				? "Managed by local Hermes login"
 				: managedCredential
 				? "Managed by server credential file"
 				: profile.api_key_present
@@ -5503,12 +5509,13 @@ function renderSettings() {
 								${providerOption(profile.provider_id, "watchdog", "Watchdog (Ollama Cloud)")}
 								${providerOption(profile.provider_id, "watchdog_openrouter", "Watchdog (OpenRouter)")}
 								${providerOption(profile.provider_id, "watchdog_ollama_tud", "Watchdog (Ollama TUD)")}
+								${providerOption(profile.provider_id, "hermes", "Hermes (Nous Portal Free)")}
 								${providerOption(profile.provider_id, "codex", "Codex")}
 							</select>
 						</label>
 						<label>
 							<span>API Key</span>
-							<input data-profile-id="${profile.id}" data-field="api_key" type="password" value="" placeholder="${profile.provider_id === "codex" ? "Managed by local Codex auth" : managedCredential ? "Managed by WATCHDOG_PROXY_TOKEN_FILE" : "Enter a new key to update"}" autocomplete="off" ${managedCredential ? "disabled" : ""}>
+							<input data-profile-id="${profile.id}" data-field="api_key" type="password" value="" placeholder="${profile.provider_id === "codex" ? "Managed by local Codex auth" : profile.provider_id === "hermes" ? "Managed by local Hermes auth" : managedCredential ? "Managed by WATCHDOG_PROXY_TOKEN_FILE" : "Enter a new key to update"}" autocomplete="off" ${managedCredential ? "disabled" : ""}>
 						</label>
 						<label>
 							<span>Key Status</span>
@@ -5516,7 +5523,7 @@ function renderSettings() {
 						</label>
 						<label>
 							<span>Base URL (custom only)</span>
-							<input data-profile-id="${profile.id}" data-field="base_url" type="text" value="${escapeHtml(profile.base_url || "")}" placeholder="${profile.provider_id === "codex" ? "Managed by local Codex CLI" : managedCredential ? "Managed by WATCHDOG_PROXY_URL" : ""}" ${managedCredential ? "disabled" : ""}>
+							<input data-profile-id="${profile.id}" data-field="base_url" type="text" value="${escapeHtml(profile.base_url || "")}" placeholder="${profile.provider_id === "codex" ? "Managed by local Codex CLI" : profile.provider_id === "hermes" ? "Managed by HERMES_PROXY_URL" : managedCredential ? "Managed by WATCHDOG_PROXY_URL" : ""}" ${managedCredential ? "disabled" : ""}>
 						</label>
 					</div>
 					${renderProfileModels(profile)}
