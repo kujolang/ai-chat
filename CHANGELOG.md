@@ -3,7 +3,7 @@
 ## Unreleased
 
 - Add a managed loopback Hermes / Nous Portal profile seeded with the current zero-cost model catalog.
-- Add a separate managed Hermes / xAI Grok OAuth profile for X subscription-backed model access.
+- Add a separate managed xAI Grok OAuth profile for X subscription-backed model access, with Hermes used only as the local OAuth bridge.
 - Add explicit per-automation runtime tool selection and reject provider-generated textual tool-call envelopes as terminal protocol errors instead of saving them as successful answers.
 - Prevent tool-free benchmark runs from inheriting saved interactive runtime
   tool presets, keeping `--tool-preset none` deterministic and bounded.

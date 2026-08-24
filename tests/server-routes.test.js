@@ -1745,11 +1745,11 @@ test("POST /api/chat/stream routes Hermes profiles through the managed local pro
 	}
 });
 
-test("POST /api/chat/stream routes Hermes xAI profiles through their dedicated local proxy", async () => {
+test("POST /api/chat/stream routes xAI OAuth profiles through their dedicated local bridge", async () => {
 	const observed = [];
 	const { runtime, destroy } = createIsolatedRuntime({
 		envMerge: {
-			HERMES_XAI_PROXY_URL: "http://127.0.0.1:8646/v1",
+			XAI_OAUTH_PROXY_URL: "http://127.0.0.1:8646/v1",
 			HERMES_PROXY_TOKEN: "test-hermes-xai-placeholder"
 		},
 		fetchFn: async (url, options) => {
@@ -1758,7 +1758,7 @@ test("POST /api/chat/stream routes Hermes xAI profiles through their dedicated l
 		}
 	});
 	try {
-		const profile = runtime.helpers.readState().settings.profiles.find((entry) => entry.provider_id === "hermes_xai");
+		const profile = runtime.helpers.readState().settings.profiles.find((entry) => entry.provider_id === "xai_oauth");
 		await withServer(runtime.app, async (baseUrl) => {
 			const response = await fetch(`${baseUrl}/api/chat/stream`, {
 				method: "POST",

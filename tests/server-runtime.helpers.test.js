@@ -76,13 +76,13 @@ test("seeds and upgrades OpenRouter and Watchdog model suggestions from the stat
 		const watchdogOpenRouter = state.settings.profiles.find((profile) => profile.provider_id === "watchdog_openrouter");
 		const watchdogOllamaTud = state.settings.profiles.find((profile) => profile.provider_id === "watchdog_ollama_tud");
 		const hermes = state.settings.profiles.find((profile) => profile.provider_id === "hermes");
-		const hermesXai = state.settings.profiles.find((profile) => profile.provider_id === "hermes_xai");
+		const xaiOAuth = state.settings.profiles.find((profile) => profile.provider_id === "xai_oauth");
 		assert.ok(openRouter);
 		assert.ok(watchdog);
 		assert.ok(watchdogOpenRouter);
 		assert.ok(watchdogOllamaTud);
 		assert.ok(hermes);
-		assert.ok(hermesXai);
+		assert.ok(xaiOAuth);
 		assert.match(openRouter.models_csv, /moonshotai\/kimi-k2\.7-code/);
 		assert.match(openRouter.models_csv, /openai\/gpt-4\.1-mini/);
 		assert.match(watchdog.models_csv, /kimi-k3:cloud/);
@@ -94,9 +94,10 @@ test("seeds and upgrades OpenRouter and Watchdog model suggestions from the stat
 		assert.match(hermes.models_csv, /stealth\/ox-alpha/);
 		assert.match(hermes.models_csv, /poolside\/laguna-s-2\.1:free/);
 		assert.equal(hermes.credential_managed, true);
-		assert.match(hermesXai.models_csv, /grok-4\.20-0309-reasoning/);
-		assert.match(hermesXai.models_csv, /grok-4\.6/);
-		assert.equal(hermesXai.credential_managed, true);
+		assert.equal(xaiOAuth.name, "xAI Grok (X OAuth)");
+		assert.match(xaiOAuth.models_csv, /grok-4\.20-0309-reasoning/);
+		assert.match(xaiOAuth.models_csv, /grok-4\.6/);
+		assert.equal(xaiOAuth.credential_managed, true);
 	} finally {
 		destroy();
 	}
@@ -292,14 +293,14 @@ test("providerConfig returns expected endpoint mappings", () => {
 		});
 		assert.equal(runtime.helpers.validateProviderBaseUrl("http://127.0.0.1:8645/v1", "hermes"), "http://127.0.0.1:8645/v1");
 		assert.throws(() => runtime.helpers.validateProviderBaseUrl("http://127.0.0.1:9999/v1", "hermes"), /HERMES_PROXY_URL/);
-		assert.deepEqual(runtime.helpers.providerConfig({ provider_id: "hermes_xai" }), {
+		assert.deepEqual(runtime.helpers.providerConfig({ provider_id: "xai_oauth" }), {
 			base_url: "http://127.0.0.1:8646/v1",
 			chat_path: "/chat/completions",
 			transcribe_path: null,
-			hermes_managed: true
+			xai_oauth_managed: true
 		});
-		assert.equal(runtime.helpers.validateProviderBaseUrl("http://127.0.0.1:8646/v1", "hermes_xai"), "http://127.0.0.1:8646/v1");
-		assert.throws(() => runtime.helpers.validateProviderBaseUrl("http://127.0.0.1:8645/v1", "hermes_xai"), /HERMES_XAI_PROXY_URL/);
+		assert.equal(runtime.helpers.validateProviderBaseUrl("http://127.0.0.1:8646/v1", "xai_oauth"), "http://127.0.0.1:8646/v1");
+		assert.throws(() => runtime.helpers.validateProviderBaseUrl("http://127.0.0.1:8645/v1", "xai_oauth"), /XAI_OAUTH_PROXY_URL/);
 	} finally {
 		destroy();
 	}

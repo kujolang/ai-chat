@@ -157,7 +157,7 @@ Profile key handling guarantee:
 - `api_key_present` is exposed as a boolean indicator.
 - `credential_managed` is `true` for Watchdog profiles whose proxy token comes from the server credential file.
 - `credential_managed` is also `true` for Codex profiles that use the local Codex login and model cache instead of an API key stored in AI Chat.
-- `credential_managed` is also `true` for Hermes profiles that use loopback Hermes proxies and their existing Nous Portal or xAI OAuth login.
+- `credential_managed` is also `true` for the Hermes free-model profile and the separate xAI OAuth profile, whose credentials remain in their local bridge.
 
 Provider profiles are returned in their persisted `sort_order`. `models_csv` remains the compatible wire/storage field, with comma-separated entries preserving the ordered model rows shown by the browser UI.
 
@@ -288,7 +288,7 @@ Client rules:
 - `watchdog_ollama_tud` always uses its managed proxy, preventing a work benchmark from using a matching personal direct Ollama profile.
 - Direct Watchdog telemetry uses `WATCHDOG_API_TOKEN_FILE` when the Watchdog `/api/*` surface requires token authentication. Telemetry remains best effort: a rejected or unreachable intake logs a sanitized server warning but does not change the successful chat stream contract.
 - Codex profiles run through the local Codex CLI rather than an OpenAI-compatible upstream base URL. AI Chat re-emits the final Codex answer through its own SSE contract and can still post Watchdog trace metadata for that local run.
-- Hermes profiles use the exact configured loopback `HERMES_PROXY_URL` or `HERMES_XAI_PROXY_URL`; AI Chat never receives the Nous Portal or xAI OAuth credential held by Hermes.
+- The Hermes free-model profile uses the exact configured loopback `HERMES_PROXY_URL`. The separate xAI subscription profile uses `XAI_OAUTH_PROXY_URL`; Hermes supplies only its local OAuth bridge, and AI Chat never receives either upstream credential.
 - Each continuation pass has a unique telemetry `request_id` under one stable `trace_id`. Provider rounds, transport timing, first token, thinking, tool execution, errors, throughput, and committed state persistence are emitted as optional spans/events. The browser persists `usage.trace_id` only when a Watchdog trace was expected.
 - `WATCHDOG_TELEMETRY_CONTENT_MODE=off` is the default and records metadata/counts without prompts, queries, tool results, or response text. `summary` permits bounded structural summaries. `full` explicitly opts into bounded content and remains subject to Watchdog redaction.
 - The telemetry contract does not couple runtimes: the model provider, provider-neutral tool registry, each tool adapter, AI Chat persistence, and Watchdog can all operate independently.
