@@ -977,6 +977,82 @@ test("running an automation does not inherit enabled runtime preset tools", asyn
 	}
 });
 
+test("running an automation advertises only its explicitly selected tools", async () => {
+	const upstreamBodies = [];
+	const { runtime, destroy } = createIsolatedRuntime({
+		fetchFn: async (url, options = {}) => {
+			upstreamBodies.push(JSON.parse(String(options.body || "{}")));
+			return mockJsonResponse({
+				model: "gpt-test",
+				choices: [{ finish_reason: "stop", message: { content: "Scheduled result" } }]
+			});
+		}
+	});
+	try {
+		const profileId = applyProfileMutation(runtime, (profile) => { profile.api_key = "automation-key"; });
+		await withServer(runtime.app, async (baseUrl) => {
+			const automation = runtime.helpers.automationService.create({
+				title: "Tool-backed research",
+				prompt: "Check the date and search for updates.",
+				profile_id: profileId,
+				model: "gpt-4.1-mini",
+				tools: ["system_time", "web_search", "missing_tool", "web_search"],
+				repeat: "daily",
+				time: "09:00",
+				timezone: "UTC"
+			});
+			assert.deepEqual(automation.tools, ["system_time", "web_search", "missing_tool"]);
+			const queued = await fetchJson(baseUrl, `/api/automations/${automation.id}/run`, { method: "POST" });
+			assert.equal(queued.response.status, 202);
+			for (let attempt = 0; attempt < 100; attempt += 1) {
+				if (runtime.helpers.automationService.runs(automation.id, 1)[0].status !== "running") break;
+				await new Promise((resolve) => setTimeout(resolve, 10));
+			}
+		});
+		assert.deepEqual(upstreamBodies[0].tools.map((tool) => tool.function.name), ["system_time", "web_search"]);
+		assert.match(upstreamBodies[0].messages.find((message) => message.role === "system" && /only these tools/.test(message.content)).content, /system_time, web_search/);
+	} finally {
+		destroy();
+	}
+});
+
+test("a textual tool-call envelope fails an automation instead of completing it", async () => {
+	const { runtime, destroy } = createIsolatedRuntime({
+		fetchFn: async () => mockJsonResponse({
+			model: "deepseek-test",
+			choices: [{ finish_reason: "stop", message: { content: '<tool_calls>\n<invoke name="system_time"></invoke>\n</tool_calls>' } }]
+		})
+	});
+	try {
+		const profileId = applyProfileMutation(runtime, (profile) => { profile.api_key = "automation-key"; });
+		await withServer(runtime.app, async (baseUrl) => {
+			const automation = runtime.helpers.automationService.create({
+				title: "Malformed provider output",
+				prompt: "What time is it?",
+				profile_id: profileId,
+				model: "deepseek-test",
+				tools: ["system_time"],
+				repeat: "daily",
+				time: "09:00",
+				timezone: "UTC"
+			});
+			await fetchJson(baseUrl, `/api/automations/${automation.id}/run`, { method: "POST" });
+			for (let attempt = 0; attempt < 100; attempt += 1) {
+				if (runtime.helpers.automationService.runs(automation.id, 1)[0].status !== "running") break;
+				await new Promise((resolve) => setTimeout(resolve, 10));
+			}
+			const run = runtime.helpers.automationService.runs(automation.id, 1)[0];
+			assert.equal(run.status, "failed");
+			assert.match(run.error, /structured tool call/);
+			const assistant = runtime.helpers.readChat(run.chat_id).panes[0].messages[1];
+			assert.match(assistant.content, /^Response failed:/);
+			assert.equal(assistant.content.includes("<tool_calls>"), false);
+		});
+	} finally {
+		destroy();
+	}
+});
+
 test("GET /c/:routeId serves the app for bookmarkable chat links", async () => {
 	const { runtime, destroy } = createIsolatedRuntime();
 	try {
