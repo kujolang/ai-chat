@@ -7,6 +7,7 @@
 - Add explicit per-automation runtime tool selection and reject provider-generated textual tool-call envelopes as terminal protocol errors instead of saving them as successful answers.
 - Prevent tool-free benchmark runs from inheriting saved interactive runtime
   tool presets, keeping `--tool-preset none` deterministic and bounded.
+- Startup now repairs a missing `better-sqlite3` native binding as well as an ABI-mismatched binding, so a clean install or pruned native build can recover automatically on the supported Node runtime.
 
 ## [1.1.0] - 2026-08-22
 
