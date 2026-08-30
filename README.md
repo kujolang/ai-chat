@@ -424,10 +424,20 @@ Backups are written under DB_BACKUP_DIR.
 
 ## Validation
 
-Run a saved pane profile across every test in a benchmark Markdown document. The
-runner creates one chat per test, persists each pane response as it completes,
-and writes the exact start time, finish time, and per-response duration under
+Run the default saved pane profile, `Benchmarks 082626`, across every test in a
+benchmark Markdown document by omitting both selection flags. The runner creates
+one chat per test, persists each lane response as it completes, and writes the
+exact start time, finish time, and per-response duration under
 `data/benchmark-runs/`:
+
+```bash
+API_AUTH_TOKEN=your_app_token npm run benchmark:run -- \
+  --tests "/absolute/path/Benchmark Tests.md" \
+  --title-prefix "RND005TST"
+```
+
+Select any other saved pane profile by its exact name. Saved pane order and the
+historical `pane_profile` artifact field remain unchanged:
 
 ```bash
 API_AUTH_TOKEN=your_app_token npm run benchmark:run -- \
@@ -436,9 +446,43 @@ API_AUTH_TOKEN=your_app_token npm run benchmark:run -- \
   --title-prefix "RND005TST"
 ```
 
+For a focused run, repeat `--model` in the desired lane order. Without
+`--provider-profile`, every exact model ID must occur in exactly one configured
+provider profile:
+
+```bash
+API_AUTH_TOKEN=your_app_token npm run benchmark:run -- \
+  --tests "/absolute/path/Benchmark Tests.md" \
+  --model "glm-5.3-flash"
+
+API_AUTH_TOKEN=your_app_token npm run benchmark:run -- \
+  --tests "/absolute/path/Benchmark Tests.md" \
+  --model "glm-5.3-flash" \
+  --model "glm-5.2"
+```
+
+Qualify all selected models with one exact provider-profile name or ID when a
+model is new, uncataloged, or configured under multiple routes:
+
+```bash
+API_AUTH_TOKEN=your_app_token npm run benchmark:run -- \
+  --tests "/absolute/path/Benchmark Tests.md" \
+  --model "newly-released-model" \
+  --provider-profile "Provider A"
+```
+
+An unknown model without a route reports that `--provider-profile` is required.
+An ambiguous model reports the matching profile names and requires the same
+qualification. `--pane-profile` and `--model` are mutually exclusive and fail
+before chat creation or provider traffic. A repeated model ID is deduplicated:
+the first occurrence determines its lane position.
+
 The app server must already be running. Re-run with `--run-id <id>` to keep
 the run artifact under a predictable name; completed pane responses remain in
-their benchmark chats if a later provider request fails.
+their benchmark chats if a later provider request fails. Resumption requires the
+identical run ID, title prefix, test file, ordered pane profile or model list,
+provider-profile qualification, and runner options. Exact profile/model lane
+matching prevents a changed selection from reusing an earlier chat.
 
 Benchmark runs default to one request at a time and retry transient or empty
 responses up to three times. This is intentional for shared work keys; use

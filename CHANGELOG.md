@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Add repeatable `--model` benchmark lanes with safe provider-profile resolution,
+  change the no-flag default to `Benchmarks 082626`, and preserve saved
+  pane-profile runs with explicit selection metadata and exact-lane resumption.
 - Add a managed loopback Hermes / Nous Portal profile seeded with the current zero-cost model catalog.
 - Add a separate managed xAI Grok OAuth profile for X subscription-backed model access, with Hermes used only as the local OAuth bridge.
 - Add explicit per-automation runtime tool selection and reject provider-generated textual tool-call envelopes as terminal protocol errors instead of saving them as successful answers.

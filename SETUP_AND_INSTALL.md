@@ -347,6 +347,21 @@ run `npm run benchmark:run -- --tool-preset local-read ...`. The runner obtains
 the three read-only local schemas from authenticated health metadata and records
 their tool-call counts and trace ids in the generated run artifact.
 
+The benchmark runner defaults to the exact saved pane profile `Benchmarks
+082626` when neither `--pane-profile` nor `--model` is supplied. Use
+`--pane-profile "Exact Saved Name"` for another saved arrangement, or repeat
+`--model "exact-model-id"` for focused lanes in CLI order. Focused runs resolve
+each model to exactly one configured provider profile; pass
+`--provider-profile "exact name or ID"` to choose one route for every selected
+model or to run an uncataloged model. The two selection modes cannot be combined.
+Duplicate models keep their first position and are run once.
+
+To resume, keep the same run ID, title prefix, test file, ordered selection,
+provider-profile qualification, and runner options. The runner reuses a chat
+only when every profile ID and exact model ID matches in lane order. See the
+benchmark section in `README.md` for single-model, multi-model, routing-error,
+and dedicated-instance examples.
+
 Run smoke checks after server startup:
 
 ```bash
