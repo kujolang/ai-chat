@@ -3,12 +3,15 @@
 const crypto = require("node:crypto");
 const fs = require("node:fs/promises");
 const path = require("node:path");
+const {
+	parseBenchmarkCliArgs,
+	resolveBenchmarkSelection
+} = require("../lib/benchmark-selection");
 
-const args = parseArgs(process.argv.slice(2));
+const args = parseBenchmarkCliArgs(process.argv.slice(2));
 const baseUrl = String(args.baseUrl || process.env.BENCHMARK_BASE_URL || `http://127.0.0.1:${process.env.PORT || "4174"}`).replace(/\/$/, "");
 const apiToken = String(args.apiToken || process.env.BENCHMARK_API_TOKEN || process.env.API_AUTH_TOKEN || "").trim();
 const testFile = String(args.tests || "").trim();
-const paneProfileName = String(args.paneProfile || "OpenRouter (TUD)").trim();
 const titlePrefix = args.titlePrefix ? String(args.titlePrefix).trim() : "Benchmark ";
 const outputDirectory = path.resolve(args.outputDir || process.env.BENCHMARK_OUTPUT_DIR || "data/benchmark-runs");
 const requestedConcurrency = Math.max(1, Math.min(20, Number(args.concurrency || process.env.BENCHMARK_CONCURRENCY || 1) || 1));
@@ -19,7 +22,7 @@ const requiredInstanceRole = String(args.requireInstanceRole || process.env.BENC
 const allowUnsafeConcurrency = args.allowUnsafeConcurrency === true || args.allowUnsafeConcurrency === "true";
 const toolPreset = String(args.toolPreset || process.env.BENCHMARK_TOOL_PRESET || "none").trim().toLowerCase();
 let concurrency = requestedConcurrency;
-let currentPaneProfile;
+let selection;
 let benchmarkTools = [];
 
 if (!apiToken) fail("Missing API_AUTH_TOKEN (or --api-token).");
@@ -33,7 +36,10 @@ const run = {
 	finished_at: null,
 	duration_ms: null,
 	base_url: baseUrl,
-	pane_profile: paneProfileName,
+	selection_mode: null,
+	pane_profile: null,
+	selected_pane_profile: null,
+	model_lanes: [],
 	title_prefix: titlePrefix,
 	tests: [],
 	summary: {
@@ -61,10 +67,11 @@ async function main() {
 		const state = await requestJson("/api/state");
 		applyHealthGuards(health);
 		benchmarkTools = resolveBenchmarkTools(health, toolPreset);
-		const paneProfile = (state.state?.settings?.paneProfiles || []).find((profile) => profile.name === paneProfileName);
-		if (!paneProfile) fail(`Pane profile not found: ${paneProfileName}`);
-	if (!Array.isArray(paneProfile.panes) || paneProfile.panes.length === 0) fail(`Pane profile has no panes: ${paneProfileName}`);
-	currentPaneProfile = paneProfile;
+		selection = resolveBenchmarkSelection(args, state.state);
+		run.selection_mode = selection.mode;
+		run.pane_profile = selection.paneProfileName;
+		run.selected_pane_profile = selection.paneProfileName;
+		run.model_lanes = selection.mode === "custom_models" ? selection.lanes : [];
 
 		const maxTokens = normalizeMaxTokens(Number(args.maxTokens) || Number(state.state?.settings?.maxTokens) || 24000, health);
 		const temperature = Number(state.state?.settings?.temperature);
@@ -80,77 +87,69 @@ async function main() {
 			max_attempts: maxAttempts,
 			stream_timeout_ms: streamTimeoutMs,
 			max_tokens: maxTokens,
-			pane_profile: paneProfileName,
+			selection_mode: selection.mode,
+			pane_profile: selection.paneProfileName,
+			selected_pane_profile: selection.paneProfileName,
+			model_lanes: selection.mode === "custom_models" ? selection.lanes : [],
 			tool_preset: toolPreset,
 			tool_names: benchmarkTools.map((tool) => tool.function.name),
 			output_directory: outputDirectory
 		};
-		run.summary.total = tests.length * paneProfile.panes.length;
+		run.summary.total = tests.length * selection.lanes.length;
 		console.log(`Benchmark run ${runId}`);
 		console.log(`Started: ${run.started_at}`);
-	console.log(`${tests.length} tests × ${paneProfile.panes.length} panes = ${run.summary.total} responses (concurrency ${concurrency}, max attempts ${maxAttempts}, stream timeout ${streamTimeoutMs}ms)`);
+		console.log(`${tests.length} tests × ${selection.lanes.length} lanes = ${run.summary.total} responses (concurrency ${concurrency}, max attempts ${maxAttempts}, stream timeout ${streamTimeoutMs}ms)`);
 
-	for (const benchmark of tests) {
-		const existingChat = (state.state?.chats || []).find((chat) =>
-			chat.title === benchmarkTitle(benchmark) && chatMatchesPaneProfile(chat, paneProfile)
-		);
-		const chat = existingChat ? hydrateChat(existingChat) : createChat(benchmark);
-		if (!existingChat) await persistInitialChat(chat, benchmark.prompt);
-		const testResult = { number: benchmark.number, title: benchmark.title, chat_id: chat.id, panes: [] };
-		run.tests.push(testResult);
-		await writeRun();
-		const pending = [];
-		for (const pane of chat.panes) {
-			const priorResponse = pane.messages?.find((message) => message.role === "assistant");
-			const retryPriorFailure = retryFailures && priorResponse && String(priorResponse.content || "").startsWith("Error:") && !/HTTP 404/.test(String(priorResponse.content));
-			if (priorResponse && !retryPriorFailure) {
-				const priorError = String(priorResponse.content || "").startsWith("Error:")
-					? String(priorResponse.content).slice("Error:".length).trim()
-					: null;
-				const reusedResult = { model: pane.model, profile_id: pane.profile_id, ok: !priorError, reused: true, error: priorError, duration_ms: null, usage: priorResponse.usage || null, attempts: 0, retry_count: 0, tool_calls_executed: 0, tool_input_repairs: 0, provider_rounds: 0 };
-				testResult.panes.push(reusedResult);
-				run.summary[priorError ? "failed" : "completed"] += 1;
-				accumulateMetrics(reusedResult);
-			} else {
-				pending.push({ ...pane, retry_message_id: priorResponse?.id || null });
-			}
-		}
-		await mapWithConcurrency(pending, concurrency, async (pane) => {
-			const paneResult = await runPane({ chat, pane, benchmark, maxTokens, temperature });
-			testResult.panes.push(paneResult);
-			run.summary[paneResult.ok ? "completed" : "failed"] += 1;
-			accumulateMetrics(paneResult);
+		for (const benchmark of tests) {
+			const existingChat = (state.state?.chats || []).find((chat) =>
+				chat.title === benchmarkTitle(benchmark) && chatMatchesLanes(chat, selection.lanes)
+			);
+			const chat = existingChat ? hydrateChat(existingChat) : createChat(benchmark);
+			if (!existingChat) await persistInitialChat(chat, benchmark.prompt);
+			const testResult = { number: benchmark.number, title: benchmark.title, chat_id: chat.id, panes: [] };
+			run.tests.push(testResult);
 			await writeRun();
-			console.log(`[${run.summary.completed + run.summary.failed}/${run.summary.total}] Test ${benchmark.number} · ${pane.model} · ${paneResult.ok ? "ok" : "failed"} · ${paneResult.duration_ms}ms`);
-		});
+			const pending = [];
+			for (const [laneIndex, pane] of chat.panes.entries()) {
+				const priorResponse = pane.messages?.find((message) => message.role === "assistant");
+				const retryPriorFailure = retryFailures && priorResponse && String(priorResponse.content || "").startsWith("Error:") && !/HTTP 404/.test(String(priorResponse.content));
+				if (priorResponse && !retryPriorFailure) {
+					const priorError = String(priorResponse.content || "").startsWith("Error:")
+						? String(priorResponse.content).slice("Error:".length).trim()
+						: null;
+					const reusedResult = { lane_index: laneIndex, model: pane.model, profile_id: pane.profile_id, provider_profile_name: providerProfileName(pane.profile_id), ok: !priorError, reused: true, error: priorError, duration_ms: null, usage: priorResponse.usage || null, attempts: 0, retry_count: 0, tool_calls_executed: 0, tool_input_repairs: 0, provider_rounds: 0 };
+					testResult.panes.push(reusedResult);
+					run.summary[priorError ? "failed" : "completed"] += 1;
+					accumulateMetrics(reusedResult);
+				} else {
+					pending.push({ ...pane, lane_index: laneIndex, retry_message_id: priorResponse?.id || null });
+				}
+			}
+			await mapWithConcurrency(pending, concurrency, async (pane) => {
+				const paneResult = await runPane({ chat, pane, benchmark, maxTokens, temperature });
+				testResult.panes.push(paneResult);
+				testResult.panes.sort((left, right) => left.lane_index - right.lane_index);
+				run.summary[paneResult.ok ? "completed" : "failed"] += 1;
+				accumulateMetrics(paneResult);
+				await writeRun();
+				console.log(`[${run.summary.completed + run.summary.failed}/${run.summary.total}] Test ${benchmark.number} · ${pane.model} · ${paneResult.ok ? "ok" : "failed"} · ${paneResult.duration_ms}ms`);
+			});
+		}
+	} catch (error) {
+		run.fatal_error = error instanceof Error ? error.message : String(error);
+		console.error(`Benchmark run stopped: ${run.fatal_error}`);
+		process.exitCode = 1;
+	} finally {
+		run.finished_at = new Date().toISOString();
+		run.duration_ms = Date.parse(run.finished_at) - Date.parse(run.started_at);
+		run.summary.task_completion_rate = ratio(run.summary.completed, run.summary.total);
+		run.summary.repair_rate = ratio(run.summary.tool_input_repairs, run.summary.tool_calls_executed);
+		run.summary.average_latency_ms = run.summary.latency_samples ? Math.round(run.summary.latency_ms_total / run.summary.latency_samples) : null;
+		await writeRun();
+		console.log(`Finished: ${run.finished_at}`);
+		console.log(`Duration: ${formatDuration(run.duration_ms)}`);
+		console.log(`Completed: ${run.summary.completed}; failed: ${run.summary.failed}`);
 	}
-} catch (error) {
-	run.fatal_error = error instanceof Error ? error.message : String(error);
-	console.error(`Benchmark run stopped: ${run.fatal_error}`);
-	process.exitCode = 1;
-} finally {
-	run.finished_at = new Date().toISOString();
-	run.duration_ms = Date.parse(run.finished_at) - Date.parse(run.started_at);
-	run.summary.task_completion_rate = ratio(run.summary.completed, run.summary.total);
-	run.summary.repair_rate = ratio(run.summary.tool_input_repairs, run.summary.tool_calls_executed);
-	run.summary.average_latency_ms = run.summary.latency_samples ? Math.round(run.summary.latency_ms_total / run.summary.latency_samples) : null;
-	await writeRun();
-	console.log(`Finished: ${run.finished_at}`);
-	console.log(`Duration: ${formatDuration(run.duration_ms)}`);
-	console.log(`Completed: ${run.summary.completed}; failed: ${run.summary.failed}`);
-}
-}
-
-function parseArgs(values) {
-	const result = {};
-	for (let index = 0; index < values.length; index += 1) {
-		const value = values[index];
-		if (!value.startsWith("--")) continue;
-		const [key, inlineValue] = value.slice(2).split("=", 2);
-		const nextValue = values[index + 1];
-		result[key.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase())] = inlineValue ?? (nextValue && !nextValue.startsWith("--") ? values[++index] : true);
-	}
-	return result;
 }
 
 function parseBenchmarkTests(markdown) {
@@ -173,8 +172,8 @@ function createChat(benchmark) {
 		title: benchmarkTitle(benchmark),
 		created_at: now,
 		updated_at: now,
-		panes: currentPaneProfile.panes.map((savedPane, index) => ({
-			id: crypto.randomUUID(), chat_id: id, profile_id: String(savedPane.profile_id), model: String(savedPane.model), status: "waiting", sort_order: index
+		panes: selection.lanes.map((lane, index) => ({
+			id: crypto.randomUUID(), chat_id: id, profile_id: lane.profile_id, model: lane.model, status: "waiting", sort_order: index
 		}))
 	};
 }
@@ -184,13 +183,16 @@ function benchmarkTitle(benchmark) {
 	return `${titlePrefix}${sequence} — ${benchmark.title}`;
 }
 
-function chatMatchesPaneProfile(chat, paneProfile) {
+function chatMatchesLanes(chat, lanes) {
 	const chatPanes = Array.isArray(chat?.panes) ? chat.panes : [];
-	const profilePanes = Array.isArray(paneProfile?.panes) ? paneProfile.panes : [];
-	return chatPanes.length === profilePanes.length && chatPanes.every((pane, index) =>
-		String(pane.profile_id) === String(profilePanes[index]?.profile_id)
-		&& String(pane.model) === String(profilePanes[index]?.model)
+	return chatPanes.length === lanes.length && chatPanes.every((pane, index) =>
+		String(pane.profile_id) === String(lanes[index]?.profile_id)
+		&& String(pane.model) === String(lanes[index]?.model)
 	);
+}
+
+function providerProfileName(profileId) {
+	return selection?.lanes.find((lane) => lane.profile_id === profileId)?.provider_profile_name || null;
 }
 
 function hydrateChat(chat) {
@@ -210,10 +212,6 @@ function hydrateChat(chat) {
 }
 
 async function persistInitialChat(chat, prompt) {
-	if (!currentPaneProfile) {
-		const state = await requestJson("/api/state");
-		currentPaneProfile = (state.state?.settings?.paneProfiles || []).find((profile) => profile.name === paneProfileName);
-	}
 	const changes = [{ type: "chat_upsert", chat: { ...chat, panes: undefined, pinned: false, archived: false, project_path: "", sort_order: 0 } }];
 	for (const pane of chat.panes) {
 		changes.push({ type: "pane_upsert", pane });
@@ -250,7 +248,8 @@ async function runPane({ chat, pane, benchmark, maxTokens, temperature }) {
 					test_id: `${runId}-test-${String(benchmark.number).padStart(3, "0")}`,
 					test_number: benchmark.number,
 					test_title: benchmark.title,
-					pane_profile: paneProfileName,
+					selection_mode: selection.mode,
+					pane_profile: selection.paneProfileName || "",
 					lane: "watchdog-benchmark",
 					instance_role_required: requiredInstanceRole
 				}
@@ -275,8 +274,10 @@ async function runPane({ chat, pane, benchmark, maxTokens, temperature }) {
 		{ type: "pane_upsert", pane: { ...pane, status: "idle" } }
 	] } });
 	return {
+		lane_index: pane.lane_index,
 		model: pane.model,
 		profile_id: pane.profile_id,
+		provider_profile_name: providerProfileName(pane.profile_id),
 		ok: result.ok,
 		error: result.error || null,
 		attempts,
