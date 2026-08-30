@@ -251,7 +251,7 @@ async function runPane({ chat, pane, benchmark, maxTokens, temperature }) {
 					selection_mode: selection.mode,
 					pane_profile: selection.paneProfileName || "",
 					lane: "watchdog-benchmark",
-					instance_role_required: requiredInstanceRole
+					instance_role_required: requiredInstanceRole === "any" ? "" : requiredInstanceRole
 				}
 			});
 			if (!String(streamed.content || "").trim()) throw new Error("Provider returned an empty response.");

@@ -126,7 +126,7 @@ test("runner validates selection before mutations and preserves exact-lane resum
 		"--output-dir", outputDirectory,
 		"--base-url", runtime.baseUrl,
 		"--api-token", "fixture-token",
-		"--require-instance-role", "benchmark",
+		"--require-instance-role", "any",
 		"--stream-timeout-ms", "5000",
 		"--title-prefix", "FOCUSED"
 	];
@@ -146,6 +146,7 @@ test("runner validates selection before mutations and preserves exact-lane resum
 	]);
 	assert.ok(runtime.streams.every((payload) => payload.benchmark.selection_mode === "custom_models"));
 	assert.ok(runtime.streams.every((payload) => payload.benchmark.pane_profile === ""));
+	assert.ok(runtime.streams.every((payload) => payload.benchmark.instance_role_required === ""));
 	const focusedArtifact = JSON.parse(await fs.readFile(path.join(outputDirectory, "focused.json"), "utf8"));
 	assert.equal(focusedArtifact.selection_mode, "custom_models");
 	assert.equal(focusedArtifact.pane_profile, null);
@@ -190,7 +191,7 @@ async function startFixtureServer(initialState) {
 	const streams = [];
 	const server = http.createServer(async (request, response) => {
 		if (request.url === "/api/health") {
-			return sendJson(response, { ok: true, instance: { role: "benchmark" }, benchmark: { default_max_response_tokens: 1000, recommended_concurrency: 1, max_concurrency: 4 }, tool_runtime: { schemas: [] } });
+			return sendJson(response, { ok: true, instance: { role: "interactive" }, benchmark: { default_max_response_tokens: 1000, recommended_concurrency: 1, max_concurrency: 4 }, tool_runtime: { schemas: [] } });
 		}
 		if (request.url === "/api/state" && request.method === "GET") {
 			return sendJson(response, { ok: true, state });
