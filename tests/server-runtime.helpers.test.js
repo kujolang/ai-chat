@@ -642,6 +642,33 @@ test("interactive chat requests always advertise the read-only system time tool"
 	}
 });
 
+test("chat requests with saved runtime presets disabled keep an explicit empty tool boundary", () => {
+	const { runtime, destroy } = createIsolatedRuntime({
+		envMerge: {
+			AI_CHAT_LOCAL_TOOLS_ENABLED: "1",
+			AI_CHAT_LOCAL_WORKSPACE_ROOTS: path.resolve(__dirname, ".."),
+			AI_CHAT_LOCAL_SHELL_ENABLED: "1",
+			AI_CHAT_LOCAL_SHELL_ALLOWLIST: "git"
+		}
+	});
+	try {
+		const state = runtime.helpers.readState();
+		state.settings.tools = [
+			{ id: "local-shell", name: "local_shell", description: "Run shell", parameters_json: "{}", enabled: true, kind: "preset" }
+		];
+		runtime.helpers.writeState(state);
+		const payload = runtime.helpers.chatRequestPayload({
+			messages: [{ role: "user", content: "Do not use tools." }],
+			tools: [],
+			include_saved_runtime_presets: false
+		}, {});
+		assert.deepEqual(payload.tools, []);
+		assert.deepEqual([...runtime.helpers.effectiveToolAllowlist(payload.tools)], []);
+	} finally {
+		destroy();
+	}
+});
+
 test("tool execution errors name requested functions without exposing arguments", () => {
 	const { runtime, destroy } = createIsolatedRuntime();
 	try {
@@ -761,6 +788,33 @@ test("mergeToolCallChunks joins streamed JSON arguments and formats Ollama tool 
 			}]
 		});
 		assert.equal(runtime.helpers.providerToolResultMessage(calls[0], { results: [] }, true).tool_name, "web_search");
+	} finally {
+		destroy();
+	}
+});
+
+test("mergeToolCallChunks accepts expected name fragments and rejects concatenated tool names", () => {
+	const { runtime, destroy } = createIsolatedRuntime();
+	try {
+		const fragmented = runtime.helpers.mergeToolCallChunks([
+			{ index: 0, id: "call-fragmented", function: { name: "web_", arguments: "{\"query\":" } },
+			{ index: 0, function: { name: "search", arguments: "\"Kujo\"}" } }
+		], 1, { expectedNames: ["web_search"] });
+		assert.equal(fragmented[0].function.name, "web_search");
+		assert.equal(fragmented[0].function.invalid_name, false);
+
+		const malformed = runtime.helpers.mergeToolCallChunks([
+			{ index: 0, id: "call-malformed", function: { name: "local_file_read", arguments: "{}" } },
+			{ index: 0, function: { name: "local_file_list" } }
+		], 1, { expectedNames: ["local_file_read"] });
+		assert.equal(malformed[0].function.name, "local_file_readlocal_file_list");
+		assert.equal(malformed[0].function.invalid_name, true);
+		assert.deepEqual(runtime.helpers.authorizeToolCall(malformed[0], new Set(["local_file_read"])), {
+			authorized: false,
+			reason: "malformed",
+			raw_name: "local_file_readlocal_file_list",
+			canonical_name: ""
+		});
 	} finally {
 		destroy();
 	}

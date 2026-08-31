@@ -2607,6 +2607,123 @@ test("POST /api/chat/stream executes web_search and continues to a final answer"
 	}
 });
 
+test("POST /api/chat/stream rejects globally executable tools that were not advertised for the request", async () => {
+	const guessedNames = ["system_time", "local_file_read", "local_shell", "browser_open"];
+	let providerCallCount = 0;
+	let executorCallCount = 0;
+	const localRuntime = {
+		canExecute: () => true,
+		status: () => ({ enabled: true, available: true, write_enabled: true, shell_enabled: true, workspace_count: 1, workspaces: ["workspace_0"] }),
+		listWorkspaces: () => { executorCallCount += 1; return []; },
+		listFiles: () => { executorCallCount += 1; return []; },
+		readFile: () => { executorCallCount += 1; return { content: "should not execute" }; },
+		writeFile: () => { executorCallCount += 1; return { ok: true }; },
+		runCommand: () => { executorCallCount += 1; return { exit_code: 0 }; }
+	};
+	const browserRuntime = {
+		canExecute: () => true,
+		status: () => ({ enabled: true, available: true, backend: "test", headless: true, action_policy: "read-only", unavailable_reason: null }),
+		execute: () => { executorCallCount += 1; return { ok: true }; },
+		close: async () => {}
+	};
+	const { runtime, destroy } = createIsolatedRuntime({
+		envMerge: { ALLOWED_CUSTOM_PROVIDER_HOSTS: "api.example.com" },
+		localRuntime,
+		browserRuntime,
+		fetchFn: async () => {
+			const name = guessedNames[providerCallCount];
+			providerCallCount += 1;
+			return mockSseResponse([{
+				choices: [{
+					delta: { tool_calls: [{ index: 0, id: `call-${providerCallCount}`, function: { name, arguments: "{}" } }] },
+					finish_reason: "tool_calls"
+				}]
+			}]);
+		}
+	});
+	try {
+		const profileId = applyProfileMutation(runtime, (profile) => {
+			profile.provider_id = "custom";
+			profile.base_url = "https://api.example.com/v1";
+			profile.api_key = "stream-key";
+		});
+		await withServer(runtime.app, async (baseUrl) => {
+			for (const guessedName of guessedNames) {
+				const response = await fetch(`${baseUrl}/api/chat/stream`, {
+					method: "POST",
+					headers: withAuthHeaders({ "Content-Type": "application/json" }),
+					body: JSON.stringify({
+						profile_id: profileId,
+						messages: [{ role: "user", content: "Do not use tools." }],
+						tools: [],
+						include_saved_runtime_presets: false
+					})
+				});
+				const events = parseSseEvents(await response.text());
+				const errorEvent = events.find((entry) => entry.event === "error");
+				assert.equal(errorEvent.data.code, "tool_execution_unavailable");
+				assert.deepEqual(errorEvent.data.tool_names, [guessedName]);
+				assert.equal(events.some((entry) => entry.event === "tool"), false);
+				assert.equal(events.some((entry) => entry.event === "done"), false);
+			}
+		});
+		assert.equal(providerCallCount, guessedNames.length);
+		assert.equal(executorCallCount, 0);
+	} finally {
+		destroy();
+	}
+});
+
+test("POST /api/chat/stream rejects concatenated tool names without falling through to an advertised executor", async () => {
+	let executorCallCount = 0;
+	const localRuntime = {
+		canExecute: () => true,
+		status: () => ({ enabled: true, available: true, write_enabled: false, shell_enabled: false, workspace_count: 1, workspaces: ["workspace_0"] }),
+		listWorkspaces: () => [],
+		listFiles: () => [],
+		readFile: () => { executorCallCount += 1; return { content: "should not execute" }; },
+		writeFile: () => { executorCallCount += 1; return { ok: true }; },
+		runCommand: () => { executorCallCount += 1; return { exit_code: 0 }; }
+	};
+	const { runtime, destroy } = createIsolatedRuntime({
+		envMerge: { ALLOWED_CUSTOM_PROVIDER_HOSTS: "api.example.com" },
+		localRuntime,
+		fetchFn: async () => mockSseResponse([{
+			choices: [{
+				delta: { tool_calls: [{ index: 0, id: "call-malformed", function: { name: "local_file_readlocal_file_list", arguments: "{}" } }] },
+				finish_reason: "tool_calls"
+			}]
+		}])
+	});
+	try {
+		const profileId = applyProfileMutation(runtime, (profile) => {
+			profile.provider_id = "custom";
+			profile.base_url = "https://api.example.com/v1";
+			profile.api_key = "stream-key";
+		});
+		await withServer(runtime.app, async (baseUrl) => {
+			const response = await fetch(`${baseUrl}/api/chat/stream`, {
+				method: "POST",
+				headers: withAuthHeaders({ "Content-Type": "application/json" }),
+				body: JSON.stringify({
+					profile_id: profileId,
+					messages: [{ role: "user", content: "Read a file." }],
+					tools: [{ type: "function", function: { name: "local_file_read", parameters: { type: "object" } } }],
+					include_saved_runtime_presets: false
+				})
+			});
+			const events = parseSseEvents(await response.text());
+			const errorEvent = events.find((entry) => entry.event === "error");
+			assert.equal(errorEvent.data.code, "tool_execution_unavailable");
+			assert.deepEqual(errorEvent.data.tool_names, ["local_file_readlocal_file_list"]);
+			assert.equal(events.some((entry) => entry.event === "tool"), false);
+		});
+		assert.equal(executorCallCount, 0);
+	} finally {
+		destroy();
+	}
+});
+
 test("POST /api/chat/stream does not apply tool continuation timeout after provider reconnects", async () => {
 	const calls = [];
 	const encoder = new TextEncoder();
