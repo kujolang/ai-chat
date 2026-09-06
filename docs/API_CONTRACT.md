@@ -450,3 +450,7 @@ Only the configured `documentation_query` tool consumes the preference. Its mode
 The adapter POSTs JSON to `/query`, follows no redirects, makes no capability probes/retries, limits responses to 256 KiB and elapsed transport time to ten seconds, and preserves text plus citation path/line ranges. Without support enabled it sends an ordinary query. No preference enters provider options, browser headers, or `Accept-Language`. RAG must ingest explicitly grouped example blocks with its Markdown-example option to return reduced context.
 
 `node scripts/rag-documentation-smoke.js` exercises the real SSE/tool path against `AI_CHAT_RAG_URL` with local model fixtures and verifies saved defaults, request override, clearing, and captured model input without provider charges.
+
+Documentation results that exceed the input allowance keep the highest-ranked complete citations first. The provider-bound result reports `compacted` and `omitted_citations`; saved execution receipts retain the full lookup result. Native Ollama tool groups are matched by their ordered tool names and indexes when compacting completed work.
+
+With `WATCHDOG_DIRECT_STREAMING` enabled, the personal Ollama route prefers a matching direct credential profile but can use a validated Ollama credential whose model suggestions are stale. The shared Ollama TUD route continues through its configured Watchdog upstream.

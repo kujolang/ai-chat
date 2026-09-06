@@ -1838,7 +1838,7 @@ test("POST /api/chat/stream routes the Ollama TUD profile through the shared pro
 	}
 });
 
-test("POST /api/chat/stream authenticates direct Watchdog telemetry and reports rejection", async () => {
+test("POST /api/chat/stream keeps direct Watchdog transport with stale model suggestions and reports telemetry rejection", async () => {
 	const credentialDir = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-watchdog-direct-"));
 	const tokenFile = path.join(credentialDir, "proxy-token");
 	const apiTokenFile = path.join(credentialDir, "api-token");
@@ -1889,7 +1889,7 @@ test("POST /api/chat/stream authenticates direct Watchdog telemetry and reports 
 			name: "Direct Ollama",
 			provider_id: "custom",
 			base_url: "https://ollama.com/v1",
-			models_csv: "qwen3.5",
+			models_csv: "older-model",
 			api_key: "direct-ollama-key"
 		});
 		runtime.helpers.writeState(state);

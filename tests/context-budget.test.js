@@ -66,3 +66,25 @@ test("dated catalog metadata respects exact model identity, effective windows an
 test("native wrapper reservation cannot silently consume protected input allowance", () => {
 	assert.throws(() => budgetContext([{ role: "user", content: "x".repeat(6000) }], [], { window_tokens: 8192, output_tokens: 1024, envelope_tokens: 1000 }), { code: "context_budget_exceeded" });
 });
+
+for (const native of [false, true]) {
+ test(`documentation budgeting preserves whole ranked citations and protocol (native=${native})`, () => {
+  const citations = [1,2,3,4].map(n=>({path:`doc-${n}.md`,source_url:`https://docs.kujolang.ai/doc-${n}/`,text:`Complete example ${n}: `+'x'.repeat(1500)}));
+  const messages=[{role:'user',content:'Cite documentation'},
+   {role:'assistant',tool_calls:[{...(native?{}:{id:'docs'}),function:{index:0,name:'documentation_query',arguments:{query:'agent'}}}]},
+   {role:'tool',...(native?{tool_name:'documentation_query'}:{tool_call_id:'docs'}),content:JSON.stringify({ok:true,citations,count:4})}];
+  const report=budgetContext(messages,[],{window_tokens:8192,output_tokens:4800});
+  const result=JSON.parse(messages[2].content);
+  assert.equal(result.count,1);assert.equal(result.omitted_citations,3);
+  assert.deepEqual(result.citations[0],citations[0]);assert.equal(messages[1].tool_calls.length,1);
+  assert.ok(report.after_upper_bound<=3392);assert.equal(report.compacted_calls,1);
+ });
+}
+test('native completed calls compact safely but mismatched native results do not',()=>{
+ const make= name=>[{role:'user',content:'Task'},{role:'assistant',tool_calls:[{function:{index:0,name:'local_file_write',arguments:{content:'x'.repeat(6000)}}}]},{role:'tool',tool_name:name,content:'{"ok":true}'}];
+ const messages=make('local_file_write');
+ budgetContext(messages,[],{window_tokens:4096,output_tokens:1024});
+ assert.match(messages[1].content,/"tool":"local_file_write","returned_ok":true/);
+ assert.ok(!messages.some(m=>m.role==='tool'||m.tool_calls));
+ assert.throws(()=>budgetContext(make('other'),[],{window_tokens:4096,output_tokens:1024}),{code:'context_budget_exceeded'});
+});
