@@ -39,3 +39,17 @@ test('Stop received before streaming POST prevents later execution',()=>{
  assert.throws(()=>registry.open('pending',response()),{code:'stream_cancelled'});
  assert.equal(registry.size(),0);
 });
+
+test('shutdown checkpoints then drains requests and rejects new admission', async () => {
+ const registry=createStreamRegistry();
+ const entry=registry.open('drain',response());
+ let checkpointed=false;
+ entry.onShutdown(()=>{checkpointed=true;});
+ const closing=registry.close({timeoutMs:1000});
+ assert.equal(checkpointed,true);
+ assert.equal(entry.signal.aborted,true);
+ assert.throws(()=>registry.open('later',response()),{code:'server_shutting_down'});
+ entry.close();
+ await closing;
+ assert.equal(registry.size(),0);
+});

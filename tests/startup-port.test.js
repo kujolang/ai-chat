@@ -21,6 +21,12 @@ function createTestEnv() {
 			...process.env,
 			ENCRYPTION_SECRET: "startup-test-secret",
 			API_AUTH_TOKEN: "startup-test-token",
+			// Port-conflict tests must not scan the developer's installed skills
+			// or initialize optional browser/local integrations from their .env.
+			AI_CHAT_SKILLS_ENABLED: "0",
+			AI_CHAT_LOCAL_TOOLS_ENABLED: "0",
+			BROWSER_ENABLED: "0",
+			CODEX_CLI_PATH: "/usr/bin/false",
 			AI_SDK_PATH: sdkPath,
 			CODEX_MODEL_CACHE_PATH: codexModelCachePath,
 			DB_PATH: path.join(tempRoot, "data", "test.db"),

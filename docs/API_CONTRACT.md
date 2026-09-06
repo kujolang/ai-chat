@@ -375,3 +375,27 @@ Native Ollama and OpenAI-compatible streaming share the discovery and execution 
 Streaming `done.context_budget` and value-free `model_context_budget` audit/trace events report `system_chars`, `conversation_chars`, `tool_result_chars`, `tool_call_chars`, `tool_schema_bytes`, and `tool_schema_count`. Audit/trace events also list exposed tool names and round index. These counters are characters/bytes, not tokenizer measurements or a billing estimate. Provider-reported usage remains authoritative when available. A trace records requested calls and selected executor/backend; it does not claim to expose private model reasoning.
 
 `GET /api/health` includes `streaming.active`, `streaming.max_active`, and `streaming.heartbeat_ms`. SSE parsing bounds retained records to 1 MiB; provider HTTP error responses and search upstream JSON are bounded to 2 MiB while reading. Action adapters enforce their configured byte limit during reads.
+
+### Search attempt provenance
+
+`web_search` results include `meta.failover: { used, primary, attempts }`. Each attempt records `backend`, its per-backend `attempt` number, and `status` (`completed` or `failed`). Failed attempts add a bounded error `code` and HTTP status when available. `meta.backend` and each result's `provenance.backend` identify the backend that supplied the evidence, including cached fallback results. Exhausted search errors expose `error.search_attempts` in the tool result sent to the model.
+
+`GET /api/health` search status reports `alternate_backend` and `max_attempts`. Failover is operator-configured with `WEB_SEARCH_ALTERNATE_BACKEND`; the model cannot select it. The default is disabled. Total attempts are bounded to two on the primary and one on a distinct alternate; deterministic errors and cancellation stop immediately.
+
+### Durable execution foundation
+
+Streaming requests use `request_id` as an execution identity, bound to the normalized request and assistant turn. An identical completed request returns its saved `done` result with `replayed: true`. Reusing the ID for a different request returns `execution_conflict`. Interrupted executions require `resume: true` with the same request; unresolved tool outcomes require reconciliation first. This provides durable receipts, not exactly-once execution of external effects.
+
+Authenticated inspection endpoints:
+
+- `GET /api/executions/:id` returns the execution, checkpoint, and call receipts.
+- `GET /api/executions/:id/events?after=0` returns up to 256 ordered events after a nonnegative sequence cursor, plus `status` and `next_cursor`.
+- `POST /api/executions/:id/calls/:callId/reconcile` accepts `disposition: "completed"` with an observed result object, or `disposition: "not_started"`, and nonempty `evidence` of at most 4,000 characters. Inspect the actual outcome before submitting. Reconciliation cannot run while the execution is active.
+
+Persisted SSE events carry numeric `id` sequence values. The client can drain saved events without creating a second model request. A slow consumer exceeding the 256 KiB output buffer is disconnected; events remain in the journal for cursor replay. Startup restores interrupted saved turns and marks calls with no confirmed result as uncertain. Shutdown checkpoints and cancels active streams before closing SQLite.
+
+Limitations at this milestone: explicit resume controls in the UI, journal retention, and native Codex continuation are unfinished. Interrupted Codex resume is rejected with `execution_resume_unavailable` to avoid restarting consequential work from its original input. Completed Codex results can still be replayed. Only one local process may own an execution database; a live recorded PID prevents takeover.
+
+### Streaming context allowance
+
+`MODEL_CONTEXT_LIMITS_JSON` maps `provider:model`, provider name, or `default` to a context window between 1,024 and 4,000,000 tokens. The default is 65,536. The streaming provider loop reserves requested output and estimates input from all serialized messages, reasoning, tool arguments, schemas, and receipts using UTF-8 bytes plus framing. This estimate is not an actual vendor token count. Configure the model's documented window; impossible protected input fails with `context_budget_exceeded`. Coverage of non-streaming and native Codex paths remains tracked in `RELIABILITY_ROADMAP_IMPLEMENTATION.md`.

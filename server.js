@@ -130,8 +130,13 @@ if (require.main === module) {
 	const shutdown = () => {
 		if (shuttingDown) return;
 		shuttingDown = true;
-		server.close(async () => {
-			await runtime.close();
+		// Stop admission and checkpoint detached work before closing the DB.
+		server.close();
+		void runtime.close().catch((error) => {
+			console.error("[ai-chat] shutdown incomplete", error.code || "shutdown_failed");
+			process.exitCode = 1;
+			server.closeAllConnections();
+			process.exit(1);
 		});
 	};
 	process.once("SIGINT", shutdown);

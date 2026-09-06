@@ -3914,3 +3914,98 @@ for (const fixture of [
 		} finally { destroy(); }
 	});
 }
+
+test("durable execution replay returns saved completion without another provider or tool call", async () => {
+	let providerCalls = 0;
+	const { runtime, destroy } = createIsolatedRuntime({ fetchFn: async () => { providerCalls++; return mockSseResponse([{ choices: [{ delta: { content: "Saved answer" }, finish_reason: "stop" }] }]); } });
+	try {
+		const profileId = applyProfileMutation(runtime, (p) => { p.api_key = "fixture-key"; });
+		await withServer(runtime.app, async (baseUrl) => {
+			const payload = { request_id: "durable-complete", profile_id: profileId, messages: [{ role: "user", content: "answer once" }] };
+			const run = async (body) => parseSseEvents(await (await fetch(`${baseUrl}/api/chat/stream`, { method: "POST", headers: withAuthHeaders({ "Content-Type": "application/json" }), body: JSON.stringify(body) })).text());
+			assert.equal((await run(payload)).at(-1).event, "done");
+			const replay = (await run(payload)).at(-1);
+			assert.equal(replay.data.output_text, "Saved answer");
+			assert.equal(replay.data.replayed, true);
+			assert.equal(providerCalls, 1);
+			assert.equal((await run({ ...payload, messages: [{ role: "user", content: "different" }] })).at(-1).data.code, "execution_conflict");
+			const persisted = await fetchJson(baseUrl, "/api/executions/durable-complete/events?after=0");
+			assert.equal(persisted.json.events.at(-1).event, "done");
+			const next = await fetchJson(baseUrl, `/api/executions/durable-complete/events?after=${persisted.json.next_cursor}`);
+			assert.deepEqual(next.json.events, []);
+		});
+	} finally { destroy(); }
+});
+
+test("explicit resume continues from completed tool receipts instead of repeating tools", async () => {
+	let providerCalls = 0;
+	let executions = 0;
+	const { runtime, destroy } = createIsolatedRuntime({
+		localRuntime: { canExecute: () => true, status: () => ({ enabled: true }), listWorkspaces: () => { executions++; return { workspaces: [] }; } },
+		fetchFn: async (_url, options) => {
+			providerCalls++;
+			if (providerCalls === 1) return mockSseResponse([{ choices: [{ delta: { tool_calls: [{ index: 0, id: "durable-call", function: { name: "local_workspace_list", arguments: "{}" } }] }, finish_reason: "tool_calls" }] }]);
+			if (providerCalls === 2) throw new Error("connection lost after tool completion");
+			const body = JSON.parse(options.body);
+			assert.ok(body.messages.some((m) => m.role === "tool" && m.tool_call_id === "durable-call"));
+			return mockSseResponse([{ choices: [{ delta: { content: "Continued from saved receipt" }, finish_reason: "stop" }] }]);
+		}
+	});
+	try {
+		const profileId = applyProfileMutation(runtime, (p) => { p.api_key = "fixture-key"; });
+		await withServer(runtime.app, async (baseUrl) => {
+			const payload = { request_id: "resume-fixture", profile_id: profileId, messages: [{ role: "user", content: "list workspaces" }], tools: [{ type: "function", function: { name: "local_workspace_list" } }] };
+			const run = async (body) => parseSseEvents(await (await fetch(`${baseUrl}/api/chat/stream`, { method: "POST", headers: withAuthHeaders({ "Content-Type": "application/json" }), body: JSON.stringify(body) })).text());
+			assert.equal((await run(payload)).at(-1).event, "error");
+			assert.equal((await run(payload)).at(-1).data.code, "execution_resume_required");
+			assert.equal((await run({ ...payload, resume: true })).at(-1).event, "done");
+			assert.equal(executions, 1);
+			assert.equal(providerCalls, 3);
+		});
+	} finally { destroy(); }
+});
+
+test("restart restores interrupted partial output from durable events and marks in-flight calls uncertain", async () => {
+	const first = createIsolatedRuntime();
+	let second;
+	try {
+		const profileId = applyProfileMutation(first.runtime, (p) => { p.api_key = "fixture-key"; });
+		first.runtime.helpers.applyStateChanges({ changes: [
+			{ type: "chat_upsert", chat: { id: "restart-chat", title: "Restart", created_at: Date.now(), updated_at: Date.now() } },
+			{ type: "pane_upsert", pane: { id: "restart-pane", chat_id: "restart-chat", profile_id: profileId, status: "waiting" } },
+			{ type: "message_upsert", message: { id: "restart-turn", pane_id: "restart-pane", role: "assistant", content: "", created_at: Date.now() } }
+		] });
+		const journal = first.runtime.helpers.executionJournal;
+		journal.begin("restart-run", "restart-turn", { chat_id: "restart-chat", pane_id: "restart-pane", assistant_message_id: "restart-turn", profile_id: profileId, provider_id: "openai", model: "fixture" });
+		journal.appendEvent("restart-run", "token", { delta: "Saved before crash" });
+		journal.startCall("restart-run", "uncertain-call", "action_adapter_call", { id: "write" });
+		await first.runtime.close();
+		second = createIsolatedRuntime({ envMerge: { DB_PATH: first.runtime.config.dbPath } });
+		assert.equal(second.runtime.db.prepare("SELECT content FROM messages WHERE id = 'restart-turn'").get().content, "Saved before crash");
+		assert.equal(second.runtime.db.prepare("SELECT status FROM panes WHERE id = 'restart-pane'").get().status, "partial");
+		assert.equal(second.runtime.helpers.executionJournal.receipts("restart-run")[0].status, "uncertain");
+	} finally { if (second) second.destroy(); first.destroy(); }
+});
+
+test("shutdown waits for stream cancellation before closing its journal database", async () => {
+	let ready;
+	const started = new Promise((resolve) => { ready = resolve; });
+	const { runtime, destroy } = createIsolatedRuntime({ fetchFn: async (_url, options) => ({
+		ok: true, status: 200, headers: { get: () => "text/event-stream" }, body: { getReader: () => ({ read: () => new Promise((_resolve, reject) => {
+			options.signal.addEventListener("abort", () => setTimeout(() => reject(options.signal.reason), 20), { once: true }); ready();
+		}) }) }
+	}) });
+	try {
+		const profileId = applyProfileMutation(runtime, (p) => { p.api_key = "fixture-key"; });
+		await withServer(runtime.app, async (baseUrl) => {
+			const response = await fetch(`${baseUrl}/api/chat/stream`, { method: "POST", headers: withAuthHeaders({ "Content-Type": "application/json" }), body: JSON.stringify({ request_id: "shutdown-run", profile_id: profileId, messages: [{ role: "user", content: "wait" }] }) });
+			await started;
+			const closing = runtime.close();
+			assert.equal(runtime.db.open, true);
+			const events = parseSseEvents(await response.text());
+			assert.equal(events.at(-1).data.code, "stream_cancelled");
+			await closing;
+			assert.equal(runtime.db.open, false);
+		});
+	} finally { destroy(); }
+});

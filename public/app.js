@@ -5968,6 +5968,7 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 
 			const controller = new AbortController();
 			controller.streamRequestId = payload.request_id;
+			assistantMessage.execution_id = payload.request_id;
 			currentStreamController = controller;
 			activeStreamControllers.add(controller);
 			updateStreamingControls();
@@ -5987,6 +5988,8 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 			const decoder = new TextDecoder();
 			let buffer = "";
 			let currentEvent = "message";
+			let currentEventId = 0;
+			let lastEventSequence = 0;
 			let eventDataLines = [];
 			let streamDonePayload = null;
 			let receivedTokenDelta = false;
@@ -6027,6 +6030,11 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 					return;
 				}
 
+				if (currentEventId > 0) {
+					if (currentEventId <= lastEventSequence) return;
+					lastEventSequence = currentEventId;
+					assistantMessage.execution_cursor = lastEventSequence;
+				}
 				if (eventName === "token") {
 					receivedTokenDelta = true;
 					completeThinkingTiming();
@@ -6110,6 +6118,11 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 					}
 
 					const field = line.trimStart();
+					if (field.startsWith("id:")) {
+						const sequence = Number(field.slice(3).trim());
+						currentEventId = Number.isSafeInteger(sequence) && sequence > 0 ? sequence : 0;
+						continue;
+					}
 					if (field.startsWith("event:")) {
 						currentEvent = field.slice(6).trim();
 						continue;
@@ -6154,6 +6167,22 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 			} finally {
 				clearStreamInactivityTimer();
 				reader.releaseLock();
+			}
+			if (!streamDonePayload && !controller.signal.aborted && (!streamErrorPayload || streamErrorPayload.code === "stream_network_error") && window.AIChatExecutionReplay && (lastEventSequence > 0 || !receivedTokenDelta)) {
+				try {
+					await window.AIChatExecutionReplay.replayExecution({
+						after: lastEventSequence,
+						signal: controller.signal,
+						fetchPage: async (cursor) => {
+							const response = await apiFetch(`/api/executions/${encodeURIComponent(payload.request_id)}/events?after=${cursor}`, { signal: AbortSignal.any([controller.signal, AbortSignal.timeout(10000)]) });
+							return response.ok ? response.json() : null;
+						},
+						onEvent: (event) => { currentEvent = event.event; currentEventId = event.sequence; eventDataLines = [JSON.stringify(event.data)]; processSseEvent(); }
+					});
+					if (streamDonePayload) streamErrorPayload = null;
+				} catch (error) {
+					if (controller.signal.aborted) throw error;
+				}
 			}
 			if (!streamDonePayload && !streamErrorPayload) {
 				streamErrorPayload = { code: "stream_interrupted", message: "The connection ended without completion. Partial output was preserved. Check the saved turn before retrying tools.", retryable: false };
