@@ -374,6 +374,8 @@ Native Ollama and OpenAI-compatible streaming share the discovery and execution 
 
 Streaming `done.context_budget` and value-free `model_context_budget` audit/trace events report `system_chars`, `conversation_chars`, `tool_result_chars`, `tool_call_chars`, `tool_schema_bytes`, and `tool_schema_count`. Audit/trace events also list exposed tool names and round index. These counters are characters/bytes, not tokenizer measurements or a billing estimate. Provider-reported usage remains authoritative when available. A trace records requested calls and selected executor/backend; it does not claim to expose private model reasoning.
 
+HTTP-provider streaming `done` and `error` records include dispatched `provider_rounds`, `usage_reported_rounds`, and `usage_complete`. Errors preserve usage from completed rounds even if a later provider call fails. A present numeric `usage.cost` is retained and summed only when each reported round supplies it; incomplete cost stays unknown. Check round coverage before treating usage as a total-task measurement. Context rejection before dispatch does not count as a provider round.
+
 `GET /api/health` includes `streaming.active`, `streaming.max_active`, and `streaming.heartbeat_ms`. SSE parsing bounds retained records to 1 MiB; provider HTTP error responses and search upstream JSON are bounded to 2 MiB while reading. Action adapters enforce their configured byte limit during reads.
 
 ### Search attempt provenance

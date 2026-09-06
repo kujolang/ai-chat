@@ -32,6 +32,22 @@ function localEnv() {
  }
  return env;
 }
+function validateTargets(raw) {
+ if(!Array.isArray(raw)||raw.length<2||raw.length>8)throw Error('Provide 2–8 provider targets.');
+ const targets=raw.map(t=>{
+  if(!t||!['watchdog','watchdog_openrouter','watchdog_ollama_tud','hermes','xai_oauth','custom'].includes(t.provider)||typeof t.model!=='string'||!t.model||t.model.length>160||typeof t.family!=='string'||!t.family.trim()||t.family.length>80)throw Error('Each target requires a supported provider, model and family.');
+  if(Object.keys(t).some(key=>!['provider','model','family','base_url','api_key_env'].includes(key)))throw Error('Unknown target field; credentials must be supplied through a named environment variable.');
+  const target={provider:t.provider,model:t.model,family:t.family};
+  if(t.provider==='custom') {
+   const url=new URL(t.base_url);
+   if(url.protocol!=='https:'||url.username||url.password||url.search||url.hash||!/^[_A-Z][_A-Z0-9]{0,127}$/.test(t.api_key_env||''))throw Error('Custom targets require an HTTPS base_url and api_key_env name, without embedded credentials.');
+   target.base_url=url.href.replace(/\/$/,'');target.api_key_env=t.api_key_env;
+  } else if(t.base_url||t.api_key_env)throw Error('Managed targets use their configured routing.');
+  return target;
+ });
+ if(new Set(targets.map(t=>t.provider)).size<2||new Set(targets.map(t=>t.family)).size<2)throw Error('Mixed-provider validation requires at least two providers and model families.');
+ return targets;
+}
 function scoreTask(task, text, calls, artifactDir) {
  const completed=calls.filter(call=>call.status==='completed'&&call.result?.ok!==false);
  if(!completed.some(call=>call.tool_name===task.required)||!text.includes(task.expected))return false;
@@ -39,14 +55,18 @@ function scoreTask(task, text, calls, artifactDir) {
  if(task.name==='rendered-evidence')return completed.some(call=>call.tool_name==='browser_close')&&completed.some(call=>call.result?.action==='screenshot'&&/^[A-Za-z0-9_-]+$/.test(call.result.artifact_id||'')&&fs.existsSync(path.join(artifactDir,call.result.artifact_id+'.png')));
  return true;
 }
+function scoreEvidence(task,text,calls) {
+ return {expected_value_present:text.includes(task.expected),required_tool_completed:calls.some(c=>c.tool_name===task.required&&c.status==='completed'&&c.result?.ok!==false),...(task.name==='local-report'?{expected_filename_present:text.includes(task.expected_file),revenue_field_matches:/"revenue"\s*:\s*146(?:[,\s}])/.test(text)}:{}),output_chars:text.length,output_sha256:crypto.createHash('sha256').update(text).digest('hex')};
+}
 function percentile(values,p) { const sorted=values.filter(Number.isFinite).sort((a,b)=>a-b);return sorted.length?sorted[Math.min(sorted.length-1,Math.floor(sorted.length*p))]:null; }
 function summarize(rows, durationMs, mode) {
  const groups={};
  for(const row of rows) {
   const key=`${row.provider}:${row.model}:${row.discovery?'deferred':'eager'}`;
-  const group=groups[key]||={attempts:0,completed:0,correct:0,rounds:0,input_tokens:0,output_tokens:0,usage_reported:0,cost_reported:0,cost:0,latencies:[],discovery_loaded:0,discovery_relevant:0};
+  const group=groups[key]||={attempts:0,completed:0,correct:0,rounds:0,input_tokens:0,output_tokens:0,usage_reported:0,usage_complete_attempts:0,cost_reported:0,cost:0,latencies:[],discovery_loaded:0,discovery_relevant:0};
   group.attempts++;group.completed+=Number(row.terminal==='done');group.correct+=Number(row.correct);group.rounds+=row.rounds||0;
   if(row.usage){group.usage_reported++;group.input_tokens+=Number(row.usage.input_tokens)||0;group.output_tokens+=Number(row.usage.output_tokens)||0;}
+  group.usage_complete_attempts+=Number(row.usage_complete===true);
   if(Number.isFinite(row.reported_cost)){group.cost_reported++;group.cost+=row.reported_cost;}
   group.latencies.push(row.duration_ms);group.discovery_loaded+=row.discovery_loaded;group.discovery_relevant+=row.discovery_relevant;
  }
@@ -60,7 +80,7 @@ function summarize(rows, durationMs, mode) {
 async function consume(response,signal,startedAt) {
  if(!response.ok)throw Object.assign(Error('Request failed'),{code:`http_${response.status}`});
  const reader=response.body.getReader(), decoder=new TextDecoder();
- let buffer='', bytes=0, terminal=null, errorCode=null, errorStatus=null, done=null, firstToken=null, text='';
+ let buffer='', bytes=0, terminal=null, errorCode=null, errorStatus=null, done=null, errorPayload=null, firstToken=null, text='';
  try {
   while(true) {
    signal.throwIfAborted();const item=await reader.read();if(item.done)break;
@@ -73,17 +93,15 @@ async function consume(response,signal,startedAt) {
     const payload=JSON.parse(data);
     if(kind==='token'){firstToken??=Date.now()-startedAt;text+=String(payload.delta||'');}
     if(kind==='done'){terminal='done';done=payload;}
-    if(kind==='error'){terminal='error';errorCode=payload.code||'unknown';errorStatus=Number.isInteger(payload.status)?payload.status:null;}
+    if(kind==='error'){terminal='error';errorPayload=payload;errorCode=payload.code||'unknown';errorStatus=Number.isInteger(payload.status)?payload.status:null;}
    }
   }
-  return {terminal:terminal||'eof',error_code:errorCode,provider_http_status:errorStatus,done,first_token_ms:firstToken,bytes,text};
+  return {terminal:terminal||'eof',error_code:errorCode,provider_http_status:errorStatus,done,error_payload:errorPayload,first_token_ms:firstToken,bytes,text};
  } finally {await reader.cancel().catch(()=>{});reader.releaseLock();}
 }
 async function main() {
  const config=options(process.argv.slice(2));
- const targets=JSON.parse(fs.readFileSync(path.resolve(config.targets),'utf8'));
- if(!Array.isArray(targets)||targets.length<2||targets.length>8||targets.some(t=>!['watchdog','watchdog_openrouter','watchdog_ollama_tud','hermes','xai_oauth'].includes(t.provider)||typeof t.model!=='string'||!t.model||t.model.length>160||typeof t.family!=='string'))throw Error('Provide 2–8 managed-provider targets with provider, model and family.');
- if(new Set(targets.map(t=>t.provider)).size<2)throw Error('Mixed-provider validation requires at least two providers.');
+ const targets=validateTargets(JSON.parse(fs.readFileSync(path.resolve(config.targets),'utf8')));
  const directory=path.resolve(config.output);fs.mkdirSync(directory,{mode:0o700});
  const write=(name,value)=>{const file=path.join(directory,name);fs.writeFileSync(file+'.tmp',JSON.stringify(value,null,2)+'\n',{mode:0o600});fs.renameSync(file+'.tmp',file);};
  const append=(name,value)=>fs.appendFileSync(path.join(directory,name),JSON.stringify(value)+'\n',{mode:0o600});
@@ -109,7 +127,16 @@ async function main() {
  try {
   runtime=createServerRuntime({projectRoot,env,pageFetchRuntimeOptions:fixtureNetwork,browserRuntimeOptions:fixtureNetwork,skillRuntimeOptions:{homeDir:fixtureDir},warnFn:()=>{}});
   const state=runtime.helpers.readState();
-  for(const target of targets){const profile=state.settings.profiles.find(p=>p.provider_id===target.provider);if(!profile)throw Error(`Managed provider unavailable: ${target.provider}`);profile.models_csv=[...new Set([...profile.models_csv.split(','),target.model])].join(',');target.profile_id=profile.id;}
+  for(const target of targets){
+   let profile;
+   if(target.provider==='custom') {
+    if(!env[target.api_key_env])throw Error(`Missing credential environment variable: ${target.api_key_env}`);
+    profile={id:crypto.randomUUID(),name:`Live ${target.family}`,provider_id:'custom',base_url:target.base_url,models_csv:target.model,api_key:env[target.api_key_env],instructions:''};
+    state.settings.profiles.push(profile);
+   } else profile=state.settings.profiles.find(p=>p.provider_id===target.provider);
+   if(!profile)throw Error(`Managed provider unavailable: ${target.provider}`);
+   profile.models_csv=[...new Set([...profile.models_csv.split(','),target.model])].join(',');target.profile_id=profile.id;
+  }
   runtime.helpers.writeState(state);
   server=http.createServer(runtime.app);server.listen(0,'127.0.0.1');await once(server,'listening');
   const base=`http://127.0.0.1:${server.address().port}`;
@@ -149,12 +176,17 @@ async function main() {
     const response=await fetch(`${base}/api/chat/stream`,{method:'POST',headers:{'x-api-token':env.API_AUTH_TOKEN,'Content-Type':'application/json'},signal,body:JSON.stringify({request_id:requestId,profile_id:target.profile_id,model:target.model,messages:[{role:'user',content:task.prompt}],temperature:0,max_tokens:1024,max_retries:0,tools:schemas,include_saved_runtime_presets:false,tool_discovery:discovery})});
     result=await consume(response,signal,begin);
    } catch(error){await json('/api/chat/stream/cancel',{method:'POST',body:JSON.stringify({request_id:requestId})}).catch(()=>{});result={terminal:'error',error_code:signal.aborted?(stopping?'stopped':'harness_timeout'):(error.code||error.name),text:''};}
-   const receipt=await json(`/api/executions/${encodeURIComponent(requestId)}`).catch(()=>({}));
+   let receipt=await json(`/api/executions/${encodeURIComponent(requestId)}`).catch(()=>({}));
+   const settleDeadline=Date.now()+5000;
+   while(receipt.execution?.status==='running'&&Date.now()<settleDeadline){await sleep(50);receipt=await json(`/api/executions/${encodeURIComponent(requestId)}`).catch(()=>({}));}
    const calls=receipt.receipts||[];const names=calls.map(c=>c.tool_name);
    const loaded=calls.filter(c=>c.tool_name==='tool_discover').flatMap(c=>c.result?.loaded||[]);
-   const done=result.done;const usage=done?.usage||null;
-   const cost=typeof usage?.cost==='number'?usage.cost:typeof usage?.total_cost==='number'?usage.total_cost:null;
+   const done=result.done||result.error_payload||receipt.execution?.result||receipt.execution?.checkpoint;
+   const usage=done?.usage||null;
+   const usageComplete=done?.usage_complete===true;
+   const cost=usageComplete&&typeof usage?.cost==='number'?usage.cost:usageComplete&&typeof usage?.total_cost==='number'?usage.total_cost:null;
    const row={index,request_id:requestId,trace_id:done?.trace_id||null,at_ms:begin-startedAt,provider:target.provider,model:target.model,family:target.family,task:task.name,discovery,terminal:result.terminal,error_code:result.error_code||null,provider_http_status:result.provider_http_status||null,correct:result.terminal==='done'&&scoreTask(task,result.text,calls,env.BROWSER_ARTIFACT_DIR),duration_ms:Date.now()-begin,first_token_ms:result.first_token_ms||null,rounds:done?.provider_rounds||null,usage,reported_cost:cost,tools:names,tool_errors:calls.filter(c=>c.result?.ok===false).map(c=>({tool:c.tool_name,code:c.result.error?.code||'unknown'})),discovery_loaded:loaded.length,discovery_relevant:loaded.filter(name=>task.relevant.includes(name)).length,context:done?.context_budget||null,response_bytes:result.bytes||0};
+   Object.assign(row,{usage_complete:usageComplete,usage_reported_rounds:done?.usage_reported_rounds??null,scoring:scoreEvidence(task,result.text,calls),execution_status:receipt.execution?.status||null});
    rows.push(row);append('requests.jsonl',row);
    write('status.json',{status:'running',pid:process.pid,elapsed_ms:Date.now()-startedAt,attempts:rows.length,last:{provider:row.provider,task:row.task,terminal:row.terminal,correct:row.correct}});
    console.log(JSON.stringify({attempt:rows.length,provider:row.provider,model:row.model,task:row.task,discovery,terminal:row.terminal,correct:row.correct,error_code:row.error_code}));
@@ -185,4 +217,4 @@ async function main() {
  }
 }
 if(require.main===module)main().catch(error=>{console.error(error.message);process.exitCode=1;});
-module.exports={options,summarize,consume,scoreTask};
+module.exports={options,summarize,consume,scoreTask,scoreEvidence,validateTargets,main};

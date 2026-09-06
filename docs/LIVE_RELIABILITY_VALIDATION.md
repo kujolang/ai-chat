@@ -1,6 +1,6 @@
 # Real-model reliability validation
 
-`scripts/reliability-live-run.js` runs actual configured managed providers against controlled local tasks. It creates a new SQLite database, isolated read-only workspace, HTTP fixtures, and contained browser artifacts. It never imports production chats or writes the production database. Provider routing credentials are read from the normal environment and local `.env`; they are not written to the report. Calls consume the selected provider's quota.
+`scripts/reliability-live-run.js` runs actual configured providers against controlled local tasks. It creates a new SQLite database, isolated read-only workspace, HTTP fixtures, and contained browser artifacts. It never imports production chats or writes the production database. Provider routing credentials are read from the normal environment and local `.env`; they are not written to the report. Calls consume the selected provider's quota.
 
 Create a JSON target file with at least two configured providers and explicit model families:
 
@@ -11,7 +11,7 @@ Create a JSON target file with at least two configured providers and explicit mo
 ]
 ```
 
-Use models actually available to your accounts. A listed model is not an entitlement guarantee. The harness supports the managed Watchdog, Hermes, and xAI OAuth routes. It rejects mock-only and single-provider target matrices.
+Use models actually available to your accounts. A listed model is not an entitlement guarantee. The harness supports the managed Watchdog, Hermes, and xAI OAuth routes plus explicitly configured HTTPS custom routes. A custom target supplies `provider: "custom"`, `base_url`, and `api_key_env` (the name of an environment variable holding its credential), along with model and family. Never put the credential in the target file. Existing custom-host policy still applies. The harness rejects embedded URL credentials, unknown target fields, mock-only matrices, and matrices lacking two distinct providers and families.
 
 ```bash
 node scripts/reliability-live-run.js --mode eval --targets /absolute/path/to/targets.json --output /absolute/path/to/new-eval-directory
@@ -19,6 +19,8 @@ node scripts/reliability-live-run.js --mode soak --targets /absolute/path/to/tar
 ```
 
 The output directory must be new. A soak must last at least eight hours; an evaluation or shortened run is never labelled all-day evidence. Each target runs local CSV analysis, static-page extraction, and dynamic browser evidence with eager and deferred tool schemas. Output correctness is checked against fresh fixture values and required executed tools. The report records selected tools, discovery precision against the task's relevant tools, provider rounds, latency, provider-reported usage, and cost when supplied. Missing cost remains `null`; token counts and fixture estimates are not billed dollars. Reports evaluate the task matrix, not general intelligence or universal model reliability.
+
+Failed requests retain reported usage and dispatched-round counts. `usage_reported_rounds`, `usage_complete`, and group `usage_complete_attempts` distinguish partial evidence from total-task coverage. Summed tokens are the reported portion only when coverage is incomplete. A task's reported cost is accepted only when every round supplied usage and cost; no price estimate fills missing data. Scoring diagnostics record value/filename/field/receipt checks plus output length and hash, without saving raw prose. After timeout cancellation the harness briefly waits for the execution to settle before collecting its journal result.
 
 `manifest.json` records the commit, dirty files, PID, targets, and settings. `requests.jsonl` records completed attempts without raw model prose. `metrics.jsonl` samples process-tree memory, event-loop delay, request/benchmark admission, and SSE output pressure. `status.json` is a progress convenience; inspect the live process or execution handle before deciding a run stopped. `summary.json` records terminal status, elapsed duration, task results, and acceptance facts. A `completed` process does not mean all tasks passed: inspect `acceptance` and per-model results. Missing/failed metric samples and observed resource growth require review before accepting a soak. The isolated database encryption key exists only in memory, so the harness cannot resume after a process crash; preserve the failed evidence and start a separately identified run.
 

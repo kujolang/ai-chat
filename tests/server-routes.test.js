@@ -4340,3 +4340,31 @@ test('JSON whole-context budget prunes old context and measures schemas in the a
   });
  } finally { destroy(); }
 });
+
+for (const failure of ['http','tool_limit']) {
+ test(`failed tool continuation preserves usage and cost evidence (${failure})`,async()=>{
+  let rounds=0;
+  const {runtime,destroy}=createIsolatedRuntime({envMerge:{MAX_TOOL_ROUNDS:'1'},fetchFn:async()=>{
+   rounds++;
+   if(rounds===2&&failure==='http')return mockJsonResponse({error:'unavailable'},503);
+   return mockSseResponse([{choices:[{delta:{tool_calls:[{index:0,id:`time-${rounds}`,type:'function',function:{name:'system_time',arguments:'{}'}}]},finish_reason:'tool_calls'}],usage:{prompt_tokens:10,completion_tokens:2,cost:0.25}}]);
+  }});
+  try {
+   const profileId=applyProfileMutation(runtime,p=>{p.provider_id='openai';p.api_key='fixture-key';});
+   await withServer(runtime.app,async base=>{
+    const res=await fetch(base+'/api/chat/stream',{method:'POST',headers:withAuthHeaders({'Content-Type':'application/json'}),body:JSON.stringify({request_id:'usage-failure',profile_id:profileId,messages:[{role:'user',content:'Get the time'}],max_tokens:1024})});
+    const error=parseSseEvents(await res.text()).find(e=>e.event==='error').data;
+    assert.equal(error.code,failure==='http'?'provider_http_error':'tool_iteration_limit');
+    assert.equal(error.provider_rounds,2);
+    assert.equal(error.usage_reported_rounds,failure==='http'?1:2);
+    assert.equal(error.usage_complete,failure!=='http');
+    assert.equal(error.usage.input_tokens,failure==='http'?10:20);
+    assert.equal(error.usage.cost,failure==='http'?0.25:0.5);
+    const record=await fetchJson(base,'/api/executions/usage-failure');
+    assert.equal(record.json.execution.result.provider_rounds,2);
+    assert.equal(record.json.receipts.length,1);
+    assert.equal(runtime.helpers.mergeNormalizedUsage({input_tokens:1,cost:0.25},{input_tokens:2}).cost,null);
+   });
+  }finally{destroy();}
+ });
+}
