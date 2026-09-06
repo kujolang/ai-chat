@@ -262,6 +262,8 @@ Regular New Chat continues to create one pane. To reuse a saved arrangement, ope
 
 ### AI Chat documentation access
 
+The [agent documentation index](docs/AGENT_DOCUMENTATION.md) maps common app questions to manuals and implementation references. It also provides manual routing checks. Deferred local read tools must be discovered before use; a missing loaded schema does not by itself mean local reading is unavailable.
+
 The fixed prompt includes a topic map for AI Chat's own manuals. Agents consult it for app questions, configuration, integrations, and implementation. Other tasks continue to use relevant skills and task sources. The map points to the overview in `README.md`, this setup guide, the [capability manual](docs/LOCAL_AGENT_CAPABILITIES.md), [API contract](docs/API_CONTRACT.md), [Kujo execution guide](docs/KUJO_EXECUTION_SETUP.md), [tool repair guide](docs/TOOL_CALL_REPAIR.md), and contributor examples in `AGENTS.md` and `bridge_chat.kujo`.
 
 To make the repository manuals readable, configure local access and restart AI Chat:
