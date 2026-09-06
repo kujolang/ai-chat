@@ -457,3 +457,9 @@ Set `WEB_SEARCH_ALTERNATE_BACKEND=ollama` or `searxng` to permit one alternate a
 The primary makes at most two attempts; the alternate makes at most one. Each attempt uses `WEB_SEARCH_TIMEOUT_MS`. Only transient network errors, timeouts, and HTTP 408, 425, 429, 500, 502, 503, or 504 permit failover. Invalid input, authentication failures, invalid JSON, oversized responses, and cancellation do not trigger another backend.
 
 Results identify the backend that actually returned them. `meta.failover` includes the requested primary, whether the alternate was used, and bounded attempt receipts. Cached fallback results retain this provenance. Identical concurrent searches share upstream work; cancelling one caller leaves the others running. Cancelling the last caller or closing the runtime aborts upstream work and prevents failover.
+
+### Saved constraints and decisions
+
+Use **Saved notes** beside a chat in the sidebar to record requirements and decisions that should survive long conversations. The two fields share an 8,000-character limit. Save them to apply them to the next request in every pane of that chat. Clear both fields and save to remove them.
+
+Saved notes are separate from transcript summaries and survive reloads and restarts. Agents do not automatically populate them. If another tab changes the notes, saving reports a conflict and keeps your unsaved text visible. Copy any edits you need before selecting **Reload saved notes**, then merge and save the current version. Notes are scoped to their chat; another chat does not inherit them.

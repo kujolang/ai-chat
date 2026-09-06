@@ -2577,6 +2577,11 @@ function loadStateFromCache() {
 }
 
 async function handleChatAction(chat, action) {
+	if (action === "continuity") {
+		await persistStateToServer();
+		await window.AIChatContinuity.open({ chatId: chat.id, apiFetch });
+		return;
+	}
 	if (action === "pin") {
 		chat.pinned = !chat.pinned;
 		chat.updatedAt = Date.now();
@@ -3280,6 +3285,7 @@ function renderSidebarChatItems(chats) {
 							<button class="chat-action" data-action="archive" aria-label="${archiveLabel}" title="${archiveLabel}">
 								${archiveIcon}
 							</button>
+							<button class="chat-action" data-action="continuity" aria-label="Saved notes" title="Saved notes">✎</button>
 							<button class="chat-action chat-action-more" data-action="rename" aria-label="Rename chat" title="Rename chat">⋯</button>
 							${deleteConfirmation}
 						</div>

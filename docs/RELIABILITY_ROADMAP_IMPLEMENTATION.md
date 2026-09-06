@@ -9,7 +9,7 @@ Objective: implement **all ten** ranked improvements in PRODUCTION_HARDENING.md.
 | 3 | Bounded SSE queue, slow-consumer policy, replay cursor | Backpressure fixture and disconnected cursor replay without rerunning model/tools | Queue, replay and API tests pass; browser end-to-end replay pending |
 | 4 | Provider-aware whole-context budget | Count content, schemas, tool args/reasoning/receipts; preserve protocol under limits and reject impossible fixed input | Streaming budget implemented; other provider paths and metadata pending |
 | 5 | Real-family daily-task evaluations | Run actual available model families, compare eager/deferred completion, schema selection, rounds and reported cost/usage | Pending |
-| 6 | Explicit constraints/decisions outside lossy summaries | Create/update/delete scoped durable constraints; preserved through long history and reload | Pending |
+| 6 | Explicit constraints/decisions outside lossy summaries | Create/update/delete scoped durable constraints; preserved through long history and reload | Implemented; API, compaction/restart and browser editor checks pass |
 | 7 | Lightweight fetch/extraction under URL/DNS policy | Static extraction without Chromium; redirect/private/DNS rejection; rendering escalation | Pending |
 | 8 | Configured bounded search failover | Primary transient failure uses alternate once with provenance; deterministic failure/cancellation does not cascade | Implemented; deterministic executor and cancellation tests pass |
 | 9 | Browser process/network containment | Enforced network boundary and non-HTTP egress tests, not merely prompt or Chromium flags | Pending |
@@ -26,3 +26,11 @@ The execution journal encrypts request/checkpoint/result/event bodies, binds IDs
 The whole-context estimator counts UTF-8 protocol bytes plus framing and output reservation. It is conservative bookkeeping, not a provider tokenizer measurement. Completed tool groups are compacted only when result IDs match; out-of-order results remain associated with their correct call IDs. Model metadata and complete coverage of non-streaming/Codex paths remain required.
 
 Search failover fixes an extra-retry bug, permits one configured alternate attempt, retains actual backend provenance on cache hits, and aborts upstream work when all coalesced callers cancel or the runtime closes. The full objective remains active; real-family evaluation, persisted constraints, lightweight fetch, browser containment, and the actual all-day soak are still outstanding.
+
+## Explicit continuity milestone
+
+The Saved notes editor now stores user-authored constraints and decisions per chat in an encrypted record independent of messages. Optimistic revisions reject concurrent overwrites; clearing notes advances the revision. Ordinary full-state replacement retains the latest record, while deleting a chat cascades its notes. New requests include the notes in the protected system prefix for that chat. Impossible protected context fails instead of dropping them. No automatic model extraction or rewriting occurs.
+
+The route regression creates notes, rejects stale and oversized updates, checks encrypted storage, rewrites an older transcript snapshot, compacts 50 turns, restarts the runtime, clears notes, and verifies chat deletion. The browser regression edits through the actual sidebar control, reloads the page, simulates a competing update, preserves unsaved edits, reloads current notes, clears them, and closes the dialog using Escape. This resolves the persisted-constraints item listed as outstanding in the earlier foundation snapshot.
+
+Final milestone validation: `npm test` passed 328/328 on Node 22.17.0 (`/tmp/ai-chat-continuity-full-final.log`); `git diff --check` passed. The full ten-item goal is still incomplete.

@@ -53,6 +53,7 @@ This project is for end users and teams who want one local web app to:
 	- Live assistant text streaming via SSE
 	- Thinking/reasoning deltas shown when available
 - Agent instructions
+	- Keep explicit chat constraints and decisions in Saved notes, independent of transcript compaction and shared by the chat's panes
 	- Apply the repository-owned, non-editable system prompt from `SYSTEM_PROMPT.md` to every model request; change it only by editing that Markdown file and restarting the server
 	- Route questions about AI Chat to its relevant local manuals before answering or making changes; see [documentation access setup](SETUP_AND_INSTALL.md#ai-chat-documentation-access)
 	- Save your preferred name in General settings so chat models can address you naturally

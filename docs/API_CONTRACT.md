@@ -399,3 +399,11 @@ Limitations at this milestone: explicit resume controls in the UI, journal reten
 ### Streaming context allowance
 
 `MODEL_CONTEXT_LIMITS_JSON` maps `provider:model`, provider name, or `default` to a context window between 1,024 and 4,000,000 tokens. The default is 65,536. The streaming provider loop reserves requested output and estimates input from all serialized messages, reasoning, tool arguments, schemas, and receipts using UTF-8 bytes plus framing. This estimate is not an actual vendor token count. Configure the model's documented window; impossible protected input fails with `context_budget_exceeded`. Coverage of non-streaming and native Codex paths remains tracked in `RELIABILITY_ROADMAP_IMPLEMENTATION.md`.
+
+### User-saved chat continuity
+
+`GET /api/chats/:chatId/continuity` returns `{ ok: true, continuity: { constraints, decisions, revision, updated_at } }`. A chat without notes starts at revision zero. `PUT` at the same path takes `{ constraints, decisions, revision }`; both text fields are required and together may contain at most 8,000 characters. Successful updates increment the revision. A stale or missing revision returns HTTP 409 `continuity_conflict`. Invalid text returns HTTP 400 `invalid_continuity`; missing chats return HTTP 404 `chat_not_found`. All routes require normal app authentication.
+
+`DELETE` at the same path takes `{ revision }` and clears both fields while incrementing the revision, so stale clients cannot resurrect cleared notes. Deleting the chat removes its continuity record. Ordinary transcript state saves preserve the latest independent continuity record; they cannot overwrite notes from an older cached snapshot.
+
+Notes are encrypted at rest and explicitly edited by the user through Saved notes in the sidebar. They are not inferred from summaries or automatically rewritten by agents. New chat and streaming requests carrying the chat's `chat_id` include the notes as protected context for every pane. Existing in-flight requests retain their original snapshot. Notes remain subject to application policy, tool permissions, and the latest explicit user request. Requests without a matching saved chat receive no chat-specific continuity. Oversized protected context can still fail the configured context budget; it must not silently discard the notes.

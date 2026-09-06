@@ -4009,3 +4009,95 @@ test("shutdown waits for stream cancellation before closing its journal database
 		});
 	} finally { destroy(); }
 });
+
+test("explicit chat continuity survives compaction, stale state saves and restart with revision protection", async () => {
+	const first = createIsolatedRuntime({ envMerge: { MAX_MESSAGES_PER_REQUEST: "5", MAX_TOTAL_MESSAGE_CHARS: "18000", CONTEXT_COMPACTION_TARGET_CHARS: "16000" } });
+	let second;
+	try {
+		const runtime = first.runtime;
+		const chatId = runtime.helpers.readState().chats[0].id;
+		const staleState = runtime.helpers.readState();
+		await withServer(runtime.app, async (baseUrl) => {
+			const endpoint = `/api/chats/${chatId}/continuity`;
+			const put = (body) => fetchJson(baseUrl, endpoint, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+			assert.equal((await fetchJson(baseUrl, endpoint)).json.continuity.revision, 0);
+			const saved = await put({ revision: 0, constraints: "Never publish without review.", decisions: "Use SQLite for storage." });
+			assert.equal(saved.response.status, 200);
+			assert.equal(saved.json.continuity.revision, 1);
+			assert.equal((await put({ revision: 0, constraints: "stale", decisions: "" })).response.status, 409);
+			assert.equal((await put({ revision: 1, constraints: "x".repeat(8001), decisions: "" })).response.status, 400);
+			assert.ok(!JSON.stringify(runtime.db.prepare("SELECT * FROM chat_continuity").all()).includes("Never publish"));
+			runtime.helpers.writeState(staleState);
+			assert.equal((await fetchJson(baseUrl, endpoint)).json.continuity.constraints, "Never publish without review.");
+			const profile = runtime.helpers.readState().settings.profiles[0];
+			const payload = runtime.helpers.chatRequestPayload({ chat_id: chatId, messages: Array.from({ length: 50 }, (_, i) => ({ role: i % 2 ? "assistant" : "user", content: `Turn ${i} ` + "old text ".repeat(300) })) }, profile);
+			assert.ok(payload.messages.length <= 5);
+			assert.ok(payload.messages.some((m) => m.role === "system" && m.content.includes("Never publish without review.") && m.content.includes("Use SQLite for storage.")));
+			assert.ok(!runtime.helpers.chatRequestPayload({ messages: [{ role: "user", content: "Unrelated" }] }, profile).messages.some((m) => m.content.includes("Never publish without review.")));
+			assert.throws(() => runtime.helpers.chatRequestPayload({ chat_id: chatId, messages: [{ role: "user", content: "x".repeat(17000) }] }, profile), /exceed.*maximum request context/);
+		});
+		await runtime.close();
+		second = createIsolatedRuntime({ envMerge: { DB_PATH: runtime.config.dbPath } });
+		await withServer(second.runtime.app, async (baseUrl) => {
+			const endpoint = `/api/chats/${chatId}/continuity`;
+			assert.equal((await fetchJson(baseUrl, endpoint)).json.continuity.decisions, "Use SQLite for storage.");
+			const cleared = await fetchJson(baseUrl, endpoint, { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ revision: 1 }) });
+			assert.equal(cleared.json.continuity.revision, 2);
+			assert.equal(cleared.json.continuity.constraints, "");
+			const stale = await fetchJson(baseUrl, endpoint, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ revision: 1, constraints: "restore old", decisions: "" }) });
+			assert.equal(stale.response.status, 409);
+			second.runtime.helpers.applyStateChanges({ changes: [{ type: "chat_delete", chat_id: chatId }] });
+			assert.equal(second.runtime.db.prepare("SELECT count(*) AS n FROM chat_continuity").get().n, 0);
+			assert.equal((await fetchJson(baseUrl, endpoint)).response.status, 404);
+		});
+	} finally { if (second) second.destroy(); first.destroy(); }
+});
+
+test("Saved notes editor persists through reload and preserves edits after a concurrent conflict", { timeout: 20000 }, async () => {
+	const { chromium } = require("playwright");
+	const { runtime, destroy } = createIsolatedRuntime();
+	let browser;
+	try {
+		await withServer(runtime.app, async (baseUrl) => {
+			browser = await chromium.launch({ headless: true });
+			const page = await browser.newPage();
+			page.setDefaultTimeout(5000);
+			const pageErrors = [];
+			page.on("pageerror", (error) => pageErrors.push(error.message));
+			await page.addInitScript((token) => localStorage.setItem("ai_chat_api_token", token), API_TOKEN);
+			await page.goto(baseUrl);
+			await page.waitForFunction(() => stateLoadedFromServer && runtimeCapabilities.loaded);
+			const chatId = await page.evaluate(() => { createAndActivateChat(); return getActiveChat().id; });
+			const button = page.locator(`[data-chat-id="${chatId}"] [data-action="continuity"]`);
+			await page.locator(`[data-chat-id="${chatId}"]`).hover();
+			await button.click();
+			const dialog = page.locator("dialog.continuity-editor");
+			await dialog.locator('[data-action="save"]').waitFor();
+			await page.waitForFunction(() => !document.querySelector('dialog [data-action="save"]').disabled);
+			await dialog.locator('[name="constraints"]').fill("Only edit the documentation.");
+			await dialog.locator('[name="decisions"]').fill("We chose SQLite.");
+			await dialog.locator('[data-action="save"]').click();
+			await page.waitForFunction(() => document.querySelector('dialog [role="status"]').textContent.startsWith("Notes saved"));
+			await page.reload();
+			await page.waitForFunction(() => stateLoadedFromServer && runtimeCapabilities.loaded);
+			await page.locator(`[data-chat-id="${chatId}"]`).hover();
+			await page.locator(`[data-chat-id="${chatId}"] [data-action="continuity"]`).click();
+			await page.waitForFunction(() => document.querySelector('dialog [name="constraints"]').value === "Only edit the documentation.");
+			await dialog.locator('[name="constraints"]').fill("My unsaved revision");
+			await fetchJson(baseUrl, `/api/chats/${chatId}/continuity`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ revision: 1, constraints: "Another tab updated this.", decisions: "" }) });
+			await dialog.locator('[data-action="save"]').click();
+			await page.waitForFunction(() => document.querySelector('dialog [role="status"]').textContent.includes("Saved notes changed"));
+			assert.equal(await dialog.locator('[name="constraints"]').inputValue(), "My unsaved revision");
+			await dialog.locator('[data-action="reload"]').click();
+			await page.waitForFunction(() => document.querySelector('dialog [name="constraints"]').value === "Another tab updated this.");
+			await dialog.locator('[name="constraints"]').fill("");
+			await dialog.locator('[data-action="save"]').click();
+			await page.waitForFunction(() => document.querySelector('dialog [role="status"]').textContent.startsWith("Notes saved"));
+			assert.equal((await fetchJson(baseUrl, `/api/chats/${chatId}/continuity`)).json.continuity.constraints, "");
+			await page.keyboard.press("Escape");
+			await dialog.waitFor({ state: "detached" });
+			assert.equal(await dialog.count(), 0);
+			assert.deepEqual(pageErrors, []);
+		});
+	} finally { await browser?.close(); destroy(); }
+});
