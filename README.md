@@ -54,6 +54,7 @@ This project is for end users and teams who want one local web app to:
 	- Thinking/reasoning deltas shown when available
 - Agent instructions
 	- Apply the repository-owned, non-editable system prompt from `SYSTEM_PROMPT.md` to every model request; change it only by editing that Markdown file and restarting the server
+	- Route questions about AI Chat to its relevant local manuals before answering or making changes; see [documentation access setup](SETUP_AND_INSTALL.md#ai-chat-documentation-access)
 	- Save your preferred name in General settings so chat models can address you naturally
 	- Set persistent, AGENTS.md-compatible custom instructions once in Settings; add matching comma-separated model groups when a model needs specialized guidance
 	- Enable or disable each model-specific instruction group without deleting its saved text

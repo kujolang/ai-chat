@@ -260,6 +260,29 @@ The fixed system prompt lives in `SYSTEM_PROMPT.md`. It is intentionally absent 
 
 Regular New Chat continues to create one pane. To reuse a saved arrangement, open Pane Profiles and choose New Chat for that profile. Apply Here replaces the current chat's panes; if they contain messages, the app asks for confirmation first.
 
+### AI Chat documentation access
+
+The fixed prompt includes a topic map for AI Chat's own manuals. Agents consult it for app questions, configuration, integrations, and implementation. Other tasks continue to use relevant skills and task sources. The map points to the overview in `README.md`, this setup guide, the [capability manual](docs/LOCAL_AGENT_CAPABILITIES.md), [API contract](docs/API_CONTRACT.md), [Kujo execution guide](docs/KUJO_EXECUTION_SETUP.md), [tool repair guide](docs/TOOL_CALL_REPAIR.md), and contributor examples in `AGENTS.md` and `bridge_chat.kujo`.
+
+To make the repository manuals readable, configure local access and restart AI Chat:
+
+```dotenv
+AI_CHAT_LOCAL_TOOLS_ENABLED=1
+AI_CHAT_LOCAL_WORKSPACE_ROOTS=/absolute/path/to/ai-chat
+AI_CHAT_LOCAL_WRITE_ENABLED=0
+AI_CHAT_LOCAL_SHELL_ENABLED=0
+```
+
+Replace the placeholder with this checkout's absolute path. If you already expose other workspaces, preserve them and add this checkout to the comma-separated root list. An empty root list defaults to the AI Chat project root when local tools are enabled. Ensure the request includes the enabled `local_workspace_list`, `local_file_list`, and `local_file_read` tool definitions in Settings. For scheduled automations, select these tools explicitly for that automation.
+
+Agents discover the returned workspace id and resolve the manual paths from the AI Chat repository inside that workspace. They must not assume that another project's working directory contains AI Chat's documentation. These settings expose non-sensitive workspace files for reading; write and shell access are separate options and are not required to consult manuals.
+
+The Skill tools can read only their selected skill folder. A skill reference to this repository does not make repository files accessible through `skill_file_read`. Agents use local file tools for those files. Local reads support continuation through `next_offset` and `next_column`. Skill reads report `truncated` but have no offset continuation; an agent must use another permitted reader or report missing content before proceeding with work that depends on it.
+
+If local access is disabled or the checkout is absent from configured workspaces, the prompt directs the agent to identify the missing source and use accessible skills or supplied documentation with the remaining uncertainty stated. Documentation does not grant tools or permission to execute its examples.
+
+After restarting, ask “Which tools can AI Chat execute, and which permissions do they need?” With the read tools available, check that the agent reads `docs/LOCAL_AGENT_CAPABILITIES.md` and distinguishes supported tools from those enabled in the current request. An unrelated writing task should not trigger AI Chat manual reads. These checks evaluate routing; model compliance still depends on the selected provider and model.
+
 ## 6. How Streaming Works
 
 - The app uses POST /api/chat/stream for live responses.
