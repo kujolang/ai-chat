@@ -469,3 +469,7 @@ Saved notes are separate from transcript summaries and survive reloads and resta
 In Settings → Tools, add **Page Reader schema** and enable it for the chat or automation. Agents can then call `web_fetch` for static HTML or plain-text evidence. It requires no browser installation or provider search credentials. `BROWSER_ALLOWED_HOSTS`, when set, also restricts this reader. Network and output limits still apply; see [static page evidence](docs/LOCAL_AGENT_CAPABILITIES.md#static-page-evidence).
 
 Use the Browser preset separately when a page requires JavaScript, visual inspection, or interaction. Page Reader does not grant or automatically enable those capabilities.
+
+### Browser network sandbox requirement
+
+For browser execution, use `BROWSER_ENABLED=1` and `BROWSER_HEADLESS=1`, with `npx playwright install chromium` completed. AI Chat requires the installed Chromium headless shell plus macOS `sandbox-exec` or Linux `/usr/bin/bwrap` (install the `bubblewrap` package). Linux must permit unprivileged user, network, PID, IPC, UTS, and mount namespaces, including private proc/device mounts. Health includes the containment backend and a reason if it is unavailable. The runtime refuses uncontained or headed launches; it does not silently fall back to an ordinary browser. Unsupported platforms fail closed. Linux containers also need the required namespace and mount permissions; do not disable host security policy as a setup shortcut. Page Reader remains available for static evidence.

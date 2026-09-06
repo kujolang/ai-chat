@@ -30,10 +30,12 @@ jobs:
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
 
-      - name: Install local-tool test dependency
-        run: sudo apt-get install -y ripgrep
+      - name: Install local-tool and browser sandbox dependencies
+        run: sudo apt-get install -y ripgrep bubblewrap
 
       - name: Run unit tests
+        env:
+          AI_CHAT_REQUIRE_BROWSER_CONTAINMENT: "1"
         run: npm test
 
       - name: Run production dependency audit
