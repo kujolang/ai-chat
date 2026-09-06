@@ -270,3 +270,70 @@ test("canonicalizeResultUrl strips hashes, rejects unsafe schemes, and removes c
 	assert.equal(canonicalizeResultUrl("https://user:pass@example.com/private"), null);
 	assert.equal(canonicalizeResultUrl("javascript:alert(1)"), null);
 });
+
+test("configured search failover has a fixed attempt bound and preserves actual provenance", async () => {
+	const calls = [];
+	const runtime = createToolRuntime({
+		searchBackend: "searxng", alternateSearchBackend: "ollama", searxngBaseUrl: "http://localhost:8080",
+		getOllamaApiKey: () => "fixture", searchRetryCount: 1,
+		fetchFn: async (url) => {
+			calls.push(url);
+			return url.includes("ollama.com") ? jsonResponse({ results: [{ title: "Fallback", url: "https://example.com", content: "Evidence" }] }) : jsonResponse({}, 503);
+		}
+	});
+	const result = await runtime.execute("web_search", { query: "failover" });
+	assert.equal(calls.length, 3);
+	assert.equal(result.meta.backend, "ollama");
+	assert.equal(result.results[0].provenance.backend, "ollama");
+	assert.equal(result.meta.failover.used, true);
+	assert.deepEqual(result.meta.failover.attempts.map((a) => a.backend), ["searxng", "searxng", "ollama"]);
+	const cached = await runtime.execute("web_search", { query: "failover" });
+	assert.equal(cached.meta.cache.hit, true);
+	assert.equal(cached.meta.failover.used, true);
+	assert.equal(calls.length, 3);
+});
+
+test("search fails closed on deterministic errors and bounds exhaustion of both backends", async () => {
+	for (const status of [401, 503]) {
+		let calls = 0;
+		const runtime = createToolRuntime({
+			searchBackend: "searxng", alternateSearchBackend: "ollama", searxngBaseUrl: "http://localhost:8080",
+			getOllamaApiKey: () => "fixture", searchRetryCount: 0,
+			fetchFn: async () => { calls++; return jsonResponse({}, status); }
+		});
+		await assert.rejects(runtime.execute("web_search", { query: "bounded" }), { code: "web_search_upstream_failed" });
+		assert.equal(calls, status === 401 ? 1 : 2);
+	}
+});
+
+test("last search caller cancellation aborts upstream without failover, even when fetch ignores abort", async () => {
+	let calls = 0;
+	let upstreamSignal;
+	let began;
+	const started = new Promise((resolve) => { began = resolve; });
+	const controller = new AbortController();
+	const runtime = createToolRuntime({
+		searchBackend: "searxng", alternateSearchBackend: "ollama", searxngBaseUrl: "http://localhost:8080",
+		getOllamaApiKey: () => "fixture",
+		fetchFn: (_url, options) => { calls++; upstreamSignal = options.signal; began(); return new Promise(() => {}); }
+	});
+	const pending = runtime.execute("web_search", { query: "cancel" }, { signal: controller.signal });
+	await started;
+	controller.abort();
+	await assert.rejects(pending, { code: "web_search_aborted" });
+	await runtime.close();
+	assert.equal(upstreamSignal.aborted, true);
+	assert.equal(calls, 1);
+});
+
+test("search runtime shutdown cancels active shared upstream work", async () => {
+	let began;
+	const started = new Promise((resolve) => { began = resolve; });
+	const runtime = createToolRuntime({ searchBackend: "searxng", searxngBaseUrl: "http://localhost:8080",
+		fetchFn: () => { began(); return new Promise(() => {}); }
+	});
+	const pending = assert.rejects(runtime.execute("web_search", { query: "shutdown" }), { code: "web_search_aborted" });
+	await started;
+	await runtime.close();
+	await pending;
+});

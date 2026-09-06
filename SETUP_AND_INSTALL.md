@@ -449,3 +449,11 @@ Backups are written to `DB_BACKUP_DIR`.
 The server sends a comment heartbeat every 15 seconds and admits up to 32 simultaneous streams. Tune `STREAM_HEARTBEAT_MS` and `MAX_ACTIVE_STREAMS` for the deployment; keep proxy buffering disabled and proxy idle deadlines longer than the heartbeat interval. `/api/health` reports active stream count and configured limits. Stop sends an explicit server cancellation; closing a tab preserves the detached-response behavior.
 
 For reproducible offline payload measurements, run `node scripts/hardening-benchmark.js` under Node 22.17.0. It uses temporary state and no provider credentials. See [production hardening evidence](docs/PRODUCTION_HARDENING.md) for measured scope and remaining limitations.
+
+### Alternate search backend
+
+Set `WEB_SEARCH_ALTERNATE_BACKEND=ollama` or `searxng` to permit one alternate attempt after a transient primary failure. Leave it empty to disable failover. The alternate requires its normal configuration: an API-key-backed Ollama profile or `SEARXNG_BASE_URL`. Selecting an alternate does not provision credentials or a service. Selecting the primary again adds no attempts.
+
+The primary makes at most two attempts; the alternate makes at most one. Each attempt uses `WEB_SEARCH_TIMEOUT_MS`. Only transient network errors, timeouts, and HTTP 408, 425, 429, 500, 502, 503, or 504 permit failover. Invalid input, authentication failures, invalid JSON, oversized responses, and cancellation do not trigger another backend.
+
+Results identify the backend that actually returned them. `meta.failover` includes the requested primary, whether the alternate was used, and bounded attempt receipts. Cached fallback results retain this provenance. Identical concurrent searches share upstream work; cancelling one caller leaves the others running. Cancelling the last caller or closing the runtime aborts upstream work and prevents failover.
