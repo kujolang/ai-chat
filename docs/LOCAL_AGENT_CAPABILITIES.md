@@ -18,6 +18,7 @@ Skill reads reject binary or invalid UTF-8 content even when it uses a text exte
 | Action adapters | `action_adapter_list`, `action_adapter_call` | Disabled | Bridge document, MCP, plugin, and workflow actions through local adapter services | Requires a manifest, loopback-only HTTP POST, structured JSON input, bounded JSON output |
 | Browser | `browser_open`, `browser_snapshot`, `browser_act`, `browser_close` | Disabled | Inspect public web pages | Existing Playwright isolation and approval policy |
 | Web search | `web_search` | Enabled when backend credentials/config exist | Search external web | Existing backend policy and cache controls |
+| Page reader | `web_fetch` | Available; request must select it | Read static HTML/plain text without Chromium | Shared browser URL/DNS policy, pinned sockets, bounded read-only GET |
 
 ## Recommended Test Configuration
 
@@ -110,3 +111,13 @@ Start factual research with `web_search`; use returned snippets when they answer
 Compacted tool results keep the call identity and, when supplied, success/error status and bounded artifact/path/session references. A receipt means the call already ran. Read missing evidence with a focused lookup; do not repeat a write or externally consequential action merely because its earlier output was compacted.
 
 Local writes resolve canonical destination paths, reject dangling links and sensitive aliases, and use a no-follow file descriptor where supported. These controls do not make the host an OS sandbox against a hostile local process swapping ancestor directories. `local_shell`, especially allowed `npm`/Kujo/project scripts, executes trusted project code with host privileges; its executable allowlist is not filesystem or network isolation. Use trusted workspaces and the separate configured opt-ins.
+
+## Static page evidence
+
+Add **Page Reader schema** in Settings → Tools to make `web_fetch` available to requests that select it. It reads HTML or plain text without starting Chromium; `BROWSER_ENABLED=1` is not required. Scheduled runs must select the tool explicitly. API callers can advertise its schema from `/api/health`, subject to the normal per-request execution allowlist.
+
+`web_fetch` accepts an absolute HTTP(S) `url` and optional `max_chars` (256–30,000, default 16,000). It uses the same site allowlist (`BROWSER_ALLOWED_HOSTS`), private-address denial, credential rejection, risky-destination policy, DNS validation, socket pinning, and redirect checks as the browser's HTTP transport. It sends only a read-only GET with bounded public headers; it does not use profile credentials or a browser cookie jar.
+
+The reader accepts HTML and plain text, with a 1 MiB wire and decompressed limit, at most five redirects, a 15-second total deadline, and a 96 KiB final JSON limit. It parses HTML with [parse5](https://github.com/inikulin/parse5), drops script/style/template and explicitly hidden text, and returns readable text, a title, up to 20 HTTP(S) links, the final URL, retrieval time, truncation state, and untrusted-source provenance. It does not execute scripts or fetch subresources. CSS-based visibility and JavaScript-generated content require browser evidence; `rendering.may_be_needed` is a heuristic, not a completeness guarantee. Charset decoding follows the HTTP header, with UTF-8 as the default; unsupported or invalid encodings fail explicitly.
+
+An agent should use available browser tools when static text is missing or the task needs rendering or interaction. The reader never launches a browser automatically. Cancellation and shutdown stop outstanding reads. DNS may finish after cancellation, but its result cannot open a connection for the cancelled request.

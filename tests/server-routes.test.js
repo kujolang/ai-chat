@@ -248,7 +248,7 @@ test("GET /api/health returns runtime metadata", async () => {
 			assert.equal(json.ok, true);
 			assert.equal(typeof json.auth_configured, "boolean");
 			assert.equal(typeof json.ai_sdk_available, "boolean");
-			assert.deepEqual(json.tool_runtime.tools, ["system_time", "web_search", "skill_list", "skill_read", "skill_file_read"]);
+			assert.deepEqual(json.tool_runtime.tools, ["system_time", "web_search", "web_fetch", "skill_list", "skill_read", "skill_file_read"]);
 			assert.equal(json.tool_runtime.schemas.some((schema) => schema.function.name === "system_time"), true);
 			assert.equal(json.tool_runtime.web_search_backend, "ollama");
 			assert.equal(json.tool_runtime.browser.available, false);
@@ -4100,4 +4100,39 @@ test("Saved notes editor persists through reload and preserves edits after a con
 			assert.deepEqual(pageErrors, []);
 		});
 	} finally { await browser?.close(); destroy(); }
+});
+
+test("authorized web_fetch reaches the provider as static evidence with browser disabled", async () => {
+	await withServer((_req, res) => { res.setHeader("Content-Type", "text/html"); res.end("<title>Fixture</title><p>Static page evidence</p>"); }, async (fixtureUrl) => {
+		let providerCalls = 0;
+		let continuation;
+		const { runtime, destroy } = createIsolatedRuntime({
+			envMerge: { BROWSER_ENABLED: "0" }, pageFetchRuntimeOptions: { allowPrivateHosts: ["127.0.0.1"] },
+			fetchFn: async (_url, options) => {
+				providerCalls++;
+				if (providerCalls === 1) return mockSseResponse([{ choices: [{ delta: { tool_calls: [{ index: 0, id: "fetch-1", function: { name: "web_fetch", arguments: JSON.stringify({ url: fixtureUrl }) } }] }, finish_reason: "tool_calls" }] }]);
+				continuation = JSON.parse(options.body);
+				return mockSseResponse([{ choices: [{ delta: { content: "Read the static source." }, finish_reason: "stop" }] }]);
+			}
+		});
+		try {
+			const profileId = applyProfileMutation(runtime, (p) => { p.api_key = "fixture-key"; });
+			await withServer(runtime.app, async (baseUrl) => {
+				const health = (await fetchJson(baseUrl, "/api/health")).json.tool_runtime;
+				assert.equal(health.web_fetch.available, true);
+				assert.equal(health.browser.available, false);
+				const schema = health.schemas.find((tool) => tool.function.name === "web_fetch");
+				assert.ok(schema);
+				const response = await fetch(`${baseUrl}/api/chat/stream`, { method: "POST", headers: withAuthHeaders({ "Content-Type": "application/json" }), body: JSON.stringify({ profile_id: profileId, include_saved_runtime_presets: false, tools: [schema], messages: [{ role: "user", content: "Read the supplied source" }] }) });
+				const events = parseSseEvents(await response.text());
+				assert.equal(events.at(-1).event, "done");
+				assert.equal(events.at(-1).data.tool_calls_executed, 1);
+			});
+			assert.equal(providerCalls, 2);
+			const evidence = JSON.parse(continuation.messages.find((message) => message.role === "tool").content);
+			assert.equal(evidence.provenance.backend, "http-static");
+			assert.equal(evidence.rendering.performed, false);
+			assert.match(evidence.text, /Static page evidence/);
+		} finally { destroy(); }
+	});
 });

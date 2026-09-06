@@ -463,3 +463,9 @@ Results identify the backend that actually returned them. `meta.failover` includ
 Use **Saved notes** beside a chat in the sidebar to record requirements and decisions that should survive long conversations. The two fields share an 8,000-character limit. Save them to apply them to the next request in every pane of that chat. Clear both fields and save to remove them.
 
 Saved notes are separate from transcript summaries and survive reloads and restarts. Agents do not automatically populate them. If another tab changes the notes, saving reports a conflict and keeps your unsaved text visible. Copy any edits you need before selecting **Reload saved notes**, then merge and save the current version. Notes are scoped to their chat; another chat does not inherit them.
+
+### Read static pages without Chromium
+
+In Settings → Tools, add **Page Reader schema** and enable it for the chat or automation. Agents can then call `web_fetch` for static HTML or plain-text evidence. It requires no browser installation or provider search credentials. `BROWSER_ALLOWED_HOSTS`, when set, also restricts this reader. Network and output limits still apply; see [static page evidence](docs/LOCAL_AGENT_CAPABILITIES.md#static-page-evidence).
+
+Use the Browser preset separately when a page requires JavaScript, visual inspection, or interaction. Page Reader does not grant or automatically enable those capabilities.
