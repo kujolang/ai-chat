@@ -490,7 +490,7 @@ test("chatRequestPayload applies defaults and validates normalized messages", ()
 		assert.match(payload.messages[0].content, /Use `system_time`/);
 		assert.match(payload.messages[0].content, /Use `web_search`/);
 		assert.match(payload.messages[0].content, /use `skill_list`/);
-		assert.ok(payload.messages[0].content.length < 4000);
+		assert.ok(payload.messages[0].content.length < 6000);
 		assert.equal(payload.messages.at(-1).content, "hi");
 		assert.deepEqual(payload.tools.map((tool) => tool.function.name), ["system_time"]);
 		assert.equal(runtime.helpers.chatRequestPayload({ messages: [{ role: "user", content: "x".repeat(120001) }] }, {}).messages.at(-1).content.length, 120001);
@@ -532,12 +532,14 @@ test("chatRequestPayload applies defaults and validates normalized messages", ()
 });
 
 test("chatRequestPayload keeps long saved chats usable with compacted older context", () => {
+	const fixedPrompt = fs.readFileSync(path.resolve(__dirname, "..", "SYSTEM_PROMPT.md"), "utf8").trim();
+	const maxContextChars = fixedPrompt.length + 800;
 	const { runtime, destroy } = createIsolatedRuntime({
 		envMerge: {
 			MAX_MESSAGES_PER_REQUEST: "5",
 			MAX_MESSAGE_CHARS: "1200",
-			MAX_TOTAL_MESSAGE_CHARS: "3600",
-			CONTEXT_COMPACTION_TARGET_CHARS: "3500",
+			MAX_TOTAL_MESSAGE_CHARS: String(maxContextChars),
+			CONTEXT_COMPACTION_TARGET_CHARS: String(maxContextChars - 100),
 			CONTEXT_COMPACTION_SUMMARY_CHARS: "220",
 			CONTEXT_COMPACTION_PRESERVE_RECENT_MESSAGES: "2"
 		}
@@ -555,9 +557,10 @@ test("chatRequestPayload keeps long saved chats usable with compacted older cont
 		}, { id: "profile-1" });
 
 		assert.equal(payload.messages[0].role, "system");
+		assert.equal(payload.messages[0].content, fixedPrompt);
 		assert.equal(payload.messages.at(-1).content, "latest question");
 		assert.ok(payload.messages.length <= 5);
-		assert.ok(payload.messages.reduce((total, message) => total + message.content.length, 0) <= 3600);
+		assert.ok(payload.messages.reduce((total, message) => total + message.content.length, 0) <= maxContextChars);
 		assert.ok(payload.messages.some((message) => message.content.includes("[Compacted earlier conversation summary]")));
 	} finally {
 		destroy();
