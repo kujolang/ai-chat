@@ -100,3 +100,13 @@ Use this list when adding additional action classes:
 ## Read Continuation Contract
 
 Start at `offset=1`, `column=1`. When `truncated=true`, pass the returned `next_offset` and `next_column` unchanged to the next call. `complete=true` means the entire file was returned from its beginning; per-line clamping sets `truncated=true` and returns the exact line/column continuation both at the top level and in `meta.clamped_lines`. Empty files and offsets beyond EOF return notes rather than ambiguous silence. A repeated unchanged window may return a short consume-on-hit dedup note; retrying once returns the content again.
+
+### Deferred capabilities and inexpensive web access
+
+Interactive chat exposes common entry tools immediately and lists other enabled built-ins in a compact capability index. Use `tool_discover` with a listed tool name or category to load its schema, then invoke it in a later tool round. Discovery can only load tools authorized for that request; it does not enable disabled presets, local writes, shell access, browser access, or adapters. API clients can opt in with `tool_discovery:true`.
+
+Start factual research with `web_search`; use returned snippets when they answer the question. Use browser tools for page evidence, JavaScript rendering, or interaction. A failed search can be followed by a browser visit to a known relevant public URL. There is currently no independent direct-fetch tool or automatic alternate search-provider switch. Reuse browser sessions; take screenshots only for visual evidence. Browser contexts explicitly block WebSocket connections as well as downloads and service workers. HTTP URL/DNS policy still applies independently.
+
+Compacted tool results keep the call identity and, when supplied, success/error status and bounded artifact/path/session references. A receipt means the call already ran. Read missing evidence with a focused lookup; do not repeat a write or externally consequential action merely because its earlier output was compacted.
+
+Local writes resolve canonical destination paths, reject dangling links and sensitive aliases, and use a no-follow file descriptor where supported. These controls do not make the host an OS sandbox against a hostile local process swapping ancestor directories. `local_shell`, especially allowed `npm`/Kujo/project scripts, executes trusted project code with host privileges; its executable allowlist is not filesystem or network isolation. Use trusted workspaces and the separate configured opt-ins.

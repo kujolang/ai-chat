@@ -441,3 +441,9 @@ Backups are written to `DB_BACKUP_DIR`.
 - Back up DB_PATH on a schedule.
 - Keep ENCRYPTION_SECRET stable and protected.
 - Rotate provider API keys on a regular cadence.
+
+### Long-running chat controls
+
+The server sends a comment heartbeat every 15 seconds and admits up to 32 simultaneous streams. Tune `STREAM_HEARTBEAT_MS` and `MAX_ACTIVE_STREAMS` for the deployment; keep proxy buffering disabled and proxy idle deadlines longer than the heartbeat interval. `/api/health` reports active stream count and configured limits. Stop sends an explicit server cancellation; closing a tab preserves the detached-response behavior.
+
+For reproducible offline payload measurements, run `node scripts/hardening-benchmark.js` under Node 22.17.0. It uses temporary state and no provider credentials. See [production hardening evidence](docs/PRODUCTION_HARDENING.md) for measured scope and remaining limitations.
