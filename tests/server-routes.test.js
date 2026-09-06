@@ -689,14 +689,18 @@ test("POST /api/chat/stream runs Codex profiles through the local Codex CLI and 
 	const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-codex-stream-"));
 	const cachePath = path.join(tempRoot, "models_cache.json");
 	fs.writeFileSync(cachePath, JSON.stringify({
+		fetched_at: new Date().toISOString(),
 		models: [
-			{ slug: "gpt-5.6-sol", visibility: "list", priority: 1, supported_in_api: true }
+			{ slug: "gpt-5.6-sol", context_window: 100000, effective_context_window_percent: 90, visibility: "list", priority: 1, supported_in_api: true }
 		]
 	}));
 	const spawnFn = (command, args) => {
 		assert.equal(command, "codex");
 		assert.ok(args.includes("exec"));
 		assert.ok(args.includes("--json"));
+		assert.ok(args.includes("model_context_window=90000"));
+		assert.ok(args.includes('model_auto_compact_token_limit_scope="total"'));
+		assert.ok(args.some(arg => /^model_auto_compact_token_limit=\d+$/.test(arg)));
 		assert.ok(args.includes("--model"));
 		assert.ok(args.includes("gpt-5.6-sol"));
 		const child = new (require("events").EventEmitter)();
@@ -748,6 +752,10 @@ test("POST /api/chat/stream runs Codex profiles through the local Codex CLI and 
 			assert.equal(doneEvent.data.thread_id, "codex-thread-1");
 			assert.equal(doneEvent.data.tool_calls_executed, 1);
 			assert.equal(doneEvent.data.usage.total_tokens, 19);
+			assert.equal(doneEvent.data.context_budget.context_window_tokens, 90000);
+			assert.equal(doneEvent.data.context_budget.context_scope, "codex_initial_transcript");
+			assert.match(doneEvent.data.context_budget.context_policy_source, /^codex_model_cache:/);
+			assert.ok(doneEvent.data.context_budget.envelope_reservation > 0);
 		});
 	} finally {
 		destroy();
@@ -4292,4 +4300,43 @@ test('browser replays missing durable SSE events without repeating the model or 
    assert.equal(posts,1);assert.equal(providerCalls,2);
   });
  } finally {await browser?.close();await runtime.close();destroy();}
+});
+
+for (const provider of ['openai', 'codex']) {
+ test(`whole-context allowance rejects oversized ${provider} JSON and SSE before dispatch`, async () => {
+  let dispatched=0;
+  const {runtime,destroy}=createIsolatedRuntime({envMerge:{MODEL_CONTEXT_LIMITS_JSON:'{"default":8192}',CODEX_MODEL_CACHE_PATH:'/nonexistent-fixture-cache'},spawnFn:()=>{dispatched++;throw Error('Must not dispatch');},spawnSyncFn:()=>{dispatched++;throw Error('Must not dispatch');},fetchFn:()=>{dispatched++;throw Error('Must not dispatch');}});
+  try {
+   const profileId=applyProfileMutation(runtime,p=>{p.provider_id=provider;p.api_key='fixture-key';});
+   await withServer(runtime.app,async base=>{
+    for(const route of ['/api/chat','/api/chat/stream']) {
+     const response=await fetch(base+route,{method:'POST',headers:withAuthHeaders({'Content-Type':'application/json'}),body:JSON.stringify({profile_id:profileId,model:'fixture',max_tokens:1024,messages:[{role:'user',content:'protected '.repeat(1200)}],tools:[],include_saved_runtime_presets:false})});
+     if(route==='/api/chat') { assert.equal(response.status,400);assert.equal((await response.json()).error.code,'context_budget_exceeded'); }
+     else assert.equal(parseSseEvents(await response.text()).find(e=>e.event==='error').data.code,'context_budget_exceeded');
+    }
+    assert.equal(dispatched,0);
+   });
+  } finally { destroy(); }
+ });
+}
+
+test('JSON whole-context budget prunes old context and measures schemas in the actual bridge payload',async()=>{
+ let sent;
+ const {runtime,destroy}=createIsolatedRuntime({envMerge:{MODEL_CONTEXT_LIMITS_JSON:'{"openai:budget-fixture":12000}'},spawnSyncFn:(_bin,args)=>{sent=JSON.parse(args[args.indexOf('--payload')+1]);return {status:0,stdout:JSON.stringify({ok:true,output_text:'done',usage:{input_tokens:12,output_tokens:1}}),stderr:''};}});
+ try {
+  const profileId=applyProfileMutation(runtime,p=>{p.provider_id='openai';p.api_key='fixture-key';});
+  await withServer(runtime.app,async base=>{
+   const messages=[{role:'user',content:'Keep initial constraint'},...Array.from({length:5},()=>({role:'assistant',content:'old '.repeat(750)})),{role:'user',content:'Keep latest question'}];
+   const tools=[{type:'function',function:{name:'example',description:'schema '.repeat(200),parameters:{type:'object',properties:{}}}}];
+   const {response,json}=await fetchJson(base,'/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({profile_id:profileId,model:'budget-fixture',max_tokens:1024,messages,tools,include_saved_runtime_presets:false})});
+   assert.equal(response.status,200);
+   assert.ok(json.context_budget.removed_messages>0);
+   assert.equal(json.context_budget.context_policy_source,'openai:budget-fixture');
+   assert.equal(json.context_budget.after_upper_bound,require('../lib/context-budget').estimateContext(sent.messages,sent.tools));
+   assert.ok(json.context_budget.after_upper_bound+1024<=12000);
+   assert.ok(sent.messages.some(m=>m.content==='Keep initial constraint'));
+   assert.equal(sent.messages.at(-1).content,'Keep latest question');
+   assert.equal(sent.tools.length,1);
+  });
+ } finally { destroy(); }
 });

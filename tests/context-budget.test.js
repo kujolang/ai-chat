@@ -1,6 +1,6 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const { contextPolicy, estimateContext, budgetContext } = require("../lib/context-budget");
+const { contextPolicy, loadContextMetadata, estimateContext, budgetContext } = require("../lib/context-budget");
 test("context policy distinguishes provider/model overrides", () => {
 	assert.equal(contextPolicy("openai", "small", { "openai:small": 8192, openai: 32768 }).window_tokens, 8192);
 	assert.equal(contextPolicy("openai", "other", { openai: 32768 }).window_tokens, 32768);
@@ -39,4 +39,30 @@ test("mismatched tool results cannot become misleading completed receipts", () =
 		{ role: "tool", tool_call_id: "other", content: '{"ok":true}' }];
 	assert.throws(() => budgetContext(messages, [], { window_tokens: 4096, output_tokens: 1024 }), { code: "context_budget_exceeded" });
 	assert.equal(messages[1].tool_calls[0].id, "a");
+});
+
+test("dated catalog metadata respects exact model identity, effective windows and operator overrides", () => {
+	const fs = require("node:fs"), os = require("node:os"), path = require("node:path");
+	const root = fs.mkdtempSync(path.join(os.tmpdir(), "context-metadata-"));
+	const file = path.join(root, "catalog.json");
+	const now = Date.now();
+	try {
+		fs.writeFileSync(file, JSON.stringify({ fetched_at: new Date(now).toISOString(), models: [
+			{ slug: "native", context_window: 20000, effective_context_window_percent: 90 },
+			{ slug: "bad", context_window: -1 }, { slug: "fraction", context_window: 8192.5 }
+		] }));
+		const metadata = loadContextMetadata(file, { codex: true, now });
+		assert.equal(contextPolicy("codex", "native", { default: 65536 }, metadata).window_tokens, 18000);
+		assert.match(contextPolicy("codex", "native", {}, metadata).source, /^codex_model_cache:/);
+		assert.equal(contextPolicy("codex", "native", { codex: 10000 }, metadata).window_tokens, 10000);
+		assert.equal(contextPolicy("custom", "native", {}, metadata).window_tokens, 65536);
+		assert.equal(Object.keys(metadata).length, 1);
+		assert.deepEqual(loadContextMetadata(file, { codex: true, now: now + 31 * 86400000 }), {});
+		fs.writeFileSync(file, JSON.stringify({ fetched_at: new Date(now).toISOString(), models: [{ provider: "openrouter", model: "family/model", context_window: 12000 }] }));
+		assert.equal(contextPolicy("openrouter", "family/model", {}, loadContextMetadata(file, { now })).window_tokens, 12000);
+	} finally { fs.rmSync(root, { recursive: true, force: true }); }
+});
+
+test("native wrapper reservation cannot silently consume protected input allowance", () => {
+	assert.throws(() => budgetContext([{ role: "user", content: "x".repeat(6000) }], [], { window_tokens: 8192, output_tokens: 1024, envelope_tokens: 1000 }), { code: "context_budget_exceeded" });
 });
