@@ -4249,3 +4249,47 @@ for (const mode of ['stop', 'shutdown']) {
   } finally {await runtime.close();destroy();fs.rmSync(credentials,{recursive:true,force:true});}
  });
 }
+
+test('browser replays missing durable SSE events without repeating the model or tool and retains cursor on reload', {timeout:30000}, async () => {
+ const {chromium}=require('playwright');let providerCalls=0,requestId;
+ const {runtime,destroy}=createIsolatedRuntime({fetchFn:async (url)=>{
+  if(!String(url).endsWith('/chat/completions'))return mockJsonResponse({ok:true});
+  providerCalls++;
+  if(providerCalls===1)return mockSseResponse([{choices:[{delta:{tool_calls:[{index:0,id:'replay-time',type:'function',function:{name:'system_time',arguments:'{}'}}]},finish_reason:'tool_calls'}]}]);
+  return mockSseResponse([{choices:[{delta:{content:'Recovered '}}]},{choices:[{delta:{content:'exactly once.'},finish_reason:'stop'}],usage:{prompt_tokens:5,completion_tokens:4,total_tokens:9}}]);
+ }});
+ let browser;
+ try {
+  applyProfileMutation(runtime,p=>{p.api_key='fixture-key';});
+  await withServer(runtime.app,async baseUrl=>{
+   browser=await chromium.launch({headless:true});const page=await browser.newPage();page.setDefaultTimeout(10000);
+   await page.addInitScript(token=>localStorage.setItem('ai_chat_api_token',token),API_TOKEN);
+   let posts=0,replays=0;
+   page.on('request',request=>{if(request.url().includes('/events?after='))replays++;});
+   await page.route('**/api/chat/stream',async route=>{
+    posts++;requestId=route.request().postDataJSON().request_id;
+    const upstream=await route.fetch();const frames=(await upstream.text()).split('\n\n');
+    const firstToken=frames.findIndex(frame=>frame.includes('event: token'));
+    assert.ok(firstToken>=0);
+    await route.fulfill({status:200,contentType:'text/event-stream',body:frames.slice(0,firstToken+1).join('\n\n')+'\n\n'});
+   });
+   await page.goto(baseUrl);await page.waitForFunction(()=>stateLoadedFromServer&&runtimeCapabilities.loaded);
+   const result=await page.evaluate(async()=>{
+    createAndActivateChat();const chat=getActiveChat(),pane=chat.panes[0];chat.title='Durable replay verification';
+    await sendMessageToPaneStream(chat,pane,'Use system_time once and report the result.');
+    await persistStateToServer();
+    return {chatId:chat.id,status:pane.status,message:pane.messages.at(-1)};
+   });
+   assert.equal(posts,1);assert.equal(providerCalls,2);assert.ok(replays>0);
+   assert.equal(result.message.content,'Recovered exactly once.');assert.equal(result.status,'idle');
+   const execution=await fetchJson(baseUrl,`/api/executions/${encodeURIComponent(requestId)}`);
+   assert.equal(execution.json.receipts.length,1);assert.equal(execution.json.receipts[0].tool_name,'system_time');
+   assert.equal(result.message.execution_id,requestId);assert.ok(result.message.execution_cursor>0);
+   await page.waitForFunction(()=>!persistInFlight&&!persistRequested&&!persistTimer);
+   await page.reload();await page.waitForFunction(()=>stateLoadedFromServer&&runtimeCapabilities.loaded);
+   const restored=await page.evaluate(async chatId=>{await activateChat(chatId);return getActiveChat().panes[0].messages.at(-1);},result.chatId);
+   assert.equal(restored.content,'Recovered exactly once.');assert.equal(restored.execution_id,requestId);assert.equal(restored.execution_cursor,result.message.execution_cursor);
+   assert.equal(posts,1);assert.equal(providerCalls,2);
+  });
+ } finally {await browser?.close();await runtime.close();destroy();}
+});

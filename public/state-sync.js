@@ -7,6 +7,15 @@
 		root.AIChatStateSync = api;
 	}
 })(typeof globalThis !== "undefined" ? globalThis : this, function createStateSync() {
+	function messageUsage(message) {
+		const usage = message.usage && typeof message.usage === "object" ? cloneJson(message.usage) : {};
+		if (typeof message.execution_id === "string" && message.execution_id.length <= 160 && message.execution_id) {
+			usage.execution_id = message.execution_id;
+			usage.execution_cursor = Number.isSafeInteger(message.execution_cursor) && message.execution_cursor >= 0 ? message.execution_cursor : 0;
+		}
+		return Object.keys(usage).length ? usage : null;
+	}
+
 	function persistenceSnapshot(sourceState) {
 		const source = sourceState && typeof sourceState === "object" ? sourceState : {};
 		const settings = source.settings && typeof source.settings === "object" ? source.settings : {};
@@ -90,7 +99,7 @@
 						provider: message.provider ? String(message.provider) : null,
 						model: message.model ? String(message.model) : null,
 						thinking: String(message.thinking || ""),
-						usage: message.usage && typeof message.usage === "object" ? cloneJson(message.usage) : null,
+						usage: messageUsage(message),
 						created_at: finiteNumber(message.createdAt, Date.now()),
 						sort_order: messageIndex
 					});

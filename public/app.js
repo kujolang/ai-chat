@@ -5987,6 +5987,7 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 			const controller = new AbortController();
 			controller.streamRequestId = payload.request_id;
 			assistantMessage.execution_id = payload.request_id;
+			assistantMessage.execution_cursor = 0;
 			currentStreamController = controller;
 			activeStreamControllers.add(controller);
 			updateStreamingControls();

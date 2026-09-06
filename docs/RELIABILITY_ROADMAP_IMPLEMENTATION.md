@@ -6,7 +6,7 @@ Objective: implement **all ten** ranked improvements in PRODUCTION_HARDENING.md.
 |---|---|---|---|
 | 1 | Durable turn/call journal, receipts and explicit resume | Restart between completed tools; ambiguous in-flight side effect cannot replay; identical finished request returns stored result | In progress |
 | 2 | Drain/checkpoint shutdown; recover stale waiting turns | Shutdown during detached tool/stream; restart restores recoverable state | Implemented for streaming and JSON model work; queued admission, child termination, drain and restart tests pass |
-| 3 | Bounded SSE queue, slow-consumer policy, replay cursor | Backpressure fixture and disconnected cursor replay without rerunning model/tools | Queue, replay and API tests pass; browser end-to-end replay pending |
+| 3 | Bounded SSE queue, slow-consumer policy, replay cursor | Backpressure fixture and disconnected cursor replay without rerunning model/tools | Implemented; queue, API and actual-browser interrupted-response replay pass |
 | 4 | Provider-aware whole-context budget | Count content, schemas, tool args/reasoning/receipts; preserve protocol under limits and reject impossible fixed input | Streaming budget implemented; other provider paths and metadata pending |
 | 5 | Real-family daily-task evaluations | Run actual available model families, compare eager/deferred completion, schema selection, rounds and reported cost/usage | Pending |
 | 6 | Explicit constraints/decisions outside lossy summaries | Create/update/delete scoped durable constraints; preserved through long history and reload | Implemented; API, compaction/restart and browser editor checks pass |
@@ -60,3 +60,13 @@ Verification: full suite passed 355 tests with one Linux-only skip (`/tmp/ai-cha
 The real-provider harness in `scripts/reliability-live-run.js` creates isolated storage and controlled local/browser fixtures, compares eager/deferred schemas, and records task evidence, reported usage/cost, latency, process memory, event-loop delay, and SSE pressure. Runs shorter than eight hours cannot count as an all-day soak. See `docs/LIVE_RELIABILITY_VALIDATION.md`. The initial live matrix produced provider failures/timeouts, not successful task evidence; real-family evaluation and soak acceptance remain open.
 
 The health response now includes aggregate SSE pressure counters. A detach regression now waits for the server's observed connection closure instead of assuming it happens within 25 ms. Under heavy host load, the serial full suite passed 357 tests, skipped one Linux-only probe, and failed one cold-start port timeout (`/tmp/ai-chat-live-harness-serial-final.log`). Startup now checks an occupied HTTP port before loading integrations or claiming a database; focused startup/harness/SSE checks then passed 7/7 (`/tmp/ai-chat-live-focused-complete.log`). The startup assertions also verify that an occupied-port probe creates no database. Full CI must validate the committed revision.
+
+## Browser replay milestone
+
+The actual browser client recovers missing numbered SSE events from the durable journal after a response ends prematurely. Execution IDs and cursors now survive incremental state persistence, detached checkpoints, startup recovery and reload. A new model pass resets its cursor before receiving events.
+
+The Playwright regression truncates a real server response after its first token, then lets the client replay the remaining journal events. It verifies the complete final answer, one chat POST, one system-time tool execution, exactly two expected provider rounds, and the same execution ID/cursor after reload (`/tmp/ai-chat-replay-final.log`). This completes item 3; explicit operator resume after a server interruption remains part of item 1.
+
+Full local verification passed 358 checks, skipped one Linux probe and timed out one Chromium containment test under concurrent load (`/tmp/ai-chat-replay-full.log`). The unchanged containment suite then passed all three applicable checks in isolation with one Linux skip (`/tmp/ai-chat-replay-containment-recheck.log`).
+
+Live evaluation `data/reliability-eval-20260906-c/summary.json` completed 12 attempts. Grok completed four requests and passed three task checks across eager/deferred modes; all six Nous attempts timed out. The run does not establish mixed-provider success or all-day stability. The harness/startup revision passed CI run 34046847407 and artifact checks 34046847413.
