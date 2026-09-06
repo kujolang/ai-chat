@@ -307,6 +307,23 @@ test("local writes block symlink escapes from existing targets and parent direct
 	}
 });
 
+for (const scenario of ["dangling", "sensitive-alias"]) {
+ test(`local writes reject ${scenario} symlink targets`, { skip: process.platform === "win32" }, () => {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-write-link-"));
+  const workspace = path.join(tempRoot, "workspace");
+  fs.mkdirSync(workspace);
+  const target = scenario === "dangling" ? path.join(tempRoot, "outside.txt") : path.join(workspace, ".env");
+  if (scenario === "sensitive-alias") fs.writeFileSync(target, "fixture-only");
+  fs.symlinkSync(target, path.join(workspace, "alias.txt"));
+  const runtime = createLocalRuntime({ env: { AI_CHAT_LOCAL_TOOLS_ENABLED: "1", AI_CHAT_LOCAL_WRITE_ENABLED: "1" }, projectRoot: workspace });
+  try {
+   assert.throws(() => runtime.writeFile({path:"alias.txt",mode:"append",content:"changed"}), error => ["local_path_blocked", "local_file_write_blocked"].includes(error.code));
+   if (scenario === "dangling") assert.equal(fs.existsSync(target), false);
+   else assert.equal(fs.readFileSync(target,"utf8"), "fixture-only");
+  } finally { fs.rmSync(tempRoot, {recursive:true,force:true}); }
+ });
+}
+
 test("local appends enforce the resulting file-size ceiling", () => {
 	const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-local-"));
 	try {

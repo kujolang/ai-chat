@@ -118,6 +118,7 @@ test("browser normalizes blocked navigation failures into bounded tool errors", 
 		},
 		on() {},
 		async route() {},
+		async routeWebSocket() {},
 		async close() {}
 	};
 	const fakeBrowser = {
@@ -396,4 +397,44 @@ test("browser_use local URLs return guidance instead of aborting tool flow", asy
 	} finally {
 		await destroy();
 	}
+});
+
+test("page WebSockets cannot bypass the browser HTTP-only transport", async () => {
+ let upgrades=0;
+ const target=http.createServer();
+ target.on("upgrade",(_req,socket)=>{upgrades++;socket.destroy();});
+ target.listen(0,"127.0.0.1");
+ await once(target,"listening");
+ try {
+  await withFixture((_req,res)=>{
+   res.setHeader("content-type","text/html");
+   res.end(`<title>Socket fixture</title><script>document.title='Attempt started';const socket=new WebSocket('ws://127.0.0.1:${target.address().port}/');socket.onerror=()=>{document.title='Attempt finished';};</script><p>Evidence</p>`);
+  },async({url})=>{
+   const {runtime,destroy}=createRuntime();
+   try {
+    const context={scopeId:"socket-fixture",requestState:{}};
+    const opened=await runtime.execute("browser_open",{url},context);
+    assert.match(opened.title,/^Attempt (started|finished)$/);
+    for(let i=0;i<5;i++) {
+     const snap=await runtime.execute("browser_snapshot",{session_id:opened.session_id},context);
+     if(snap.title==='Attempt finished') break;
+     await new Promise(resolve=>setTimeout(resolve,20));
+    }
+    assert.equal(upgrades,0,'WebSocket handshake must not reach the network');
+   } finally {await destroy();}
+  });
+ } finally {target.close();await once(target,"close");}
+});
+
+test("a reused browser session uses the new request signal after an earlier cancellation", async () => {
+	await withFixture((_req, res) => { res.setHeader("Content-Type", "text/html"); res.end("<title>Reusable</title><p>Evidence</p>"); }, async ({ url }) => {
+		const { runtime, destroy } = createRuntime();
+		try {
+			const controller = new AbortController();
+			const opened = await runtime.execute("browser_open", { url }, { scopeId: "reuse-cancel", signal: controller.signal });
+			controller.abort();
+			const next = await runtime.execute("browser_open", { url: `${url}/next`, session_id: opened.session_id }, { scopeId: "reuse-cancel", signal: new AbortController().signal });
+			assert.equal(next.title, "Reusable");
+		} finally { await destroy(); }
+	});
 });
