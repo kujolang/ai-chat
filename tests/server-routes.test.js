@@ -2424,7 +2424,12 @@ test("POST /api/chat/stream preserves partial detached content when the upstream
 			const reader = response.body.getReader();
 			await reader.read();
 			controller.abort();
-			await new Promise((resolve) => setTimeout(resolve, 25));
+			for (let attempt = 0; attempt < 100; attempt++) {
+				const health = await fetchJson(baseUrl, "/api/health");
+				if (health.json.streaming.output.connections === 0) break;
+				if (attempt === 99) assert.fail("server did not observe client detach");
+				await new Promise((resolve) => setTimeout(resolve, 20));
+			}
 			assert.equal(upstreamSignal.aborted, false);
 			releaseUpstream();
 			for (let attempt = 0; attempt < 40; attempt += 1) {
