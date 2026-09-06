@@ -661,3 +661,7 @@ Production reliability evidence and known limits: [Production hardening](docs/PR
 ## Retrieval content preferences
 
 [Page Reader negotiation](docs/PAGE_READER_NEGOTIATION.md) describes optional retrieval behavior and compatibility boundaries.
+
+## Documentation example selection
+
+The optional [RAG documentation tool](SETUP_AND_INSTALL.md#language-aware-documentation-retrieval) uses a saved chat/task code-example preference to request relevant examples upstream. Configure a supporting RAG service, enable the Documentation schema preset, and set **Code examples** in the composer. Shared guidance and source citations remain available.

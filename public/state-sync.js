@@ -68,6 +68,7 @@
 				route_id: String(chat.routeId || chat.route_id || ""),
 				title: String(chat.title || "Untitled Chat"),
 				project_path: String(chat.projectPath || chat.project_path || ""),
+				retrieval_preferences: chat.retrieval_preferences || {},
 				pinned: Boolean(chat.pinned),
 				archived: Boolean(chat.archived),
 				created_at: finiteNumber(chat.createdAt, Date.now()),

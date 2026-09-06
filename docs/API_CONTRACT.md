@@ -433,3 +433,15 @@ Health exposes `tool_runtime.web_fetch` and the selectable schema. Registration 
 Benchmark admission uses the request's cancellation signal. A cancelled queued request is removed immediately, releases its timeout/listener, and cannot later consume a provider slot. `streaming.active` counts registered streaming and JSON model requests. Browser Stop also cancels title and completion-repair requests. These auxiliary requests advertise no tools or saved runtime presets; cancelling a title suppresses its JSON fallback and title update.
 
 `streaming.output` in health reports `connections`, aggregate `pending_bytes`, `blocked` writers, cumulative `closed` connections and `overflows`, `buffered_peak_bytes` (maximum accepted per-connection buffer), and `per_connection_limit_bytes` (262144). Pending bytes include Node's response buffer. These counters support sustained memory/backpressure analysis without retaining per-request output. An overflow attempt can exceed the limit, but that frame is rejected before entering the accepted buffer.
+
+## Documentation example preferences
+
+Chat state and `chat_upsert` accept an optional `retrieval_preferences` object with `programming_language`. It is stored in SQLite and returned by state/chat reads. The composer **Code examples** field edits this chat preference; empty means any language. Branching a chat preserves its selection.
+
+`POST /api/chat` and `/api/chat/stream` accept the same field. Explicit request presence overrides the saved chat selection; `{}`, null, or an invalid identifier clears it for that request. Absence uses the saved selection. Valid identifiers are trimmed/lowercased, match `[a-z][a-z0-9_-]*`, and contain at most 64 characters; `c++` and `c#` normalize to `cpp` and `csharp`. No repository, file, prompt, or runtime-language inference occurs.
+
+Only the configured `documentation_query` tool consumes the preference. Its model-facing schema accepts `query`; endpoint, credentials, namespace, and language preference are host-owned. Set `AI_CHAT_RAG_URL`, optionally `AI_CHAT_RAG_NAMESPACE` and `AI_CHAT_RAG_TOKEN`, and set `AI_CHAT_RAG_SUPPORTS_PREFERENCES=1` only for a supporting Kujo RAG endpoint. Add and enable the **Documentation schema** preset in Settings. Existing tool authorization still applies; a guessed unadvertised tool cannot run.
+
+The adapter POSTs JSON to `/query`, follows no redirects, makes no capability probes/retries, limits responses to 256 KiB and elapsed transport time to ten seconds, and preserves text plus citation path/line ranges. Without support enabled it sends an ordinary query. No preference enters provider options, browser headers, or `Accept-Language`. RAG must ingest explicitly grouped example blocks with its Markdown-example option to return reduced context.
+
+`node scripts/rag-documentation-smoke.js` exercises the real SSE/tool path against `AI_CHAT_RAG_URL` with local model fixtures and verifies saved defaults, request override, clearing, and captured model input without provider charges.

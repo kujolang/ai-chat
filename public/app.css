@@ -4809,3 +4809,6 @@ textarea {
 .continuity-editor label { display: block; margin-top: 16px; }
 .continuity-editor textarea { display: block; width: 100%; margin-top: 8px; resize: vertical; }
 .continuity-actions { display: flex; flex-wrap: wrap; gap: 12px; justify-content: flex-end; }
+
+.retrieval-language-label { display: flex; flex-direction: column; gap: 3px; font-size: 11px; }
+.retrieval-language-label input { width: 125px; max-width: 100%; padding: 6px; font: inherit; color: inherit; background: transparent; border: 1px solid #555; border-radius: 4px; }

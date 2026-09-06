@@ -117,6 +117,10 @@
 							<div id="composer-token-summary" class="composer-token-summary" aria-live="polite">0 tokens</div>
 						</div>
 					</div>
+					<label class="retrieval-language-label">Code examples
+						<input id="retrieval-language" list="retrieval-languages" maxlength="64" placeholder="Any language" aria-label="Code example language" />
+					</label>
+					<datalist id="retrieval-languages"><option value="python"><option value="javascript"><option value="typescript"><option value="rust"><option value="go"><option value="kujo"></datalist>
 					<div class="composer-model-picker">
 						<select id="composer-profile-select" class="composer-profile-select" aria-label="Model and provider"></select>
 					</div>
@@ -280,6 +284,7 @@
 								<button id="add-browser-tool-btn" class="tool-preset-option">Browser presets</button>
 								<button id="add-system-tool-btn" class="tool-preset-option">System preset</button>
 								<button id="add-web-search-tool-btn" class="tool-preset-option">Web Search schema</button>
+								<button id="add-documentation-tool-btn" class="tool-preset-option">Documentation schema</button>
 								<button id="add-web-fetch-tool-btn" class="tool-preset-option">Page Reader schema</button>
 								<button id="add-skill-tool-btn" class="tool-preset-option">Skill presets</button>
 								<button id="add-local-tool-btn" class="tool-preset-option">Local presets</button>
@@ -543,6 +548,7 @@
 	<script src="/state-sync.js?v=20260731-sidebar-hover-6"></script>
 	<script src="/execution-replay.js"></script>
 	<script src="/continuity-editor.js"></script>
+	<script src="/retrieval-preferences.js"></script>
 	<script src="/app.js?v=20260731-sidebar-hover-6"></script>
 </body>
 </html>

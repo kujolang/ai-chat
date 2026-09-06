@@ -164,6 +164,7 @@ const nodes = {
 	usageSummaryDetails: document.getElementById("usage-summary-details"),
 	saveStatus: document.getElementById("save-status"),
 	composerProfileSelect: document.getElementById("composer-profile-select"),
+	retrievalLanguage: document.getElementById("retrieval-language"),
 	sendBtn: document.getElementById("send-btn"),
 	voiceBtn: document.getElementById("voice-btn"),
 	voiceStatus: document.getElementById("voice-status"),
@@ -495,7 +496,8 @@ function normalizeIncomingChat(chat) {
 	const normalized = {
 		...chat,
 		routeId: normalizeChatRouteId(chat.routeId || chat.route_id) || createChatRouteId(),
-		projectPath: normalizeProjectPath(chat.projectPath || chat.project_path || "")
+		projectPath: normalizeProjectPath(chat.projectPath || chat.project_path || ""),
+		retrieval_preferences: RetrievalPreferences.normalize(chat.retrieval_preferences)
 	};
 	for (const pane of Array.isArray(normalized.panes) ? normalized.panes : []) {
 		if (!Array.isArray(pane.messages)) {
@@ -1063,6 +1065,17 @@ function wireEvents() {
 		});
 	}
 
+	document.getElementById("add-documentation-tool-btn").addEventListener("click", () => {
+		if (!state.settings.tools.some((tool) => tool.name === "documentation_query")) state.settings.tools.push(createToolDefinition({
+			name: "documentation_query", kind: "preset",
+			description: "Retrieve documentation and citations from the configured Kujo RAG corpus. Uses the task's code example language when supported.",
+			parameters_json: JSON.stringify({ type: "object", properties: { query: { type: "string", minLength: 1, maxLength: 4000 } }, required: ["query"], additionalProperties: false })
+		}));
+		setToolPresetMenuOpen(false);
+		renderSettings();
+		schedulePersist();
+	});
+
 	if (nodes.addWebFetchToolBtn) nodes.addWebFetchToolBtn.addEventListener("click", () => {
 		if (!state.settings.tools.some((tool) => tool.name === "web_fetch")) state.settings.tools.push(createToolDefinition({
 			name: "web_fetch", kind: "preset",
@@ -1306,6 +1319,14 @@ function wireEvents() {
 		void toggleVoice();
 	});
 
+	nodes.retrievalLanguage.addEventListener("change", () => {
+		const chat = getActiveChat();
+		if (!chat) return;
+		chat.retrieval_preferences = RetrievalPreferences.normalize({ programming_language: nodes.retrievalLanguage.value });
+		nodes.retrievalLanguage.value = chat.retrieval_preferences.programming_language || "";
+		chat.updatedAt = Date.now();
+		schedulePersist();
+	});
 	nodes.composerProfileSelect.addEventListener("change", (event) => {
 		const selectedOption = event.target.selectedOptions && event.target.selectedOptions[0]
 			? event.target.selectedOptions[0]
@@ -3000,6 +3021,8 @@ function renderSettingsDefaultProjectSelect() {
 
 function renderComposerProfileSelect() {
 	const chat = getActiveChat();
+	nodes.retrievalLanguage.value = RetrievalPreferences.normalize(chat?.retrieval_preferences).programming_language || "";
+	nodes.retrievalLanguage.disabled = !chat;
 	const selectedPane = chat && chat.panes[0] ? chat.panes[0] : null;
 	const selectedProfileId = selectedPane ? selectedPane.profile_id : "";
 	const selectedProfile = selectedPane ? getProfileById(selectedPane.profile_id) : null;
@@ -5968,6 +5991,7 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 				request_id: `${assistantMessage.id}:pass:${continuationPass}`,
 				continuation_pass: continuationPass,
 				chat_id: chat.id,
+				retrieval_preferences: RetrievalPreferences.normalize(chat.retrieval_preferences),
 				pane_id: pane.id,
 				assistant_message_id: assistantMessage.id,
 				assistant_created_at: assistantMessage.createdAt,
@@ -6614,6 +6638,7 @@ function branchMessageIntoNewChat(sourceChat, paneId, messageId) {
 
 	const branchChat = createChat(`Branch: ${cleanTitle(sourceChat.title, "Chat")}`);
 	branchChat.projectPath = normalizeProjectPath(sourceChat.projectPath || sourceChat.project_path || "");
+	branchChat.retrieval_preferences = RetrievalPreferences.normalize(sourceChat.retrieval_preferences);
 	branchChat.panes = [createPane(sourcePane.profile_id, sourcePane.model)];
 	branchChat.panes[0].messages = sourcePane.messages
 		.slice(0, messageIndex + 1)
@@ -7852,6 +7877,7 @@ function normalizeRuntimeToolSchema(schema) {
 
 function isRuntimePresetTool(name) {
 	return [
+		"documentation_query",
 		"browser_open", "browser_snapshot", "browser_act", "browser_close", "browser_use",
 		"skill_list", "skill_read", "skill_file_read",
 		"local_workspace_list", "local_file_list", "local_file_read", "local_file_write", "local_shell",

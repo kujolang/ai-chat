@@ -4385,3 +4385,47 @@ test('expired execution replay returns 410 while retaining an inspectable identi
   });
  }finally{destroy();}
 });
+
+test('documentation preferences persist through full and incremental state writes and clear explicitly', async () => {
+ const {runtime,destroy}=createIsolatedRuntime();
+ try {
+  await withServer(runtime.app, async baseUrl => {
+   const state=runtime.helpers.readState();
+   state.chats[0].retrieval_preferences={programming_language:' Python '};
+   const written=await fetchJson(baseUrl,'/api/state',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(state)});
+   assert.equal(written.response.status,200);
+   const saved=runtime.helpers.readState();
+   const chat=saved.chats[0];
+   assert.deepEqual(chat.retrieval_preferences,{programming_language:'python'});
+   const snapshot=require('../public/state-sync').persistenceSnapshot(saved);
+   const normalizedChat=snapshot.chats.find(item=>item.id===chat.id);
+   normalizedChat.retrieval_preferences={};
+   const changed=await fetchJson(baseUrl,'/api/state/changes',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({state_version:saved.stateVersion,changes:[{type:'chat_upsert',chat:normalizedChat}]})});
+   assert.equal(changed.response.status,200,JSON.stringify(changed.json));
+   assert.deepEqual(runtime.helpers.readState().chats.find(item=>item.id===chat.id).retrieval_preferences,{});
+  });
+ } finally {destroy();}
+});
+
+test('code example selector survives reload and clearing through the browser', {timeout:30000}, async () => {
+ const {chromium}=require('playwright');
+ const {runtime,destroy}=createIsolatedRuntime();let browser;
+ try {
+  await withServer(runtime.app,async baseUrl=>{
+   browser=await chromium.launch({headless:true});const page=await browser.newPage();
+   await page.addInitScript(token=>localStorage.setItem('ai_chat_api_token',token),API_TOKEN);
+   await page.goto(baseUrl);await page.waitForFunction(()=>stateLoadedFromServer&&runtimeCapabilities.loaded);
+   const chatId=await page.evaluate(()=>{createAndActivateChat();return getActiveChat().id;});
+   await page.getByLabel('Code example language',{exact:true}).fill(' Python ');
+   await page.getByLabel('Code example language',{exact:true}).dispatchEvent('change');
+   await page.waitForFunction(()=>!persistInFlight&&!persistRequested&&!persistTimer);
+   await page.reload();await page.waitForFunction(()=>stateLoadedFromServer&&runtimeCapabilities.loaded);
+   await page.evaluate(async id=>activateChat(id),chatId);
+   assert.equal(await page.getByLabel('Code example language',{exact:true}).inputValue(),'python');
+   await page.getByLabel('Code example language',{exact:true}).fill('');
+   await page.getByLabel('Code example language',{exact:true}).dispatchEvent('change');
+   await page.waitForFunction(()=>!persistInFlight&&!persistRequested&&!persistTimer);
+   assert.deepEqual(runtime.helpers.readState().chats.find(chat=>chat.id===chatId).retrieval_preferences,{});
+  });
+ } finally {await browser?.close();await runtime.close();destroy();}
+});
