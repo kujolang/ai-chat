@@ -657,3 +657,7 @@ For a standalone setup and install reference, see:
 - SETUP_AND_INSTALL.md
 
 Production reliability evidence and known limits: [Production hardening](docs/PRODUCTION_HARDENING.md). Offline payload measurements: `node scripts/hardening-benchmark.js`.
+
+## Retrieval content preferences
+
+[Page Reader negotiation](docs/PAGE_READER_NEGOTIATION.md) describes optional retrieval behavior and compatibility boundaries.

@@ -143,3 +143,47 @@ test("text truncation does not split a Unicode surrogate pair", async () => {
 		assert.equal(result.truncated, true);
 	});
 });
+
+test("page reader negotiates Markdown once and preserves code fences as untrusted text", async () => {
+	const markdown = '# Rust example\n\n```rust\nlet x = "<tag>";\n```\n';
+	let hits = 0;
+	await fixture((req, res) => {
+		hits++;
+		assert.equal(req.headers.accept, "text/markdown, text/html;q=0.9, text/plain;q=0.8");
+		assert.equal(req.headers["accept-language"], undefined);
+		assert.equal(req.headers["x-code-language"], undefined);
+		res.writeHead(200, { "Content-Type": "text/markdown; charset=utf-8", "Vary": "Accept", "Content-Encoding": "gzip" });
+		res.end(gzipSync(markdown));
+	}, async (url) => {
+		const runtime = createPageFetchRuntime({ allowPrivateHosts: ["127.0.0.1"] });
+		const tools = createToolRuntime({ pageFetchRuntime: runtime });
+		const result = await tools.execute("web_fetch", { url });
+		assert.equal(result.text, markdown);
+		assert.equal(result.provenance.content_is_untrusted, true);
+		assert.equal(result.rendering.performed, false);
+		assert.equal(hits, 1);
+		await tools.close();
+	});
+});
+
+test("servers ignoring Markdown negotiation retain HTML/plain fallback and request bounds", async () => {
+	let hits = 0;
+	await fixture((req, res) => {
+		hits++;
+		assert.match(req.headers.accept, /^text\/markdown,/);
+		if (req.url === "/plain") { res.setHeader("Content-Type", "text/plain"); res.end("legacy plain text"); }
+		else if (req.url === "/limited") { res.setHeader("Content-Type", "text/markdown"); res.end("x".repeat(500)); }
+		else if (req.url === "/unacceptable") { res.writeHead(406); res.end(); }
+		else { res.setHeader("Content-Type", "text/html"); res.end("<p>legacy HTML</p>"); }
+	}, async (url) => {
+		const runtime = createPageFetchRuntime({ allowPrivateHosts: ["127.0.0.1"] });
+		assert.equal((await runtime.execute({ url })).text, "legacy HTML");
+		assert.equal((await runtime.execute({ url: `${url}/plain` })).text, "legacy plain text");
+		const limited = await runtime.execute({ url: `${url}/limited`, max_chars: 256 });
+		assert.equal(limited.text.length, 256);
+		assert.equal(limited.truncated, true);
+		await assert.rejects(runtime.execute({ url: `${url}/unacceptable` }), { code: "web_fetch_upstream_failed" });
+		assert.equal(hits, 4);
+		runtime.close();
+	});
+});
