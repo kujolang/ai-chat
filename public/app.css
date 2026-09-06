@@ -4809,3 +4809,15 @@ textarea {
 .continuity-editor label { display: block; margin-top: 16px; }
 .continuity-editor textarea { display: block; width: 100%; margin-top: 8px; resize: vertical; }
 .continuity-actions { display: flex; flex-wrap: wrap; gap: 12px; justify-content: flex-end; }
+
+.message-execution-link { background: none; border: 0; color: var(--text-dim, #777); font: inherit; font-size: 0.75rem; cursor: pointer; text-decoration: underline; }
+.execution-dialog { width: min(720px, calc(100vw - 32px)); max-height: 85vh; overflow: auto; border: 1px solid var(--border, #999); border-radius: 12px; padding: 24px; color: var(--text, #222); background: var(--bg-elev, #fff); }
+.execution-dialog::backdrop { background: rgb(0 0 0 / 45%); }
+.execution-dialog h2 { margin-top: 0; }
+.execution-receipt { border-top: 1px solid var(--border, #aaa); padding: 12px 0; }
+.execution-receipt h3 { font-size: 1rem; }
+.execution-receipt pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 240px; overflow: auto; }
+.execution-reconcile { display: grid; gap: 12px; margin-top: 12px; }
+.execution-reconcile label { display: grid; gap: 4px; }
+.execution-reconcile textarea { min-height: 70px; width: 100%; }
+.execution-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px; }

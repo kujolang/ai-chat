@@ -54,6 +54,7 @@ function createIsolatedRuntime(overrides = {}) {
 
 	return {
 		runtime,
+		env,
 		destroy() {
 			runtime.close();
 			fs.rmSync(tempRoot, { recursive: true, force: true });
@@ -4384,4 +4385,137 @@ test('expired execution replay returns 410 while retaining an inspectable identi
    const health=await fetchJson(base,'/api/health');assert.equal(health.json.execution_retention_days,1);
   });
  }finally{destroy();}
+});
+
+for (const receiptState of ['completed', 'uncertain']) {
+test(`browser reviews and resumes an interrupted saved request (${receiptState}) without repeating its completed tool`, {timeout:30000},async()=>{
+ const {chromium}=require('playwright');let browser,providerCalls=0;const payloads=[];
+ const {runtime,destroy}=createIsolatedRuntime({fetchFn:async(_url,options)=>{
+  if(!String(_url).endsWith('/chat/completions'))return mockJsonResponse({ok:true});
+  providerCalls++;payloads.push(JSON.parse(options.body));
+  if(providerCalls===1)return mockSseResponse([{choices:[{delta:{tool_calls:[{index:0,id:'resume-time',type:'function',function:{name:'system_time',arguments:'{}'}}]},finish_reason:'tool_calls'}],usage:{prompt_tokens:10,completion_tokens:1}}]);
+  if(providerCalls===2)return mockJsonResponse({error:'temporary failure'},503);
+  return mockSseResponse([{choices:[{delta:{content:'Resumed without repeating the clock.'},finish_reason:'stop'}],usage:{prompt_tokens:12,completion_tokens:5}}]);
+ }});
+ try {
+  applyProfileMutation(runtime,p=>{p.provider_id='openai';p.api_key='fixture-key';});
+  await withServer(runtime.app,async base=>{
+   browser=await chromium.launch({headless:true});const page=await browser.newPage();page.setDefaultTimeout(10000);
+   await page.addInitScript(token=>localStorage.setItem('ai_chat_api_token',token),API_TOKEN);
+   await page.goto(base);await page.waitForFunction(()=>stateLoadedFromServer&&runtimeCapabilities.loaded);
+   const request=await page.evaluate(async()=>{
+    createAndActivateChat();const chat=getActiveChat(),pane=chat.panes[0];chat.title='Resume verification';
+    const user=makeMessage('user','Get the time and finish.'),assistant=makeMessage('assistant','');assistant.execution_id='ui-resume';assistant.execution_cursor=0;
+    pane.messages.push(user,assistant);await persistStateToServer();renderWorkspace();
+    return {request_id:'ui-resume',chat_id:chat.id,pane_id:pane.id,assistant_message_id:assistant.id,profile_id:pane.profile_id,model:pane.model,messages:[{role:'user',content:user.content}],max_tokens:1024};
+   });
+   const first=await fetch(base+'/api/chat/stream',{method:'POST',headers:withAuthHeaders({'Content-Type':'application/json'}),body:JSON.stringify(request)});
+   assert.equal(parseSseEvents(await first.text()).find(e=>e.event==='error').data.code,'provider_http_error');
+   let inspection=(await fetchJson(base,'/api/executions/ui-resume')).json;
+   assert.equal(inspection.receipts.length,1);assert.equal(inspection.resume.allowed,true);
+   const observedResult=inspection.receipts[0].result;
+   if(receiptState==='uncertain') {
+    runtime.db.prepare("UPDATE execution_calls SET status='uncertain', result_blob=NULL WHERE run_id='ui-resume'").run();
+    const rejected=await fetch(base+'/api/executions/ui-resume/resume',{method:'POST',headers:withAuthHeaders({'Content-Type':'application/json'}),body:'{}'});
+    assert.equal(parseSseEvents(await rejected.text()).find(e=>e.event==='error').data.code,'execution_reconciliation_required');assert.equal(providerCalls,2);
+   }
+   await page.evaluate(cursor=>{const pane=getActiveChat().panes[0],message=pane.messages.at(-1);message.execution_cursor=cursor;message.usage={error:{code:'provider_http_error',message:'Interrupted'}};pane.model='changed-selection';pane.status='partial';renderWorkspace();},inspection.last_cursor);
+   await page.getByRole('button',{name:'Review execution'}).click();
+   if(receiptState==='uncertain') {
+    const dialog=page.getByRole('dialog',{name:'Review saved execution'});
+    await dialog.getByRole('heading',{name:'system_time · uncertain'}).waitFor();
+    assert.equal(await page.getByRole('button',{name:'Resume execution',exact:true}).isDisabled(),true);
+    await dialog.getByLabel('Verified outcome').selectOption('completed');
+    await dialog.getByLabel('Evidence',{exact:true}).fill('Operator verified the recorded clock result from the completed request.');
+    await dialog.getByLabel('Observed result (JSON object, required for completed)').fill(JSON.stringify(observedResult));
+    await page.screenshot({path:'/tmp/ai-chat-execution-review.png'});
+    await dialog.getByRole('button',{name:'Save verified outcome'}).click();
+   }
+   await page.getByRole('dialog',{name:'Review saved execution'}).getByRole('heading',{name:'system_time · completed'}).waitFor();
+   await page.getByRole('button',{name:'Resume execution',exact:true}).click();
+   await page.waitForFunction(()=>getActiveChat().panes[0].messages.at(-1).content==='Resumed without repeating the clock.'&&!getActiveChat().panes[0].messages.at(-1).streaming);
+   const final=await page.evaluate(async()=>{await persistStateToServer();return {pane:getActiveChat().panes[0],chatId:getActiveChat().id};});
+   assert.equal(final.pane.status,'idle');assert.equal(final.pane.messages.length,2);assert.equal(providerCalls,3);
+   assert.equal(payloads[2].model,request.model);assert.equal(payloads[2].messages.filter(m=>m.role==='tool').length,1);
+   inspection=(await fetchJson(base,'/api/executions/ui-resume')).json;
+   assert.equal(inspection.receipts.length,1);assert.equal(inspection.execution.status,'completed');assert.equal(inspection.execution.result.provider_rounds,3);
+   await page.waitForFunction(()=>!persistInFlight&&!persistRequested&&!persistTimer);await page.reload();await page.waitForFunction(()=>stateLoadedFromServer&&runtimeCapabilities.loaded);
+   await page.evaluate(async id=>activateChat(id),final.chatId);
+   assert.equal(await page.evaluate(()=>getActiveChat().panes[0].messages.at(-1).content),'Resumed without repeating the clock.');
+   assert.equal(providerCalls,3);
+  });
+ }finally{await browser?.close();await runtime.close();destroy();}
+});
+
+}
+
+test('native continuation survives runtime restart, requires attempt reconciliation and resumes the same persistent session', {timeout:15000},async()=>{
+ const root=fs.mkdtempSync(path.join(os.tmpdir(),'ai-chat-native-resume-'));
+ const counter=path.join(root,'actions.txt'),sessionFile=path.join(root,'native-session.json'),fixture=path.join(root,'cli.cjs');
+ fs.writeFileSync(fixture,`const fs=require('fs');const args=process.argv.slice(2);const emit=o=>console.log(JSON.stringify(o));
+ const id='native-persistent-fixture';
+ if(args.includes('--ephemeral'))process.exit(9);
+ if(args.includes('resume')) {
+  if(!args.includes(id)||!fs.existsSync(${JSON.stringify(sessionFile)})||!args.at(-1).includes('observed_result'))process.exit(8);
+  emit({type:'thread.started',thread_id:id});emit({type:'item.completed',item:{id:'answer',type:'agent_message',text:'Continued the saved native session.'}});emit({type:'turn.completed',usage:{input_tokens:12,output_tokens:5}});
+ }else {
+  fs.writeFileSync(${JSON.stringify(sessionFile)},JSON.stringify({id}));emit({type:'thread.started',thread_id:id});
+  emit({type:'item.started',item:{id:'action',type:'command_execution',command:'fixture action',status:'in_progress'}});
+  fs.appendFileSync(${JSON.stringify(counter)},'action\\n');
+  emit({type:'item.completed',item:{id:'action',type:'command_execution',command:'fixture action',status:'completed',exit_code:0,aggregated_output:'Created the fixture marker.'}});
+  process.exitCode=1;
+ }`);
+ const launches=[];
+ const spawnFn=(_bin,args,options)=>{launches.push(args);return require('node:child_process').spawn(process.execPath,[fixture,...args],options);};
+ const isolated=createIsolatedRuntime({spawnFn,envMerge:{CODEX_HOME:root,CODEX_MODEL_CACHE_PATH:path.join(root,'missing-cache'),WATCHDOG_TELEMETRY_URL:''}});
+ let runtime=isolated.runtime;
+ try {
+  const profileId=applyProfileMutation(runtime,p=>{p.provider_id='codex';p.api_key='';});
+  await withServer(runtime.app,async base=>{
+   const res=await fetch(base+'/api/chat/stream',{method:'POST',headers:withAuthHeaders({'Content-Type':'application/json'}),body:JSON.stringify({request_id:'native-resume',profile_id:profileId,model:'fixture',max_tokens:1024,messages:[{role:'user',content:'Create the fixture marker once, then finish.'}]})});
+   assert.equal(parseSseEvents(await res.text()).find(e=>e.event==='error').data.code,'codex_exec_failed');
+  });
+  await runtime.close();
+  runtime=createServerRuntime({env:isolated.env,projectRoot:path.resolve(__dirname,'..'),spawnFn,skillRuntimeOptions:{homeDir:root}});
+  await withServer(runtime.app,async base=>{
+   let run=(await fetchJson(base,'/api/executions/native-resume')).json;
+   assert.equal(run.execution.checkpoint.native_thread_id,'native-persistent-fixture');assert.equal(run.resume.allowed,false);
+   assert.equal(run.receipts.find(c=>c.tool_name==='command_execution').status,'completed');
+   const rejected=await fetch(base+'/api/executions/native-resume/resume',{method:'POST',headers:withAuthHeaders({'Content-Type':'application/json'}),body:'{}'});
+   assert.equal(parseSseEvents(await rejected.text()).find(e=>e.event==='error').data.code,'execution_reconciliation_required');assert.equal(launches.length,1);
+   const attempt=run.receipts.find(c=>c.tool_name==='native_attempt');
+   const resolved=await fetchJson(base,`/api/executions/native-resume/calls/${attempt.call_id}/reconcile`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({disposition:'completed',evidence:'Operator checked the native session and exactly one fixture action marker.',result:{ok:false,observed_actions:1,remaining_work:'Return the final answer'}})});
+   assert.equal(resolved.response.status,200);
+   run=(await fetchJson(base,'/api/executions/native-resume')).json;assert.equal(run.resume.allowed,true);
+   const resumed=await fetch(base+'/api/executions/native-resume/resume',{method:'POST',headers:withAuthHeaders({'Content-Type':'application/json'}),body:JSON.stringify({model:'ignored',messages:[{role:'user',content:'must not replace original request'}]})});
+   const done=parseSseEvents(await resumed.text()).find(e=>e.event==='done').data;
+   assert.equal(done.output_text,'Continued the saved native session.');assert.equal(done.thread_id,'native-persistent-fixture');assert.equal(done.context_budget.context_scope,'codex_resume_instruction');
+   assert.equal(launches.length,2);assert.ok(launches[1].includes('resume'));assert.ok(launches[1].includes('read-only'));
+   assert.equal(fs.readFileSync(counter,'utf8'),'action\n');
+   run=(await fetchJson(base,'/api/executions/native-resume')).json;assert.equal(run.execution.status,'completed');assert.equal(run.receipts.length,3);
+   runtime.db.prepare("UPDATE profiles SET api_key_cipher = 'AAAA', api_key_iv = ?, api_key_tag = ? WHERE id = ?").run(Buffer.alloc(12).toString('base64'),Buffer.alloc(16).toString('base64'),profileId);
+   const replay=await fetch(base+'/api/executions/native-resume/resume',{method:'POST',headers:withAuthHeaders({'Content-Type':'application/json'}),body:'{}'});
+   assert.equal(parseSseEvents(await replay.text()).find(e=>e.event==='done').data.replayed,true);assert.equal(launches.length,2);
+  });
+ }finally{await runtime.close();isolated.destroy();fs.rmSync(root,{recursive:true,force:true});}
+});
+
+test('native resume rejects a changed session identity and kills the child before accepting its output', {timeout:10000},async()=>{
+ let child;
+ const isolated=createIsolatedRuntime({spawnFn:(_bin,args,options)=>{assert.ok(args.includes('resume'));child=require('node:child_process').spawn(process.execPath,['-e',`console.log(JSON.stringify({type:'thread.started',thread_id:'unexpected-session'}));setInterval(()=>{},1000);`],options);return child;}});
+ const {runtime,destroy}=isolated;
+ try {
+  const profileId=applyProfileMutation(runtime,p=>{p.provider_id='codex';p.api_key='';});
+  const profile=runtime.helpers.profileById(profileId),request=runtime.helpers.chatRequestPayload({model:'fixture',max_tokens:1024,messages:[{role:'user',content:'Continue verified work'}]},profile);
+  const journal=require('../lib/execution-journal').createExecutionJournal(runtime.db,{masterKey:require('crypto').scryptSync('route-test-secret','kujo-ai-chat-salt-v1',32)});
+  journal.begin('native-wrong-session','native-wrong-session',{provider_id:'codex',profile_id:profileId,model:request.model,messages:request.messages,tools:request.tools,max_tokens:request.max_tokens,temperature:request.temperature,chat_id:'',pane_id:'',assistant_message_id:'',tool_discovery:false});
+  journal.checkpoint('native-wrong-session',{native_persistent:true,native_thread_id:'expected-session',native_home:isolated.env.CODEX_HOME||path.join(os.homedir(),'.codex'),native_cwd:path.resolve(__dirname,'..'),native_attempt:1});journal.finish('native-wrong-session',{},'interrupted');
+  await withServer(runtime.app,async base=>{
+   const response=await fetch(base+'/api/executions/native-wrong-session/resume',{method:'POST',headers:withAuthHeaders({'Content-Type':'application/json'}),body:'{}'});
+   const error=parseSseEvents(await response.text()).find(e=>e.event==='error').data;
+   assert.equal(error.code,'codex_exec_failed');assert.match(error.message,/unexpected session identity/);assert.equal(child.signalCode,'SIGKILL');
+   assert.equal(journal.get('native-wrong-session').status,'interrupted');assert.equal(journal.get('native-wrong-session').checkpoint.native_thread_id,'expected-session');
+   assert.equal(journal.receipts('native-wrong-session').filter(c=>c.status==='started').length,1);
+  });
+ }finally{await runtime.close();destroy();}
 });

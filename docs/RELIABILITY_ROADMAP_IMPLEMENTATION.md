@@ -4,7 +4,7 @@ Objective: implement **all ten** ranked improvements in PRODUCTION_HARDENING.md.
 
 | # | Requirement | Required verification | State |
 |---|---|---|---|
-| 1 | Durable turn/call journal, receipts and explicit resume | Restart between completed tools; ambiguous in-flight side effect cannot replay; identical finished request returns stored result | In progress |
+| 1 | Durable turn/call journal, receipts and explicit resume | Restart between completed tools; ambiguous in-flight side effect cannot replay; identical finished request returns stored result | Implemented; API/browser resume, reconciliation and persistent native restart fixtures pass |
 | 2 | Drain/checkpoint shutdown; recover stale waiting turns | Shutdown during detached tool/stream; restart restores recoverable state | Implemented for streaming and JSON model work; queued admission, child termination, drain and restart tests pass |
 | 3 | Bounded SSE queue, slow-consumer policy, replay cursor | Backpressure fixture and disconnected cursor replay without rerunning model/tools | Implemented; queue, API and actual-browser interrupted-response replay pass |
 | 4 | Provider-aware whole-context budget | Count content, schemas, tool args/reasoning/receipts; preserve protocol under limits and reject impossible fixed input | Implemented for HTTP requests and native initial transcripts; native internal context uses the CLI's configured total-context compaction |
@@ -92,3 +92,17 @@ Journal retention now expires terminal payloads in bounded batches while preserv
 The expiration API regression passed, and the full local suite passed 371 checks with one Linux-only skip (`/tmp/ai-chat-retention-full.log`).
 
 The actual eight-hour mixed GLM/Grok soak began at revision 49d0363 in `data/reliability-soak-20260906-a/`, using the same isolated matrix at 90-second intervals. Its PID and status must be revalidated from the process before interpreting progress. Starting it does not complete item 10. Revision 49d0363 passed Linux CI 34048529447 and artifact guard 34048529513.
+
+## Explicit and native resume milestone
+
+The response's Review execution dialog shows receipts, preserves evidence during reconciliation, restores completed results, recovers running output and resumes the stored request. The resume endpoint ignores replacement model/messages/tools in the submitted body. Browser tests verify the original model and response identity after pane changes, one completed clock call, blocking before uncertain-call reconciliation, successful continuation and reload. Cursor replay skips terminal events from older attempts. Dispatched-round counts include failed rounds before resume.
+
+Streaming native runs retain their CLI session. Each native attempt has a journal boundary receipt in addition to observed action receipts; interrupted attempts require operator review because an action may precede its visible event. Resumption uses the exact recorded session and scope, preserves the sandbox and rejects a changed session identity. Legacy ephemeral runs remain unavailable for native resume. Auxiliary JSON native requests remain ephemeral. A successful native completion requires a completed turn and resolved action receipts, not merely a zero process exit code.
+
+The native restart fixture launches a real child process, records one marker-writing action, closes/reopens the runtime, blocks resume until the interrupted attempt is reconciled, resumes the same persisted session and verifies exactly one marker. A second fixture kills a child returning a different session identity. Focused browser/native checks passed 4/4 (`/tmp/ai-chat-resume-final-focused.log`); the dialog was visually inspected at `/tmp/ai-chat-execution-review.png`.
+
+The installed Codex CLI also passed a real gpt-5.6-sol persistence check: an initial request stored a fresh marker and a second `exec resume` request recalled it without including it in the new prompt. Both returned the same thread ID and successful turn completion. Evidence: `/var/folders/wb/0cck3lgd08n55g_8ly9qmf_00000gn/T/ai-chat-native-live-5eE7Ne/verification.json`. An explicit nonexistent session ID exited 1 without starting a new thread. These checks establish native session behavior; deterministic fixtures establish the application's action/reconciliation boundary.
+
+An initial parallel suite hit host EAGAIN process-spawn failures. The first serial command also selected unrelated scripts outside the package's test glob; those extra scripts failed and are not acceptance checks. The final scoped serial run uses exactly `tests/*.test.js`. The live soak remains active and must finish before claiming all ten improvements complete.
+
+Final scoped serial verification passed 378 checks with one Linux-only skip (`/tmp/ai-chat-resume-full-scoped.log`). Subsequent native checks passed 2/2 (`/tmp/ai-chat-native-resume-final.log`), including stored-result replay with unreadable current profile credentials; replay does not depend on contacting or decrypting the provider. The native receipt stores the complete bounded item so MCP server/tool identity remains available when reconciling an interrupted action. The live CLI's saved initial and resumed turn contexts both recorded `sandbox_policy: read-only` and `approval_policy: never`.
