@@ -1323,7 +1323,7 @@ function wireEvents() {
 		const chat = getActiveChat();
 		if (!chat) return;
 		chat.retrieval_preferences = RetrievalPreferences.normalize({ programming_language: nodes.retrievalLanguage.value });
-		nodes.retrievalLanguage.value = chat.retrieval_preferences.programming_language || "";
+		renderRetrievalLanguage(chat);
 		chat.updatedAt = Date.now();
 		schedulePersist();
 	});
@@ -2969,6 +2969,29 @@ function initializeModelSelect2() {
 		return true;
 	};
 	if (!composerModelSelect2Ready) composerModelSelect2Ready = configure(nodes.composerProfileSelect, jquery(document.body));
+	if (!jquery(nodes.retrievalLanguage).data("select2")) {
+		jquery(nodes.retrievalLanguage).select2({
+			width: "100%",
+			minimumResultsForSearch: 0,
+			dropdownParent: jquery(document.body),
+			dropdownCssClass: "model-picker-dropdown",
+			containerCssClass: "model-picker-select2",
+			tags: true,
+			createTag: params => {
+				const value = RetrievalPreferences.normalize({ programming_language: params.term }).programming_language;
+				return value ? { id: value, text: value } : null;
+			}
+		}).on("select2:open", () => {
+			const search = document.querySelector(".select2-container--open .select2-search__field");
+			if (search) {
+				search.setAttribute("placeholder", "Search or add a language…");
+				search.setAttribute("maxlength", "64");
+			}
+		}).on("select2:select", () => {
+			nodes.retrievalLanguage.dispatchEvent(new Event("change", { bubbles: true }));
+		});
+		jquery(nodes.retrievalLanguage).next().find(".select2-selection").attr("aria-label", "Code example language").removeAttr("aria-labelledby");
+	}
 	if (!settingsDefaultModelSelect2Ready) settingsDefaultModelSelect2Ready = configure(nodes.settingsDefaultModel, jquery(nodes.settingsModal));
 }
 
@@ -3023,10 +3046,19 @@ function renderSettingsDefaultProjectSelect() {
 	refreshSelect2(nodes.settingsDefaultProject);
 }
 
+function renderRetrievalLanguage(chat) {
+	const value = RetrievalPreferences.normalize(chat?.retrieval_preferences).programming_language || "";
+	if (![...nodes.retrievalLanguage.options].some(option => option.value === value)) {
+		nodes.retrievalLanguage.add(new Option(value, value));
+	}
+	nodes.retrievalLanguage.value = value;
+	nodes.retrievalLanguage.disabled = !chat;
+	refreshSelect2(nodes.retrievalLanguage);
+}
+
 function renderComposerProfileSelect() {
 	const chat = getActiveChat();
-	nodes.retrievalLanguage.value = RetrievalPreferences.normalize(chat?.retrieval_preferences).programming_language || "";
-	nodes.retrievalLanguage.disabled = !chat;
+	renderRetrievalLanguage(chat);
 	const selectedPane = chat && chat.panes[0] ? chat.panes[0] : null;
 	const selectedProfileId = selectedPane ? selectedPane.profile_id : "";
 	const selectedProfile = selectedPane ? getProfileById(selectedPane.profile_id) : null;

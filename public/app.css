@@ -4810,8 +4810,6 @@ textarea {
 .continuity-editor textarea { display: block; width: 100%; margin-top: 8px; resize: vertical; }
 .continuity-actions { display: flex; flex-wrap: wrap; gap: 12px; justify-content: flex-end; }
 
-.retrieval-language-label { display: flex; flex-direction: column; gap: 3px; font-size: 11px; }
-.retrieval-language-label input { width: 125px; max-width: 100%; padding: 6px; font: inherit; color: inherit; background: transparent; border: 1px solid #555; border-radius: 4px; }
 
 .message-execution-link { background: none; border: 0; color: var(--text-dim, #777); font: inherit; font-size: 0.75rem; cursor: pointer; text-decoration: underline; }
 .execution-dialog { width: min(720px, calc(100vw - 32px)); max-height: 85vh; overflow: auto; border: 1px solid var(--border, #999); border-radius: 12px; padding: 24px; color: var(--text, #222); background: var(--bg-elev, #fff); }
@@ -4824,3 +4822,17 @@ textarea {
 .execution-reconcile label { display: grid; gap: 4px; }
 .execution-reconcile textarea { min-height: 70px; width: 100%; }
 .execution-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px; }
+
+.composer-model-picker.composer-language-picker {
+	width: 150px;
+	flex: 0 1 150px;
+	min-width: 0;
+}
+
+@media (max-width: 720px) {
+	.composer-model-picker.composer-language-picker {
+		grid-row: 3;
+		grid-column: 1;
+		width: min(100%, 220px);
+	}
+}

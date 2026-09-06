@@ -117,10 +117,14 @@
 							<div id="composer-token-summary" class="composer-token-summary" aria-live="polite">0 tokens</div>
 						</div>
 					</div>
-					<label class="retrieval-language-label">Code examples
-						<input id="retrieval-language" list="retrieval-languages" maxlength="64" placeholder="Any language" aria-label="Code example language" />
-					</label>
-					<datalist id="retrieval-languages"><option value="python"><option value="javascript"><option value="typescript"><option value="rust"><option value="go"><option value="kujo"></datalist>
+					<div class="composer-model-picker composer-language-picker">
+						<select id="retrieval-language" class="composer-profile-select" aria-label="Code example language">
+							<option value="">Any language</option>
+							<option value="python">Python</option><option value="javascript">JavaScript</option>
+							<option value="typescript">TypeScript</option><option value="rust">Rust</option>
+							<option value="go">Go</option><option value="kujo">Kujo</option>
+						</select>
+					</div>
 					<div class="composer-model-picker">
 						<select id="composer-profile-select" class="composer-profile-select" aria-label="Model and provider"></select>
 					</div>

@@ -4413,20 +4413,36 @@ test('code example selector survives reload and clearing through the browser', {
  const {runtime,destroy}=createIsolatedRuntime();let browser;
  try {
   await withServer(runtime.app,async baseUrl=>{
-   browser=await chromium.launch({headless:true});const page=await browser.newPage();
+   browser=await chromium.launch({headless:true});const page=await browser.newPage();page.setDefaultTimeout(8000);
    await page.addInitScript(token=>localStorage.setItem('ai_chat_api_token',token),API_TOKEN);
    await page.goto(baseUrl);await page.waitForFunction(()=>stateLoadedFromServer&&runtimeCapabilities.loaded);
    const chatId=await page.evaluate(()=>{createAndActivateChat();return getActiveChat().id;});
-   await page.getByLabel('Code example language',{exact:true}).fill(' Python ');
-   await page.getByLabel('Code example language',{exact:true}).dispatchEvent('change');
+   await page.getByRole('combobox',{name:'Code example language',exact:true}).click();
+   await page.locator('.select2-container--open .select2-search__field').fill('python');
+   await page.getByRole('option',{name:'Python',exact:true}).click();
    await page.waitForFunction(()=>!persistInFlight&&!persistRequested&&!persistTimer);
    await page.reload();await page.waitForFunction(()=>stateLoadedFromServer&&runtimeCapabilities.loaded);
    await page.evaluate(async id=>activateChat(id),chatId);
-   assert.equal(await page.getByLabel('Code example language',{exact:true}).inputValue(),'python');
-   await page.getByLabel('Code example language',{exact:true}).fill('');
-   await page.getByLabel('Code example language',{exact:true}).dispatchEvent('change');
+   assert.equal(await page.locator('#retrieval-language').inputValue(),'python');
+   await page.getByRole('combobox',{name:'Code example language',exact:true}).click();
+   await page.locator('.select2-container--open .select2-search__field').fill('C++');
+   await page.getByRole('option',{name:'cpp',exact:true}).click();
+   assert.equal(await page.locator('#retrieval-language').inputValue(),'cpp');
+   await page.getByRole('combobox',{name:'Code example language',exact:true}).click();
+   await page.getByRole('option',{name:'Any language',exact:true}).click();
    await page.waitForFunction(()=>!persistInFlight&&!persistRequested&&!persistTimer);
    assert.deepEqual(runtime.helpers.readState().chats.find(chat=>chat.id===chatId).retrieval_preferences,{});
+   for (const width of [1280,390]) {
+    await page.setViewportSize({width,height:900});
+    const visual=await page.evaluate(()=>{
+     const language=document.querySelector('.composer-language-picker .select2-selection');
+     const model=document.querySelector('#composer-profile-select + .select2 .select2-selection');
+     const properties=['height','borderRadius','backgroundColor','fontSize'];
+     return {language:properties.map(p=>getComputedStyle(language)[p]),model:properties.map(p=>getComputedStyle(model)[p]),overflow:document.documentElement.scrollWidth>innerWidth,labels:document.querySelector('.composer-language-picker').querySelectorAll('label').length};
+    });
+    assert.deepEqual(visual.language,visual.model);assert.equal(visual.overflow,false);assert.equal(visual.labels,0);
+   }
+
   });
  } finally {await browser?.close();await runtime.close();destroy();}
 });
