@@ -71,6 +71,7 @@ const legacyUsageLedgerStorageKey = "kujo_ai_chat_usage_ledger_v1";
 const sidebarCollapsedStorageKey = "ai_chat_sidebar_collapsed_v1";
 const sidebarSectionsStorageKey = "ai_chat_sidebar_sections_v1";
 const paneInfoVisibleStorageKey = "ai_chat_pane_info_visible_v3";
+const languagePickerVisibleStorageKey = "ai_chat_language_picker_visible_v1";
 const usageSummaryVisibleStorageKey = "ai_chat_usage_summary_visible_v1";
 const collapsedProvidersStorageKey = "ai_chat_collapsed_providers_v1";
 const collapsedToolsStorageKey = "ai_chat_collapsed_tools_v1";
@@ -88,6 +89,7 @@ const mobileSidebarMediaQuery = "(max-width: 1100px)";
 let sidebarCollapsed = loadSidebarCollapsedPreference();
 let sidebarSectionVisibility = loadSidebarSectionVisibilityPreference();
 let paneInfoVisible = loadBooleanPreference(paneInfoVisibleStorageKey, false);
+let languagePickerVisible = loadBooleanPreference(languagePickerVisibleStorageKey, true);
 let usageSummaryVisible = loadBooleanPreference(usageSummaryVisibleStorageKey, false);
 const sendButtonSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z\"/><path d=\"m21.854 2.147-10.94 10.939\"/></svg>";
 const stopButtonSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect width=\"14\" height=\"14\" x=\"5\" y=\"5\" rx=\"2\"/></svg>";
@@ -256,6 +258,7 @@ const nodes = {
 	settingsDefaultModel: document.getElementById("settings-default-model"),
 	settingsDefaultProject: document.getElementById("settings-default-project"),
 	settingsUserName: document.getElementById("settings-user-name"),
+	settingsShowLanguagePicker: document.getElementById("settings-show-language-picker"),
 	settingsAgentInstructions: document.getElementById("settings-agent-instructions"),
 	addModelInstructionBtn: document.getElementById("add-model-instruction-btn"),
 	modelInstructionList: document.getElementById("model-instruction-list"),
@@ -1317,6 +1320,15 @@ function wireEvents() {
 
 	nodes.voiceBtn.addEventListener("click", () => {
 		void toggleVoice();
+	});
+
+	nodes.settingsShowLanguagePicker.addEventListener("change", () => {
+		languagePickerVisible = nodes.settingsShowLanguagePicker.checked;
+		storeBooleanPreference(languagePickerVisibleStorageKey, languagePickerVisible);
+		if (!languagePickerVisible && window.jQuery?.fn?.select2) {
+			window.jQuery(nodes.retrievalLanguage).select2("close");
+		}
+		renderRetrievalLanguage(getActiveChat());
 	});
 
 	nodes.retrievalLanguage.addEventListener("change", () => {
@@ -3047,6 +3059,7 @@ function renderSettingsDefaultProjectSelect() {
 }
 
 function renderRetrievalLanguage(chat) {
+	nodes.retrievalLanguage.closest(".composer-language-picker").classList.toggle("hidden", !languagePickerVisible);
 	const value = RetrievalPreferences.normalize(chat?.retrieval_preferences).programming_language || "";
 	if (![...nodes.retrievalLanguage.options].some(option => option.value === value)) {
 		nodes.retrievalLanguage.add(new Option(value, value));
@@ -5534,6 +5547,7 @@ function renderProfileModels(profile) {
 }
 
 function renderSettings() {
+	nodes.settingsShowLanguagePicker.checked = languagePickerVisible;
 	nodes.settingsTemperature.value = String(state.settings.temperature);
 	nodes.settingsMaxTokens.value = String(state.settings.maxTokens);
 	nodes.settingsUserName.value = String(state.settings.userName || "");

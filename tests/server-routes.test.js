@@ -4432,6 +4432,18 @@ test('code example selector survives reload and clearing through the browser', {
    await page.getByRole('option',{name:'Any language',exact:true}).click();
    await page.waitForFunction(()=>!persistInFlight&&!persistRequested&&!persistTimer);
    assert.deepEqual(runtime.helpers.readState().chats.find(chat=>chat.id===chatId).retrieval_preferences,{});
+   await page.locator('#open-settings-btn').click();
+   const visibility=page.getByRole('checkbox',{name:'Show language picker'});
+   assert.equal(await visibility.isChecked(),true);
+   await visibility.uncheck();
+   await page.locator('#close-settings-btn').click();
+   assert.equal(await page.locator('.composer-language-picker').isVisible(),false);
+   await page.reload();await page.waitForFunction(()=>stateLoadedFromServer&&runtimeCapabilities.loaded);
+   assert.equal(await page.locator('.composer-language-picker').isVisible(),false);
+   await page.locator('#open-settings-btn').click();
+   assert.equal(await visibility.isChecked(),false);
+   await visibility.check();await page.locator('#close-settings-btn').click();
+   assert.equal(await page.locator('.composer-language-picker').isVisible(),true);
    for (const width of [1280,390]) {
     await page.setViewportSize({width,height:900});
     const visual=await page.evaluate(()=>{

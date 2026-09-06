@@ -4836,3 +4836,19 @@ textarea {
 		width: min(100%, 220px);
 	}
 }
+
+.settings-appearance-toggle {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 13px;
+}
+.settings-appearance-toggle input {
+	width: 16px;
+	height: 16px;
+	margin: 0;
+	accent-color: var(--text);
+}
+.composer-language-picker.hidden {
+	display: none;
+}

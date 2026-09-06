@@ -666,3 +666,5 @@ Production reliability evidence and known limits: [Production hardening](docs/PR
 ## Documentation example selection
 
 The optional [RAG documentation tool](SETUP_AND_INSTALL.md#language-aware-documentation-retrieval) uses a saved chat/task code-example preference to request relevant examples upstream. Configure a supporting RAG service, enable the Documentation schema preset, and set **Code examples** in the composer. Shared guidance and source citations remain available.
+
+In **Settings → General → Chat Appearance**, **Show language picker** controls the composer picker. It is on by default and remembers visibility in this browser. Hiding it preserves saved per-chat language preferences.
