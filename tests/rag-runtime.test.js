@@ -38,3 +38,13 @@ test('RAG errors do not retry or expose credentials and empty matches stay empty
  const empty=createRagRuntime({env:{AI_CHAT_RAG_URL:'https://docs.example'},fetchFn:async () => new Response(JSON.stringify({ok:true,data:{citations:[]}}))});
  assert.deepEqual(await empty.execute({query:'query'}), {ok:true,citations:[],count:0});
 });
+
+test('RAG preserves public source URLs while retaining local citation ranges', async () => {
+ for (const source of ['https://docs.kujolang.ai/quickstart/', 'local_docs', 'javascript:alert(1)', 'https://secret:password@example.com/']) {
+  const runtime = createRagRuntime({env:{AI_CHAT_RAG_URL:'http://127.0.0.1:8787'}, fetchFn:async () => new Response(JSON.stringify({ok:true,data:{citations:[{path:'snapshot.md',text:'Published docs',line_start:4,line_end:9,source_system:source}]}}))});
+  const result = await runtime.execute({query:'quickstart'});
+  assert.equal(result.citations[0].source_url, source.startsWith('https://docs.kujolang.ai/') ? source : undefined);
+  assert.equal(result.citations[0].path, 'snapshot.md');
+  assert.equal(result.citations[0].line_start, 4);
+ }
+});

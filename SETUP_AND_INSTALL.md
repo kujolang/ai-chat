@@ -487,3 +487,5 @@ AI_CHAT_RAG_SUPPORTS_PREFERENCES=1
 ```
 
 If your service requires a bearer token, supply `AI_CHAT_RAG_TOKEN` through server-side secret configuration. In Settings, add and enable **Documentation schema**. Choose **Code examples** in the chat composer, or leave it empty for all examples. The choice persists per chat and applies to supporting documentation lookups. It does not select the model's programming language or affect unrelated tools.
+
+For a slower local corpus, set `AI_CHAT_RAG_TIMEOUT_MS` (1,000–60,000 ms; default 10,000). The docs.kujolang.ai dogfood service uses 60,000 ms. RAG citations retain local snapshot line ranges and expose a valid public `source_url` when the corpus records one.
