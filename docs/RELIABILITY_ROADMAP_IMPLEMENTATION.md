@@ -5,7 +5,7 @@ Objective: implement **all ten** ranked improvements in PRODUCTION_HARDENING.md.
 | # | Requirement | Required verification | State |
 |---|---|---|---|
 | 1 | Durable turn/call journal, receipts and explicit resume | Restart between completed tools; ambiguous in-flight side effect cannot replay; identical finished request returns stored result | In progress |
-| 2 | Drain/checkpoint shutdown; recover stale waiting turns | Shutdown during detached tool/stream; restart restores recoverable state | Core stream tests pass; auxiliary lifecycle still pending |
+| 2 | Drain/checkpoint shutdown; recover stale waiting turns | Shutdown during detached tool/stream; restart restores recoverable state | Implemented for streaming and JSON model work; queued admission, child termination, drain and restart tests pass |
 | 3 | Bounded SSE queue, slow-consumer policy, replay cursor | Backpressure fixture and disconnected cursor replay without rerunning model/tools | Queue, replay and API tests pass; browser end-to-end replay pending |
 | 4 | Provider-aware whole-context budget | Count content, schemas, tool args/reasoning/receipts; preserve protocol under limits and reject impossible fixed input | Streaming budget implemented; other provider paths and metadata pending |
 | 5 | Real-family daily-task evaluations | Run actual available model families, compare eager/deferred completion, schema selection, rounds and reported cost/usage | Pending |
@@ -13,7 +13,7 @@ Objective: implement **all ten** ranked improvements in PRODUCTION_HARDENING.md.
 | 7 | Lightweight fetch/extraction under URL/DNS policy | Static extraction without Chromium; redirect/private/DNS rejection; rendering escalation | Implemented; shared transport, hostile-network fixtures and provider continuation pass |
 | 8 | Configured bounded search failover | Primary transient failure uses alternate once with provenance; deterministic failure/cancellation does not cascade | Implemented; deterministic executor and cancellation tests pass |
 | 9 | Browser process/network containment | Enforced network boundary and non-HTTP egress tests, not merely prompt or Chromium flags | Implemented on macOS and Linux; direct TCP/UDP, inherited descendants and Chromium WebSocket/STUN controls pass |
-| 10 | All-day mixed-provider soak, metrics, auxiliary cancellation | Actual sustained run with process/queue/latency evidence; cancellation during repair, title, benchmark admission and stream | Pending |
+| 10 | All-day mixed-provider soak, metrics, auxiliary cancellation | Actual sustained run with process/queue/latency evidence; cancellation during repair, title, benchmark admission and stream | Auxiliary cancellation implemented and verified; actual all-day soak still pending |
 
 Do not replace live evaluation or sustained soak evidence with a short mock run. Preserve the full objective across continuations.
 
@@ -48,3 +48,9 @@ Browser launch now requires macOS Seatbelt network denial or Linux Bubblewrap na
 Verification: macOS full suite passed 343 tests with one Linux-only skip (`/tmp/ai-chat-containment-final-macos.log`). Linux focused suite passed 20/20 with no skips (`/tmp/ai-chat-linux-containment-final.log`), including real Chromium pipe rendering, WebSocket and WebRTC/STUN positive controls followed by blocked probes, direct and inherited TCP/UDP probes, and a file outside the mount scope remaining invisible. Linux validation used an isolated Docker internal network, no host workspace/socket mounts, and test-container namespace/proc permissions. CI now requires sandbox availability instead of silently skipping containment probes. The Linux image used the pre-override dependency snapshot; macOS validates the patched dependency tree separately. `npm audit --omit=dev` reports zero vulnerabilities with the qs 6.16.0 override.
 
 This completes item 9 for the supported platforms. It does not replace remaining execution UX, provider-budget coverage, real-family evaluation, or the actual all-day soak.
+
+## Auxiliary cancellation milestone
+
+Streaming and JSON model work now share bounded request admission, explicit cancellation, and shutdown drain. JSON disconnect cancels its provider child; ordinary SSE detach remains recoverable. Bridge and Codex cancellation waits for real child closure before releasing the lifecycle. Benchmark queue entries observe cancellation and clean up listeners/timeouts without consuming a later provider slot. The browser includes auto-title and completion-repair controllers in Stop, assigns request IDs, disables their tool presets, and suppresses title fallback/update after cancellation.
+
+Verification: full suite passed 355 tests with one Linux-only skip (`/tmp/ai-chat-auxiliary-full-final.log`). New checks cover real Node child termination standing in for both bridge/Codex executables on Stop/disconnect/shutdown; queued benchmark Stop and shutdown before dispatch; queue timeout/listener cleanup; non-streaming heartbeat absence; and browser Stop during title generation without fallback. The earlier containment commit also passed Ubuntu 22.04 CI run 34045363930; Ubuntu 24.04's default namespace restriction fails closed instead of being disabled. Real-family evaluation and the actual all-day soak remain pending.

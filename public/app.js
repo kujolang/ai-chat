@@ -5798,7 +5798,7 @@ async function validateApiAuthTokenCandidate(token) {
 }
 
 async function sendFromComposer() {
-	if (activeStreamCount > 0) {
+	if (activeStreamCount > 0 || activeStreamControllers.size > 0) {
 		stopActiveStreams();
 		return;
 	}
@@ -6364,12 +6364,13 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 		if (stopStreamingRequested) throw new DOMException("Generation was cancelled.", "AbortError");
 		if (!terminalStreamError && hasHardIncompleteMarkers(assistantMessage.content)) {
 			const repairController = new AbortController();
+			repairController.streamRequestId = `${assistantMessage.id}:repair:${Date.now()}`;
 			currentStreamController = repairController;
 			activeStreamControllers.add(repairController);
 			updateStreamingControls();
 			let repairedTail = "";
 			try {
-				repairedTail = await requestHardCompletionRepair(profile.id, selectedModel, assistantMessage.content, repairController.signal);
+				repairedTail = await requestHardCompletionRepair(profile.id, selectedModel, assistantMessage.content, repairController.signal, repairController.streamRequestId);
 			} finally {
 				activeStreamControllers.delete(repairController);
 				if (currentStreamController === repairController) {
@@ -6742,7 +6743,7 @@ function updateStreamingControls() {
 		return;
 	}
 
-	const streaming = activeStreamCount > 0;
+	const streaming = activeStreamCount > 0 || activeStreamControllers.size > 0;
 	nodes.sendBtn.innerHTML = streaming ? stopButtonSvg : sendButtonSvg;
 	nodes.sendBtn.setAttribute("aria-label", streaming ? "Stop streaming" : "Send");
 	nodes.sendBtn.title = streaming ? "Stop streaming" : "Send message";
@@ -7165,7 +7166,7 @@ function continuationAssistantContext(value) {
 	return text.slice(-maxContextChars);
 }
 
-async function requestHardCompletionRepair(profileId, model, fullContent, signal) {
+async function requestHardCompletionRepair(profileId, model, fullContent, signal, requestId) {
 	const contentTail = continuationAssistantContext(fullContent);
 	if (!contentTail) {
 		return "";
@@ -7177,6 +7178,9 @@ async function requestHardCompletionRepair(profileId, model, fullContent, signal
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({
 				profile_id: profileId,
+				include_saved_runtime_presets: false,
+				tools: [],
+				request_id: requestId,
 				model,
 				temperature: 0,
 				max_tokens: 700,
@@ -8468,13 +8472,17 @@ function extractCleanGeneratedTitle(rawValue) {
 	return nextTitle;
 }
 
-async function requestAutoTitleViaChat(profileId, model, prompt) {
+async function requestAutoTitleViaChat(profileId, model, prompt, controller) {
+	controller?.signal.throwIfAborted();
 	try {
 		const response = await apiFetch("/api/chat", {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({
 				profile_id: profileId,
+				include_saved_runtime_presets: false,
+				tools: [],
+				request_id: controller?.streamRequestId,
 				model,
 				temperature: 0.2,
 				max_tokens: 32,
@@ -8482,7 +8490,8 @@ async function requestAutoTitleViaChat(profileId, model, prompt) {
 					{ role: "system", content: autoTitleSystemPrompt() },
 					{ role: "user", content: prompt }
 				]
-			})
+			}),
+			signal: controller?.signal
 		});
 
 		if (!response.ok) {
@@ -8496,17 +8505,22 @@ async function requestAutoTitleViaChat(profileId, model, prompt) {
 
 		return extractCleanGeneratedTitle(payload.output_text);
 	} catch (error) {
+		if (controller?.signal.aborted) throw error;
 		return "";
 	}
 }
 
-async function requestAutoTitleViaStream(profileId, model, prompt) {
+async function requestAutoTitleViaStream(profileId, model, prompt, controller) {
+	controller?.signal.throwIfAborted();
 	try {
 		const response = await apiFetch("/api/chat/stream", {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({
 				profile_id: profileId,
+				include_saved_runtime_presets: false,
+				tools: [],
+				request_id: controller?.streamRequestId,
 				model,
 				temperature: 0.2,
 				max_tokens: 32,
@@ -8514,7 +8528,8 @@ async function requestAutoTitleViaStream(profileId, model, prompt) {
 					{ role: "system", content: autoTitleSystemPrompt() },
 					{ role: "user", content: prompt }
 				]
-			})
+			}),
+			signal: controller?.signal
 		});
 
 		if (!response.ok || !response.body) {
@@ -8598,12 +8613,13 @@ async function requestAutoTitleViaStream(profileId, model, prompt) {
 
 		return extractCleanGeneratedTitle(content);
 	} catch (error) {
+		if (controller?.signal.aborted) throw error;
 		return "";
 	}
 }
 
 async function maybeAutoTitleChat(chat, pane, profile, selectedModel) {
-	if (!shouldAutoGenerateTitle(chat)) {
+	if (stopStreamingRequested || !shouldAutoGenerateTitle(chat)) {
 		return;
 	}
 
@@ -8612,16 +8628,22 @@ async function maybeAutoTitleChat(chat, pane, profile, selectedModel) {
 	}
 
 	pendingAutoTitleChatIds.add(chat.id);
+	const controller = new AbortController();
+	controller.streamRequestId = `title:${chat.id}:${Date.now()}:stream`;
+	activeStreamControllers.add(controller);
+	updateStreamingControls();
 	try {
 		const prompt = titlePromptForChat(chat, pane && pane.id);
 		const exchange = firstExchangeForChat(chat, pane && pane.id);
 		const firstUserMessage = exchange.firstUser;
-		let nextTitle = await requestAutoTitleViaStream(profile.id, selectedModel, prompt);
+		let nextTitle = await requestAutoTitleViaStream(profile.id, selectedModel, prompt, controller);
 		if (nextTitle && isLowQualityAutoTitle(nextTitle, firstUserMessage)) {
 			nextTitle = "";
 		}
 		if (!nextTitle) {
-			nextTitle = await requestAutoTitleViaChat(profile.id, selectedModel, prompt);
+			controller.signal.throwIfAborted();
+			controller.streamRequestId = `title:${chat.id}:${Date.now()}:chat`;
+			nextTitle = await requestAutoTitleViaChat(profile.id, selectedModel, prompt, controller);
 			if (nextTitle && isLowQualityAutoTitle(nextTitle, firstUserMessage)) {
 				nextTitle = "";
 			}
@@ -8633,6 +8655,7 @@ async function maybeAutoTitleChat(chat, pane, profile, selectedModel) {
 			return;
 		}
 
+		controller.signal.throwIfAborted();
 		const liveChat = getChatById(chat.id);
 		if (!liveChat) {
 			return;
@@ -8650,9 +8673,11 @@ async function maybeAutoTitleChat(chat, pane, profile, selectedModel) {
 		schedulePersist();
 		renderAll({ preserveWorkspaceScroll: true });
 	} catch (error) {
-		console.warn("auto_title_failed", error);
+		if (!controller.signal.aborted) console.warn("auto_title_failed", error);
 	} finally {
 		pendingAutoTitleChatIds.delete(chat.id);
+		activeStreamControllers.delete(controller);
+		updateStreamingControls();
 	}
 }
 

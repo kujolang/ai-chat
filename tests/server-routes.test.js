@@ -4136,3 +4136,111 @@ test("authorized web_fetch reaches the provider as static evidence with browser 
 		} finally { destroy(); }
 	});
 });
+
+for (const providerId of ['openai', 'codex']) {
+for (const mode of ['stop', 'disconnect', 'shutdown']) {
+ test(`auxiliary JSON ${providerId} ${mode} kills the child and drains its lifecycle`, {timeout:10000}, async () => {
+  let child, ready;
+  const started=new Promise(resolve=>{ready=resolve;});
+  const {runtime,destroy}=createIsolatedRuntime({spawnFn:(_bin,_args,options)=>{
+   child=require('node:child_process').spawn(process.execPath,['-e',"process.stdout.write('ready\\n');setInterval(()=>{},1000)"],options);
+   child.stdout.once('data',ready);
+   return child;
+  }});
+  try {
+   const profileId=applyProfileMutation(runtime,p=>{p.api_key='fixture-key';p.provider_id=providerId;});
+   await withServer(runtime.app,async baseUrl=>{
+    const controller=new AbortController();
+    const pending=fetchJson(baseUrl,'/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},signal:controller.signal,body:JSON.stringify({request_id:`aux-${mode}`,profile_id:profileId,messages:[{role:'user',content:'Generate a title'}]})});
+    const observed=pending.catch(error=>({error}));
+    await started;
+    let closing;
+    if(mode==='stop') {
+     const cancelled=await fetchJson(baseUrl,'/api/chat/stream/cancel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({request_id:`aux-${mode}`})});
+     assert.equal(cancelled.json.cancelled,true);
+    } else if(mode==='disconnect') controller.abort();
+    else { closing=runtime.close(); assert.equal(runtime.db.open,true); }
+    const result=await observed;
+    if(mode!=='disconnect') { assert.equal(result.response.status,499);assert.equal(result.json.error.code,'stream_cancelled'); }
+    if(child.exitCode===null && child.signalCode===null) await new Promise(resolve=>child.once('close',resolve));
+    assert.equal(child.signalCode,'SIGKILL');
+    if(closing) { await closing;assert.equal(runtime.db.open,false); }
+    else {
+     const health=await fetchJson(baseUrl,'/api/health');
+     assert.equal(health.json.streaming.active,0);
+    }
+   });
+  } finally { await runtime.close();destroy(); }
+ });
+}
+}
+
+test('browser Stop cancels auto-title generation without starting JSON fallback', {timeout:15000}, async () => {
+ const {chromium}=require('playwright');
+ let ready, calls=0, upstreamSignal;
+ const started=new Promise(resolve=>{ready=resolve;});
+ const {runtime,destroy}=createIsolatedRuntime({fetchFn:async (_url,options)=>{
+  calls++;upstreamSignal=options.signal;
+  const input=JSON.parse(options.body);
+  assert.equal(Array.isArray(input.tools) ? input.tools.length : 0,0);
+  return {ok:true,status:200,headers:{get:()=> 'text/event-stream'},body:{getReader:()=>({read:()=>new Promise((_resolve,reject)=>{
+   options.signal.addEventListener('abort',()=>reject(options.signal.reason),{once:true});ready();
+  })})}};
+ }});
+ let browser;
+ try {
+  applyProfileMutation(runtime,p=>{p.api_key='fixture-key';});
+  await withServer(runtime.app,async baseUrl=>{
+   browser=await chromium.launch({headless:true});
+   const page=await browser.newPage();page.setDefaultTimeout(5000);
+   await page.addInitScript(token=>localStorage.setItem('ai_chat_api_token',token),API_TOKEN);
+   await page.goto(baseUrl);await page.waitForFunction(()=>stateLoadedFromServer && runtimeCapabilities.loaded);
+   await page.evaluate(()=>{
+    createAndActivateChat();const chat=getActiveChat(),pane=chat.panes[0];
+    pane.messages=[{role:'user',content:'Explain ocean tides'},{role:'assistant',content:'Ocean tides follow lunar gravity.'}];
+    window.titleTask=maybeAutoTitleChat(chat,pane,state.settings.profiles[0],state.settings.profiles[0].models_csv.split(',')[0]);
+   });
+   await started;
+   await page.locator('#send-btn').click();
+   await page.evaluate(()=>window.titleTask);
+   assert.equal(upstreamSignal.aborted,true);
+   assert.equal(calls,1);
+   assert.equal(await page.evaluate(()=>activeStreamControllers.size),0);
+   assert.equal(await page.evaluate(()=>getActiveChat().title),'New Chat');
+  });
+ } finally {await browser?.close();await runtime.close();destroy();}
+});
+
+for (const mode of ['stop', 'shutdown']) {
+ test(`benchmark admission ${mode} removes queued work before provider dispatch`, {timeout:10000}, async () => {
+  const credentials=fs.mkdtempSync(path.join(os.tmpdir(),'ai-chat-queue-fixture-'));
+  const tokenFile=path.join(credentials,'token');fs.writeFileSync(tokenFile,'fixture-token');
+  let ready,calls=0;
+  const started=new Promise(resolve=>{ready=resolve;});
+  const {runtime,destroy}=createIsolatedRuntime({envMerge:{WATCHDOG_PROXY_TOKEN_FILE:tokenFile,BENCHMARK_WATCHDOG_PROXY_TOKEN_FILE:tokenFile,BENCHMARK_STREAM_MAX_INFLIGHT:'1',BENCHMARK_STREAM_QUEUE_TIMEOUT_MS:'60000'},fetchFn:async (url,options)=>{
+   if(!String(url).endsWith('/chat/completions')) return mockJsonResponse({ok:true});
+   calls++;
+   return {ok:true,status:200,headers:{get:()=> 'text/event-stream'},body:{getReader:()=>({read:()=>new Promise((_resolve,reject)=>{
+    options.signal.addEventListener('abort',()=>reject(options.signal.reason),{once:true});ready();
+   })})}};
+  }});
+  try {
+   const profileId=applyProfileMutation(runtime,p=>{p.provider_id='watchdog';p.api_key='';p.base_url='';});
+   await withServer(runtime.app,async baseUrl=>{
+    const request=id=>fetch(`${baseUrl}/api/chat/stream`,{method:'POST',headers:withAuthHeaders({'Content-Type':'application/json'}),body:JSON.stringify({request_id:id,profile_id:profileId,messages:[{role:'user',content:'wait'}],benchmark:{run_id:'queue-fixture'}})});
+    const first=await request('queue-first');await started;
+    const second=await request('queue-second');
+    const before=await fetchJson(baseUrl,'/api/health');assert.equal(before.json.benchmark.queue.queued,1);
+    if(mode==='stop') await fetchJson(baseUrl,'/api/chat/stream/cancel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({request_id:'queue-second'})});
+    else await runtime.close();
+    const events=parseSseEvents(await second.text());assert.equal(events.at(-1).data.code,'stream_cancelled');
+    assert.equal(calls,1);
+    if(mode==='stop') {
+     const after=await fetchJson(baseUrl,'/api/health');assert.equal(after.json.benchmark.queue.queued,0);
+     await fetchJson(baseUrl,'/api/chat/stream/cancel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({request_id:'queue-first'})});
+    }
+    await first.text();
+   });
+  } finally {await runtime.close();destroy();fs.rmSync(credentials,{recursive:true,force:true});}
+ });
+}

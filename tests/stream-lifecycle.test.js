@@ -53,3 +53,15 @@ test('shutdown checkpoints then drains requests and rejects new admission', asyn
  await closing;
  assert.equal(registry.size(),0);
 });
+
+test('non-streaming auxiliary requests have no heartbeat and cancel on disconnect', async () => {
+ const registry=createStreamRegistry({heartbeatMs:5});
+ const res=response();
+ const entry=registry.open('repair',res,{heartbeat:false,cancelOnDisconnect:true});
+ await new Promise(resolve=>setTimeout(resolve,15));
+ assert.deepEqual(res.writes,[]);
+ res.emit('close');
+ assert.equal(entry.signal.reason.code,'stream_cancelled');
+ entry.close();
+ assert.equal(registry.size(),0);
+});
