@@ -71,3 +71,41 @@ test("live database ownership prevents a second runtime from recovering active w
 		second.release();
 	} finally { db.close(); }
 });
+
+test('retention removes terminal payloads but preserves identity and uncertain/recoverable work',()=>{
+ const db=new Database(':memory:');let now=0;
+ try {
+  let journal=createExecutionJournal(db,{secret:'fixture-secret',retentionDays:1,now:()=>now});
+  for(const id of ['done','cancelled','uncertain','interrupted','active']) {
+   journal.begin(id,id,{task:id});journal.startCall(id,'call','write',{content:'private payload'});
+   if(id!=='uncertain')journal.completeCall(id,'call',{ok:true});
+   journal.checkpoint(id,{messages:['private payload']});journal.appendEvent(id,'token',{delta:'private payload'});
+   if(id==='done')journal.finish(id,{output_text:'private payload'});
+   if(id==='cancelled'||id==='uncertain')journal.finish(id,{error:'stopped'},'cancelled');
+   if(id==='interrupted')journal.finish(id,{error:'restart'},'interrupted');
+  }
+  now=2*86400000;
+  assert.equal(journal.prune(),2);
+  for(const id of ['done','cancelled']) {
+   assert.equal(journal.get(id).status,'expired');assert.equal(journal.get(id).checkpoint,null);assert.equal(journal.get(id).result,null);
+   assert.deepEqual(journal.receipts(id),[]);assert.deepEqual(journal.events(id),[]);
+   assert.throws(()=>journal.begin(id,id,{task:id},{resume:true}),{code:'execution_expired'});
+   assert.throws(()=>journal.begin(id,id,{task:'different'}),{code:'execution_conflict'});
+  }
+  for(const id of ['uncertain','interrupted','active'])assert.equal(journal.receipts(id).length,1);
+  assert.equal(journal.get('active').status,'running');
+  journal=createExecutionJournal(db,{secret:'fixture-secret',retentionDays:1,now:()=>now});
+  assert.throws(()=>journal.begin('done','done',{task:'done'}),{code:'execution_expired'});
+ }finally{db.close();}
+});
+
+test('retention zero disables cleanup and cleanup batches stay bounded',()=>{
+ const db=new Database(':memory:');let now=0;
+ try {
+  const journal=createExecutionJournal(db,{secret:'fixture-secret',retentionDays:0,now:()=>now});
+  for(let i=0;i<105;i++){journal.begin('r'+i,'t'+i,{});journal.finish('r'+i,{output_text:'done'});}
+  now=2*86400000;assert.equal(journal.prune(),0);
+  const bounded=createExecutionJournal(db,{secret:'fixture-secret',retentionDays:1,now:()=>now});
+  assert.equal(bounded.prune(),100);assert.equal(bounded.prune(),5);assert.equal(bounded.prune(),0);
+ }finally{db.close();}
+});

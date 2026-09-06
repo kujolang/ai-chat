@@ -396,7 +396,9 @@ Authenticated inspection endpoints:
 
 Persisted SSE events carry numeric `id` sequence values. The client can drain saved events without creating a second model request. A slow consumer exceeding the 256 KiB output buffer is disconnected; events remain in the journal for cursor replay. Startup restores interrupted saved turns and marks calls with no confirmed result as uncertain. Shutdown checkpoints and cancels active streams before closing SQLite.
 
-Limitations at this milestone: explicit resume controls in the UI, journal retention, and native Codex continuation are unfinished. Interrupted Codex resume is rejected with `execution_resume_unavailable` to avoid restarting consequential work from its original input. Completed Codex results can still be replayed. Only one local process may own an execution database; a live recorded PID prevents takeover.
+`EXECUTION_RETENTION_DAYS` controls terminal journal payload retention (default 90 days; 0 disables cleanup; maximum 36,500). Startup and new execution admission expire up to 100 eligible runs per batch. Only completed, failed or cancelled runs without started/uncertain receipts qualify. Running and interrupted executions, and unresolved external outcomes, remain available. Expiry removes request/checkpoint/result/event/call payloads but retains the ID, turn identity and fingerprint indefinitely. An expired ID fails with `execution_expired` instead of dispatching the request again; its event endpoint returns HTTP 410. This is logical database cleanup, not secure erasure of SQLite pages or existing backups. Saved chat transcripts have their own retention policy.
+
+Limitations at this milestone: explicit resume controls in the UI and native Codex continuation are unfinished. Interrupted Codex resume is rejected with `execution_resume_unavailable` to avoid restarting consequential work from its original input. Completed Codex results can still be replayed within retention. Only one local process may own an execution database; a live recorded PID prevents takeover.
 
 ### Whole-request context allowance
 

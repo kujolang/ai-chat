@@ -4368,3 +4368,20 @@ for (const failure of ['http','tool_limit']) {
   }finally{destroy();}
  });
 }
+
+test('expired execution replay returns 410 while retaining an inspectable identity',async()=>{
+ const {runtime,destroy}=createIsolatedRuntime({envMerge:{EXECUTION_RETENTION_DAYS:'1'}});
+ try {
+  const journal=require('../lib/execution-journal').createExecutionJournal(runtime.db,{masterKey:require('crypto').scryptSync('route-test-secret','kujo-ai-chat-salt-v1',32),retentionDays:1});
+  journal.begin('expired-route','turn',{});journal.finish('expired-route',{output_text:'old payload'});
+  runtime.db.prepare('UPDATE execution_runs SET updated_at = 0 WHERE id = ?').run('expired-route');
+  assert.equal(journal.prune(),1);
+  await withServer(runtime.app,async base=>{
+   const replay=await fetchJson(base,'/api/executions/expired-route/events');
+   assert.equal(replay.response.status,410);assert.equal(replay.json.error.code,'execution_expired');
+   const identity=await fetchJson(base,'/api/executions/expired-route');
+   assert.equal(identity.json.execution.status,'expired');assert.equal(identity.json.execution.result,null);
+   const health=await fetchJson(base,'/api/health');assert.equal(health.json.execution_retention_days,1);
+  });
+ }finally{destroy();}
+});

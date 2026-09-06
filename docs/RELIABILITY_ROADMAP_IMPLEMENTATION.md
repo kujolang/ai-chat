@@ -84,3 +84,11 @@ Full local suite passed 363 checks with one Linux skip and one warning-expectati
 See `REAL_FAMILY_EVALUATION_2026_09_06.md` for the actual GLM/Grok matrix and hashed local evidence. Failed loops now retain dispatched-round counts and reported usage. Monetary cost survives normalization when reported; missing rounds/cost remain distinguishable from complete totals. Custom HTTPS targets reference environment credentials without putting secrets in target files or reports. This enabled the already-configured direct Ollama route while Nous and Watchdog were unresponsive.
 
 The full local suite passed 368 checks with one Linux-only skip (`/tmp/ai-chat-live-evidence-full.log`). Context-budget revision d168497 also passed Linux CI 34048140472 and artifact guard 34048140575. The real evaluation completes item 5 without requiring every model answer to be correct. Item 10 still requires a separate actual eight-hour run, and item 1 still requires explicit resume UI, retention and native continuation.
+
+## Retention and active soak
+
+Journal retention now expires terminal payloads in bounded batches while preserving identity tombstones. Running/interrupted executions and uncertain external outcomes are excluded. Expired IDs cannot start provider/tool work again; replay returns an explicit expiration error. Tests cover payload removal, conflict/replay protection across journal reopen, disabled cleanup, a 100-run batch limit and retention of unresolved work (`/tmp/ai-chat-retention-focused.log`). Explicit resume UI and native continuation remain outstanding.
+
+The expiration API regression passed, and the full local suite passed 371 checks with one Linux-only skip (`/tmp/ai-chat-retention-full.log`).
+
+The actual eight-hour mixed GLM/Grok soak began at revision 49d0363 in `data/reliability-soak-20260906-a/`, using the same isolated matrix at 90-second intervals. Its PID and status must be revalidated from the process before interpreting progress. Starting it does not complete item 10. Revision 49d0363 passed Linux CI 34048529447 and artifact guard 34048529513.
