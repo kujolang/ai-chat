@@ -13,7 +13,9 @@ permissions:
 
 jobs:
   test-and-audit:
-    runs-on: ubuntu-latest
+    # Use a runner with permitted unprivileged namespaces. Ubuntu 24.04
+    # restricts them by default; do not disable its host security policy.
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
