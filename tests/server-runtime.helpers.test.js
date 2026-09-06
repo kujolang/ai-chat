@@ -1091,3 +1091,36 @@ test("applyStateChanges preserves an encrypted profile key when metadata changes
 		destroy();
 	}
 });
+
+test("long context retains initial constraints and labels historical instructions as untrusted", () => {
+	const { runtime, destroy } = createIsolatedRuntime();
+	try {
+		const history = [{ role: "system", content: "Fixed application policy" }, { role: "user", content: "Use SQLite and never deploy without approval." }];
+		for (let i = 0; i < 120; i++) history.push({ role: i % 2 ? "assistant" : "user", content: `Turn ${i}: ${"Research detail. ".repeat(80)}` });
+		history.push({ role: "user", content: "Continue the work." });
+		const original = JSON.stringify(history);
+		const result = runtime.helpers.compactConversationContext(history, { requiredPrefixCount: 1, maxMessages: 32, maxChars: 12000, targetChars: 10000, summaryChars: 4000, preserveRecentMessages: 4, strategy: "structured_excerpt_v1" });
+		assert.equal(JSON.stringify(history), original);
+		assert.ok(result.messages.reduce((sum, m) => sum + m.content.length, 0) <= 12000);
+		assert.match(result.messages.map((m) => m.content).join("\n"), /Use SQLite and never deploy without approval/);
+		assert.match(result.messages.map((m) => m.content).join("\n"), /untrusted excerpts/);
+		assert.equal(result.messages.at(-1).content, "Continue the work.");
+	} finally { destroy(); }
+});
+
+
+test("compacted tool receipts preserve success, failure and call identities", () => {
+	const { runtime, destroy } = createIsolatedRuntime();
+	try {
+		const messages = [
+			{ role: "tool", tool_call_id: "write-1", content: JSON.stringify({ ok: true, path: "report.md", content: "x".repeat(3000) }) },
+			{ role: "tool", tool_call_id: "fail-1", content: JSON.stringify({ ok: false, error: { code: "permission_denied" }, detail: "x".repeat(3000) }) }
+		];
+		runtime.helpers.compactProviderToolContext(messages, 900);
+		assert.equal(JSON.parse(messages[0].content).ok, true);
+		assert.equal(JSON.parse(messages[0].content).path, "report.md");
+		assert.equal(messages[0].tool_call_id, "write-1");
+		assert.equal(JSON.parse(messages[1].content).error.code, "permission_denied");
+		assert.equal(runtime.helpers.compactProviderToolContext(messages, 900), 0);
+	} finally { destroy(); }
+});

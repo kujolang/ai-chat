@@ -820,7 +820,9 @@ test("POST /api/chat/stream records Codex runs in the Watchdog requests intake",
 			assert.equal(body.trace_id, "trace-codex-pane-1");
 			assert.equal(body.tool_calls.length, 1);
 			assert.equal(body.tool_calls[0].tool_name, "command_execution");
-			assert.equal(body.tool_calls[0].arguments.command, "/bin/zsh -lc \"git diff --stat\"");
+			assert.equal(body.tool_calls[0].arguments.command, undefined);
+			assert.ok(body.tool_calls[0].arguments.command_chars > 0);
+			assert.equal(JSON.stringify(body).includes("git diff --stat"), false);
 			assert.equal(body.agent_steps.some((step) => step.step_type === "command_execution" && step.tool_name === "command_execution"), true);
 			assert.equal(body.spans.some((span) => span.span_kind === "tool" && span.attributes.tool_name === "command_execution"), true);
 			assert.equal(body.events.some((event) => event.event_name === "tool_completed"), true);
@@ -2351,6 +2353,98 @@ test("POST /api/chat/stream keeps detached mobile streams running and persists t
 	}
 });
 
+test("POST /api/chat/stream preserves partial detached content when the upstream transport fails", async () => {
+	let releaseUpstream = null;
+	let upstreamSignal = null;
+	const upstreamReleased = new Promise((resolve) => {
+		releaseUpstream = resolve;
+	});
+	const encoder = new TextEncoder();
+	const { runtime, destroy } = createIsolatedRuntime({
+		fetchFn: async (_url, options = {}) => {
+			upstreamSignal = options.signal;
+			let index = 0;
+			return {
+				ok: true,
+				status: 200,
+				headers: { get: () => "text/event-stream" },
+				body: {
+					getReader() {
+						return {
+							async read() {
+								index += 1;
+								if (index === 1) {
+									return { done: false, value: encoder.encode(`data: ${JSON.stringify({ choices: [{ delta: { content: "detached " } }] })}\n\n`) };
+								}
+								if (index === 2) {
+									await upstreamReleased;
+									throw Object.assign(new Error("fixture socket closed"), { code: "ECONNRESET" });
+								}
+								return { done: true, value: undefined };
+							}
+						};
+					}
+				}
+			};
+		}
+	});
+	try {
+		const profileId = applyProfileMutation(runtime, (profile) => {
+			profile.api_key = "stream-key";
+			profile.models_csv = "gpt-stream";
+		});
+		const chatId = "chat-detached";
+		const paneId = "pane-detached";
+		const assistantMessageId = "assistant-detached";
+		runtime.helpers.applyStateChanges({
+			changes: [
+				{ type: "chat_upsert", chat: { id: chatId, title: "Detached", created_at: Date.now(), updated_at: Date.now(), sort_order: 0 } },
+				{ type: "pane_upsert", pane: { id: paneId, chat_id: chatId, profile_id: profileId, model: "gpt-stream", status: "waiting", sort_order: 0 } },
+				{ type: "message_upsert", message: { id: "user-detached", pane_id: paneId, role: "user", content: "hi", created_at: Date.now(), sort_order: 0 } },
+				{ type: "message_upsert", message: { id: assistantMessageId, pane_id: paneId, role: "assistant", content: "", provider: "openai", model: "gpt-stream", thinking: "", created_at: Date.now(), sort_order: 1 } }
+			]
+		});
+
+		await withServer(runtime.app, async (baseUrl) => {
+			const controller = new AbortController();
+			const response = await fetch(`${baseUrl}/api/chat/stream`, {
+				method: "POST",
+				headers: withAuthHeaders({ "Content-Type": "application/json" }),
+				body: JSON.stringify({
+					profile_id: profileId,
+					model: "gpt-stream",
+					chat_id: chatId,
+					pane_id: paneId,
+					assistant_message_id: assistantMessageId,
+					assistant_sort_order: 1,
+					messages: [{ role: "user", content: "hi" }]
+				}),
+				signal: controller.signal
+			});
+			const reader = response.body.getReader();
+			await reader.read();
+			controller.abort();
+			await new Promise((resolve) => setTimeout(resolve, 25));
+			assert.equal(upstreamSignal.aborted, false);
+			releaseUpstream();
+			for (let attempt = 0; attempt < 40; attempt += 1) {
+				const loaded = runtime.helpers.readChat(chatId);
+				const pane = loaded.panes.find((candidate) => candidate.id === paneId);
+				const message = pane.messages.find((candidate) => candidate.id === assistantMessageId);
+				if (message && message.content === "detached " && pane.status === "partial") {
+					assert.match(message.usage.error.message, /stream|connection|transport/i);
+					return;
+				}
+				await new Promise((resolve) => setTimeout(resolve, 25));
+			}
+			assert.fail("detached transport failure did not persist partial content and recoverable status");
+		});
+	} finally {
+		if (releaseUpstream) releaseUpstream();
+		destroy();
+	}
+});
+
 test("POST /api/chat/stream emits token and done for non-SSE upstream responses", async () => {
 	const { runtime, destroy } = createIsolatedRuntime({
 		fetchFn: async () => mockJsonResponse({
@@ -2722,6 +2816,44 @@ test("POST /api/chat/stream rejects concatenated tool names without falling thro
 	} finally {
 		destroy();
 	}
+});
+
+test("POST /api/chat/stream keeps provider idle timeout paused throughout a tool batch", async () => {
+ let providerCalls = 0;
+ let secondToolAborted = false;
+ const {runtime, destroy} = createIsolatedRuntime({
+  envMerge: {STREAM_REQUEST_TIMEOUT_MS:"15"},
+  localRuntime: {
+   canExecute: () => true,
+   status: () => ({enabled:true,available:true}),
+   listWorkspaces: () => ({workspaces:[]}),
+   readFile: (_args, context) => new Promise((resolve, reject) => {
+    const timer = setTimeout(() => { context.signal.removeEventListener("abort", abort); resolve({content:"read completed"}); }, 50);
+    const abort = () => {secondToolAborted = true; clearTimeout(timer); reject(Object.assign(new Error("aborted"),{name:"AbortError"}));};
+    context.signal.addEventListener("abort",abort,{once:true});
+   })
+  },
+  fetchFn: async (_url, options) => {
+   assert.equal(options.signal.aborted, false);
+   providerCalls++;
+   if (providerCalls === 1) return mockSseResponse([{choices:[{delta:{tool_calls:[
+    {index:0,id:"workspace",function:{name:"local_workspace_list",arguments:"{}"}},
+    {index:1,id:"read",function:{name:"local_file_read",arguments:JSON.stringify({path:"README.md"})}}
+   ]},finish_reason:"tool_calls"}]}]);
+   return mockSseResponse([{choices:[{delta:{content:"Done"},finish_reason:"stop"}]}]);
+  }
+ });
+ try {
+  const profileId=applyProfileMutation(runtime,p=>{p.api_key="fixture-key";});
+  await withServer(runtime.app,async baseUrl=>{
+   const response=await fetch(`${baseUrl}/api/chat/stream`,{method:"POST",headers:withAuthHeaders({"Content-Type":"application/json"}),body:JSON.stringify({profile_id:profileId,messages:[{role:"user",content:"Read the manual"}],tools:["local_workspace_list","local_file_read"].map(name=>({type:"function",function:{name,parameters:{type:"object"}}}))})});
+   const events=parseSseEvents(await response.text());
+   assert.equal(secondToolAborted,false);
+   assert.equal(events.at(-1).event,"done");
+   assert.equal(events.at(-1).data.output_text,"Done");
+   assert.equal(providerCalls,2);
+  });
+ } finally {destroy();}
 });
 
 test("POST /api/chat/stream does not apply tool continuation timeout after provider reconnects", async () => {
@@ -3338,10 +3470,11 @@ test("POST /api/chat/stream preserves Ollama-style message chunks and detects an
 				})
 			});
 			const events = parseSseEvents(await response.text());
-			const doneEvent = events.find((entry) => entry.event === "done");
+			const errorEvent = events.find((entry) => entry.event === "error");
 			assert.equal(events.filter((entry) => entry.event === "token").map((entry) => entry.data.delta).join(""), "hello world");
 			assert.equal(events.filter((entry) => entry.event === "thinking").map((entry) => entry.data.delta).join(""), "**plan** ");
-			assert.equal(doneEvent.data.finish_reason, "stream_closed");
+			assert.equal(errorEvent.data.code, "provider_stream_interrupted");
+			assert.equal(events.some((entry) => entry.event === "done"), false);
 		});
 	} finally {
 		destroy();
@@ -3601,3 +3734,183 @@ test("POST /api/transcribe returns transcript text on success", async () => {
 		destroy();
 	}
 });
+
+test("explicit Stop aborts provider work and does not classify cancellation as timeout", async () => {
+ let signal;
+ let started;
+ const ready = new Promise(resolve => {started=resolve;});
+ const {runtime,destroy}=createIsolatedRuntime({fetchFn:async (_url,options)=>{
+  signal=options.signal;
+  started();
+  return {ok:true,status:200,headers:{get:()=>"text/event-stream"},body:{getReader:()=>({read:()=>new Promise((resolve,reject)=>{
+   if(signal.aborted) return reject(signal.reason);
+   signal.addEventListener("abort",()=>reject(signal.reason),{once:true});
+  })})}};
+ }});
+ try {
+  const profileId=applyProfileMutation(runtime,p=>{p.api_key="fixture-key";});
+  await withServer(runtime.app,async baseUrl=>{
+   const response=await fetch(`${baseUrl}/api/chat/stream`,{method:"POST",headers:withAuthHeaders({"Content-Type":"application/json"}),body:JSON.stringify({request_id:"cancel-fixture",profile_id:profileId,messages:[{role:"user",content:"Wait"}]})});
+   await ready;
+   const control=await fetchJson(baseUrl,"/api/chat/stream/cancel",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({request_id:"cancel-fixture"})});
+   assert.equal(control.json.cancelled,true);
+   const events=parseSseEvents(await response.text());
+   assert.equal(signal.aborted,true);
+   assert.equal(events.at(-1).data.code,"stream_cancelled");
+   assert.equal(events.at(-1).data.retryable,false);
+   const after=await fetchJson(baseUrl,"/api/chat/stream/cancel",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({request_id:"cancel-fixture"})});
+   assert.equal(after.json.cancelled,false);
+  });
+ } finally {destroy();}
+});
+
+for (const providerId of ["openai", "ollama"]) {
+	test(`stream discovery loads and invokes a deferred authorized tool (${providerId})`, async () => {
+		let providerCalls = 0;
+		let executions = 0;
+		const { runtime, destroy } = createIsolatedRuntime({
+			localRuntime: { canExecute: () => true, status: () => ({ enabled: true }), listFiles: () => { executions++; return { files: ["README.md"] }; } },
+			fetchFn: async (_url, options) => {
+				const body = JSON.parse(options.body);
+				const names = body.tools.map((tool) => tool.function.name);
+				providerCalls++;
+				assert.ok(!names.includes("local_shell"));
+				let call;
+				if (providerCalls === 1) {
+					assert.ok(!names.includes("local_file_list"));
+					assert.ok(names.includes("tool_discover"));
+					call = { index: 0, id: "discover-1", function: { name: "tool_discover", arguments: JSON.stringify({ query: "local_file_list" }) } };
+				} else if (providerCalls === 2) {
+					assert.ok(names.includes("local_file_list"));
+					assert.ok(body.messages.some((m) => m.role === "tool" && m.content.includes("local_file_list")));
+					call = { index: 0, id: "list-1", function: { name: "local_file_list", arguments: "{}" } };
+				}
+				if (providerId === "ollama") return mockChunkedResponse([JSON.stringify({ message: call ? { content: "", tool_calls: [{ function: { name: call.function.name, arguments: JSON.parse(call.function.arguments) } }] } : { content: "README.md found" }, done: true }) + "\n"]);
+				return mockSseResponse([{ choices: [{ delta: call ? { tool_calls: [call] } : { content: "README.md found" }, finish_reason: call ? "tool_calls" : "stop" }] }]);
+			}
+		});
+		try {
+			const profileId = applyProfileMutation(runtime, (p) => { p.provider_id = providerId; p.api_key = "fixture-key"; });
+			await withServer(runtime.app, async (baseUrl) => {
+				const response = await fetch(`${baseUrl}/api/chat/stream`, { method: "POST", headers: withAuthHeaders({ "Content-Type": "application/json" }), body: JSON.stringify({ profile_id: profileId, tool_discovery: true, include_saved_runtime_presets: false, messages: [{ role: "user", content: "List the files" }], tools: [{ type: "function", function: { name: "local_file_list", parameters: { type: "object" } } }] }) });
+				const events = parseSseEvents(await response.text());
+				assert.equal(events.at(-1).event, "done", JSON.stringify(events));
+				assert.equal(events.at(-1).data.output_text, "README.md found");
+				assert.equal(executions, 1);
+				assert.equal(providerCalls, 3);
+			});
+		} finally { destroy(); }
+	});
+}
+
+test("explicit cancellation during a tool aborts it without starting provider continuation", async () => {
+	let started;
+	const ready = new Promise((resolve) => { started = resolve; });
+	let aborted = false;
+	let providerCalls = 0;
+	const { runtime, destroy } = createIsolatedRuntime({
+		localRuntime: { canExecute: () => true, status: () => ({ enabled: true }), readFile: (_args, context) => new Promise((_resolve, reject) => {
+			context.signal.addEventListener("abort", () => { aborted = true; reject(context.signal.reason); }, { once: true });
+			started();
+		}) },
+		fetchFn: async () => { providerCalls++; return mockSseResponse([{ choices: [{ delta: { tool_calls: [{ index: 0, id: "read", function: { name: "local_file_read", arguments: '{"path":"README.md"}' } }] }, finish_reason: "tool_calls" }] }]); }
+	});
+	try {
+		const profileId = applyProfileMutation(runtime, (p) => { p.api_key = "fixture-key"; });
+		await withServer(runtime.app, async (baseUrl) => {
+			const response = await fetch(`${baseUrl}/api/chat/stream`, { method: "POST", headers: withAuthHeaders({ "Content-Type": "application/json" }), body: JSON.stringify({ request_id: "cancel-tool", profile_id: profileId, messages: [{ role: "user", content: "Read" }], tools: [{ type: "function", function: { name: "local_file_read" } }] }) });
+			await ready;
+			await fetchJson(baseUrl, "/api/chat/stream/cancel", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ request_id: "cancel-tool" }) });
+			const events = parseSseEvents(await response.text());
+			assert.equal(aborted, true);
+			assert.equal(providerCalls, 1);
+			assert.equal(events.at(-1).data.code, "stream_cancelled");
+		});
+	} finally { destroy(); }
+});
+
+test("default HTTP transport aborts a body stalled after headers", async () => {
+	const { runtime, destroy } = createIsolatedRuntime();
+	const server = http.createServer((_req, res) => { res.writeHead(200, { "Content-Type": "text/event-stream" }); res.flushHeaders(); });
+	server.listen(0, "127.0.0.1");
+	await once(server, "listening");
+	let reader;
+	try {
+		const controller = new AbortController();
+		const response = await runtime.helpers.fetchStreamingResponseWithoutHeaderDeadline(`http://127.0.0.1:${server.address().port}`, { signal: controller.signal });
+		reader = response.body.getReader();
+		const reading = reader.read().then(() => "resolved", (error) => error.name);
+		controller.abort();
+		let timer;
+		const result = await Promise.race([reading, new Promise((resolve) => { timer = setTimeout(() => resolve("stalled"), 300); })]);
+		clearTimeout(timer);
+		assert.equal(result, "AbortError");
+	} finally {
+		await reader?.cancel().catch(() => {});
+		server.closeAllConnections();
+		await new Promise((resolve) => server.close(resolve));
+		destroy();
+	}
+});
+
+for (const partialText of ["Partial evidence remains.", "```js\nconst partial = "]) {
+test(`browser UI preserves partial output and exposes an unmarked client EOF without automatic retry (${partialText.startsWith("```") ? "code" : "text"})`, { timeout: 20000 }, async () => {
+	const { chromium } = require("playwright");
+	const { runtime, destroy } = createIsolatedRuntime();
+	let browser;
+	try {
+		applyProfileMutation(runtime, (p) => { p.api_key = "fixture-key"; });
+		await withServer(runtime.app, async (baseUrl) => {
+			browser = await chromium.launch({ headless: true });
+			const page = await browser.newPage();
+			await page.addInitScript((token) => { localStorage.setItem("ai_chat_api_token", token); }, API_TOKEN);
+			let requests = 0;
+			await page.route("**/api/chat/stream", async (route) => {
+				requests++;
+				await route.fulfill({ status: 200, contentType: "text/event-stream", body: `event: token\ndata: ${JSON.stringify({delta: partialText})}\n\n` });
+			});
+			await page.goto(baseUrl);
+			await page.waitForFunction(() => stateLoadedFromServer && runtimeCapabilities.loaded && state.settings.profiles.length > 0);
+			const result = await page.evaluate(async () => {
+				createAndActivateChat();
+				const chat = getActiveChat();
+				const pane = chat.panes[0];
+				await sendMessageToPaneStream(chat, pane, "Read the fixture");
+				await persistStateToServer();
+				return { status: pane.status, message: pane.messages.at(-1), chatId: chat.id };
+			});
+			assert.equal(requests, 1);
+			assert.equal(result.status, "partial");
+			assert.equal(result.message.content, partialText);
+			assert.equal(result.message.usage.tool_error.code, "stream_interrupted");
+			assert.equal(result.message.usage.tool_error.retryable, false);
+			await page.waitForFunction(() => !persistInFlight && !persistRequested && !persistTimer);
+			await page.reload();
+			await page.waitForFunction((id) => stateLoadedFromServer && runtimeCapabilities.loaded && state.chats.some((chat) => chat.id === id), result.chatId);
+			await page.evaluate(async (id) => { await activateChat(id); }, result.chatId);
+			await page.waitForFunction((text) => getActiveChat()?.panes?.some((pane) => pane.messages.some((message) => message.content === text)), partialText);
+			assert.equal(requests, 1);
+			await page.close();
+		});
+	} finally { await browser?.close(); destroy(); }
+});
+}
+
+for (const fixture of [
+	{ name: "malformed provider SSE JSON", wire: 'data: {invalid}\n\ndata: [DONE]\n\n', code: "invalid_provider_stream" },
+	{ name: "oversized provider SSE record", wire: 'data: ' + 'x'.repeat(1024 * 1024 + 1), code: "provider_record_too_large" }
+]) {
+	test(`stream reports ${fixture.name} as an error`, async () => {
+		const { runtime, destroy } = createIsolatedRuntime({ fetchFn: async () => mockSseResponseFromPayload(fixture.wire) });
+		try {
+			const profileId = applyProfileMutation(runtime, (p) => { p.api_key = "fixture-key"; });
+			await withServer(runtime.app, async (baseUrl) => {
+				const response = await fetch(`${baseUrl}/api/chat/stream`, { method: "POST", headers: withAuthHeaders({ "Content-Type": "application/json" }), body: JSON.stringify({ profile_id: profileId, messages: [{ role: "user", content: "hello" }] }) });
+				const events = parseSseEvents(await response.text());
+				assert.equal(events.at(-1).event, "error");
+				assert.equal(events.at(-1).data.code, fixture.code);
+				assert.equal(events.at(-1).data.retryable, false);
+			});
+		} finally { destroy(); }
+	});
+}

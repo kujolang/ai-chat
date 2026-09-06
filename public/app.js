@@ -5899,6 +5899,7 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 		let terminalStreamError = null;
 
 		while (continuationPass <= maxContinuationPasses) {
+			if (stopStreamingRequested) throw new DOMException("Generation was cancelled.", "AbortError");
 			const passStartedAt = Date.now();
 			const contentBeforePass = assistantMessage.content;
 			const contentLengthBeforePass = contentBeforePass.length;
@@ -5961,10 +5962,12 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 				user_name: String(state.settings.userName || ""),
 				messages: chatHistory,
 				tools: buildEnabledToolDefinitions(),
+				tool_discovery: true,
 				disable_thinking: forceFinalAnswer
 			};
 
 			const controller = new AbortController();
+			controller.streamRequestId = payload.request_id;
 			currentStreamController = controller;
 			activeStreamControllers.add(controller);
 			updateStreamingControls();
@@ -6140,14 +6143,20 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 				if (streamInactivityTimedOut) {
 					streamErrorPayload = {
 						code: "stream_stalled",
-						message: `No stream updates for ${Math.floor(streamInactivityTimeoutMs / 1000)} seconds. Retry the request.`,
-						retryable: true
+						message: `No stream updates for ${Math.floor(streamInactivityTimeoutMs / 1000)} seconds. Check the saved turn before retrying; the server may still be running.`,
+						retryable: false
 					};
-				} else {
+				} else if (controller.signal.aborted) {
 					throw streamReadError;
+				} else {
+					streamErrorPayload = { code: "stream_network_error", message: "The connection was interrupted. Partial output was preserved. Check the saved turn before retrying tools.", retryable: false };
 				}
 			} finally {
 				clearStreamInactivityTimer();
+				reader.releaseLock();
+			}
+			if (!streamDonePayload && !streamErrorPayload) {
+				streamErrorPayload = { code: "stream_interrupted", message: "The connection ended without completion. Partial output was preserved. Check the saved turn before retrying tools.", retryable: false };
 			}
 			activeStreamControllers.delete(controller);
 			if (currentStreamController === controller) {
@@ -6212,7 +6221,7 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 
 			if (streamErrored && progressChars <= 0) {
 				if (!assistantMessage.content) {
-					throw new Error(formatProviderStreamError(streamErrorPayload));
+					throw Object.assign(new Error(formatProviderStreamError(streamErrorPayload)), normalizeStreamErrorPayload(streamErrorPayload));
 				}
 				if (noProgressPasses > maxStreamErrorRecoveryPasses) {
 					if (responseLooksIncomplete(assistantMessage.content)) {
@@ -6240,6 +6249,7 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 				&& looksIncomplete;
 			const shouldContinueForTokenLimit = reachedTokenLimit || implicitTokenLimit;
 			const shouldContinueForStreamError = streamErrored
+				&& !streamUsedTools
 				&& Boolean(assistantMessage.content)
 				&& streamErrorPayload.retryable !== false
 				&& streamErrorRecoveryPasses < maxStreamErrorRecoveryPasses;
@@ -6304,7 +6314,8 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 			}
 		}
 
-		if (hasHardIncompleteMarkers(assistantMessage.content)) {
+		if (stopStreamingRequested) throw new DOMException("Generation was cancelled.", "AbortError");
+		if (!terminalStreamError && hasHardIncompleteMarkers(assistantMessage.content)) {
 			const repairController = new AbortController();
 			currentStreamController = repairController;
 			activeStreamControllers.add(repairController);
@@ -6390,7 +6401,7 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 		assistantMessage.live_narration = "";
 		assistantMessage.streaming = false;
 		const shouldMarkPartial = endedLikelyIncomplete || (!assistantMessage.content && assistantMessage.thinking);
-		pane.status = terminalStreamError ? "error" : (shouldMarkPartial ? "partial" : "idle");
+		pane.status = terminalStreamError ? (assistantMessage.content || assistantMessage.thinking ? "partial" : "error") : (shouldMarkPartial ? "partial" : "idle");
 		if (assistantMessage.usage && Number(assistantMessage.usage.total_tokens) > 0) {
 			appendUsageLedgerEntry({
 				message_id: assistantMessage.id,
@@ -6414,7 +6425,7 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 				createdAt: Number(assistantMessage.createdAt || Date.now())
 			});
 		}
-		void maybeAutoTitleChat(chat, pane, profile, selectedModel);
+		if (!terminalStreamError) void maybeAutoTitleChat(chat, pane, profile, selectedModel);
 		renderComposerUsageSummary();
 		if (isUsageModalOpen()) {
 			renderUsageModalContent();
@@ -6475,7 +6486,7 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 			: "Network or server error while streaming provider response.";
 		assistantMessage.usage = {
 			...(assistantMessage.usage && typeof assistantMessage.usage === "object" ? assistantMessage.usage : {}),
-			error: { message: errorMessage, retryable: true },
+			error: { code: String(error.code || "stream_error"), message: errorMessage, retryable: error.retryable !== false },
 			retry_count: assistantMessage.retry_count
 		};
 		renderComposerUsageSummary();
@@ -6663,6 +6674,17 @@ function isAbortLikeError(error) {
 function stopActiveStreams() {
 	stopStreamingRequested = true;
 	for (const controller of activeStreamControllers) {
+		if (controller.streamRequestId) {
+			void apiFetch("/api/chat/stream/cancel", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ request_id: controller.streamRequestId })
+			}).then((response) => {
+				if (!response.ok) throw new Error("Server cancellation was not acknowledged.");
+			}).catch(() => {
+				if (nodes.voiceStatus) nodes.voiceStatus.textContent = "Stopped locally. Server cancellation is unconfirmed; refresh the chat to check its status.";
+			});
+		}
 		controller.abort();
 	}
 	updateStreamingControls();
