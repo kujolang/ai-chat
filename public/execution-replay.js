@@ -8,6 +8,10 @@
 			if (!page || !Array.isArray(page.events)) return { recovered: false, cursor };
 			for (const event of page.events) {
 				if (!Number.isSafeInteger(event.sequence) || event.sequence <= cursor) continue;
+				if ((event.event === "done" || event.event === "error") && Object.hasOwn(page, "terminal_cursor") && event.sequence !== page.terminal_cursor) {
+					cursor = event.sequence;
+					continue;
+				}
 				await onEvent(event);
 				cursor = event.sequence;
 				if (event.event === "done" || event.event === "error") return { recovered: true, cursor };

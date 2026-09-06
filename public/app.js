@@ -1557,6 +1557,10 @@ function wireEvents() {
 			void retryFailedPaneMessage(chat, paneId, String(actionElement.getAttribute("data-message-id") || ""));
 			return;
 		}
+		if (action === "review-execution") {
+			void reviewSavedExecution(chat, paneId, String(actionElement.getAttribute("data-message-id") || ""));
+			return;
+		}
 
 		if (action === "branch-message") {
 			branchMessageIntoNewChat(chat, paneId, String(actionElement.getAttribute("data-message-id") || ""));
@@ -3576,7 +3580,9 @@ function renderMessageNodeHtml(message, paneId) {
 	const copyAction = `<button type="button" class="message-copy-btn" data-action="copy-message" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}" aria-label="Copy message" title="Copy message">${copyCodeButtonSvg}</button>`;
 	const branchAction = renderBranchAction(message, paneId);
 	const retryAction = message.role === "assistant" ? renderRetryAction(message, paneId) : "";
-	const footer = `<div class="message-footer">${copyAction}${branchAction}${retryAction}<span class="message-time">${escapeHtml(timestamp)}</span></div>`;
+	const executionAction = message.role === "assistant" && message.execution_id && !message.streaming
+		? `<button type="button" class="message-execution-link" data-action="review-execution" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}">Review execution</button>` : "";
+	const footer = `<div class="message-footer">${copyAction}${branchAction}${retryAction}${executionAction}<span class="message-time">${escapeHtml(timestamp)}</span></div>`;
 
 	if ("assistant" === message.role) {
 		const metaToggle = metaBits.length > 0
@@ -9236,4 +9242,101 @@ function formatMessageTime(value) {
 	} catch (error) {
 		return "";
 	}
+}
+
+async function reviewSavedExecution(chat, paneId, messageId) {
+ const pane=chat.panes.find(p=>p.id===paneId), message=pane?.messages.find(m=>m.id===messageId);
+ if(!message?.execution_id)return;
+ const id=message.execution_id;
+ const dialog=document.createElement('dialog');dialog.className='execution-dialog';dialog.setAttribute('aria-label','Review saved execution');
+ dialog.innerHTML='<h2>Review saved execution</h2><p class="execution-status" role="status">Loading receipts…</p><div class="execution-receipts"></div><div class="execution-actions"><button type="button" class="btn execution-continue" disabled>Resume execution</button><button type="button" class="btn ghost execution-close">Close</button></div>';
+ document.body.append(dialog);dialog.addEventListener('close',()=>dialog.remove());dialog.querySelector('.execution-close').onclick=()=>dialog.close();dialog.showModal();
+ const status=dialog.querySelector('.execution-status'), receipts=dialog.querySelector('.execution-receipts'), proceed=dialog.querySelector('.execution-continue');
+ let inspection;
+ async function refresh() {
+  proceed.disabled=true;
+  const response=await apiFetch(`/api/executions/${encodeURIComponent(id)}`);const data=await response.json();
+  if(!response.ok)throw Error(data.error?.message||'Could not load the execution.');
+  inspection=data;receipts.replaceChildren();
+  status.textContent=`Status: ${data.execution.status}. ${data.resume.reason||'Resume continues the saved request and keeps completed tool receipts.'}`;
+  if(data.execution.checkpoint?.native_thread_id)status.textContent+=` Native session: ${data.execution.checkpoint.native_thread_id}. Verify its history and external actions before resolving an interrupted native attempt.`;
+  for(const call of data.receipts) {
+   const section=document.createElement('section');section.className='execution-receipt';
+   const title=document.createElement('h3');title.textContent=`${call.tool_name} · ${call.status}`;section.append(title);
+   const details=document.createElement('details'), summary=document.createElement('summary'), preview=document.createElement('pre');
+   summary.textContent='Receipt preview (up to 32,000 characters)';preview.textContent=JSON.stringify({call_id:call.call_id,input:call.input,result:call.result},null,2).slice(0,32000);
+   details.append(summary,preview);section.append(details);
+   if(['started','uncertain'].includes(call.status)&&data.execution.status!=='running') {
+    const form=document.createElement('form');form.className='execution-reconcile';
+    form.innerHTML='<p>Check the actual outcome before choosing a disposition. A recorded result cannot undo an action.</p><label>Verified outcome<select name="disposition" required><option value="">Select the observed outcome</option><option value="completed">Completed — preserve its result</option><option value="not_started">Not started — safe to execute</option></select></label><label>Evidence<textarea name="evidence" maxlength="4000" required></textarea></label><label>Observed result (JSON object, required for completed)<textarea name="result" maxlength="64000"></textarea></label><button type="submit" class="btn">Save verified outcome</button><p class="execution-form-status" role="status"></p>';
+    form.onsubmit=async event=>{
+     event.preventDefault();const button=form.querySelector('button'), feedback=form.querySelector('.execution-form-status');button.disabled=true;proceed.disabled=true;
+     try {
+      const disposition=form.elements.disposition.value,evidence=form.elements.evidence.value.trim();
+      const result=disposition==='completed'?JSON.parse(form.elements.result.value):undefined;
+      if(!evidence||!['completed','not_started'].includes(disposition)||disposition==='completed'&&(!result||typeof result!=='object'||Array.isArray(result)))throw Error('Provide evidence and an observed JSON result for a completed call.');
+      const response=await apiFetch(`/api/executions/${encodeURIComponent(id)}/calls/${encodeURIComponent(call.call_id)}/reconcile`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({disposition,evidence,result})});
+      const saved=await response.json();if(!response.ok)throw Error(saved.error?.message||'Could not save the verified outcome.');
+      await refresh();
+     }catch(error){feedback.textContent=error.message;button.disabled=false;}
+    };
+    section.append(form);
+   }
+   receipts.append(section);
+  }
+  if(!data.receipts.length)receipts.textContent='No tool receipts were recorded for this execution.';
+  proceed.textContent=data.execution.status==='completed'?'Restore saved result':data.execution.status==='running'?'Recover running output':'Resume execution';
+  proceed.disabled=!(data.resume.allowed||['completed','running'].includes(data.execution.status));
+ }
+ proceed.onclick=()=>{proceed.disabled=true;dialog.close();void continueSavedExecution(chat,pane,message,inspection);};
+ try{await refresh();}catch(error){status.textContent=error.message;}
+}
+
+async function continueSavedExecution(chat,pane,message,inspection) {
+ const run=inspection.execution,id=run.id;
+ const controller=new AbortController();controller.streamRequestId=id;
+ const restore=payload=>{
+  message.content=String(payload.output_text||'');message.thinking=String(payload.thinking_text||message.thinking||'');
+  message.usage={...(payload.usage||{}),trace_id:payload.trace_id,tool_artifacts:payload.tool_artifacts||[]};
+  message.provider=payload.provider||message.provider;message.model=payload.model||message.model;
+  pane.status='idle';message.streaming=false;
+ };
+ if(run.status==='completed'){restore(run.result);message.execution_cursor=inspection.last_cursor;schedulePersist({immediate:true});renderWorkspace({preserveScroll:true});return;}
+ let terminal=null;
+ const onEvent=event=>{
+  if(event.sequence>0){if(event.sequence<=message.execution_cursor)return;message.execution_cursor=event.sequence;}
+  const payload=event.data;
+  if(event.event==='token')message.content+=String(payload.delta||'');
+  if(event.event==='thinking')message.thinking=String(message.thinking||'')+String(payload.delta||'');
+  if(event.event==='tool')message.tool_activity=[...(message.tool_activity||[]),{tool_name:payload.tool_name,phase:payload.phase,label:payload.label||`${payload.tool_name} · ${payload.phase}`,command:payload.command||''}].slice(-32);
+  if(event.event==='done'){restore(payload);terminal='done';}
+  if(event.event==='error'){message.usage={...(payload.usage||message.usage||{}),error:payload};pane.status=message.content||message.thinking?'partial':'error';terminal='error';}
+  scheduleStreamingMessagePatch(chat.id,pane.id,message.id);scheduleStreamingPersist(chat.id,pane.id,message.id);
+ };
+ message.streaming=true;pane.status='waiting';message.request_started_at=Date.now();
+ if(message.usage)delete message.usage.error;
+ if(run.status!=='running'){
+  message.execution_cursor=inspection.last_cursor;
+  message.content=String(run.checkpoint?.output_text??message.content??'');
+  message.thinking=String(run.checkpoint?.thinking_text??message.thinking??'');
+ }
+ activeStreamControllers.add(controller);activeStreamCount++;stopStreamingRequested=false;updateStreamingControls();renderWorkspace({preserveScroll:true});
+ try {
+  if(run.status!=='running') {
+   const response=await apiFetch(`/api/executions/${encodeURIComponent(id)}/resume`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}',signal:controller.signal});
+   await window.AIChatExecutionStream.consumeExecutionResponse(response,{after:message.execution_cursor,onEvent,signal:controller.signal});
+  }
+  if(!terminal)await window.AIChatExecutionReplay.replayExecution({after:message.execution_cursor,signal:controller.signal,onEvent,fetchPage:async cursor=>{
+   const response=await apiFetch(`/api/executions/${encodeURIComponent(id)}/events?after=${cursor}`,{signal:AbortSignal.any([controller.signal,AbortSignal.timeout(10000)])});
+   const data=await response.json();if(!response.ok)throw Error(data.error?.message||'Could not recover execution events.');return data;
+  }});
+  if(!terminal)throw Error('Execution is still incomplete. Review its current status before continuing.');
+ }catch(error){
+  message.usage={...(message.usage||{}),error:{code:controller.signal.aborted?'stream_cancelled':'execution_recovery_failed',message:controller.signal.aborted?'Generation was cancelled.':error.message,retryable:false}};
+  pane.status=message.content||message.thinking?'partial':'error';
+ }finally{
+  message.streaming=false;message.response_time_ms=Date.now()-message.request_started_at;
+  activeStreamControllers.delete(controller);activeStreamCount=Math.max(0,activeStreamCount-1);updateStreamingControls();
+  chat.updatedAt=Date.now();schedulePersist({immediate:true});renderWorkspace({preserveScroll:true});
+ }
 }

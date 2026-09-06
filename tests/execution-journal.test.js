@@ -109,3 +109,8 @@ test('retention zero disables cleanup and cleanup batches stay bounded',()=>{
   assert.equal(bounded.prune(),100);assert.equal(bounded.prune(),5);assert.equal(bounded.prune(),0);
  }finally{db.close();}
 });
+
+test('explicit resume cannot create a new execution identity',()=>{
+ const db=new Database(':memory:');
+ try {const journal=createExecutionJournal(db,{secret:'fixture'});assert.throws(()=>journal.begin('missing','turn',{}, {resume:true}),{code:'execution_not_found'});assert.equal(journal.get('missing'),null);}finally{db.close();}
+});
