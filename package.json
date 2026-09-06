@@ -40,6 +40,9 @@
 		"select2": "^4.1.0-rc.0",
 		"three": "^0.170.0"
 	},
+	"overrides": {
+		"qs": "6.16.0"
+	},
 	"allowScripts": {
 		"better-sqlite3@11.10.0": true
 	}
