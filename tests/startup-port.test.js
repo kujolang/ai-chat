@@ -96,6 +96,7 @@ test("server startup exits cleanly when AI Chat is already running on the config
 			assert.equal(result.code, 0);
 			assert.match(result.stdout, new RegExp(`ai-chat is already running on http://127\\.0\\.0\\.1:${port}`));
 			assert.equal(result.stderr, "");
+			assert.equal(fs.existsSync(env.DB_PATH), false, "port preflight must not create or claim a database");
 		});
 	} finally {
 		fs.rmSync(tempRoot, { recursive: true, force: true });
@@ -113,6 +114,7 @@ test("server startup reports a friendly error when another process owns the port
 			assert.equal(result.code, 1);
 			assert.match(result.stderr, new RegExp(`port ${port} is already in use`));
 			assert.doesNotMatch(result.stderr, /uncaughtException/);
+			assert.equal(fs.existsSync(env.DB_PATH), false, "occupied-port preflight must not initialize integrations");
 		});
 	} finally {
 		fs.rmSync(tempRoot, { recursive: true, force: true });

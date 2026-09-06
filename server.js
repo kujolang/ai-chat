@@ -1,7 +1,6 @@
 const fs = require("fs");
 const http = require("http");
 const path = require("path");
-const { createServerRuntime } = require("./lib/server-runtime");
 
 loadLocalEnv(__dirname);
 
@@ -44,9 +43,9 @@ function loadLocalEnv(projectRoot) {
 	}
 }
 
-const runtime = createServerRuntime({
-	projectRoot: __dirname
-});
+function createRuntime() {
+	return require("./lib/server-runtime").createServerRuntime({ projectRoot: __dirname });
+}
 
 function localhostFor(host) {
 	return host === "0.0.0.0" || host === "::" ? "127.0.0.1" : host;
@@ -78,13 +77,13 @@ function probeHealth(url, timeoutMs = 1000) {
 		});
 		request.on("timeout", () => {
 			request.destroy();
-			resolve(false);
+			resolve(null);
 		});
-		request.on("error", () => resolve(false));
+		request.on("error", () => resolve(null));
 	});
 }
 
-if (require.main === module) {
+function startServer(runtime) {
 	process.on("unhandledRejection", (error) => {
 		console.error("[ai-chat] unhandledRejection", error);
 	});
@@ -143,4 +142,33 @@ if (require.main === module) {
 	process.once("SIGTERM", shutdown);
 }
 
-module.exports = runtime;
+async function main() {
+	// Recognize an existing instance before loading integrations or claiming its
+	// journal database. This also keeps cold-start port probes inexpensive.
+	const host = String(process.env.AI_CHAT_HOST || "127.0.0.1");
+	const port = Number(process.env.PORT || 4173);
+	if (Number.isInteger(port) && port > 0 && port <= 65535) {
+		const url = displayUrl({ host, port });
+		const existing = await probeHealth(url);
+		if (existing === true) {
+			console.log(`ai-chat is already running on ${url}`);
+			return;
+		}
+		if (existing === false) {
+			console.error(`[ai-chat] port ${port} is already in use on ${host}.`);
+			console.error(`Set PORT to a free port or stop the process using ${url}.`);
+			process.exitCode = 1;
+			return;
+		}
+	}
+	startServer(createRuntime());
+}
+
+if (require.main === module) {
+	void main().catch((error) => {
+		console.error("[ai-chat] startup failed", error.code || error.message);
+		process.exitCode = 1;
+	});
+} else {
+	module.exports = createRuntime();
+}
