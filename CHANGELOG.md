@@ -1,6 +1,19 @@
 # Changelog
 
-## Unreleased
+## [1.2.0] - 2026-09-07
+
+- Add encrypted execution journals, durable action receipts, retention tombstones, and explicit review/reconciliation/resume for HTTP and persistent native Codex sessions.
+- Drain active model work on shutdown, recover interrupted turns, and replay disconnected streams through bounded SSE buffers and durable cursors.
+- Budget complete provider context, including reasoning, tool schemas, arguments and receipts, using explicit or dated model limits.
+- Preserve user-authored chat constraints and decisions outside transcript compaction.
+- Add static page extraction with Markdown negotiation and shared URL/DNS policy, plus bounded alternate search backends with provenance.
+- Enforce browser network containment on macOS and Linux; unsupported or unavailable containment fails closed.
+- Route agents to relevant AI Chat manuals and discover deferred tools within request-scoped authorization.
+- Add configured RAG documentation lookup, source links, query timeouts, saved code-example language preferences and an optional composer language picker.
+- Unify auxiliary request and benchmark-queue cancellation; detect occupied ports before claiming storage.
+- Patch the qs dependency and harden local writes, external reads, tool dispatch, and Ollama documentation request limits.
+- Add real-family evaluation and reliability metrics. The eight-hour soak is **not complete**: its partial 2h14m run recorded 90 attempts, 70 correct results, 16 EAGAIN metric failures, and no recorded SSE overflow. Its termination cause is unknown; model-quality failures and unavailable monetary costs remain documented.
+
 
 - Add repeatable `--model` benchmark lanes with safe provider-profile resolution,
   change the no-flag default to `Benchmarks 082626`, and preserve saved

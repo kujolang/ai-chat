@@ -489,3 +489,12 @@ AI_CHAT_RAG_SUPPORTS_PREFERENCES=1
 If your service requires a bearer token, supply `AI_CHAT_RAG_TOKEN` through server-side secret configuration. In Settings, add and enable **Documentation schema**. Choose **Code examples** in the chat composer, or leave it empty for all examples. The choice persists per chat and applies to supporting documentation lookups. It does not select the model's programming language or affect unrelated tools.
 
 For a slower local corpus, set `AI_CHAT_RAG_TIMEOUT_MS` (1,000–60,000 ms; default 10,000). The docs.kujolang.ai dogfood service uses 60,000 ms. RAG citations retain local snapshot line ranges and expose a valid public `source_url` when the corpus records one.
+
+## Upgrading to 1.2.0
+
+1. Stop the AI Chat instance and back up its SQLite database, environment configuration, and encryption secret using the existing backup procedure. Keep the secret with the backup in secure storage; encrypted records require the same key.
+2. Check out `v1.2.0`, run `nvm use`, then `npm ci`. If using browser tools, run `npm run browser:install` and install the documented platform containment dependency.
+3. Review new optional settings in `.env.example` and the capability manual. Browser tools now require supported containment and fail closed when it is unavailable; permissions are not enabled automatically.
+4. Restart the instance to load the new fixed system prompt and initialize new storage tables. Verify authenticated health and a normal chat. Use Review execution for interrupted work; reconcile uncertain external outcomes before resuming.
+
+For rollback, stop the new instance and restore the pre-upgrade database and matching configuration with the previous release. Do not assume an older binary understands newer state. This repository release does not certify your deployment, and the full eight-hour soak remains pending; see [the acceptance record](docs/RELIABILITY_ROADMAP_IMPLEMENTATION.md).
