@@ -17,6 +17,11 @@ test("discovery is opt-in, custom tools stay visible, and small catalogs incur n
 	assert.deepEqual(createToolDiscovery([schema("my_tool")], true).schemas(), [schema("my_tool")]);
 	assert.equal(createToolDiscovery([schema("web_search")], true).available, false);
 });
+test("authorized local file listing is advertised alongside workspace and read entry points", () => {
+	const discovery = createToolDiscovery(["local_workspace_list", "local_file_list", "local_file_read", "local_file_write"].map(schema), true);
+	assert.deepEqual(discovery.schemas().map((tool) => tool.function.name), ["local_workspace_list", "local_file_list", "local_file_read", "tool_discover"]);
+	assert.ok(!discovery.schemas().some((tool) => tool.function.name === "local_file_write"));
+});
 test("capability instructions route inexpensive search and explain available fallback", () => {
 	const instructions = capabilityInstructions([schema("web_search"), schema("browser_open")]);
 	assert.match(instructions, /Search before opening a browser/);
