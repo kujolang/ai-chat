@@ -4506,6 +4506,7 @@ textarea {
 	.sidebar {
 		border-right: 0;
 		border-bottom: 1px solid var(--line-soft);
+		padding-bottom: 0;
 		max-height: none;
 		overflow: visible;
 	}
