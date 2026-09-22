@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Finalize failed read-only tool receipts so interrupted runs do not demand false reconciliation; halt when an action may have succeeded before its result was lost instead of letting the model claim failure.
 - Keep authorized local file listing directly callable when request-scoped tool discovery is enabled, avoiding terminal authorization errors during ordinary workspace browsing.
 - Reduce excessive output reservations when needed to fit protected requests or completed tool receipts; keep impossible requests rejected before provider dispatch.
 

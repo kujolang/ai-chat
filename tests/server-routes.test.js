@@ -3779,6 +3779,35 @@ test("explicit Stop aborts provider work and does not classify cancellation as t
 });
 
 for (const providerId of ["openai", "ollama"]) {
+	test(`failed executable tool calls leave a terminal receipt, not an uncertain action (${providerId})`, async () => {
+		let providerCalls = 0;
+		const { runtime, destroy } = createIsolatedRuntime({
+			localRuntime: {
+				canExecute: () => true,
+				status: () => ({ enabled: true }),
+				listFiles: () => { throw Object.assign(new Error("Fixture listing failed."), { code: "local_listing_failed" }); }
+			},
+			fetchFn: async () => {
+				providerCalls++;
+				const call = providerCalls === 1 ? { index: 0, id: "failed-list", function: { name: "local_file_list", arguments: "{}" } } : null;
+				if (providerId === "ollama") return mockChunkedResponse([JSON.stringify({ message: call ? { content: "", tool_calls: [{ function: { name: call.function.name, arguments: {} } }] } : { content: "Could not list files." }, done: true }) + "\n"]);
+				return mockSseResponse([{ choices: [{ delta: call ? { tool_calls: [call] } : { content: "Could not list files." }, finish_reason: call ? "tool_calls" : "stop" }] }]);
+			}
+		});
+		try {
+			const profileId = applyProfileMutation(runtime, (profile) => { profile.provider_id = providerId; profile.api_key = "fixture-key"; });
+			await withServer(runtime.app, async (baseUrl) => {
+				const response = await fetch(`${baseUrl}/api/chat/stream`, { method: "POST", headers: withAuthHeaders({ "Content-Type": "application/json" }), body: JSON.stringify({ request_id: `failed-receipt-${providerId}`, profile_id: profileId, messages: [{ role: "user", content: "List files" }], tools: [{ type: "function", function: { name: "local_file_list", parameters: { type: "object" } } }], include_saved_runtime_presets: false }) });
+				const events = parseSseEvents(await response.text());
+				assert.equal(events.at(-1).event, "done");
+				assert.equal(providerCalls, 2);
+				const execution = await fetchJson(baseUrl, `/api/executions/failed-receipt-${providerId}`);
+				assert.equal(execution.json.receipts.length, 1);
+				assert.equal(execution.json.receipts[0].status, "failed");
+				assert.equal(execution.json.receipts[0].result.error.code, "local_listing_failed");
+			});
+		} finally { destroy(); }
+	});
 	test(`stream discovery advertises and executes authorized local_file_list immediately (${providerId})`, async () => {
 		let providerCalls = 0;
 		let executions = 0;
@@ -3841,6 +3870,41 @@ for (const providerId of ["openai", "ollama"]) {
 		} finally { destroy(); }
 	});
 }
+
+test("an action adapter that fails after a possible side effect does not produce a successful answer", async () => {
+	let providerCalls = 0;
+	let possibleWrites = 0;
+	const { runtime, destroy } = createIsolatedRuntime({
+		actionRuntime: {
+			canExecute: () => true,
+			status: () => ({ available: true, adapters: [] }),
+			list: () => ({ adapters: [] }),
+			call: () => { possibleWrites++; throw Object.assign(new Error("Response lost after adapter accepted the write."), { code: "action_adapter_timeout" }); }
+		},
+		fetchFn: async () => {
+			providerCalls++;
+			const call = providerCalls === 1 ? { index: 0, id: "possibly-written", function: { name: "action_adapter_call", arguments: JSON.stringify({ id: "publish", input: {} }) } } : null;
+			return mockSseResponse([{ choices: [{ delta: call ? { tool_calls: [call] } : { content: "The write did not happen; try again." }, finish_reason: call ? "tool_calls" : "stop" }] }]);
+		}
+	});
+	try {
+		const profileId = applyProfileMutation(runtime, (profile) => { profile.provider_id = "openai"; profile.api_key = "fixture-key"; });
+		await withServer(runtime.app, async (baseUrl) => {
+			const response = await fetch(`${baseUrl}/api/chat/stream`, { method: "POST", headers: withAuthHeaders({ "Content-Type": "application/json" }), body: JSON.stringify({ request_id: "uncertain-adapter-fixture", profile_id: profileId, messages: [{ role: "user", content: "Publish once" }], tools: [{ type: "function", function: { name: "action_adapter_call", parameters: { type: "object" } } }], include_saved_runtime_presets: false }) });
+			const events = parseSseEvents(await response.text());
+			assert.equal(possibleWrites, 1);
+			assert.equal(providerCalls, 1);
+			assert.equal(events.some((event) => event.event === "done"), false);
+			assert.equal(events.find((event) => event.event === "error")?.data.code, "execution_reconciliation_required");
+			const execution = await fetchJson(baseUrl, "/api/executions/uncertain-adapter-fixture");
+			assert.equal(execution.json.execution.status, "interrupted");
+			assert.equal(execution.json.receipts[0].status, "started");
+			const resumed = await fetch(baseUrl + "/api/executions/uncertain-adapter-fixture/resume", { method: "POST", headers: withAuthHeaders({ "Content-Type": "application/json" }), body: "{}" });
+			assert.equal(parseSseEvents(await resumed.text()).find((event) => event.event === "error")?.data.code, "execution_reconciliation_required");
+			assert.equal(possibleWrites, 1);
+		});
+	} finally { destroy(); }
+});
 
 test("explicit cancellation during a tool aborts it without starting provider continuation", async () => {
 	let started;
