@@ -3779,11 +3779,36 @@ test("explicit Stop aborts provider work and does not classify cancellation as t
 });
 
 for (const providerId of ["openai", "ollama"]) {
-	test(`stream discovery loads and invokes a deferred authorized tool (${providerId})`, async () => {
+	test(`stream discovery advertises and executes authorized local_file_list immediately (${providerId})`, async () => {
 		let providerCalls = 0;
 		let executions = 0;
 		const { runtime, destroy } = createIsolatedRuntime({
 			localRuntime: { canExecute: () => true, status: () => ({ enabled: true }), listFiles: () => { executions++; return { files: ["README.md"] }; } },
+			fetchFn: async (_url, options) => {
+				const body = JSON.parse(options.body);
+				assert.ok(body.tools.some((tool) => tool.function.name === "local_file_list"));
+				providerCalls++;
+				const call = providerCalls === 1 ? { index: 0, id: "list-1", function: { name: "local_file_list", arguments: "{}" } } : null;
+				if (providerId === "ollama") return mockChunkedResponse([JSON.stringify({ message: call ? { content: "", tool_calls: [{ function: { name: call.function.name, arguments: {} } }] } : { content: "Files listed" }, done: true }) + "\n"]);
+				return mockSseResponse([{ choices: [{ delta: call ? { tool_calls: [call] } : { content: "Files listed" }, finish_reason: call ? "tool_calls" : "stop" }] }]);
+			}
+		});
+		try {
+			const profileId = applyProfileMutation(runtime, (profile) => { profile.provider_id = providerId; profile.api_key = "fixture-key"; });
+			await withServer(runtime.app, async (baseUrl) => {
+				const response = await fetch(`${baseUrl}/api/chat/stream`, { method: "POST", headers: withAuthHeaders({ "Content-Type": "application/json" }), body: JSON.stringify({ profile_id: profileId, tool_discovery: true, include_saved_runtime_presets: false, messages: [{ role: "user", content: "List files" }], tools: [{ type: "function", function: { name: "local_file_list", parameters: { type: "object" } } }] }) });
+				const events = parseSseEvents(await response.text());
+				assert.equal(events.at(-1).event, "done", JSON.stringify(events.filter((event) => event.event === "error")));
+				assert.equal(executions, 1);
+				assert.equal(providerCalls, 2);
+			});
+		} finally { destroy(); }
+	});
+	test(`stream discovery loads and invokes a deferred authorized tool (${providerId})`, async () => {
+		let providerCalls = 0;
+		let executions = 0;
+		const { runtime, destroy } = createIsolatedRuntime({
+			skillRuntime: { canExecute: () => true, status: () => ({ enabled: true }), readFileForTool: () => { executions++; return { read: true }; } },
 			fetchFn: async (_url, options) => {
 				const body = JSON.parse(options.body);
 				const names = body.tools.map((tool) => tool.function.name);
@@ -3791,13 +3816,13 @@ for (const providerId of ["openai", "ollama"]) {
 				assert.ok(!names.includes("local_shell"));
 				let call;
 				if (providerCalls === 1) {
-					assert.ok(!names.includes("local_file_list"));
+					assert.ok(!names.includes("skill_file_read"));
 					assert.ok(names.includes("tool_discover"));
-					call = { index: 0, id: "discover-1", function: { name: "tool_discover", arguments: JSON.stringify({ query: "local_file_list" }) } };
+					call = { index: 0, id: "discover-1", function: { name: "tool_discover", arguments: JSON.stringify({ query: "skill_file_read" }) } };
 				} else if (providerCalls === 2) {
-					assert.ok(names.includes("local_file_list"));
-					assert.ok(body.messages.some((m) => m.role === "tool" && m.content.includes("local_file_list")));
-					call = { index: 0, id: "list-1", function: { name: "local_file_list", arguments: "{}" } };
+					assert.ok(names.includes("skill_file_read"));
+					assert.ok(body.messages.some((m) => m.role === "tool" && m.content.includes("skill_file_read")));
+					call = { index: 0, id: "read-1", function: { name: "skill_file_read", arguments: JSON.stringify({ id: "fixture", path: "references/example.md" }) } };
 				}
 				if (providerId === "ollama") return mockChunkedResponse([JSON.stringify({ message: call ? { content: "", tool_calls: [{ function: { name: call.function.name, arguments: JSON.parse(call.function.arguments) } }] } : { content: "README.md found" }, done: true }) + "\n"]);
 				return mockSseResponse([{ choices: [{ delta: call ? { tool_calls: [call] } : { content: "README.md found" }, finish_reason: call ? "tool_calls" : "stop" }] }]);
@@ -3806,7 +3831,7 @@ for (const providerId of ["openai", "ollama"]) {
 		try {
 			const profileId = applyProfileMutation(runtime, (p) => { p.provider_id = providerId; p.api_key = "fixture-key"; });
 			await withServer(runtime.app, async (baseUrl) => {
-				const response = await fetch(`${baseUrl}/api/chat/stream`, { method: "POST", headers: withAuthHeaders({ "Content-Type": "application/json" }), body: JSON.stringify({ profile_id: profileId, tool_discovery: true, include_saved_runtime_presets: false, messages: [{ role: "user", content: "List the files" }], tools: [{ type: "function", function: { name: "local_file_list", parameters: { type: "object" } } }] }) });
+				const response = await fetch(`${baseUrl}/api/chat/stream`, { method: "POST", headers: withAuthHeaders({ "Content-Type": "application/json" }), body: JSON.stringify({ profile_id: profileId, tool_discovery: true, include_saved_runtime_presets: false, messages: [{ role: "user", content: "Read the skill file" }], tools: [{ type: "function", function: { name: "skill_file_read", parameters: { type: "object" } } }] }) });
 				const events = parseSseEvents(await response.text());
 				assert.equal(events.at(-1).event, "done", JSON.stringify(events));
 				assert.equal(events.at(-1).data.output_text, "README.md found");
@@ -4320,6 +4345,46 @@ for (const provider of ['openai', 'codex']) {
   } finally { destroy(); }
  });
 }
+
+test('streaming reduces an oversized output reservation before dispatch without dropping the protected request', async () => {
+ let upstreamBody;
+ const {runtime,destroy}=createIsolatedRuntime({envMerge:{MODEL_CONTEXT_LIMITS_JSON:'{"custom:budget-fixture":65536}',ALLOWED_CUSTOM_PROVIDER_HOSTS:'example.com'},fetchFn:async (_url,options)=>{
+  upstreamBody=JSON.parse(options.body);
+  return new Response('data: {"choices":[{"delta":{"content":"Answered"},"finish_reason":"stop"}]}\n\ndata: [DONE]\n\n',{headers:{'Content-Type':'text/event-stream'}});
+ }});
+ try {
+  const profileId=applyProfileMutation(runtime,p=>{p.provider_id='custom';p.api_key='fixture-key';p.base_url='https://example.com/v1';});
+  await withServer(runtime.app,async base=>{
+   const userContent='Important question '.repeat(650);
+   const response=await fetch(base+'/api/chat/stream',{method:'POST',headers:withAuthHeaders({'Content-Type':'application/json'}),body:JSON.stringify({profile_id:profileId,model:'budget-fixture',max_tokens:48000,messages:[{role:'user',content:userContent}],tools:[],include_saved_runtime_presets:false})});
+   const events=parseSseEvents(await response.text());
+   assert.equal(response.status,200);
+   assert.ok(events.some(event=>event.event==='done'),JSON.stringify(events.filter(event=>event.event==='error')));
+   assert.equal(upstreamBody.messages.at(-1).content,userContent);
+   assert.ok(upstreamBody.max_tokens<48000);
+   assert.ok(upstreamBody.max_tokens>=1024);
+  });
+ } finally {destroy();}
+});
+
+test('JSON bridge receives the reduced output cap that passed context budgeting', async () => {
+ let sent;
+ const {runtime,destroy}=createIsolatedRuntime({envMerge:{MODEL_CONTEXT_LIMITS_JSON:'{"openai:budget-fixture":65536}'},spawnSyncFn:(_bin,args)=>{
+  sent=JSON.parse(args[args.indexOf('--payload')+1]);
+  return {status:0,stdout:JSON.stringify({ok:true,output_text:'Answered',usage:{input_tokens:12,output_tokens:1}}),stderr:''};
+ }});
+ try {
+  const profileId=applyProfileMutation(runtime,p=>{p.provider_id='openai';p.api_key='fixture-key';});
+  await withServer(runtime.app,async base=>{
+   const userContent='Important question '.repeat(650);
+   const {response,json}=await fetchJson(base,'/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({profile_id:profileId,model:'budget-fixture',max_tokens:48000,messages:[{role:'user',content:userContent}],tools:[],include_saved_runtime_presets:false})});
+   assert.equal(response.status,200);
+   assert.equal(sent.messages.at(-1).content,userContent);
+   assert.ok(sent.max_tokens<48000);
+   assert.equal(json.context_budget.output_reservation,sent.max_tokens);
+  });
+ } finally {destroy();}
+});
 
 test('JSON whole-context budget prunes old context and measures schemas in the actual bridge payload',async()=>{
  let sent;

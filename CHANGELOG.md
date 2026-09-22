@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Keep authorized local file listing directly callable when request-scoped tool discovery is enabled, avoiding terminal authorization errors during ordinary workspace browsing.
+- Reduce excessive output reservations when needed to fit protected requests or completed tool receipts; keep impossible requests rejected before provider dispatch.
+
 ## [1.2.0] - 2026-09-07
 
 - Add encrypted execution journals, durable action receipts, retention tombstones, and explicit review/reconciliation/resume for HTTP and persistent native Codex sessions.
