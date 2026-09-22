@@ -1078,6 +1078,61 @@ test("GET /c/:routeId serves the app for bookmarkable chat links", async () => {
 	}
 });
 
+test("sidebar chats and New Chat support opening independent browser tabs", { timeout: 30000 }, async () => {
+	const { chromium } = require("playwright");
+	const { runtime, destroy } = createIsolatedRuntime();
+	let browser;
+	try {
+		await withServer(runtime.app, async (baseUrl) => {
+			browser = await chromium.launch({ headless: true });
+			const context = await browser.newContext();
+			await context.addInitScript((token) => localStorage.setItem("ai_chat_api_token", token), API_TOKEN);
+			const page = await context.newPage();
+			await page.goto(baseUrl);
+			await page.waitForFunction(() => stateLoadedFromServer);
+			assert.equal(await page.locator("[data-welcome-action='new-chat']").getAttribute("href"), "/new");
+			const welcomeTabPromise = context.waitForEvent("page");
+			await page.locator("[data-welcome-action='new-chat']").click({ button: "middle" });
+			const welcomeTab = await welcomeTabPromise;
+			await welcomeTab.waitForURL("**/c/*");
+			assert.equal(new URL(page.url()).pathname, "/");
+			await welcomeTab.close();
+			await page.locator("#new-chat-btn").click();
+			await page.waitForURL("**/c/*");
+			await page.waitForFunction(() => document.querySelector("#save-status")?.textContent === "Saved");
+			const originalUrl = page.url();
+			const chatLink = page.locator(".chat-item-link").first();
+			assert.equal(await chatLink.getAttribute("href"), new URL(originalUrl).pathname);
+			assert.equal(await page.locator(".chat-item").first().evaluate((row) => {
+				const rect = row.getBoundingClientRect();
+				return document.elementFromPoint(rect.left + 2, rect.top + rect.height / 2)?.closest("a")?.getAttribute("href");
+			}), new URL(originalUrl).pathname, "the whole chat row should expose the link context menu");
+
+			const savedTabPromise = context.waitForEvent("page");
+			await chatLink.click({ button: "middle" });
+			const savedTab = await savedTabPromise;
+			await savedTab.waitForURL(originalUrl);
+			await savedTab.waitForFunction(() => stateLoadedFromServer && Boolean(getActiveChat()));
+			assert.equal(page.url(), originalUrl);
+			await page.locator(".chat-item").first().hover();
+			await page.locator(".chat-item [data-action='pin']").first().click();
+			assert.equal(await page.evaluate(() => getActiveChat().pinned), true, "chat actions must remain clickable above the link");
+
+			const newTabPromise = context.waitForEvent("page");
+			await page.locator("#new-chat-btn").click({ button: "middle" });
+			const newTab = await newTabPromise;
+			await newTab.waitForURL("**/c/*");
+			await newTab.waitForFunction(() => stateLoadedFromServer && Boolean(getActiveChat()));
+			assert.notEqual(newTab.url(), originalUrl);
+			assert.equal(page.url(), originalUrl);
+		});
+	} finally {
+		await browser?.close();
+		await runtime.close();
+		destroy();
+	}
+});
+
 test("GET / serves local vendor assets without CDN script or style dependencies", async () => {
 	const { runtime, destroy } = createIsolatedRuntime();
 	try {

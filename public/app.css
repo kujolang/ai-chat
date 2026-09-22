@@ -790,6 +790,12 @@ input[type="checkbox"]:disabled {
 	text-decoration: none;
 }
 
+.chat-item-link::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+}
+
 .chat-item-title {
 	font-size: 12px;
 	font-weight: 600;
@@ -844,6 +850,8 @@ input[type="checkbox"]:disabled {
 .sidebar-delete-confirm button:last-child { color: #ff9a9a; }
 
 .chat-action {
+	position: relative;
+	z-index: 1;
 	border: 0;
 	background: transparent;
 	box-shadow: none;
@@ -2368,6 +2376,10 @@ textarea:focus,
 	justify-content: center;
 	gap: 10px;
 	margin-top: 28px;
+}
+
+.workspace-welcome-actions a.btn {
+	text-decoration: none;
 }
 
 .composer {

@@ -32,6 +32,7 @@ This project is for end users and teams who want one local web app to:
 - Chat workspace
 	- Create, rename, pin, archive, delete, and search chats
 	- Open to a welcome screen at `/`, then use stable opaque `/c/{routeId}` links for bookmarkable chats without exposing internal chat IDs
+	- Open sidebar chats in another tab with the browser's link context menu or middle-click; New Chat links open `/new` and create a separate chat in the new tab
 	- Render chat titles with the locally bundled Departure Mono font; no font CDN request is required for it
 	- Persist changed chats, panes, and messages incrementally with visible save status
 - Provider profiles

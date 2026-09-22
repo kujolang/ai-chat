@@ -298,6 +298,9 @@ async function bootstrap() {
 	await loadStateFromServer();
 	await loadRuntimeCapabilities();
 	ensureMinimumState();
+	if (stateLoadedFromServer && window.location.pathname === "/new") {
+		createAndActivateChat({ replaceUrl: true });
+	}
 	const shouldHydrateLinkedChat = Boolean(linkedChatRouteId && getActiveChat());
 	renderAll();
 	const activeChat = getActiveChat();
@@ -715,13 +718,19 @@ function showCopiedFeedback(button, restoreLabel, restoreTooltip) {
 }
 
 function wireEvents() {
-	nodes.newChatBtn.addEventListener("click", () => {
+	nodes.newChatBtn.addEventListener("click", (event) => {
+		if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+		event.preventDefault();
 		createAndActivateChat();
 	});
 
 	nodes.sidebarMain.addEventListener("scroll", maybeLoadMoreSidebarChats, { passive: true });
 
 	window.addEventListener("popstate", () => {
+		if (window.location.pathname === "/new" && stateLoadedFromServer) {
+			createAndActivateChat({ replaceUrl: true });
+			return;
+		}
 		const linkedChatRouteId = chatRouteIdFromLocation();
 		if (!linkedChatRouteId && window.location.pathname === "/") {
 			state.activeChatId = null;
@@ -1383,11 +1392,12 @@ function wireEvents() {
 		if (!chat) {
 			return;
 		}
-		if (chatLink && !action && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) {
+		if (chatLink && !action && event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) {
 			event.preventDefault();
 			void activateChat(chat.id, { persist: false });
 			return;
 		}
+		if (chatLink && !action) return;
 		if (action === "request-delete") {
 			pendingSidebarDeleteChatId = chat.id;
 			renderSidebar();
@@ -1419,8 +1429,11 @@ function wireEvents() {
 	nodes.paneGrid.addEventListener("click", (event) => {
 		const welcomeAction = event.target.closest("[data-welcome-action]");
 		if (welcomeAction) {
-			if (welcomeAction.getAttribute("data-welcome-action") === "new-chat") createAndActivateChat();
-			else openSearchModal();
+			if (welcomeAction.getAttribute("data-welcome-action") === "new-chat") {
+				if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+				event.preventDefault();
+				createAndActivateChat();
+			} else openSearchModal();
 			return;
 		}
 
@@ -2093,11 +2106,11 @@ async function refreshActiveChatFromServer() {
 	renderAll();
 }
 
-function createAndActivateChat() {
+function createAndActivateChat({ replaceUrl = false } = {}) {
 	const chat = createChat("New Chat");
 	state.chats.push(chat);
 	state.activeChatId = chat.id;
-	syncActiveChatUrl();
+	syncActiveChatUrl({ replace: replaceUrl });
 	schedulePersist({ immediate: true });
 	renderAll();
 	focusComposerInput();
@@ -3413,7 +3426,7 @@ function renderWorkspace(options = {}) {
 			<h2>${escapeHtml(welcomeGreeting)}</h2>
 			<p>Start something new or open a saved chat from the sidebar.</p>
 			<div class="workspace-welcome-actions">
-				<button class="btn primary" type="button" data-welcome-action="new-chat">New chat</button>
+				<a class="btn primary" href="/new" data-welcome-action="new-chat">New chat</a>
 				<button class="btn ghost" type="button" data-welcome-action="search">Search chats</button>
 			</div>
 		</section>`;
@@ -5830,6 +5843,7 @@ async function saveApiTokenFromSettings(options = {}) {
 	if (!stateLoadedFromServer) {
 		await loadStateFromServer();
 		ensureMinimumState();
+		if (stateLoadedFromServer && window.location.pathname === "/new") createAndActivateChat({ replaceUrl: true });
 		renderAll();
 	}
 	setSettingsSaveIndicator("success", "Settings saved");
