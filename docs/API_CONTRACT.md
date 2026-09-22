@@ -186,6 +186,8 @@ Clients must order dependency creation as profiles, chats, panes, then messages.
 
 Changes are idempotent entity upserts/deletes and do not require the global state version. This prevents an unrelated concurrent client write from forcing the browser to discard unsaved local chat content. Clients should diff against their last confirmed snapshot, retry failed batches, and never advance that snapshot until every batch succeeds.
 
+For a saved assistant response with an execution cursor, an older checkpoint for the same execution (or a pre-execution placeholder without an ID) cannot overwrite the newer server-saved response. A later cursor or a new execution remains writable. This protects completed detached responses from delayed browser saves.
+
 `PUT /api/state` remains backward compatible for complete-snapshot clients and retains optimistic state-version checks. It is not recommended for growing conversation histories because its request size includes every message.
 
 Bridge/offline path note:

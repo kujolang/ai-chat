@@ -2350,6 +2350,32 @@ test("POST /api/chat/stream keeps detached mobile streams running and persists t
 				const message = pane.messages.find((candidate) => candidate.id === assistantMessageId);
 				if (message && message.content === "detached complete" && pane.status === "idle") {
 					assert.equal(message.usage.total_tokens, 4);
+					const savedExecutionId = message.usage.execution_id;
+					assert.ok(savedExecutionId);
+					const staleSave = await fetchJson(baseUrl, "/api/state/changes", {
+						method: "POST",
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify({ changes: [{ type: "message_upsert", message: {
+							id: assistantMessageId, pane_id: paneId, role: "assistant", content: "detached ",
+							provider: "openai", model: "gpt-stream", created_at: message.createdAt, sort_order: 1,
+							usage: { execution_id: savedExecutionId, execution_cursor: 0 }
+						} }] })
+					});
+					assert.equal(staleSave.response.status, 200);
+					const afterStaleSave = runtime.helpers.readChat(chatId).panes.find((candidate) => candidate.id === paneId)
+						.messages.find((candidate) => candidate.id === assistantMessageId);
+					assert.equal(afterStaleSave.content, "detached complete", "a stale browser checkpoint must not erase a detached completion");
+					const oldPlaceholder = await fetchJson(baseUrl, "/api/state/changes", {
+						method: "POST",
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify({ changes: [{ type: "message_upsert", message: {
+							id: assistantMessageId, pane_id: paneId, role: "assistant", content: "",
+							created_at: message.createdAt, sort_order: 1
+						} }] })
+					});
+					assert.equal(oldPlaceholder.response.status, 200);
+					assert.equal(runtime.helpers.readChat(chatId).panes.find((candidate) => candidate.id === paneId)
+						.messages.find((candidate) => candidate.id === assistantMessageId).content, "detached complete");
 					return;
 				}
 				await new Promise((resolve) => setTimeout(resolve, 25));
