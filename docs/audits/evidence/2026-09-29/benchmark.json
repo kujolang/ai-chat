@@ -1,0 +1,56 @@
+{
+  "baseline": "7237a967a64cdce93f715e3b7471862b7b9d1d18",
+  "node": "v22.17.0",
+  "platform": "darwin",
+  "samples": 30,
+  "warmup": 1,
+  "equivalence": "assert.deepEqual passed",
+  "directory_listing": {
+    "files": 2000,
+    "requested": 10,
+    "before": {
+      "median_ms": 38.17351800000006,
+      "p95_ms": 44.57900500000005,
+      "stats_per_listing": 2000,
+      "returned": 10
+    },
+    "after": {
+      "median_ms": 6.4452519999995275,
+      "p95_ms": 8.529523999999583,
+      "stats_per_listing": 10,
+      "returned": 10
+    }
+  },
+  "state_batching": {
+    "changes": 250,
+    "before": {
+      "median_ms": 302.4748979999986,
+      "p95_ms": 315.1755400000002,
+      "batch_sizes": [
+        86,
+        86,
+        78
+      ],
+      "serialized_bytes": [
+        521249,
+        521331,
+        472849
+      ]
+    },
+    "after": {
+      "median_ms": 6.538636000001134,
+      "p95_ms": 7.911291000000347,
+      "batch_sizes": [
+        86,
+        86,
+        78
+      ],
+      "serialized_bytes": [
+        521249,
+        521331,
+        472849
+      ]
+    }
+  },
+  "limitations": "Synthetic local timings, not provider latency or token usage. CI gates behavior and stat counts, not wall time."
+}

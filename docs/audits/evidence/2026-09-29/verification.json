@@ -1,0 +1,45 @@
+{
+  "date": "2026-09-29",
+  "branch": "main",
+  "baseline_sha": "7237a967a64cdce93f715e3b7471862b7b9d1d18",
+  "implementation_sha": "1af884bacecd3268d2398db7da209aff8fed8f43",
+  "node": "22.17.0",
+  "platform": "darwin",
+  "baseline_tests": {
+    "total": 429,
+    "passed": 428,
+    "failed": 0,
+    "skipped": 1,
+    "duration_ms": 59155.154505
+  },
+  "final_tests": {
+    "total": 447,
+    "passed": 446,
+    "failed": 0,
+    "skipped": 1,
+    "duration_ms": 60000.731172
+  },
+  "audit": {
+    "before_affected_packages": 2,
+    "after_affected_packages": 0,
+    "before_production_dependencies": 129,
+    "after_production_dependencies": 126
+  },
+  "verification": {
+    "npm_ci": "passed",
+    "syntax": "80 JavaScript files passed",
+    "startup_tests": "7 passed",
+    "offline_smoke": "passed with browser_expected=0 and 1",
+    "temporary_db_backup": "passed",
+    "temporary_db_vacuum": "passed",
+    "benchmark_output_equivalence": "passed",
+    "tool_repair_fixtures": "passed",
+    "synthetic_weekly_audit": "passed"
+  },
+  "limitations": [
+    "Linux-only sandbox test skipped on macOS",
+    "No live provider inference or eight-hour soak",
+    "Timing results are synthetic local measurements; no CI timing threshold",
+    "Backup and vacuum tested on disposable DB; no production DB touched"
+  ]
+}
