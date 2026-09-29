@@ -78,3 +78,16 @@ test('ChatGPT profiles survive full state and incremental persistence with crede
 
  const invalid = await f.request('/api/state/changes', { changes: [{ type: 'profile_upsert', profile: { id: 'plan', name: 'Unsafe', provider_id: 'openai_chatgpt_plan', api_key: 'should-reject', connection_id: f.id } }] }); assert.equal(invalid.status, 400);
 });
+
+test('disconnect cancels active plan streams and blocks later dispatch', async t => {
+ let started; const ready = new Promise(resolve => { started = resolve; });
+ const f = await fixture(t, async (_url, init) => {
+  started();
+  return new Response(new ReadableStream({ start(controller) { init.signal.addEventListener('abort', () => controller.error(init.signal.reason), { once: true }); } }), { headers: { 'content-type': 'text/event-stream' } });
+ });
+ const pending = f.request('/api/chat/stream', { ...f.body, request_id: 'disconnect-stream' }).then(r => r.text());
+ await ready;
+ const disconnected = await (await f.request(`/api/connections/chatgpt/${f.id}/disconnect`, {})).json(); assert.equal(disconnected.disconnected, true);
+ const events = parse(await pending); assert.equal(events.find(e => e.event === 'error').data.code, 'stream_cancelled');
+ const next = await (await f.request('/api/chat', f.body)).json(); assert.equal(next.ok, false); assert.equal(f.calls.length, 1);
+});
