@@ -675,3 +675,7 @@ Production reliability evidence and known limits: [Production hardening](docs/PR
 The optional [RAG documentation tool](SETUP_AND_INSTALL.md#language-aware-documentation-retrieval) uses a saved chat/task code-example preference to request relevant examples upstream. Configure a supporting RAG service, enable the Documentation schema preset, and set **Code examples** in the composer. Shared guidance and source citations remain available.
 
 In **Settings → General → Chat Appearance**, **Show language picker** controls the composer picker. It is on by default and remembers visibility in this browser. Hiding it preserves saved per-chat language preferences.
+
+### ChatGPT plan connection (local preview)
+
+Use **Settings → Providers → Continue with ChatGPT** after enabling `CHATGPT_SIGN_IN_ENABLED=1` on a loopback server with a strong encryption secret. Eligible Plus/Pro users can authorize plan-backed text and local function tools through a separate profile; API-key and native Codex profiles stay independent. See [setup, security and limitations](docs/CHATGPT_PLAN.md).

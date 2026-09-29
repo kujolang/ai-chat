@@ -498,3 +498,9 @@ For a slower local corpus, set `AI_CHAT_RAG_TIMEOUT_MS` (1,000–60,000 ms; defa
 4. Restart the instance to load the new fixed system prompt and initialize new storage tables. Verify authenticated health and a normal chat. Use Review execution for interrupted work; reconcile uncertain external outcomes before resuming.
 
 For rollback, stop the new instance and restore the pre-upgrade database and matching configuration with the previous release. Do not assume an older binary understands newer state. This repository release does not certify your deployment, and the full eight-hour soak remains pending; see [the acceptance record](docs/RELIABILITY_ROADMAP_IMPLEMENTATION.md).
+
+## Optional ChatGPT plan connection
+
+For the local OSS preview, set `CHATGPT_SIGN_IN_ENABLED=1` with a loopback `AI_CHAT_HOST`, `TRUST_PROXY=0`, and a strong existing `ENCRYPTION_SECRET` (at least 24 characters). Restart, then open **Settings → Providers → Continue with ChatGPT** on the server's computer. Eligible Plus/Pro users can separately consent to plan usage and add an account-specific model profile. OpenAI API keys and native Codex login remain independent.
+
+See [ChatGPT plan setup](docs/CHATGPT_PLAN.md) for storage, disconnect, limits, verification and deployment scope. This does not enable commercial hosted login or the optional Codex App Server harness.

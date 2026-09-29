@@ -456,3 +456,23 @@ The adapter POSTs JSON to `/query`, follows no redirects, makes no capability pr
 Documentation results that exceed the input allowance keep the highest-ranked complete citations first. The provider-bound result reports `compacted` and `omitted_citations`; saved execution receipts retain the full lookup result. Native Ollama tool groups are matched by their ordered tool names and indexes when compacting completed work.
 
 With `WATCHDOG_DIRECT_STREAMING` enabled, the personal Ollama route prefers a matching direct credential profile but can use a validated Ollama credential whose model suggestions are stale. The shared Ollama TUD route continues through its configured Watchdog upstream.
+
+## Local ChatGPT plan connections (preview)
+
+These routes require the existing App Access token and Host/Origin checks, plus a loopback client. `CHATGPT_SIGN_IN_ENABLED=1`, a loopback server host and disabled proxy trust gate this local OSS feature. They do not establish an AI Chat application session.
+
+| Method | Route | Request / result |
+|---|---|---|
+| GET | `/api/connections/chatgpt` | `{ok, enabled, connections}`; public identity/status, explicit `plan_usage_enabled`, one-time `plan_notice_required`, usage link. No plan-name/quota or token fields. |
+| POST | `/api/connections/chatgpt/login` | Optional `{connection_id, reconsent}` → `{ok, attempt_id, authorization_url, expires_at}`. At most one pending sign-in; open URL on the server's computer. |
+| GET | `/api/connections/chatgpt/attempts/:id` | Pending/exchanging/completed/failed/expired/cancelled status; public connection on success. Terminal status retained briefly. |
+| POST | `/api/connections/chatgpt/attempts/:id/cancel` | `{}`; cancels the one-time callback transaction. |
+| GET | `/api/connections/chatgpt/:id/models` | `{ok, models:[{slug,display_name}]}` for this account and scope; uncached upstream catalog. |
+| POST | `/api/connections/chatgpt/:id/acknowledge-plan` | `{}`; persist dismissal of first plan-use notice, separately from rotating tokens. |
+| POST | `/api/connections/chatgpt/:id/disconnect` | `{}` → `{ok, disconnected, remote_revocation_confirmed}`. Local cleanup still happens when remote revocation fails. |
+
+Profiles accept `provider_id:"openai_chatgpt_plan"` and an opaque `connection_id`. API keys and custom URLs are rejected for this provider. Established bindings cannot change in place; create another profile to use another account. State exports contain only the reference; importing on another installation does not transfer access.
+
+`/api/chat/stream` keeps its existing SSE contract and neutral tool permissions. Its execution request adds `connection_binding:{connection_id,binding_epoch,billing_source:"chatgpt_plan",harness:"ai_chat"}`. Success includes the billing source, connection reference and harness. Resume rejects changed bindings; no request retries against another billing source. `/api/chat` collects a mandatory upstream stream and rejects tool requests, which belong on the streaming route. `/api/transcribe` rejects this provider.
+
+See [connection setup and limitations](CHATGPT_PLAN.md). The native Codex profile remains separate; App Server RPC and public website login are not exposed by these routes.

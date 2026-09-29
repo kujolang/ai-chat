@@ -1,3 +1,4 @@
+let chatgptPanel = null;
 const defaultState = {
 	chats: [],
 	stateVersion: 0,
@@ -2870,7 +2871,7 @@ function buildProfileModelOptions() {
 				profile_id: profile.id,
 				model,
 				profile_name: profile.name,
-				label: `${profile.name} | ${model}`
+				label: `${profile.name} | ${profile.provider_id === "openai_chatgpt_plan" ? chatgptPanel?.modelName(profile.connection_id, model) || model : model}`
 			});
 		}
 	}
@@ -3463,6 +3464,12 @@ function renderWorkspace(options = {}) {
 		const paneModelName = paneProfile ? modelForProfileSelection(paneProfile, pane.model) : String(pane.model || "");
 		paneSummary.textContent = `Pane ${paneIndex + 1}`;
 		paneSummary.classList.toggle("hidden", !hasMultiplePanes);
+		if (paneProfile?.provider_id === "openai_chatgpt_plan") {
+			const badge = document.createElement("div"); badge.className = "chatgpt-plan-badge";
+			badge.append(document.createTextNode("Using ChatGPT plan · "));
+			const link = document.createElement("a"); link.href = "https://chatgpt.com/settings/usage"; link.textContent = "Manage usage"; link.target = "_blank"; link.rel = "noopener noreferrer";
+			badge.append(link); paneSummary.parentNode.append(badge);
+		}
 		paneModelSelect.classList.toggle("hidden", !hasMultiplePanes);
 
 		if (!hasMultiplePanes) {
@@ -4004,7 +4011,26 @@ function applyCodeHighlighting(rootNode) {
 	}
 }
 
+function getChatGPTPanel() {
+	if (!chatgptPanel && window.ChatGPTConnections) chatgptPanel = window.ChatGPTConnections.create({
+		root: document.getElementById("chatgpt-connections"), apiFetch,
+		onChange: () => renderSettings(),
+		async useConnection(connection, models) {
+			let profile = state.settings.profiles.find(p => p.provider_id === "openai_chatgpt_plan" && p.connection_id === connection.id);
+			if (!profile) {
+				profile = { id: uid(), name: `ChatGPT · ${connection.label}`.slice(0, 120), provider_id: "openai_chatgpt_plan", connection_id: connection.id, base_url: "", credential_managed: true };
+				state.settings.profiles.push(profile);
+			}
+			setProfileModels(profile, models.map(m => m.slug));
+			delete profile.api_key;
+			schedulePersist(); await persistStateToServer(); renderSettings(); renderAll();
+		}
+	});
+	return chatgptPanel;
+}
+
 function openSettings() {
+	void getChatGPTPanel()?.refresh();
 	renderSettings();
 	setSettingsTab("general");
 	clearSettingsSaveIndicator();
@@ -5579,10 +5605,10 @@ function renderSettings() {
 
 	nodes.profileList.innerHTML = state.settings.profiles
 		.map((profile, profileIndex) => {
-			const managedCredential = profile.provider_id === "watchdog" || profile.provider_id === "watchdog_openrouter" || profile.provider_id === "watchdog_ollama_tud" || profile.provider_id === "hermes" || profile.provider_id === "xai_oauth" || profile.provider_id === "codex" || profile.credential_managed;
+			const managedCredential = profile.provider_id === "watchdog" || profile.provider_id === "watchdog_openrouter" || profile.provider_id === "watchdog_ollama_tud" || profile.provider_id === "hermes" || profile.provider_id === "xai_oauth" || profile.provider_id === "codex" || profile.provider_id === "openai_chatgpt_plan" || profile.credential_managed;
 			const collapsed = collapsedProviderIds.has(profile.id);
 			const modelCount = profileModelEntries(profile).length;
-			const keyStatus = profile.provider_id === "codex"
+			const keyStatus = profile.provider_id === "openai_chatgpt_plan" ? chatgptPanel?.label(profile.connection_id) || "ChatGPT connection" : profile.provider_id === "codex"
 				? "Managed by local Codex login"
 				: profile.provider_id === "xai_oauth"
 				? "Managed by X account OAuth"
@@ -5613,8 +5639,9 @@ function renderSettings() {
 						</label>
 						<label>
 							<span>Provider</span>
-							<select data-profile-id="${profile.id}" data-field="provider_id">
-								${providerOption(profile.provider_id, "openai", "OpenAI")}
+							<select data-profile-id="${profile.id}" data-field="provider_id" ${profile.provider_id === "openai_chatgpt_plan" ? "disabled" : ""}>
+								${profile.provider_id === "openai_chatgpt_plan" ? providerOption(profile.provider_id, "openai_chatgpt_plan", "ChatGPT Plan (Preview)") : ""}
+								${providerOption(profile.provider_id, "openai", "OpenAI API")}
 								${providerOption(profile.provider_id, "deepseek", "DeepSeek")}
 								${providerOption(profile.provider_id, "openrouter", "OpenRouter")}
 								${providerOption(profile.provider_id, "custom", "Custom OpenAI-Compatible")}
@@ -5628,7 +5655,7 @@ function renderSettings() {
 						</label>
 						<label>
 							<span>API Key</span>
-							<input data-profile-id="${profile.id}" data-field="api_key" type="password" value="" placeholder="${profile.provider_id === "codex" ? "Managed by local Codex auth" : profile.provider_id === "xai_oauth" ? "Managed by X account OAuth" : profile.provider_id === "hermes" ? "Managed by local Hermes auth" : managedCredential ? "Managed by WATCHDOG_PROXY_TOKEN_FILE" : "Enter a new key to update"}" autocomplete="off" ${managedCredential ? "disabled" : ""}>
+							<input data-profile-id="${profile.id}" data-field="api_key" type="password" value="" placeholder="${profile.provider_id === "openai_chatgpt_plan" ? "Managed by ChatGPT connection" : profile.provider_id === "codex" ? "Managed by local Codex auth" : profile.provider_id === "xai_oauth" ? "Managed by X account OAuth" : profile.provider_id === "hermes" ? "Managed by local Hermes auth" : managedCredential ? "Managed by WATCHDOG_PROXY_TOKEN_FILE" : "Enter a new key to update"}" autocomplete="off" ${managedCredential ? "disabled" : ""}>
 						</label>
 						<label>
 							<span>Key Status</span>
@@ -5636,7 +5663,7 @@ function renderSettings() {
 						</label>
 						<label>
 							<span>Base URL (custom only)</span>
-							<input data-profile-id="${profile.id}" data-field="base_url" type="text" value="${escapeHtml(profile.base_url || "")}" placeholder="${profile.provider_id === "codex" ? "Managed by local Codex CLI" : profile.provider_id === "xai_oauth" ? "Managed by XAI_OAUTH_PROXY_URL" : profile.provider_id === "hermes" ? "Managed by HERMES_PROXY_URL" : managedCredential ? "Managed by WATCHDOG_PROXY_URL" : ""}" ${managedCredential ? "disabled" : ""}>
+							<input data-profile-id="${profile.id}" data-field="base_url" type="text" value="${escapeHtml(profile.base_url || "")}" placeholder="${profile.provider_id === "openai_chatgpt_plan" ? "OpenAI Responses (fixed)" : profile.provider_id === "codex" ? "Managed by local Codex CLI" : profile.provider_id === "xai_oauth" ? "Managed by XAI_OAUTH_PROXY_URL" : profile.provider_id === "hermes" ? "Managed by HERMES_PROXY_URL" : managedCredential ? "Managed by WATCHDOG_PROXY_URL" : ""}" ${managedCredential ? "disabled" : ""}>
 						</label>
 					</div>
 					${renderProfileModels(profile)}
@@ -7547,6 +7574,11 @@ async function toggleWhisperRecording() {
 	}
 
 	try {
+		const voiceProfile = getProfileById(getActiveChat()?.panes?.[0]?.profile_id);
+		if (voiceProfile?.provider_id === "openai_chatgpt_plan") {
+			nodes.voiceStatus.textContent = "Voice: ChatGPT plan does not support transcription. Select an API provider to use it.";
+			return;
+		}
 		whisperStream = await navigator.mediaDevices.getUserMedia({ audio: true });
 		whisperChunks = [];
 		mediaRecorder = new MediaRecorder(whisperStream);
