@@ -49,3 +49,26 @@ test('ChatGPT malformed and oversized records fail closed', async () => {
   await assert.rejects(collect(stream({ lease, model: 'test', messages: [], fetchFn: async () => new Response(data, { headers: { 'content-type': 'text/event-stream' } }) })));
  }
 });
+
+test('ChatGPT record limits count UTF-8 bytes including fragmented unfinished records', async () => {
+ const wire = `data: ${JSON.stringify(text('界'.repeat(750000)))}\n\n`;
+ for (const chunkSize of [wire.length * 4, 65536]) {
+  const events = sse([text('界'.repeat(750000))], chunkSize);
+  await assert.rejects(collect(stream({ lease, model: 'test', messages: [], fetchFn: async () => events })), { code: 'chatgpt_record_too_large' });
+ }
+});
+
+test('ChatGPT accepts many bounded events delivered in one large transport chunk', async () => {
+ const events = Array.from({ length: 2200 }, () => text('x'.repeat(1000)));
+ events.push(complete([]));
+ const result = await collect(stream({ lease, model: 'test', messages: [], fetchFn: async () => sse(events, 4 * 1024 * 1024) }));
+ assert.equal(result.length, 2201);
+ assert.equal(result.at(-1).done, true);
+ assert.equal(result.slice(0, -1).reduce((sum, event) => sum + event.choices[0].delta.content.length, 0), 2200000);
+});
+
+test('ChatGPT aggregate output limit counts multibyte content', async () => {
+ const events = Array.from({ length: 60 }, () => text('界'.repeat(100000)));
+ events.push(complete([]));
+ await assert.rejects(collect(stream({ lease, model: 'test', messages: [], fetchFn: async () => sse(events, 400000) })), { code: 'chatgpt_output_too_large' });
+});

@@ -476,3 +476,13 @@ Profiles accept `provider_id:"openai_chatgpt_plan"` and an opaque `connection_id
 `/api/chat/stream` keeps its existing SSE contract and neutral tool permissions. Its execution request adds `connection_binding:{connection_id,binding_epoch,billing_source:"chatgpt_plan",harness:"ai_chat"}`. Success includes the billing source, connection reference and harness. Resume rejects changed bindings; no request retries against another billing source. `/api/chat` collects a mandatory upstream stream and rejects tool requests, which belong on the streaming route. `/api/transcribe` rejects this provider.
 
 See [connection setup and limitations](CHATGPT_PLAN.md). The native Codex profile remains separate; App Server RPC and public website login are not exposed by these routes.
+
+## September 2026 hardening clarifications
+
+- Automation `weekday: 0` (or `"0"`) selects Sunday on both create and update. Existing erroneously saved Monday schedules need an explicit user edit; no stored schedule is silently migrated.
+- Shutdown stops automation admission, cancels loopback transports, and waits for run persistence before closing SQLite. Deleting a run's chat during execution does not recreate it; surviving run history still reaches a terminal status. Full-state replacement preserves automation links to chats retained under the same IDs and leaves links null for deleted chats.
+- Transcription accepts one audio file plus at most 16 fields / 17 total parts. Each field is limited to 16 KiB and each field name to 100 bytes. File overflow keeps HTTP 413 `file_too_large`; other multipart limit violations return HTTP 400 `invalid_multipart`. Upstream response bodies are limited to 2 MiB, remain subject to `REQUEST_TIMEOUT_MS` after headers arrive, and cannot redirect. Transport/body failures retain `transcribe_failed`.
+- ChatGPT Responses records and aggregate normalized output use UTF-8 byte limits (2 MiB and 16 MiB). Multiple valid records in a single transport chunk remain valid. Oversized output fails explicitly without authorizing incomplete tool calls.
+- Native Codex stdout and stderr share `CODEX_MAX_OUTPUT_BYTES` (32 MiB by default, configurable from 1 KiB to 256 MiB). Overflow stops the process and reports `codex_exec_failed` with the named limit. Persistent execution receipts still require reconciliation before replay of uncertain actions.
+
+No route, persisted schema, profile binding, API-key format, or provider selection changed.

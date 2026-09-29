@@ -52,48 +52,49 @@ function localhostFor(host) {
 }
 
 function displayUrl(config) {
-	return `http://${localhostFor(config.host)}:${config.port}`;
+	const host = localhostFor(config.host);
+	return `http://${host.includes(":") && !host.startsWith("[") ? `[${host}]` : host}:${config.port}`;
 }
 
 function probeHealth(url, timeoutMs = 1000) {
 	return new Promise((resolve) => {
-		const request = http.get(`${url}/healthz`, { timeout: timeoutMs }, (response) => {
+		let settled = false;
+		const finish = (value) => {
+			if (settled) return;
+			settled = true;
+			clearTimeout(deadline);
+			resolve(value);
+		};
+		// A wall-clock deadline also bounds a listener trickling partial JSON.
+		let request;
+		const deadline = setTimeout(() => { finish(null); request?.destroy(); }, timeoutMs);
+		request = http.get(`${url}/healthz`, (response) => {
 			let body = "";
 			response.setEncoding("utf8");
 			response.on("data", (chunk) => {
 				body += chunk;
-				if (body.length > 4096) {
-					request.destroy();
-				}
+				if (Buffer.byteLength(body) > 4096) { finish(false); request.destroy(); }
 			});
+			response.on("aborted", () => finish(false));
+			response.on("error", () => finish(false));
 			response.on("end", () => {
 				try {
 					const json = JSON.parse(body);
-					resolve(Boolean(json && json.ok === true && json.service === "ai-chat"));
-				} catch (error) {
-					resolve(false);
-				}
+					finish(Boolean(json && json.ok === true && json.service === "ai-chat"));
+				} catch { finish(false); }
 			});
 		});
-		request.on("timeout", () => {
-			request.destroy();
-			resolve(null);
-		});
-		request.on("error", () => resolve(null));
+		request.on("error", () => finish(null));
 	});
 }
 
 function startServer(runtime) {
-	process.on("unhandledRejection", (error) => {
-		console.error("[ai-chat] unhandledRejection", error);
-	});
-	process.on("uncaughtException", (error) => {
-		console.error("[ai-chat] uncaughtException", error);
-	});
-
+	// Preserve Node's fatal-error behavior. Continuing after an uncaught error
+	// can serve requests with inconsistent in-memory state; journal recovery
+	// reconciles interrupted work on the next start.
 	const server = runtime.app.listen(runtime.config.port, runtime.config.host, () => {
-		server.requestTimeout = 0;
-		server.headersTimeout = 0;
+		// Retain Node's bounded header/body receive deadlines. Response streaming
+		// remains unlimited here and is governed by the runtime's stream policy.
 		server.setTimeout(0);
 		console.log(`ai-chat running on ${displayUrl(runtime.config)}`);
 		console.log(`AI SDK available: ${runtime.config.aiSdkAvailable ? "yes" : "no"}`);

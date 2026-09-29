@@ -45,6 +45,7 @@ Copy values from `.env.example` and define these variables in your shell or envi
 - CODEX_CLI_PATH
 - CODEX_MODEL_CACHE_PATH
 - CODEX_SANDBOX_MODE
+- CODEX_MAX_OUTPUT_BYTES
 - HERMES_PROXY_URL
 - XAI_OAUTH_PROXY_URL
 - HERMES_PROXY_TOKEN
@@ -504,3 +505,11 @@ For rollback, stop the new instance and restore the pre-upgrade database and mat
 For the local OSS preview, set `CHATGPT_SIGN_IN_ENABLED=1` with a loopback `AI_CHAT_HOST`, `TRUST_PROXY=0`, and a strong existing `ENCRYPTION_SECRET` (at least 24 characters). Restart, then open **Settings → Providers → Continue with ChatGPT** on the server's computer. Eligible Plus/Pro users can separately consent to plan usage and add an account-specific model profile. OpenAI API keys and native Codex login remain independent.
 
 See [ChatGPT plan setup](docs/CHATGPT_PLAN.md) for storage, disconnect, limits, verification and deployment scope. This does not enable commercial hosted login or the optional Codex App Server harness.
+
+### Runtime resource bounds
+
+Native Codex output has a combined stdout/stderr ceiling of 32 MiB per invocation. `CODEX_MAX_OUTPUT_BYTES` adjusts it between 1 KiB and 256 MiB. Overflow terminates the child and fails the request explicitly; inspect execution receipts before resuming consequential work. This does not change the Codex sandbox or model selection.
+
+The HTTP listener retains Node 22's 60-second header and five-minute request-body receive deadlines. These limit slow uploads, not the duration of an accepted streaming response. `REQUEST_TIMEOUT_MS` now remains effective through transcription response-body consumption; transcription responses are bounded to 2 MiB and redirects are rejected.
+
+For the offline performance comparison, run `node scripts/repository-hardening-benchmark.js --baseline 7237a96`. It creates temporary synthetic files, checks output equality, and prints a compact JSON receipt. Timing is advisory; unit tests enforce ordering, byte-equivalent batching, and bounded file-stat counts. See [the audit](docs/audits/repository-hardening.md).

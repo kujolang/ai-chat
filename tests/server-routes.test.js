@@ -4801,3 +4801,97 @@ test('native resume rejects a changed session identity and kills the child befor
   });
  }finally{await runtime.close();destroy();}
 });
+
+test("transcription rejects excessive multipart fields before provider dispatch", async () => {
+ let requests = 0;
+ const { runtime, destroy } = createIsolatedRuntime({ fetchFn: async () => { requests++; throw new Error("must not dispatch"); } });
+ try {
+  await withServer(runtime.app, async baseUrl => {
+   for (const form of [(() => { const value = new FormData(); for (let i = 0; i < 17; i++) value.append(`field-${i}`, "x"); return value; })(), (() => { const value = new FormData(); value.append("prompt", "x".repeat(16385)); return value; })()]) {
+    const response = await fetch(`${baseUrl}/api/transcribe`, { method: "POST", headers: withAuthHeaders(), body: form });
+    assert.equal(response.status, 400);
+    assert.equal((await response.json()).error.code, "invalid_multipart");
+   }
+   assert.equal(requests, 0);
+  });
+ } finally { destroy(); }
+});
+
+test("transcription bounds upstream bytes and rejects stalled bodies after headers", async () => {
+ for (const mode of ["oversize", "stalled"]) {
+  let cancelled = false;
+  const { runtime, destroy } = createIsolatedRuntime({ envMerge: { REQUEST_TIMEOUT_MS: "30" }, fetchFn: async (_url, init) => {
+   assert.equal(init.redirect, "error");
+   return new Response(new ReadableStream({
+    start(controller) {
+     if (mode === "oversize") controller.enqueue(new Uint8Array(2 * 1024 * 1024 + 1));
+     else init.signal.addEventListener("abort", () => controller.error(init.signal.reason), { once: true });
+    },
+    cancel() { cancelled = true; }
+   }), { headers: { "content-type": "application/json" } });
+  } });
+  try {
+   const profileId = applyProfileMutation(runtime, profile => { profile.provider_id = "openai"; profile.api_key = "fixture-only"; });
+   await withServer(runtime.app, async baseUrl => {
+    const form = new FormData(); form.append("profile_id", profileId); form.append("audio", new Blob(["audio"], { type: "audio/webm" }), "fixture.webm");
+    const response = await fetch(`${baseUrl}/api/transcribe`, { method: "POST", headers: withAuthHeaders(), body: form, signal: AbortSignal.timeout(2000) });
+    assert.equal(response.status, 500);
+    assert.equal((await response.json()).error.code, "transcribe_failed");
+    if (mode === "oversize") assert.equal(cancelled, true);
+   });
+  } finally { destroy(); }
+ }
+});
+
+test("runtime shutdown drains an automation admitted before its loopback request starts", async () => {
+ const { runtime, destroy } = createIsolatedRuntime();
+ try {
+  const profileId = runtime.helpers.readState().settings.profiles[0].id;
+  const automation = runtime.helpers.automationService.create({ title: "Shutdown", prompt: "fixture", profile_id: profileId, enabled: false });
+  const queued = runtime.helpers.automationService.queue(automation.id, "http://127.0.0.1:1");
+  await runtime.close();
+  await queued.promise;
+  assert.equal(runtime.db.open, false);
+  assert.equal(runtime.helpers.automationService.activeCount(), 0);
+ } finally { destroy(); }
+});
+
+test("native Codex stdout and stderr share a byte limit and never report overflow as completion", async () => {
+ for (const channel of ["stdout", "stderr"]) {
+  let killed = false;
+  const { runtime, destroy } = createIsolatedRuntime({ envMerge: { CODEX_MAX_OUTPUT_BYTES: "1024" }, spawnFn: () => {
+   const child = new (require("events").EventEmitter)(); child.stdout = new PassThrough(); child.stderr = new PassThrough();
+   child.kill = signal => { assert.equal(signal, "SIGKILL"); killed = true; queueMicrotask(() => child.emit("close", null)); };
+   process.nextTick(() => { child.stdout.write('{"type":"thread.started","thread_id":"bounded"}\n'); child[channel].write("界".repeat(400)); });
+   return child;
+  } });
+  try {
+   await withServer(runtime.app, async baseUrl => {
+    const profile = runtime.helpers.readState().settings.profiles.find(p => p.provider_id === "codex");
+    const result = await fetchJson(baseUrl, "/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ profile_id: profile.id, model: "fixture", messages: [{ role: "user", content: "Bound output" }] }) });
+    assert.equal(result.response.status, 502);
+    assert.equal(result.json.error.code, "codex_exec_failed");
+    assert.match(result.json.error.message, /CODEX_MAX_OUTPUT_BYTES/);
+    assert.equal(killed, true);
+   });
+  } finally { destroy(); }
+ }
+});
+
+test("full state replacement preserves automation history links only for retained chats", async () => {
+ const { runtime, destroy } = createIsolatedRuntime();
+ try {
+  const profileId = runtime.helpers.readState().settings.profiles[0].id;
+  const automation = runtime.helpers.automationService.create({ title: "History", prompt: "fixture", profile_id: profileId, enabled: false });
+  const queued = runtime.helpers.automationService.queue(automation.id, "http://127.0.0.1:1");
+  await queued.promise;
+  const original = runtime.helpers.automationService.runs(automation.id)[0];
+  const state = runtime.helpers.readState();
+  runtime.helpers.writeState(state);
+  assert.equal(runtime.helpers.automationService.runs(automation.id)[0].chat_id, original.chat_id);
+  const removed = runtime.helpers.readState();
+  removed.chats = removed.chats.filter(chat => chat.id !== original.chat_id);
+  runtime.helpers.writeState(removed);
+  assert.equal(runtime.helpers.automationService.runs(automation.id)[0].chat_id, null);
+ } finally { destroy(); }
+});

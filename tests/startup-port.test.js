@@ -120,3 +120,36 @@ test("server startup reports a friendly error when another process owns the port
 		fs.rmSync(tempRoot, { recursive: true, force: true });
 	}
 });
+
+for (const mode of ["oversized", "aborted", "trickled"]) test(`startup health probe settles for ${mode} occupied-port responses`, async () => {
+ const { tempRoot, env } = createTestEnv();
+ try {
+  await withListener((req, res) => {
+   if (mode === "oversized") { res.write("x".repeat(5000)); return; }
+   if (mode === "aborted") { res.write("{\"ok\":"); res.flushHeaders(); setImmediate(() => res.destroy()); return; }
+   const timer = setInterval(() => res.write(" "), 20);
+   res.on("close", () => clearInterval(timer));
+  }, async port => {
+   const result = await runServer({ ...env, AUDIT_LOG_PATH: path.join(tempRoot, "audit.log"), AI_CHAT_HOST: "127.0.0.1", PORT: String(port) });
+   assert.equal(result.code, 1);
+   assert.match(result.stderr, /already in use/);
+   assert.doesNotMatch(result.stderr, /uncaughtException/);
+  });
+ } finally { fs.rmSync(tempRoot, { recursive: true, force: true }); }
+});
+
+for (const kind of ["exception", "rejection"]) test(`startup preserves a failing exit for an uncaught ${kind}`, async () => {
+ const { tempRoot, env } = createTestEnv();
+ try {
+  const preload = path.join(tempRoot, "fatal-preload.cjs");
+  fs.writeFileSync(preload, `const http = require('node:http');
+const listen = http.Server.prototype.listen;
+http.Server.prototype.listen = function(...args) {
+ this.once('listening', () => setImmediate(() => { ${kind === "exception" ? "throw new Error('fatal-fixture');" : "Promise.reject(new Error('fatal-fixture'));"} }));
+ return listen.apply(this, args);
+};`);
+  const result = await runServer({ ...env, NODE_OPTIONS: `--require=${preload}`, PORT: "0", AI_CHAT_HOST: "127.0.0.1", AUDIT_LOG_PATH: path.join(tempRoot, "audit.log"), BENCHMARK_OUTPUT_DIR: path.join(tempRoot, "benchmarks") });
+  assert.equal(result.code, 1);
+  assert.match(result.stderr, /fatal-fixture/);
+ } finally { fs.rmSync(tempRoot, { recursive: true, force: true }); }
+});
