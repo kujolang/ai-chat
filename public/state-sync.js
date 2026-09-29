@@ -50,6 +50,7 @@
 				id: String(profile.id || ""),
 				name: String(profile.name || "New Profile"),
 				provider_id: String(profile.provider_id || "openai"),
+				connection_id: String(profile.connection_id || ""),
 				base_url: String(profile.base_url || ""),
 				models_csv: String(profile.models_csv || ""),
 				sort_order: index

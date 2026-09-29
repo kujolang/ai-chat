@@ -36,8 +36,9 @@ async function fixture(t, options = {}) {
 		}
 		assert.equal(crypto.createHash("sha256").update(init.body.get("code_verifier")).digest("base64url"), authorization.searchParams.get("code_challenge"));
 		assert.equal(init.body.get("redirect_uri"), authorization.searchParams.get("redirect_uri"));
-		const idToken = await new jose.SignJWT({ sub: options.subject || "user-1", email: "test@example.invalid", nonce: options.badNonce ? "wrong" : authorization.searchParams.get("nonce") })
-			.setProtectedHeader({ alg: "RS256", kid: "test-key" }).setIssuer(options.badIssuer ? "https://attacker.invalid" : ISSUER).setAudience(options.badAudience ? "wrong" : clientId).setIssuedAt().setExpirationTime("1h").sign(keys.privateKey);
+		let idToken = await new jose.SignJWT({ sub: options.subject || "user-1", email: "test@example.invalid", nonce: options.badNonce ? "wrong" : authorization.searchParams.get("nonce") })
+			.setProtectedHeader({ alg: "RS256", kid: "test-key" }).setIssuer(options.badIssuer ? "https://attacker.invalid" : ISSUER).setAudience(options.badAudience ? "wrong" : clientId).setIssuedAt().setExpirationTime(options.expired ? Math.floor(Date.now() / 1000) - 100 : "1h").sign(keys.privateKey);
+		if (options.badSignature) { const parts = idToken.split("."); parts[2] = (parts[2][0] === "A" ? "B" : "A") + parts[2].slice(1); idToken = parts.join("."); }
 		return json({ id_token: idToken, access_token: "access-1", refresh_token: "refresh-1", expires_in: 3600, token_type: "Bearer", scope: options.identityOnly ? "openid profile email" : SCOPES });
 	};
 	const auth = createChatGPTAuth({ getStore: () => store, fetchFn, now: () => clock });
@@ -75,7 +76,7 @@ test("ChatGPT dynamic registration verifies identity, keeps secrets off public p
 	assert.doesNotMatch(fs.readFileSync(path.join(f.directory, "connections.db")).toString(), /access-1|refresh-2|test@example/);
 });
 
-for (const option of ["badNonce", "badIssuer", "badAudience"]) test(`ChatGPT rejects ${option} before saving a connection`, async t => {
+for (const option of ["badNonce", "badIssuer", "badAudience", "badSignature", "expired"]) test(`ChatGPT rejects ${option} before saving a connection`, async t => {
 	const f = await fixture(t, { [option]: true }); const a = await f.start();
 	assert.equal((await f.callback(a)).status, 400); assert.equal(f.store.list().length, 0);
 	assert.equal(f.auth.status(a.attempt_id).status, "failed");
@@ -132,4 +133,19 @@ test("encrypted connection store persists stable host, rejects second owner, wro
 		assert.equal(store.read(r.id).access_token, "private-value");
 		assert.equal(fs.statSync(path.join(directory, "connections.db")).mode & 0o777, 0o600);
 	} finally { store?.close(); fs.rmSync(directory, { recursive: true, force: true }); }
+});
+
+test('concurrent sign-in starts allocate only one pending callback listener', async t => {
+ const f = await fixture(t);
+ const starts = await Promise.allSettled([f.auth.start(), f.auth.start(), f.auth.start()]);
+ assert.equal(starts.filter(s => s.status === 'fulfilled').length, 1);
+ assert.ok(starts.filter(s => s.status === 'rejected').every(s => s.reason.code === 'chatgpt_login_pending'));
+ const a = starts.find(s => s.status === 'fulfilled').value;
+ f.auth.cancel(a.attempt_id); assert.equal(f.auth.status(a.attempt_id).status, 'cancelled');
+});
+test('missing issued client and OAuth denial never exchange or save credentials', async t => {
+ for (const extra of [{ client_id: '' }, { error: 'access_denied' }]) {
+  const f = await fixture(t); const a = await f.start();
+  assert.equal((await f.callback(a, extra)).status, 400); assert.equal(f.store.list().length, 0);
+ }
 });
