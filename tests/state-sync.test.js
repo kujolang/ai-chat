@@ -227,3 +227,18 @@ test("state sync keeps partial streaming content but omits transient UI fields",
 		sort_order: 0
 	}]);
 });
+
+test("batchChanges matches JSON envelope limits across unicode, count and oversized single records", () => {
+ const changes = Array.from({ length: 60 }, (_, i) => ({ type: "message_upsert", message: { id: String(i), content: ["ascii", "界", "😀", '"\\\n'][i % 4].repeat(i * 51) } }));
+ changes.splice(9, 0, null, undefined);
+ for (const limit of [16384, 20000, 512 * 1024]) for (const count of [1, 7, 250]) {
+  const expected = []; let current = [];
+  for (const change of changes) {
+   const candidate = current.concat([change]);
+   if (current.length && (candidate.length > count || stateSync.jsonByteLength({ changes: candidate }) > limit)) { expected.push(current); current = [change]; }
+   else current = candidate;
+  }
+  if (current.length) expected.push(current);
+  assert.deepEqual(stateSync.batchChanges(changes, limit, count), expected);
+ }
+});

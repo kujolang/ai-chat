@@ -597,3 +597,22 @@ test("FF-5: local_path_type_mismatch error clarifies required type", () => {
 		fs.rmSync(tempRoot, { recursive: true, force: true });
 	}
 });
+
+test("bounded directory listings preserve sorting and stat only the selected window", () => {
+ const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-list-window-")));
+ try {
+  fs.mkdirSync(path.join(root, "z-directory"));
+  for (let i = 0; i < 50; i++) fs.writeFileSync(path.join(root, `file-${String(i).padStart(2, "0")}.txt`), "data");
+  const runtime = createLocalRuntime({ projectRoot: root, env: { AI_CHAT_LOCAL_TOOLS_ENABLED: "1", AI_CHAT_LOCAL_WORKSPACE_ROOTS: root } });
+  const original = fs.statSync;
+  let stats = 0;
+  fs.statSync = function(file, ...args) { if (String(file).startsWith(root + path.sep)) stats++; return original.call(this, file, ...args); };
+  let result;
+  try { result = runtime.listFiles({ root_id: "workspace_0", max_entries: 3 }); }
+  finally { fs.statSync = original; }
+  assert.deepEqual(result.entries.map(entry => entry.name), ["z-directory", "file-00.txt", "file-01.txt"]);
+  assert.equal(result.entries[1].size, 4);
+  assert.equal(result.truncated, true);
+  assert.equal(stats, 3);
+ } finally { fs.rmSync(root, { recursive: true, force: true }); }
+});

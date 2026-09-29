@@ -144,15 +144,21 @@
 		const countLimit = Math.max(1, Number(maxBatchChanges) || 250);
 		const batches = [];
 		let current = [];
+		const envelopeBytes = jsonByteLength({ changes: [] });
+		let currentBytes = envelopeBytes;
 
 		for (const change of source) {
-			const candidate = current.concat([change]);
-			if (current.length > 0 && (candidate.length > countLimit || jsonByteLength({ changes: candidate }) > limit)) {
+			// Measure each JSON array item once, preserving null/undefined array
+			// serialization and UTF-8 framing without serializing every prefix.
+			const itemBytes = jsonByteLength([change]) - 2;
+			const candidateBytes = currentBytes + itemBytes + (current.length ? 1 : 0);
+			if (current.length > 0 && (current.length + 1 > countLimit || candidateBytes > limit)) {
 				batches.push(current);
-				current = [change];
-			} else {
-				current = candidate;
+				current = [];
+				currentBytes = envelopeBytes;
 			}
+			currentBytes += itemBytes + (current.length ? 1 : 0);
+			current.push(change);
 		}
 
 		if (current.length > 0) {
