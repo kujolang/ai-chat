@@ -84,3 +84,18 @@ The earlier SignalBox evidence-compaction capture/signal now describes a fixed i
 
 SignalBox remaining 408 finding: capture `cap_05f73ea4-98db-48cd-9762-2a9d6066689c`, signal `sig_c763400a-837a-4561-a85a-a417b0cba5de`. Exact-ID and concept retrieval passed. No equivalent 408 record found; completed evidence-recovery work, routine verification and external allowance exhaustion were rejected as new captures. Existing evidence-starvation signal was not duplicated or silently dispositioned.
 - Deployed `/healthz`: healthy. `node scripts/smoke-test.js` with the local instance token and `SMOKE_BASE_URL=http://127.0.0.1:4174`: passed health, providers, state and offline fixture chat (all HTTP 200). No paid inference or user prompt replay. Log: `/tmp/ai-chat-deployed-smoke.log`.
+
+## DeepSeek deferred shell and composer follow-up
+
+Affected execution `hgmrp6hrp594k:pass:0`, model `deepseek-v4.1-flash:cloud`, failed after 12,744 ms with `tool_execution_unavailable`, not a timeout. The saved request authorized `local_shell` and enabled tool discovery. The model invoked that deferred tool without first requesting its schema; the active-schema allowlist stopped the entire chat despite the tool being in the caller-authorized catalog.
+
+AI Chat now distinguishes authorized deferred tools from disabled/unknown tools. A premature call loads the schema, records an explicit non-execution receipt, and lets the model issue a fresh corrected call. Original arguments are never executed. Normal round/call bounds apply; schema recovery survives resume. OpenAI-style and native Ollama three-round fixtures both prove zero shell dispatch before schema delivery and exactly one dispatch after correction; disabled-tool rejection remains covered.
+
+Also fixed a validation boundary found during regression testing: tool-runtime schema rejection occurs before executor dispatch, so it now carries `execution_started=false`. The existing shell failure handler can safely return that error to the model. Executor errors receive no such marker and retain reconciliation requirements.
+
+Composer: removed the save-status pseudo-element on desktop and mobile while retaining accessible save feedback and visible error text. Mobile language/model controls now share a row; the usage chevron remains available. Browser layout tests include real Select2 controls at 320, 375, 720, 900 and 1440 px.
+
+The initial capability instruction now lists only currently loaded schemas, matching the wire request; deferred tools remain in the explicit discovery index. This removes the conflicting hint that encouraged calling an unloaded tool. Schema loading has its own audit event rather than claiming the shell command ran.
+
+Verification: `node --test --test-concurrency=1 tests/*.test.js` passed 473 tests, zero failed/cancelled, one Linux-only skip (474 total; 102.0 seconds; `/tmp/ai-chat-composer-verified-full.log`). Focused shell schema-recovery/validation tests passed three; discovery/observability tests passed six; composer/disclosure/discovery tests passed eight. `git diff --check` and syntax checking passed. Deployment preflight confirmed zero active streams/running executions before graceful restart. No failed user prompt or shell command was replayed, and no historical receipt was rewritten.
+Deployed `/healthz` and `node scripts/smoke-test.js` against port 4174 passed: health, providers, state and offline fixture chat all HTTP 200 (`/tmp/ai-chat-composer-smoke.log`). Implementation commits: `cc47c58` (composer), `db23641` (tool recovery).
