@@ -3951,6 +3951,46 @@ for (const providerId of ["openai", "ollama"]) {
 			});
 		} finally { destroy(); }
 	});
+	test(`premature deferred call loads schema without execution and permits a corrected call (${providerId})`, async () => {
+		let providerCalls = 0;
+		let executions = 0;
+		const { runtime, destroy } = createIsolatedRuntime({
+			localRuntime: { canExecute: () => true, status: () => ({ enabled: true }), runCommand: () => { executions++; return { read: true }; } },
+			fetchFn: async (_url, options) => {
+				const body = JSON.parse(options.body);
+				const names = body.tools.map((tool) => tool.function.name);
+				providerCalls++;
+				assert.ok(!names.includes("local_file_write"));
+				let call;
+				if (providerCalls === 1) {
+					assert.ok(!names.includes("local_shell"));
+					const availableLine = body.messages.find(m => m.role === "system" && String(m.content).startsWith("Available tools:")).content.split("\n")[0];
+					assert.doesNotMatch(availableLine, /local_shell/);
+					assert.ok(names.includes("tool_discover"));
+					call = { index: 0, id: "premature-1", function: { name: "local_shell", arguments: JSON.stringify({ guessed: "invalid" }) } };
+				} else if (providerCalls === 2) {
+					assert.ok(names.includes("local_shell"));
+					assert.equal(executions, 0);
+					assert.ok(body.messages.some(m => m.role === "tool" && m.content.includes("tool_schema_required")));
+					assert.ok(body.messages.some((m) => m.role === "tool" && m.content.includes("local_shell")));
+					call = { index: 0, id: "read-1", function: { name: "local_shell", arguments: JSON.stringify({ root_id: "fixture", command: "pwd", args: [] }) } };
+				}
+				if (providerId === "ollama") return mockChunkedResponse([JSON.stringify({ message: call ? { content: "", tool_calls: [{ function: { name: call.function.name, arguments: JSON.parse(call.function.arguments) } }] } : { content: "README.md found" }, done: true }) + "\n"]);
+				return mockSseResponse([{ choices: [{ delta: call ? { tool_calls: [call] } : { content: "README.md found" }, finish_reason: call ? "tool_calls" : "stop" }] }]);
+			}
+		});
+		try {
+			const profileId = applyProfileMutation(runtime, (p) => { p.provider_id = providerId; p.api_key = "fixture-key"; });
+			await withServer(runtime.app, async (baseUrl) => {
+				const response = await fetch(`${baseUrl}/api/chat/stream`, { method: "POST", headers: withAuthHeaders({ "Content-Type": "application/json" }), body: JSON.stringify({ profile_id: profileId, tool_discovery: true, include_saved_runtime_presets: false, messages: [{ role: "user", content: "Read the skill file" }], tools: [{ type: "function", function: { name: "local_shell", parameters: { type: "object" } } }] }) });
+				const events = parseSseEvents(await response.text());
+				assert.equal(events.at(-1).event, "done", JSON.stringify(events));
+				assert.equal(events.at(-1).data.output_text, "README.md found");
+				assert.equal(executions, 1);
+				assert.equal(providerCalls, 3);
+			});
+		} finally { destroy(); }
+	});
 }
 
 test("an action adapter that fails after a possible side effect does not produce a successful answer", async () => {

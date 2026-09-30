@@ -337,3 +337,15 @@ test("search runtime shutdown cancels active shared upstream work", async () => 
 	await runtime.close();
 	await pending;
 });
+
+test("shell schema validation proves non-execution but executor failures remain uncertain", async () => {
+ let executions = 0;
+ const runtime = createToolRuntime({localRuntime: {
+  canExecute: () => true,
+  runCommand: () => {executions++; throw Object.assign(new Error('transport lost'), {code:'transport_lost'});}
+ }});
+ await assert.rejects(runtime.execute('local_shell', {command:'pwd', args:[], unexpected:'field'}), error => error.code === 'invalid_tool_arguments' && error.execution_started === false);
+ assert.equal(executions, 0);
+ await assert.rejects(runtime.execute('local_shell', {command:'pwd', args:[]}), error => error.code === 'transport_lost' && error.execution_started === undefined);
+ assert.equal(executions, 1);
+});
