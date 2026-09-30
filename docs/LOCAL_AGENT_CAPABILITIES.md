@@ -133,3 +133,16 @@ On Linux, install `/usr/bin/bwrap` (Bubblewrap) and permit its unprivileged user
 Unsupported platforms, headed mode, or unavailable enforcement fail closed. Static `web_fetch` remains usable through its independent checked transport. Both backends use the installed Playwright registry to locate the headless shell; incompatible registry changes or a missing executable also fail closed. No setting disables containment. Linux containers must permit the required namespace and proc/device mounts; do not weaken a production host policy merely to make the availability check pass.
 
 For local shell calls, executables must be both allowlisted and on the AI Chat service’s `PATH`. A terminal’s PATH may differ from launchd’s. `KUJO_BIN` configures the app’s bridge; it does not put `kujo` on the local shell PATH. Go source (`.go`) supports bounded file reads and writes. Use `go run file.go` or `go test` through the allowlisted tool; arbitrary generated executables are not automatically allowed.
+
+## Dangerous command modes
+
+Settings → Tools → Local command permissions provides two separate, instance-wide switches, persisted outside ordinary chat/settings synchronization:
+
+- **Dangerously skip command permissions:** bypass the executable allowlist and permit executable paths. Enabling requires typing `ALLOW UNRESTRICTED COMMANDS`.
+- **Also allow destructive commands:** additionally remove guards for known deletion/disk commands, forced Git changes, recursive ownership/permission changes, elevation and shell wrappers. Requires the first switch and a separate `ALLOW DESTRUCTIVE COMMANDS` confirmation.
+
+Both default off. Disabling the first also clears the second; re-enabling requires fresh acknowledgement. Changes affect subsequent command dispatches, not already-running processes. Existing server shell opt-in, timeouts, output bounds, sanitized environment and separate file-tool policy remain active. Normal mode now also guards known destructive commands even when their executable is allowlisted.
+
+This is accident prevention, **not a sandbox or a guarantee against destructive behavior**. Kujo, Go, Node, Python, npm, custom programs and scripts can mutate files directly, bypassing command-name checks. Commands execute with the service account's filesystem/network access; a workspace sets the starting directory, not a filesystem jail. Unrestricted mode can expose local files and credentials to executed code. Only use it with tasks and workspaces you trust.
+
+`local_workspace_list` metadata reports the current `command_permissions` and `shell_policy`; the configured `shell_allowlist` is ignored while `skip_allowlist` is true. The model cannot request mode changes via tool arguments.

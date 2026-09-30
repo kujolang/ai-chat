@@ -312,6 +312,19 @@
 					</div>
 				</div>
 				<p class="settings-note">Drag Tool cards to set their order and use each chevron to keep the list compact. Web Search, Skill, Local, Action Adapter, and enabled browser presets run through AI Chat's provider-neutral tool runtime. Runtime presets are advertised only when their server runtimes are configured; custom schemas still require a registered executor.</p>
+				<div id="local-command-permissions" class="local-command-permissions">
+					<h4>Local command permissions</h4>
+					<p>These settings affect every chat on this instance. Both are off by default. Commands run with the AI Chat service account's access, not inside a filesystem sandbox.</p>
+					<label><input type="checkbox" name="skip_allowlist"> Dangerously skip command permissions</label>
+					<p>Allow any executable, including custom scripts and absolute paths, instead of the command allowlist. Programs can read, change or delete files outside the selected workspace. The workspace only selects the starting directory.</p>
+					<label data-confirmation="skip_allowlist" hidden>Type ALLOW UNRESTRICTED COMMANDS to enable<input type="text" name="skip_allowlist_confirmation" autocomplete="off" spellcheck="false"></label>
+					<label><input type="checkbox" name="allow_destructive" disabled> Also allow destructive commands</label>
+					<p>This removes the extra guard for known deletion, disk, force-reset and shell-wrapper commands. Data loss can be permanent. The guard is best effort: scripts and runtimes can cause damage even when this switch is off.</p>
+					<label data-confirmation="allow_destructive" hidden>Type ALLOW DESTRUCTIVE COMMANDS to enable<input type="text" name="allow_destructive_confirmation" autocomplete="off" spellcheck="false"></label>
+					<p>Shell opt-in, command deadlines, output limits, credential filtering and file-tool permissions remain in effect. Disabling a switch does not stop commands already running.</p>
+					<button type="button" class="btn danger" disabled>Save command permissions</button>
+					<p role="status" aria-live="polite">Open Tools to load the current server permissions.</p>
+				</div>
 				<div id="tools-list" class="tools-list"></div>
 			</section>
 				</div>
@@ -566,5 +579,6 @@
 	<script src="/retrieval-preferences.js"></script>
 	<script src="/chatgpt-connections.js"></script>
 	<script src="/app.js?v=20260731-sidebar-hover-6"></script>
+	<script src="/local-permissions.js"></script>
 </body>
 </html>

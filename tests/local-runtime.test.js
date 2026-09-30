@@ -626,3 +626,29 @@ test("Go source supports the same scoped read/write tools as Kujo", () => {
   assert.ok(runtime.listFiles({root_id:'workspace_0'}).entries.some(e=>e.name==='bench.go'));
  } finally {fs.rmSync(dir,{recursive:true,force:true});}
 });
+
+test('unrestricted commands and destructive opt-in are independent at every dispatch', async () => {
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'ai-chat-permissions-'));
+ let policy={skip_allowlist:false,allow_destructive:false};
+ const calls=[];
+ try {
+  const runtime=createLocalRuntime({projectRoot:dir,homeDir:dir,
+   env:{AI_CHAT_LOCAL_TOOLS_ENABLED:'1',AI_CHAT_LOCAL_SHELL_ENABLED:'1',AI_CHAT_LOCAL_SHELL_ALLOWLIST:'pwd'},
+   getCommandPermissions:()=>policy,
+   spawnFn:(command,args,options)=>{calls.push({command,args,options});return fakeChild(child=>child.emit('close',0,null));}
+  });
+  const run=(command,args=[])=>runtime.runCommand({command,args});
+  await assert.rejects(run('/tmp/custom-benchmark'),{code:'local_shell_command_blocked'});
+  policy={skip_allowlist:true,allow_destructive:false};
+  await run('/tmp/custom-benchmark');
+  assert.equal(calls[0].command,'/tmp/custom-benchmark');assert.equal(calls[0].options.shell,false);
+  await assert.rejects(run('/bin/rm',['-rf','/']),e=>e.code==='local_shell_destructive_blocked' && e.execution_started===false);
+  assert.equal(calls.length,1);
+  policy={skip_allowlist:true,allow_destructive:true};
+  await run('/bin/rm',['-rf','/']); // Fake spawn only: never runs a command.
+  assert.equal(calls.length,2);
+  policy={skip_allowlist:false,allow_destructive:false};
+  await assert.rejects(run('/tmp/custom-benchmark'),{code:'local_shell_command_blocked'});
+  assert.equal(runtime.status().command_permissions.skip_allowlist,false);
+ }finally{fs.rmSync(dir,{recursive:true,force:true});}
+});

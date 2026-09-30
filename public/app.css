@@ -4978,3 +4978,10 @@ textarea {
  .save-status.error { white-space: normal; max-width: 80px; }
  .composer-actions:has(.composer-language-picker.hidden) { grid-template-columns: auto 0 minmax(0, 1fr) auto auto; }
 }
+
+.local-command-permissions { border: 1px solid #805344; background: var(--bg-soft); padding: 16px; margin-bottom: 20px; }
+.local-command-permissions h4 { margin: 0 0 12px; }
+.local-command-permissions p { font-size: 13px; color: var(--text-dim); line-height: 1.5; }
+.local-command-permissions label { display: block; margin: 12px 0; }
+.local-command-permissions label[hidden] { display: none; }
+.local-command-permissions input[type=text] { display: block; width: 100%; margin-top: 8px; padding: 8px; background: var(--bg-elev); color: var(--text); border: 1px solid var(--line); }

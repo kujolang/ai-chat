@@ -5076,3 +5076,23 @@ test('persistence telemetry releases response bodies and reports HTTP rejection'
   assert.equal(cancelled,1);assert.ok(warnings.some(w=>w.includes('Persistence trace event rejected (HTTP 503)')));
  }finally{destroy();}
 });
+
+test('local command permissions require authentication and independent explicit confirmations', async()=>{
+ const {runtime,destroy}=createIsolatedRuntime();
+ try{
+  await withServer(runtime.app,async base=>{
+   const denied=await fetch(base+'/api/local/permissions');assert.equal(denied.status,401);
+   const get=()=>fetchJson(base,'/api/local/permissions');
+   const post=body=>fetchJson(base,'/api/local/permissions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+   assert.deepEqual((await get()).json.permissions,{skip_allowlist:false,allow_destructive:false});
+   assert.equal((await post({skip_allowlist:true,allow_destructive:false})).response.status,400);
+   const enabled=await post({skip_allowlist:true,allow_destructive:false,skip_allowlist_confirmation:'ALLOW UNRESTRICTED COMMANDS'});
+   assert.equal(enabled.response.status,200);
+   assert.equal((await post({skip_allowlist:true,allow_destructive:true})).response.status,400);
+   assert.deepEqual((await get()).json.permissions,{skip_allowlist:true,allow_destructive:false});
+   runtime.helpers.writeState(runtime.helpers.readState());
+   assert.deepEqual((await get()).json.permissions,{skip_allowlist:true,allow_destructive:false});
+   assert.equal((await post({skip_allowlist:false,allow_destructive:false})).response.status,200);
+  });
+ }finally{destroy();}
+});
