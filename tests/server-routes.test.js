@@ -4726,6 +4726,7 @@ test(`browser reviews and resumes an interrupted saved request (${receiptState})
    assert.equal(inspection.receipts.length,1);assert.equal(inspection.execution.status,'completed');assert.equal(inspection.execution.result.provider_rounds,3);
    await page.waitForFunction(()=>!persistInFlight&&!persistRequested&&!persistTimer);await page.reload();await page.waitForFunction(()=>stateLoadedFromServer&&runtimeCapabilities.loaded);
    await page.evaluate(async id=>activateChat(id),final.chatId);
+   await page.waitForFunction(id=>getActiveChat()?.id===id && getActiveChat()?.panes[0]?.messages.length===2,final.chatId);
    assert.equal(await page.evaluate(()=>getActiveChat().panes[0].messages.at(-1).content),'Resumed without repeating the clock.');
    assert.equal(providerCalls,3);
   });
