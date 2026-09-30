@@ -12,6 +12,10 @@ AI Chat supports the public open-source Sign in with ChatGPT flow documented on 
 
 No manually registered client, client secret or partner key is needed for this local OSS flow. Commercial hosted integration needs separate OpenAI approval. Remote/VM callback forwarding is not implemented in this release. Do not expose the local connection routes through a reverse proxy.
 
+## Troubleshooting the connection panel
+
+If Settings shows `Unexpected token '<'` or says the connection endpoint returned a page, the browser received HTML instead of the connection API response. An older still-running server can serve newly updated frontend files without having loaded the new API routes. Stop that AI Chat process, start it again from the updated checkout with `npm start`, and reload the browser. Verify the URL points to that process, rather than a static-file server or proxy. Enabling the setting requires a server restart; refreshing the browser alone is insufficient. Keep the existing encryption secret and database path.
+
 ## What runs
 
 The new `openai_chatgpt_plan` provider sends text history and explicitly enabled neutral function tools to the fixed public `https://api.openai.com/v1/responses` endpoint. Every request streams with `store:false`. A JSON auxiliary request is collected from that same stream. No Kujo SDK change is required for this provider.

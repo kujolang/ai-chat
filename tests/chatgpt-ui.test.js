@@ -51,6 +51,28 @@ test('ChatGPT UI keeps sign-in attempt cancellable without persisting authorizat
  await page.getByRole('link', { name: 'Open ChatGPT sign-in' }).waitFor();
  await page.getByRole('button', { name: 'Cancel sign-in' }).click();
  await page.waitForFunction(() => window.cancelled);
+ // The mock request is observed before its JSON body and final render settle.
+ await page.getByRole('link', { name: 'Open ChatGPT sign-in' }).waitFor({ state: 'hidden' });
  assert.equal(await page.getByRole('link', { name: 'Open ChatGPT sign-in' }).count(), 0);
  assert.equal(await page.evaluate(() => localStorage.length), 0);
+});
+
+for (const fixture of [
+ { name: 'HTML from a stale server', type: 'text/html', body: '<!doctype html><html>app shell</html>', message: 'Restart the AI Chat server' },
+ { name: 'malformed upstream JSON', type: 'application/json', body: '{broken', message: 'returned invalid JSON' }
+]) test(`ChatGPT settings explains ${fixture.name} once without enabling sign-in`, async t => {
+ const browser = await chromium.launch({ headless: true }); t.after(() => browser.close());
+ const page = await browser.newPage();
+ await page.setContent('<div id="root"></div>');
+ await page.addScriptTag({ path: path.join(__dirname, '../public/chatgpt-connections.js') });
+ await page.evaluate(async fixture => {
+  const panel = window.ChatGPTConnections.create({ root: document.getElementById('root'),
+   apiFetch: async () => new Response(fixture.body, { headers: { 'Content-Type': fixture.type } }),
+   useConnection: async () => { throw new Error('Unexpected profile mutation'); }
+  });
+  await panel.refresh();
+ }, fixture);
+ assert.equal(await page.getByText(fixture.message, { exact: false }).count(), 1);
+ assert.equal(await page.getByRole('button', { name: 'Continue with ChatGPT' }).count(), 0);
+ assert.equal(await page.getByRole('status').count(), 1);
 });

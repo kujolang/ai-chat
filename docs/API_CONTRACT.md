@@ -486,3 +486,5 @@ See [connection setup and limitations](CHATGPT_PLAN.md). The native Codex profil
 - Native Codex stdout and stderr share `CODEX_MAX_OUTPUT_BYTES` (32 MiB by default, configurable from 1 KiB to 256 MiB). Overflow stops the process and reports `codex_exec_failed` with the named limit. Persistent execution receipts still require reconciliation before replay of uncertain actions.
 
 No route, persisted schema, profile binding, API-key format, or provider selection changed.
+
+Unknown authenticated `/api` routes return HTTP 404 JSON with `error.code: "api_not_found"`; they do not return the browser application HTML. Non-API browser routes retain the application fallback.

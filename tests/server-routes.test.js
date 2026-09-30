@@ -4466,6 +4466,9 @@ test('browser replays missing durable SSE events without repeating the model or 
    assert.equal(result.message.execution_id,requestId);assert.ok(result.message.execution_cursor>0);
    await page.waitForFunction(()=>!persistInFlight&&!persistRequested&&!persistTimer);
    await page.reload();await page.waitForFunction(()=>stateLoadedFromServer&&runtimeCapabilities.loaded);
+   // Startup hydrates messages separately from the state summary. Wait for
+   // that load before activation, which skips an already in-flight hydration.
+   await page.waitForFunction(chatId => getChatById(chatId)?.messagesLoaded && !hydratingChatIds.has(chatId), result.chatId);
    const restored=await page.evaluate(async chatId=>{await activateChat(chatId);return getActiveChat().panes[0].messages.at(-1);},result.chatId);
    assert.equal(restored.content,'Recovered exactly once.');assert.equal(restored.execution_id,requestId);assert.equal(restored.execution_cursor,result.message.execution_cursor);
    assert.equal(posts,1);assert.equal(providerCalls,2);
@@ -4894,4 +4897,22 @@ test("full state replacement preserves automation history links only for retaine
   runtime.helpers.writeState(removed);
   assert.equal(runtime.helpers.automationService.runs(automation.id)[0].chat_id, null);
  } finally { destroy(); }
+});
+
+
+test('unknown API routes return JSON while browser routes retain the app shell', async () => {
+ const fixture = createIsolatedRuntime();
+ try {
+  await withServer(fixture.runtime.app, async baseUrl => {
+   for (const method of ['GET', 'POST']) {
+    const response = await fetch(`${baseUrl}/api/connections/missing`, { method, headers: withAuthHeaders() });
+    assert.equal(response.status, 404);
+    assert.match(response.headers.get('content-type'), /application\/json/);
+    assert.equal((await response.json()).error.code, 'api_not_found');
+   }
+   const page = await fetch(`${baseUrl}/settings`);
+   assert.equal(page.status, 200);
+   assert.match(page.headers.get('content-type'), /text\/html/);
+  });
+ } finally { fixture.destroy(); }
 });

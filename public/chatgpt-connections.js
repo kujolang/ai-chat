@@ -6,7 +6,10 @@
   const catalogs = new Map();
   async function request(path = '', body) {
    const response = await apiFetch(`/api/connections/chatgpt${path}`, body === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-   const data = await response.json();
+   const contentType = response.headers.get('content-type') || '';
+   if (!contentType.toLowerCase().includes('application/json')) throw new Error('ChatGPT connection endpoint returned a page instead of JSON. Restart the AI Chat server from the updated checkout, reload this page, and check that this URL reaches that server.');
+   let data;
+   try { data = await response.json(); } catch { throw new Error('ChatGPT connection endpoint returned invalid JSON. Check the AI Chat server logs and retry.'); }
    if (!response.ok || !data.ok) throw new Error(data.error?.message || 'ChatGPT connection failed.');
    return data;
   }
@@ -23,8 +26,9 @@
   function render() {
    root.replaceChildren(element('h3', 'ChatGPT Plan · Preview'));
    root.append(element('p', 'Connect your account and explicitly authorize eligible Plus/Pro plan usage. OpenAI API keys and local Codex login remain separate. Temperature and output-token settings do not apply to this plan route.', 'settings-note'));
-   if (!enabled) root.append(element('p', notice || 'Enable CHATGPT_SIGN_IN_ENABLED=1 on a local server to connect. Open AI Chat on the same computer as the server.', 'settings-note'));
-   else {
+   if (!enabled) {
+    if (!notice) root.append(element('p', 'Enable CHATGPT_SIGN_IN_ENABLED=1 on a local server to connect. Open AI Chat on the same computer as the server.', 'settings-note'));
+   } else {
     const signIn = button('Continue with ChatGPT', () => login()); signIn.classList.add('chatgpt-sign-in'); const logo = document.createElement('img'); logo.src = '/assets/chatgpt-logo-white.svg'; logo.alt = ''; logo.width = 20; logo.height = 20; signIn.prepend(logo); root.append(signIn);
     for (const connection of connections) {
      const row = element('div', '', 'chatgpt-connection');
