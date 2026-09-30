@@ -4648,22 +4648,27 @@ textarea {
 }
 
 @media (max-width: 1100px) {
+	/* One content rail for the brand, title, single chat pane and composer.
+	   Match the composer's maximum width on larger tablets too. */
+	.app-shell { --compact-gutter: max(16px, calc((100vw - var(--content-max)) / 2)); }
+	.brand-row { padding-inline: var(--compact-gutter, 16px); }
+	.composer { padding-inline: var(--compact-gutter, 16px); }
 	.workspace-top {
 		position: static;
 		top: auto;
 		z-index: auto;
-		padding: 10px 7px 8px;
+		padding: 10px var(--compact-gutter) 8px;
 	}
 
 	.pane-grid {
-		padding: 0 16px 8px;
+		padding: 0 var(--compact-gutter) 8px;
 	}
 
 	.app-shell.chat-open .composer {
 		position: sticky;
 		bottom: 0;
 		z-index: 10;
-		padding: 12px 16px calc(18px + env(safe-area-inset-bottom));
+		padding: 12px var(--compact-gutter) calc(18px + env(safe-area-inset-bottom));
 	}
 
 	.composer-actions {

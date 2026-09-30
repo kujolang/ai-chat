@@ -75,7 +75,7 @@ test("mobile layout keeps sidebar chrome visible and simplifies the single-chat 
 	assert.match(cssSource, /@media \(max-width: 1100px\)[\s\S]*?\.app-shell\.sidebar-collapsed \.sidebar-collapsible\s*\{[^}]*max-height: 0;/s);
 	assert.match(cssSource, /@media \(max-width: 1100px\)[\s\S]*?\.brand-title-row \.mobile-sidebar-toggle-btn\s*\{[^}]*display: inline-flex !important;/s);
 	assert.match(cssSource, /@media \(max-width: 1100px\)[\s\S]*?\.workspace-top \.sidebar-toggle-btn\s*\{[^}]*display: none;/s);
-	assert.match(cssSource, /@media \(max-width: 1100px\)[\s\S]*?\.workspace-top\s*\{[^}]*padding: 10px 7px 8px;/s);
+	assert.match(cssSource, /@media \(max-width: 1100px\)[\s\S]*?\.workspace-top\s*\{[^}]*padding: 10px var\(--compact-gutter\) 8px;/s);
 	assert.match(cssSource, /@media \(max-width: 1100px\)[\s\S]*?\.pane-grid\.cols-2,\s*[\s\S]*?\.pane-grid\.cols-3\s*\{[^}]*display: flex;[^}]*overflow-x: auto;[^}]*scroll-snap-type: x mandatory;/s);
 	assert.match(cssSource, /@media \(max-width: 1100px\)[\s\S]*?\.pane-grid\.cols-2 \.pane-card,\s*[\s\S]*?\.pane-grid\.cols-3 \.pane-card\s*\{[^}]*flex: 0 0 50%;[^}]*min-width: 50%;[^}]*scroll-snap-align: start;/s);
 	assert.match(cssSource, /@media \(max-width: 1100px\)[\s\S]*?\.pane-grid\.cols-2 \.message-list,\s*[\s\S]*?\.pane-grid\.cols-3 \.message-list\s*\{[^}]*overflow-y: auto;[^}]*min-height: 0;[^}]*padding-left: 16px;[^}]*padding-right: 16px;/s);
@@ -154,7 +154,7 @@ test("sidebar chat actions fade without shifting titles and archived chats leave
 	assert.match(cssSource, /\.chat-item:hover \.chat-item-top,[\s\S]*?grid-template-columns: minmax\(0, 1fr\) 65px;/s);
 	assert.match(cssSource, /\.chat-action-more\s*\{[^}]*font: 700 16px\/12px var\(--display\);/s);
 	assert.match(appSource, /class="chat-action chat-action-more" data-action="rename"/);
-	assert.match(htmlSource, /app\.css\?v=20260811-select-options-1/);
+	assert.match(htmlSource, /app\.css\?v=20260930-responsive-gutters/);
 	assert.match(appSource, /function sidebarChatMatchesCurrentView\(chat\)/);
 	assert.match(appSource, /if \(state\.activeChatId === chat\.id && !sidebarChatMatchesCurrentView\(chat\)\)/);
 	assert.match(appSource, /state\.activeChatId = nextVisibleChat \? nextVisibleChat\.id : null;/);
