@@ -2179,6 +2179,10 @@ textarea:focus,
 }
 
 .message-thinking-statusline {
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	min-width: 0;
 	margin-top: 6px;
 	color: #7fa2bf;
 	font: 11px/1.45 var(--mono);
@@ -4933,3 +4937,16 @@ textarea {
 }
 .chatgpt-welcome p { margin: 0 0 16px; color: var(--text-dim); }
 .chatgpt-welcome button { display: block; margin-top: 24px; }
+
+/* Keep save feedback accessible without flashing text beside the status dot. */
+.save-status.pending .save-status-label,
+.save-status.saved .save-status-label {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+}

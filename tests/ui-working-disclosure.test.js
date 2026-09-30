@@ -1,0 +1,58 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const { chromium } = require('playwright');
+const source = fs.readFileSync(path.join(__dirname, '../public/app.js'), 'utf8');
+const css = fs.readFileSync(path.join(__dirname, '../public/app.css'), 'utf8');
+const functions = source.slice(source.indexOf('function renderThinkingBlock('), source.indexOf('function appendThinkingDelta('));
+const render = Function(`
+const escapeHtml = value => String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+const renderAssistantMarkdown = escapeHtml;
+const normalizeAssistantProseSpacing = value => value;
+const resolvedThinkingDurationMs = () => 0;
+const thinkingToggleIconSvg = () => '<svg></svg>';
+const thinkingLoadingIconSvg = '<svg></svg>';
+const formatNumber = String;
+${functions}
+return renderThinkingBlock;
+`)();
+
+test('working details stay hidden until completion and explicit expansion', () => {
+ const message = { id: 'm', streaming: true, thinking_expanded: true, thinking: 'Full private reasoning', tool_activity: [{label:'Old action'}, {label:'Newest action'}] };
+ const live = render(message, 'p');
+ assert.doesNotMatch(live, /Full private reasoning|Old action|toggle-thinking/);
+ assert.match(live, /Newest action/);
+ const completed = {...message, streaming:false, thinking_expanded:false};
+ assert.doesNotMatch(render(completed, 'p'), /Full private reasoning|Old action/);
+ assert.match(render(completed, 'p'), /aria-expanded="false"/);
+ const expanded = render({...completed, thinking_expanded:true}, 'p');
+ assert.match(expanded, /Full private reasoning/);
+ assert.match(expanded, /Old action/);
+ assert.match(expanded, /aria-expanded="true"/);
+});
+
+test('live narration replaces earlier lines and safely escapes markup', () => {
+ const html = render({streaming:true, live_narration:'Previous update\n\nLatest <script>update</script>\n'}, 'p');
+ assert.doesNotMatch(html, /Previous update|<script>/);
+ assert.match(html, /Latest &lt;script&gt;/);
+ assert.match(render({streaming:true, thinking:'Hidden reasoning'}, 'p'), /Streaming reasoning/);
+ assert.doesNotMatch(render({streaming:true, thinking:'Hidden reasoning'}, 'p'), /Hidden reasoning/);
+});
+
+test('browser keeps live activity one line and save text visually hidden with errors visible', async () => {
+ const browser = await chromium.launch({headless:true});
+ try {
+  const page = await browser.newPage();
+  await page.setContent(`<style>${css}</style><div style="width:220px">${render({streaming:true, live_narration:'Newest activity '.repeat(50)}, 'p')}</div><div class="save-status saved"><span class="save-status-label">Saved</span></div>`);
+  const line = page.locator('.message-thinking-statusline');
+  assert.equal(await line.evaluate(el => getComputedStyle(el).whiteSpace), 'nowrap');
+  assert.equal(await line.evaluate(el => getComputedStyle(el).textOverflow), 'ellipsis');
+  assert.ok(await line.evaluate(el => el.scrollWidth > el.clientWidth));
+  const label = page.locator('.save-status-label');
+  assert.equal(await label.evaluate(el => getComputedStyle(el).clipPath), 'inset(50%)');
+  assert.equal(await page.locator('.save-status').evaluate(el => getComputedStyle(el, '::before').content), '""');
+  await page.locator('.save-status').evaluate(el => {el.className='save-status error'; el.firstChild.textContent='Not saved';});
+  assert.equal(await label.evaluate(el => getComputedStyle(el).clipPath), 'none');
+ } finally { await browser.close(); }
+});

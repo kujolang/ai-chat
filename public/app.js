@@ -2508,7 +2508,8 @@ function setSaveStatus(status, message) {
 	}
 	nodes.saveStatus.classList.remove("pending", "saved", "error");
 	nodes.saveStatus.classList.add(status);
-	nodes.saveStatus.textContent = String(message || "");
+	nodes.saveStatus.innerHTML = `<span class="save-status-label">${escapeHtml(String(message || ""))}</span>`;
+	nodes.saveStatus.title = String(message || "");
 }
 
 function isSettingsModalOpen() {
@@ -8812,16 +8813,12 @@ function renderThinkingBlock(message, paneId) {
 		return "";
 	}
 
-	const thinkingText = message.streaming
-		? streamingThinkingText(message, toolActivityEntries)
-		: String(message.thinking || "");
+	const thinkingText = String(message.thinking || "");
 	const progressText = message.streaming
 		? streamingNarrationText(message, toolActivityEntries)
 		: "";
 	const expanded = Boolean(message.thinking_expanded);
-	const showContent = message.streaming
-		? Boolean(thinkingText.trim())
-		: (expanded || (!String(message.content || "").trim() && Boolean(thinkingText.trim())));
+	const showContent = !message.streaming && expanded;
 	const contentClass = showContent ? "message-thinking-content" : "message-thinking-content collapsed";
 	const toggle = message.streaming ? "" : `<button class="thinking-toggle" type="button" data-action="toggle-thinking" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}" aria-expanded="${expanded ? "true" : "false"}" aria-label="${expanded ? "Collapse working details" : "Expand working details"}">${thinkingToggleIconSvg(expanded)}</button>`;
 	const loadingIcon = message.streaming ? `<span class="thinking-inline-progress" aria-label="Working">${thinkingLoadingIconSvg}</span>` : "";
@@ -8832,14 +8829,14 @@ function renderThinkingBlock(message, paneId) {
 			? `Worked for ${formatThinkingDurationMs(thinkingDurationMs)}`
 			: "Worked";
 
-	const renderedThinking = renderAssistantMarkdown(normalizeAssistantProseSpacing(thinkingText));
-	const renderedProgress = progressText && progressText !== thinkingText
+	const renderedThinking = showContent ? renderAssistantMarkdown(normalizeAssistantProseSpacing(thinkingText)) : "";
+	const renderedProgress = progressText
 		? `<div class="message-thinking-statusline">${escapeHtml(progressText)}</div>`
 		: "";
-	const toolActivity = toolActivityEntries.length > 0
+	const toolActivity = showContent && toolActivityEntries.length > 0
 		? `<div class="message-tool-activity-inline" role="status">${toolActivityEntries.map((entry) => renderToolActivityTimelineEntry(entry)).join("")}</div>`
 		: "";
-	return `<div class="message-thinking" role="status" aria-live="polite"><div class="message-thinking-head"><div class="thinking-label">${thinkingLabel}</div>${loadingIcon}${toggle}</div><div class="${contentClass} message-thinking-markdown"><div class="message-content-block">${renderedThinking}${renderedProgress}</div>${toolActivity}</div></div>`;
+	return `<div class="message-thinking" role="status" aria-live="polite"><div class="message-thinking-head"><div class="thinking-label">${thinkingLabel}</div>${loadingIcon}${toggle}</div>${renderedProgress}<div class="${contentClass} message-thinking-markdown"><div class="message-content-block">${renderedThinking}</div>${toolActivity}</div></div>`;
 }
 
 function normalizeToolActivityEntries(entries) {
@@ -8861,9 +8858,12 @@ function normalizeToolActivityEntries(entries) {
 }
 
 function streamingNarrationText(message, toolActivityEntries = []) {
+	if (toolActivityEntries.length > 0) {
+		return String(toolActivityEntries.at(-1).label || "").trim().split(/\r?\n/).filter(Boolean).at(-1) || "";
+	}
 	const explicit = String(message && message.live_narration || "").trim();
 	if (explicit) {
-		return explicit;
+		return explicit.split(/\r?\n/).filter((line) => line.trim()).at(-1).trim();
 	}
 
 	const thinkingText = String(message && message.thinking || "").trim();
@@ -8875,10 +8875,6 @@ function streamingNarrationText(message, toolActivityEntries = []) {
 	const contentChars = String(message && message.content || "").length;
 	if (contentChars > 0) {
 		return `Streaming response... ${formatNumber(contentChars)} characters received so far.`;
-	}
-
-	if (toolActivityEntries.length > 0) {
-		return String(toolActivityEntries.at(-1).label || "").trim();
 	}
 
 	const elapsedMs = Math.max(
@@ -8896,23 +8892,6 @@ function streamingNarrationText(message, toolActivityEntries = []) {
 	}
 
 	return "Request sent. Waiting for the model to start streaming...";
-}
-
-function streamingThinkingText(message, toolActivityEntries = []) {
-	const explicitThinking = String(message && message.thinking || "").trim();
-	if (explicitThinking) {
-		return explicitThinking;
-	}
-
-	const explicitNarration = String(message && message.live_narration || "").trim();
-	if (explicitNarration) {
-		return explicitNarration;
-	}
-
-	if (toolActivityEntries.length > 0) {
-		return String(toolActivityEntries.at(-1).label || "").trim();
-	}
-	return streamingNarrationText(message, toolActivityEntries);
 }
 
 function renderToolActivityTimelineEntry(entry) {

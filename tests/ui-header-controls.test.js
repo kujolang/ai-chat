@@ -168,7 +168,6 @@ test("native and enhanced select option lists use the application dark theme", (
 });
 
 test("live narration renders inside the themed thinking block", () => {
-	assert.match(appSource, /const thinkingText = message\.streaming\s*\? streamingThinkingText\(message, toolActivityEntries\)/);
 	assert.match(appSource, /const progressText = message\.streaming\s*\? streamingNarrationText\(message, toolActivityEntries\)/);
 	assert.doesNotMatch(appSource, /class="message-live-narration"/);
 	assert.match(cssSource, /\.message-thinking \.message-content-block\s*\{[^}]*font-family: var\(--display\);/s);
@@ -177,7 +176,6 @@ test("live narration renders inside the themed thinking block", () => {
 
 test("streaming responses show elapsed work time and a fallback status when providers buffer output", () => {
 	assert.match(appSource, /function streamingNarrationText\(message, toolActivityEntries = \[\]\)/);
-	assert.match(appSource, /function streamingThinkingText\(message, toolActivityEntries = \[\]\)/);
 	assert.match(appSource, /Request sent\. Waiting for the model to start streaming\.\.\./);
 	assert.match(appSource, /Still waiting for the model to send the first text chunk\.\.\./);
 	assert.match(appSource, /Streaming reasoning\.\.\. \$\{formatNumber\(thinkingChars\)\} characters received so far\./);
