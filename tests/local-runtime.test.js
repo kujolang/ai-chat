@@ -616,3 +616,13 @@ test("bounded directory listings preserve sorting and stat only the selected win
   assert.equal(stats, 3);
  } finally { fs.rmSync(root, { recursive: true, force: true }); }
 });
+
+test("Go source supports the same scoped read/write tools as Kujo", () => {
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'ai-chat-go-'));
+ try {
+  const runtime=createLocalRuntime({projectRoot:dir,homeDir:dir,env:{AI_CHAT_LOCAL_TOOLS_ENABLED:'1',AI_CHAT_LOCAL_WRITE_ENABLED:'1'}});
+  runtime.writeFile({root_id:'workspace_0',path:'bench.go',content:'package main\nfunc main() {}\n'});
+  assert.match(runtime.readFile({root_id:'workspace_0',path:'bench.go'}).content,/package main/);
+  assert.ok(runtime.listFiles({root_id:'workspace_0'}).entries.some(e=>e.name==='bench.go'));
+ } finally {fs.rmSync(dir,{recursive:true,force:true});}
+});
