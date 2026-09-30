@@ -19,6 +19,7 @@ function createIsolatedRuntime(overrides = {}) {
 		API_AUTH_TOKEN: "unit-test-token",
 		AI_SDK_PATH: sdkPath,
 		DB_PATH: path.join(tempRoot, "data", "test.db"),
+		AUDIT_LOG_PATH: path.join(tempRoot, "audit.log"),
 		DB_BACKUP_DIR: path.join(tempRoot, "backups"),
 		PORT: "0",
 		KUJO_BIN: "/usr/bin/false",
@@ -141,6 +142,7 @@ test("catalog migration keeps existing model suggestions while appending new can
 		API_AUTH_TOKEN: "unit-test-token",
 		AI_SDK_PATH: sdkPath,
 		DB_PATH: path.join(tempRoot, "data", "test.db"),
+		AUDIT_LOG_PATH: path.join(tempRoot, "audit.log"),
 		DB_BACKUP_DIR: path.join(tempRoot, "backups"),
 		PORT: "0",
 		KUJO_BIN: "/usr/bin/false"
@@ -188,6 +190,7 @@ test("catalog migration preserves the curated Watchdog OpenRouter TUD model list
 		API_AUTH_TOKEN: "unit-test-token",
 		AI_SDK_PATH: sdkPath,
 		DB_PATH: path.join(tempRoot, "data", "test.db"),
+		AUDIT_LOG_PATH: path.join(tempRoot, "audit.log"),
 		DB_BACKUP_DIR: path.join(tempRoot, "backups"),
 		PORT: "0",
 		KUJO_BIN: "/usr/bin/false"
@@ -327,6 +330,7 @@ test("createServerRuntime defaults host to localhost and allows explicit overrid
 			API_AUTH_TOKEN: "unit-test-token",
 			AI_SDK_PATH: sdkPath,
 			DB_PATH: path.join(tempRoot, "data", "test.db"),
+		AUDIT_LOG_PATH: path.join(tempRoot, "audit.log"),
 			DB_BACKUP_DIR: path.join(tempRoot, "backups"),
 			AI_CHAT_HOST: "127.0.0.2",
 			PORT: "0",

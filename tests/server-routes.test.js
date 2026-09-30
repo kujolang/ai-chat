@@ -30,6 +30,7 @@ function createIsolatedRuntime(overrides = {}) {
 		API_AUTH_TOKEN: API_TOKEN,
 		AI_SDK_PATH: sdkPath,
 		DB_PATH: path.join(tempRoot, "data", "test.db"),
+		AUDIT_LOG_PATH: path.join(tempRoot, "audit.log"),
 		DB_BACKUP_DIR: path.join(tempRoot, "backups"),
 		PORT: "0",
 		KUJO_BIN: "/usr/bin/false",
@@ -4945,3 +4946,40 @@ for (const credentialAvailable of [true, false]) test(`Hermes Watchdog routing k
   assert.equal(call.options.headers['X-Observe-Session-Id'],'hermes-routing-fixture');
  }finally{fixture.destroy();fs.rmSync(root,{recursive:true,force:true});}
 });
+
+for (const started of [false, true]) {
+ test(`shell rejection distinguishes preflight from uncertain execution (${started})`, async () => {
+  let calls=0;
+  const {runtime,destroy}=createIsolatedRuntime({
+   localRuntime:{canExecute:()=>true,status:()=>({enabled:true,shell_enabled:true}),runCommand:()=>{throw Object.assign(new Error('Fixture shell failure'),{code:started?'local_shell_timeout':'local_shell_command_blocked',...(started?{}:{execution_started:false})});}},
+   fetchFn:async()=>mockSseResponse([{choices:[{delta:++calls===1?{tool_calls:[{index:0,id:'shell-call',function:{name:'local_shell',arguments:JSON.stringify({command:'denied'})}}]}:{content:'Command was blocked; using another approach.'},finish_reason:calls===1?'tool_calls':'stop'}]}])
+  });
+  try {
+   const profileId=applyProfileMutation(runtime,p=>{p.provider_id='openai';p.api_key='fixture';});
+   await withServer(runtime.app,async base=>{
+    const response=await fetch(base+'/api/chat/stream',{method:'POST',headers:withAuthHeaders({'Content-Type':'application/json'}),body:JSON.stringify({request_id:'shell-preflight',profile_id:profileId,messages:[{role:'user',content:'Check shell'}],tools:[{type:'function',function:{name:'local_shell',parameters:{type:'object'}}}],include_saved_runtime_presets:false})});
+    const events=parseSseEvents(await response.text());
+    assert.equal(events.at(-1).event,started?'error':'done');
+    assert.equal(calls,started?1:2);
+    if(started) assert.equal(events.at(-1).data.code,'execution_reconciliation_required');
+    const record=await fetchJson(base,'/api/executions/shell-preflight');
+    assert.equal(record.json.receipts[0].status,started?'started':'failed');
+   });
+  }finally{destroy();}
+ });
+}
+
+for (const status of [408,410]) {
+ test(`provider HTTP ${status} exposes actionable retry semantics`,async()=>{
+  const {runtime,destroy}=createIsolatedRuntime({fetchFn:async()=>({ok:false,status,text:async()=>'',headers:{get:()=> 'application/json'}})});
+  try {
+   const id=applyProfileMutation(runtime,p=>{p.provider_id='openai';p.api_key='fixture';});
+   await withServer(runtime.app,async base=>{
+    const response=await fetch(base+'/api/chat/stream',{method:'POST',headers:withAuthHeaders({'Content-Type':'application/json'}),body:JSON.stringify({profile_id:id,messages:[{role:'user',content:'Hi'}],tools:[],include_saved_runtime_presets:false})});
+    const error=parseSseEvents(await response.text()).find(e=>e.event==='error').data;
+    assert.equal(error.status,status);assert.equal(error.retryable,status===408);
+    assert.match(error.message,status===408?/timed out/:/no longer available/);
+   });
+  }finally{destroy();}
+ });
+}

@@ -376,7 +376,7 @@ test("local shell uses allowlisted commands without shell interpolation", async 
 		const result = await runtime.runCommand({ command: "rg", args: ["needle", "README.md"] });
 		assert.equal(result.exit_code, 0);
 		assert.match(result.stdout, /needle/);
-		await assert.rejects(() => runtime.runCommand({ command: "node", args: ["-e", "console.log(1)"] }), (error) => error.code === "local_shell_command_blocked");
+		await assert.rejects(() => runtime.runCommand({ command: "node", args: ["-e", "console.log(1)"] }), (error) => error.code === "local_shell_command_blocked" && error.execution_started === false);
 	} finally {
 		fs.rmSync(tempRoot, { recursive: true, force: true });
 	}
