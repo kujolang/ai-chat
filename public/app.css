@@ -4866,14 +4866,70 @@ textarea {
 	display: none;
 }
 
-.chatgpt-connections { padding: 16px; margin-bottom: 18px; border: 1px solid var(--border); border-radius: 12px; }
-.chatgpt-connection { padding-block: 12px; }
-.chatgpt-connections button, .chatgpt-connections a { margin: 4px 8px 4px 0; }
-
+/* ChatGPT connections share the settings palette, including native dialogs. */
+.chatgpt-connections {
+ padding: 16px;
+ margin-bottom: 18px;
+ border: 1px solid var(--line);
+}
+.chatgpt-connections > h3 { margin: 0 0 12px; }
+.chatgpt-connection {
+ display: flex;
+ flex-wrap: wrap;
+ align-items: center;
+ gap: 8px;
+ padding-block: 16px;
+}
+.chatgpt-connection > strong,
+.chatgpt-connection > p {
+ flex-basis: 100%;
+ min-width: 0;
+ overflow-wrap: anywhere;
+}
+.chatgpt-connection > p { margin: 0 0 8px; }
+.chatgpt-connection + .chatgpt-connection { border-top: 1px solid var(--line-soft); }
+.chatgpt-connections .btn { max-width: 100%; }
+.chatgpt-connections a,
+.chatgpt-welcome a,
+.chatgpt-plan-badge a {
+ color: var(--text-dim);
+ text-decoration: underline;
+ text-decoration-color: var(--line);
+ text-underline-offset: 4px;
+ transition: color .15s, text-decoration-color .15s;
+}
+.chatgpt-connections a { display: inline-flex; padding: 10px 0; }
+.chatgpt-connections a:hover,
+.chatgpt-welcome a:hover,
+.chatgpt-plan-badge a:hover {
+ color: var(--text);
+ text-decoration-color: currentColor;
+}
+.chatgpt-connections a:focus-visible,
+.chatgpt-welcome a:focus-visible,
+.chatgpt-plan-badge a:focus-visible {
+ outline: 2px solid var(--accent);
+ outline-offset: 4px;
+}
 .chatgpt-sign-in { background: #111; color: #fff; border-color: #111; }
-.chatgpt-plan-badge { font-size: 12px; padding: 4px 0; }
-.chatgpt-welcome { max-width: 440px; border-radius: 14px; padding: 24px; }
-.chatgpt-welcome::backdrop { background: #0008; }
-.chatgpt-welcome button { display: block; margin-top: 20px; }
-
 .chatgpt-sign-in img { vertical-align: middle; margin-right: 8px; }
+.chatgpt-plan-badge { font-size: 12px; padding: 4px 0; }
+.chatgpt-welcome {
+ width: min(520px, calc(100vw - 32px));
+ max-height: calc(100dvh - 32px);
+ overflow: auto;
+ padding: 24px;
+ border: 1px solid var(--line);
+ background: var(--bg-elev);
+ color: var(--text);
+ font: 14px/1.65 var(--sans);
+ box-shadow: 0 24px 80px #0008;
+ color-scheme: dark;
+}
+.chatgpt-welcome::backdrop { background: #0009; }
+.chatgpt-welcome h3 {
+ margin: 0 0 16px;
+ font: 20px/1.4 var(--display);
+}
+.chatgpt-welcome p { margin: 0 0 16px; color: var(--text-dim); }
+.chatgpt-welcome button { display: block; margin-top: 24px; }
