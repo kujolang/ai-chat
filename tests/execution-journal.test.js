@@ -114,3 +114,19 @@ test('explicit resume cannot create a new execution identity',()=>{
  const db=new Database(':memory:');
  try {const journal=createExecutionJournal(db,{secret:'fixture'});assert.throws(()=>journal.begin('missing','turn',{}, {resume:true}),{code:'execution_not_found'});assert.equal(journal.get('missing'),null);}finally{db.close();}
 });
+
+test("saved result lookup is scoped to both execution and call identity", () => {
+	const db = new Database(":memory:");
+	try {
+		const journal = createExecutionJournal(db, { secret: "fixture-secret" });
+		for (const id of ["one", "two"]) {
+			journal.begin(id, id, {});
+			journal.startCall(id, "same-call", "web_fetch", {});
+			journal.completeCall(id, "same-call", { text: id });
+		}
+		assert.deepEqual(journal.readResult("one", "same-call").result, { text: "one" });
+		assert.deepEqual(journal.readResult("two", "same-call").result, { text: "two" });
+		assert.equal(journal.readResult("other", "same-call"), null);
+		assert.equal(journal.readResult("one", "missing"), null);
+	} finally { db.close(); }
+});

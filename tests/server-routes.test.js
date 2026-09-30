@@ -989,7 +989,7 @@ test("running an automation does not inherit enabled runtime preset tools", asyn
 	}
 });
 
-test("running an automation advertises only its explicitly selected tools", async () => {
+test("running an automation advertises selected external tools and its scoped evidence reader", async () => {
 	const upstreamBodies = [];
 	const { runtime, destroy } = createIsolatedRuntime({
 		fetchFn: async (url, options = {}) => {
@@ -1021,7 +1021,7 @@ test("running an automation advertises only its explicitly selected tools", asyn
 				await new Promise((resolve) => setTimeout(resolve, 10));
 			}
 		});
-		assert.deepEqual(upstreamBodies[0].tools.map((tool) => tool.function.name), ["system_time", "web_search"]);
+		assert.deepEqual(upstreamBodies[0].tools.map((tool) => tool.function.name), ["system_time", "web_search", "tool_result_read"]);
 		assert.match(upstreamBodies[0].messages.find((message) => message.role === "system" && /only these tools/.test(message.content)).content, /system_time, web_search/);
 	} finally {
 		destroy();
@@ -4971,15 +4971,68 @@ for (const started of [false, true]) {
 
 for (const status of [408,410]) {
  test(`provider HTTP ${status} exposes actionable retry semantics`,async()=>{
-  const {runtime,destroy}=createIsolatedRuntime({fetchFn:async()=>({ok:false,status,text:async()=>'',headers:{get:()=> 'application/json'}})});
+  const {runtime,env,destroy}=createIsolatedRuntime({fetchFn:async()=>({ok:false,status,text:async()=>status===408?'Request Timeout':'private provider detail',headers:{get:()=> 'text/plain'}})});
   try {
    const id=applyProfileMutation(runtime,p=>{p.provider_id='openai';p.api_key='fixture';});
    await withServer(runtime.app,async base=>{
     const response=await fetch(base+'/api/chat/stream',{method:'POST',headers:withAuthHeaders({'Content-Type':'application/json'}),body:JSON.stringify({profile_id:id,messages:[{role:'user',content:'Hi'}],tools:[],include_saved_runtime_presets:false})});
     const error=parseSseEvents(await response.text()).find(e=>e.event==='error').data;
     assert.equal(error.status,status);assert.equal(error.retryable,status===408);
-    assert.match(error.message,status===408?/timed out/:/no longer available/);
+    assert.match(error.message,status===408?/request timeout/:/no longer available/);
+    const auditText=fs.readFileSync(env.AUDIT_LOG_PATH,'utf8');
+    assert.match(auditText,/provider_http_failure/);
+    if(status===408) assert.match(auditText,/plain_request_timeout/);
+    assert.doesNotMatch(auditText,/private provider detail/);
    });
   }finally{destroy();}
  });
 }
+
+for (const providerId of ['openai','ollama']) {
+ test(`compacted evidence can be recovered without repeating its tool (${providerId})`,async()=>{
+  let rounds=0,reads=0;
+  const saved={ok:true,text:'Old source text '.repeat(7000),answer:'verified-evidence-42'};
+  const {runtime,destroy}=createIsolatedRuntime({
+   envMerge:{MODEL_CONTEXT_LIMITS_JSON:JSON.stringify({[providerId]:24000})},
+   localRuntime:{canExecute:()=>true,status:()=>({enabled:true}),listFiles:()=>{reads++;return saved;}},
+   fetchFn:async(_url,options)=>{
+    rounds++;const body=JSON.parse(options.body);let call,content='';
+    if(rounds===1) call={index:0,id:'source-read',function:{name:'local_file_list',arguments:{}}};
+    else if(rounds===2) {
+     assert.ok(body.tools.some(t=>t.function.name==='tool_result_read'));
+     const receipt=body.messages.find(m=>String(m.content||'').startsWith('Completed tool-call receipts'));
+     assert.ok(receipt,'original large result was compacted');
+     const ref=JSON.parse(receipt.content.slice(receipt.content.indexOf('[{')))[0].result_ref;
+     call={index:0,id:'recover-source',function:{name:'tool_result_read',arguments:{result_ref:ref,offset:JSON.stringify(saved).length-100,limit:100}}};
+    } else {
+     const evidence=JSON.parse(body.messages.findLast(m=>m.role==='tool').content);
+     assert.match(evidence.content,/verified-evidence-42/);
+     content='Verified answer: 42';
+    }
+    if(providerId==='ollama') return mockChunkedResponse([JSON.stringify({message:call?{content:'',tool_calls:[{function:call.function}]}:{content},done:true})+'\n']);
+    return mockSseResponse([{choices:[{delta:call?{tool_calls:[{...call,function:{...call.function,arguments:JSON.stringify(call.function.arguments)}}]}:{content},finish_reason:call?'tool_calls':'stop'}]}]);
+   }
+  });
+  try{
+   const profileId=applyProfileMutation(runtime,p=>{p.provider_id=providerId;p.api_key='fixture';});
+   await withServer(runtime.app,async base=>{
+    const res=await fetch(base+'/api/chat/stream',{method:'POST',headers:withAuthHeaders({'Content-Type':'application/json'}),body:JSON.stringify({request_id:'recover-evidence',profile_id:profileId,messages:[{role:'user',content:'Research the answer'}],max_tokens:18000,tools:[{type:'function',function:{name:'local_file_list',parameters:{type:'object'}}}],include_saved_runtime_presets:false})});
+    const events=parseSseEvents(await res.text());assert.equal(events.at(-1).event,'done',JSON.stringify(events.at(-1)));
+    assert.equal(rounds,3);assert.equal(reads,1);
+   });
+  }finally{destroy();}
+ });
+}
+
+test('persistence telemetry releases response bodies and reports HTTP rejection',async()=>{
+ let cancelled=0;const warnings=[];
+ const {runtime,destroy}=createIsolatedRuntime({warnFn:msg=>warnings.push(msg),fetchFn:async()=>({ok:false,status:503,body:{cancel:async()=>{cancelled++;}}})});
+ try{
+  const paneId=runtime.helpers.readState().chats[0].panes[0].id;
+  await withServer(runtime.app,async base=>{
+   await fetchJson(base,'/api/state/changes',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({changes:[{type:'message_upsert',message:{id:'telemetry-rejection',pane_id:paneId,role:'assistant',content:'done',usage:{trace_id:'test-trace'},created_at:Date.now(),sort_order:0}}]})});
+  });
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(cancelled,1);assert.ok(warnings.some(w=>w.includes('Persistence trace event rejected (HTTP 503)')));
+ }finally{destroy();}
+});

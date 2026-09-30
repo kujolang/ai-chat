@@ -154,7 +154,7 @@ test("catalog migration keeps existing model suggestions while appending new can
 		const openRouter = state.settings.profiles.find((profile) => profile.provider_id === "openrouter");
 		const watchdog = state.settings.profiles.find((profile) => profile.provider_id === "watchdog");
 		openRouter.models_csv = "custom/openrouter-model";
-		watchdog.models_csv = "qwen3.5:397b-cloud,gemma4:e2b,gemini-3-flash-preview";
+		watchdog.models_csv = "qwen3.5:397b-cloud,gemma4:e2b,gemini-3-flash-preview,deepseek-v4-flash,deepseek-v4-flash:cloud";
 		firstRuntime.helpers.writeState(state);
 	} finally {
 		firstRuntime.close();
@@ -171,6 +171,8 @@ test("catalog migration keeps existing model suggestions while appending new can
 		assert.match(watchdog.models_csv, /gemma4:31b/);
 		assert.doesNotMatch(watchdog.models_csv, /gemma4:e2b/);
 		assert.doesNotMatch(watchdog.models_csv, /gemini-3-flash-preview/);
+		assert.doesNotMatch(watchdog.models_csv, /deepseek-v4-flash/);
+		assert.match(watchdog.models_csv, /deepseek-v4\.1-flash/);
 		assert.ok(state.settings.profiles.some((profile) => profile.provider_id === "watchdog_ollama_tud"));
 	} finally {
 		upgradedRuntime.close();

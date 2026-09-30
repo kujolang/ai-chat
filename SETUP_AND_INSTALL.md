@@ -536,3 +536,13 @@ Native Codex output has a combined stdout/stderr ceiling of 32 MiB per invocatio
 The HTTP listener retains Node 22's 60-second header and five-minute request-body receive deadlines. These limit slow uploads, not the duration of an accepted streaming response. `REQUEST_TIMEOUT_MS` now remains effective through transcription response-body consumption; transcription responses are bounded to 2 MiB and redirects are rejected.
 
 For the offline performance comparison, run `node scripts/repository-hardening-benchmark.js --baseline 7237a96`. It creates temporary synthetic files, checks output equality, and prints a compact JSON receipt. Timing is advisory; unit tests enforce ordering, byte-equivalent batching, and bounded file-stat counts. See [the audit](docs/audits/repository-hardening.md).
+
+#### Verified Hermes context limits
+
+After authenticating the local Hermes proxy on port 8645, refresh numeric model limits:
+
+```bash
+node scripts/refresh-hermes-context.js
+```
+
+Set `MODEL_CONTEXT_METADATA_PATH=data/hermes-context.json` in AI Chat's `.env`, then restart AI Chat. The file stores exact model IDs, numeric context windows and a retrieval date, not credentials or catalog instructions. Refresh after catalog changes and at least every 30 days; stale metadata safely falls back to configured limits or the conservative default. This command replaces the destination with a Hermes-only snapshot; use a separate file if you maintain combined provider metadata. It does not change model availability or enable paid models.

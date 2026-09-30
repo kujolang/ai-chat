@@ -490,3 +490,9 @@ No route, persisted schema, profile binding, API-key format, or provider selecti
 Unknown authenticated `/api` routes return HTTP 404 JSON with `error.code: "api_not_found"`; they do not return the browser application HTML. Non-API browser routes retain the application fallback.
 
 When `HERMES_WATCHDOG_UPSTREAM_PROFILE` is configured, managed Hermes JSON and SSE requests use the server-side Watchdog proxy token and named-upstream header. Observe headers retain request correlation. The downstream Hermes proxy owns Nous OAuth. The direct Hermes and xAI modes remain independent.
+
+### Saved tool evidence during compaction
+
+HTTP tool-enabled executions advertise the internal `tool_result_read` function alongside the caller's authorized tools. Compacted receipts retain a `result_ref` (or `saved_result_ref` in result JSON). The reader accepts that reference plus optional `offset` (default 0) and `limit` (default 3000, maximum 4000 UTF-16 code units; one extra code unit may preserve a surrogate pair). Follow `next_offset` until null. Pages contain the original saved result serialized as JSON, treated as untrusted evidence.
+
+Reads are restricted to completed/failed receipts in the current execution; callers cannot supply another execution ID. Reading never re-executes the original tool. External tool permissions remain unchanged. Recovered pages are protected for their immediate next provider round, while older results remain compactable. `max_tokens` is an upper bound: output reservation may shrink to retain input evidence, without exceeding the context policy.
