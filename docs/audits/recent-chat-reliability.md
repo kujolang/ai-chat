@@ -42,3 +42,45 @@ Targeted follow-up verification passed: 34 local-runtime/journal tests; 7 route 
 Deployment: verified zero active streams and zero running journal entries, gracefully restarted the local launch agent, and confirmed `/healthz` returned healthy. Historical receipts remain unchanged.
 
 Open evidence-retention follow-up: SignalBox capture `cap_699467f2-c4fc-4962-8293-3ffec0d7d3fa`, signal `sig_206adaa1-75ba-4509-88a8-8f1d212bd998`; exact and concept retrieval verified. No duplicate found. This report and the session handoff hold completed-work details; the signal holds only the unresolved issue.
+
+## Follow-up root-cause work — 2026-09-30
+
+The evidence-starvation issue is now addressed in AI Chat. Provider-bound compaction previously retained only receipts, with no model-callable path back to the original journal result. Added execution-scoped, paginated `tool_result_read`, durable result references in both native Ollama and OpenAI messages, and protection against immediately compacting a recovered page again. Input evidence now takes priority over unused output reservation. The journal remains authoritative; no consequential tool is rerun to recover evidence.
+
+A deterministic three-round test for each wire format compacts a roughly 105 KB result, retrieves the answer from its tail, and completes with the original tool executed exactly once. This proves transport/evidence recovery, not guaranteed behavior of every real model or convergence of arbitrary research tasks.
+
+Hermes's authenticated local `/v1/models` catalog reports `stealth/space-bunny-alpha` context_length 1,000,000, compared with the 65,536 fallback used by affected runs. With a 48,000 output reservation, the nominal input allowance changes from 17,536 to 952,000 before envelope costs. These are declared limits and conservative budgeting units, not measured tokenizer counts or a speedup. A bounded refresh script writes only dated numeric metadata; the local instance now loads this snapshot (414 valid entries). The catalog also reports maximum reasoning effort by default for that model, which may contribute to latency; no unsupported reasoning override was applied.
+
+The live Watchdog Ollama catalog no longer lists `deepseek-v4-flash` and does list `deepseek-v4.1-flash`, `glm-5.3`, and `glm-5.3-flash`. Updated managed suggestions and retired the known failing Flash identifiers. Existing chats, custom models and other provider profiles are preserved; no model is silently substituted for a saved selection.
+
+Telemetry response bodies are now cancelled after intake and persistence-event non-success statuses produce warnings. This fixes resource cleanup and missing diagnostics. Watchdog authenticated reads were healthy (8–132 ms across three local observations); this does not establish the cause of every historical telemetry timeout.
+
+### HTTP 408: established facts and limit of the evidence
+
+Correlated run `szhd341m9wq6h:pass:0` with Watchdog session `wvujvwxe9n90m`: the final upstream request is recorded as successful about 76 ms after AI Chat's failure timestamp, with 58,271 ms upstream latency. Hermes's installed proxy maps its own transport timeout to 504 (300-second socket-read timeout), while Watchdog maps transport failures to 502. The Kujo HTTP receiver can emit plain-text 408 before dispatch if reading an incoming body times out. This identifies another possible origin; it does **not** prove which hop returned the historical 408 because its body was not retained.
+
+Added safe `provider_http_failure` audit metadata: status, round, elapsed time, request/response byte counts and a coarse response-envelope classification (including exact plain `Request Timeout`). No provider text, headers, credentials or transcript are persisted by this event. The user-facing message no longer incorrectly asserts generation was running when a 408 arrived. No arbitrary timeout increase or speculative network rewrite was made.
+
+### Remaining external / historical constraints
+
+- The historical 408's exact origin cannot be recovered from missing evidence; a recurrence now has useful envelope diagnostics. Inspect this event and matching Watchdog trace before altering Kujo or Hermes. No sibling source was changed.
+- True historical shell timeouts still require checking partial side effects before reconciliation. Do not retry blindly.
+- Exhausted ChatGPT plan allowance remains an external entitlement, not something AI Chat can reset.
+- Refresh dated Hermes metadata before its 30-day expiry; stale snapshots intentionally fall back safely.
+
+The earlier SignalBox evidence-compaction capture/signal now describes a fixed issue; this report supplies resolution evidence without creating a duplicate capture.
+
+### Follow-up verification receipt
+
+- Starting commit: `2896f2a55c1a327ab16fec4c7d6d055ae6737e53`; implementation commit: `ae7796f`.
+- `node --check lib/server-runtime.js`: passed.
+- `node --test --test-concurrency=1 tests/*.test.js`: 471 total, 470 passed, zero failed/cancelled, one Linux-only sandbox skip on macOS; 165.5 seconds. Log: `/tmp/ai-chat-verified-full.log`.
+- Focused provider-status/catalog/evidence/metadata selection: seven passed; `/tmp/ai-chat-followup-target.log`.
+- `node --test tests/execution-journal.test.js`: eight passed, including database-backed cross-execution isolation; `/tmp/ai-chat-scoped-journal.log`.
+- `node scripts/refresh-hermes-context.js`: saved 414 numeric model entries. `loadContextMetadata` + `contextPolicy` verified 1,000,000 for the affected Hermes model.
+- `git diff --check`: passed.
+- Earlier iteration failures were exact advertised-tool and timeout-message expectations, updated to verify the new contracts. The final full suite includes both and passes; no assertions disabled or deadlines enlarged.
+- Deployment preflight: zero active streams and zero running journal entries before graceful local launch-agent restart.
+
+SignalBox remaining 408 finding: capture `cap_05f73ea4-98db-48cd-9762-2a9d6066689c`, signal `sig_c763400a-837a-4561-a85a-a417b0cba5de`. Exact-ID and concept retrieval passed. No equivalent 408 record found; completed evidence-recovery work, routine verification and external allowance exhaustion were rejected as new captures. Existing evidence-starvation signal was not duplicated or silently dispositioned.
+- Deployed `/healthz`: healthy. `node scripts/smoke-test.js` with the local instance token and `SMOKE_BASE_URL=http://127.0.0.1:4174`: passed health, providers, state and offline fixture chat (all HTTP 200). No paid inference or user prompt replay. Log: `/tmp/ai-chat-deployed-smoke.log`.
