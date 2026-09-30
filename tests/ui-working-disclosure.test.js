@@ -51,7 +51,7 @@ test('browser keeps live activity one line and save text visually hidden with er
   assert.ok(await line.evaluate(el => el.scrollWidth > el.clientWidth));
   const label = page.locator('.save-status-label');
   assert.equal(await label.evaluate(el => getComputedStyle(el).clipPath), 'inset(50%)');
-  assert.equal(await page.locator('.save-status').evaluate(el => getComputedStyle(el, '::before').content), '""');
+  assert.equal(await page.locator('.save-status').evaluate(el => getComputedStyle(el, '::before').content), 'none');
   await page.locator('.save-status').evaluate(el => {el.className='save-status error'; el.firstChild.textContent='Not saved';});
   assert.equal(await label.evaluate(el => getComputedStyle(el).clipPath), 'none');
  } finally { await browser.close(); }
