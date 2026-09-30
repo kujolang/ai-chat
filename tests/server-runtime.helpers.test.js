@@ -91,7 +91,9 @@ test("seeds and upgrades OpenRouter and Watchdog model suggestions from the stat
 		assert.match(watchdogOpenRouter.models_csv, /moonshotai\/kimi-k2\.7-code/);
 		assert.match(watchdogOllamaTud.models_csv, /kimi-k3:cloud/);
 		assert.match(watchdogOllamaTud.models_csv, /mistral-large-3:675b/);
-		assert.match(hermes.models_csv, /stealth\/ox-alpha/);
+		assert.match(hermes.models_csv, /stealth\/space-bunny-alpha/);
+		assert.match(hermes.models_csv, /meituan\/longcat-2\.5-preview:free/);
+		assert.equal(hermes.models_csv.split(",").length, 9);
 		assert.match(hermes.models_csv, /poolside\/laguna-s-2\.1:free/);
 		assert.equal(hermes.credential_managed, true);
 		assert.equal(xaiOAuth.name, "xAI Grok (X OAuth)");
