@@ -488,3 +488,5 @@ See [connection setup and limitations](CHATGPT_PLAN.md). The native Codex profil
 No route, persisted schema, profile binding, API-key format, or provider selection changed.
 
 Unknown authenticated `/api` routes return HTTP 404 JSON with `error.code: "api_not_found"`; they do not return the browser application HTML. Non-API browser routes retain the application fallback.
+
+When `HERMES_WATCHDOG_UPSTREAM_PROFILE` is configured, managed Hermes JSON and SSE requests use the server-side Watchdog proxy token and named-upstream header. Observe headers retain request correlation. The downstream Hermes proxy owns Nous OAuth. The direct Hermes and xAI modes remain independent.

@@ -4916,3 +4916,31 @@ test('unknown API routes return JSON while browser routes retain the app shell',
   });
  } finally { fixture.destroy(); }
 });
+
+for (const credentialAvailable of [true, false]) test(`Hermes Watchdog routing keeps proxy authentication separate (credential ${credentialAvailable})`, async () => {
+ const root=fs.mkdtempSync(path.join(os.tmpdir(),'hermes-watchdog-test-'));
+ const tokenFile=path.join(root,'proxy-token');fs.writeFileSync(tokenFile,'watchdog-fixture-token');
+ const seen=[];let bridge;
+ const fixture=createIsolatedRuntime({envMerge:{HERMES_PROXY_URL:'http://127.0.0.1:7700/proxy/v1',HERMES_WATCHDOG_UPSTREAM_PROFILE:'hermes-ai-chat',WATCHDOG_PROXY_TOKEN_FILE:credentialAvailable?tokenFile:'',HERMES_PROXY_TOKEN:'not-the-watchdog-token'},
+  fetchFn:async(url,options)=>{seen.push({url,options});return mockSseResponse([{choices:[{delta:{content:'OK'},finish_reason:'stop'}]}]);},
+  spawnSyncFn:(_bin,args,options)=>{bridge={payload:JSON.parse(args[args.indexOf('--payload')+1]),env:options.env};return {stdout:JSON.stringify({ok:true,output_text:'OK'}),stderr:''};}
+ });
+ try {
+  const profile=fixture.runtime.helpers.readState().settings.profiles.find(p=>p.provider_id==='hermes');
+  await withServer(fixture.runtime.app,async base=>{
+   for(const route of ['/api/chat','/api/chat/stream']) {
+    const response=await fetch(base+route,{method:'POST',headers:withAuthHeaders({'Content-Type':'application/json'}),body:JSON.stringify({profile_id:profile.id,model:'upstage/solar-pro4:free',messages:[{role:'user',content:'OK'}],tools:[],include_saved_runtime_presets:false,chat_id:'hermes-routing-fixture'})});
+    const raw=await response.text();
+    if(credentialAvailable)assert.match(raw,/OK/);else assert.match(raw,/auth_error/);
+   }
+  });
+  if(!credentialAvailable){assert.equal(bridge,undefined);assert.ok(!seen.some(x=>x.url.includes('/chat/completions')));return;}
+  assert.equal(bridge.payload.base_url,'http://127.0.0.1:7700/proxy/v1');
+  assert.equal(bridge.payload.headers['X-Watchdog-Upstream-Profile'],'hermes-ai-chat');
+  assert.equal(bridge.env.CUSTOM_API_KEY,'watchdog-fixture-token');
+  const call=seen.find(x=>x.url.endsWith('/proxy/v1/chat/completions'));
+  assert.equal(call.options.headers.Authorization,'Bearer watchdog-fixture-token');
+  assert.equal(call.options.headers['X-Watchdog-Upstream-Profile'],'hermes-ai-chat');
+  assert.equal(call.options.headers['X-Observe-Session-Id'],'hermes-routing-fixture');
+ }finally{fixture.destroy();fs.rmSync(root,{recursive:true,force:true});}
+});

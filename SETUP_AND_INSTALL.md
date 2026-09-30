@@ -507,7 +507,29 @@ For the local OSS preview, set `CHATGPT_SIGN_IN_ENABLED=1` with a loopback `AI_C
 
 See [ChatGPT plan setup](docs/CHATGPT_PLAN.md) for storage, disconnect, limits, verification and deployment scope. This does not enable commercial hosted login or the optional Codex App Server harness.
 
-### Runtime resource bounds
+#### Hermes through Watchdog
+
+Use this order: **AI Chat → Watchdog → Hermes → Nous Portal**. Watchdog authenticates the local app and records requests; the Hermes adapter attaches and refreshes the Nous credential after Watchdog. No Nous token is stored in AI Chat or Watchdog configuration.
+
+```dotenv
+HERMES_PROXY_URL=http://127.0.0.1:7700/proxy/v1
+HERMES_WATCHDOG_UPSTREAM_PROFILE=hermes-ai-chat
+WATCHDOG_PROXY_TOKEN_FILE=/absolute/private/path/to/watchdog-proxy-token
+```
+
+Create a Watchdog named upstream `hermes-ai-chat` with `upstream_base_url: http://127.0.0.1:8645/v1`, `auth_mode: passthrough`, and `enabled: true`. Keep the Watchdog proxy token distinct from its API token and from Nous OAuth. Other profiles do not need to change.
+
+Start the backend with the Python interpreter from your installed Hermes virtualenv:
+
+```bash
+~/.hermes/hermes-agent/venv/bin/python scripts/hermes-watchdog-proxy.py
+```
+
+This wrapper uses Hermes's existing proxy and credential-refresh adapter. It pins its own upstream to the public Nous endpoint and does not load the global Hermes CLI `.env`, preventing a global `NOUS_INFERENCE_BASE_URL` pointing at Watchdog from creating a routing loop. It binds only to `127.0.0.1:8645`. Do not run a second Hermes proxy on that port. For unattended operation, run this command under your local service manager. Restart AI Chat after changing its `.env`.
+
+Leave `HERMES_WATCHDOG_UPSTREAM_PROFILE` empty to retain the original direct-to-Hermes mode. In Watchdog mode, a missing proxy token fails before dispatch; AI Chat does not fall back to its placeholder credential.
+
+## Runtime resource bounds
 
 Native Codex output has a combined stdout/stderr ceiling of 32 MiB per invocation. `CODEX_MAX_OUTPUT_BYTES` adjusts it between 1 KiB and 256 MiB. Overflow terminates the child and fails the request explicitly; inspect execution receipts before resuming consequential work. This does not change the Codex sandbox or model selection.
 
