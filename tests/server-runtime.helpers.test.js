@@ -1126,3 +1126,16 @@ test("compacted tool receipts preserve success, failure and call identities", ()
 		assert.equal(runtime.helpers.compactProviderToolContext(messages, 900), 0);
 	} finally { destroy(); }
 });
+
+test("deleted built-in profiles stay deleted when startup seeding runs again", () => {
+ const { runtime, destroy } = createIsolatedRuntime();
+ try {
+  const state = runtime.helpers.readState();
+  const kept = state.settings.profiles.find(profile => profile.provider_id === 'openrouter');
+  state.settings.profiles = [kept];
+  for (const chat of state.chats) for (const pane of chat.panes) pane.profile_id = kept.id;
+  runtime.helpers.writeState(state);
+  runtime.helpers.seedState();
+  assert.deepEqual(runtime.helpers.readState().settings.profiles.map(profile => profile.id), [kept.id]);
+ } finally { destroy(); }
+});

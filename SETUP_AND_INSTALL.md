@@ -251,7 +251,7 @@ stop that process or restart AI Chat with a different `PORT`.
 ## 5. First-Time In-App Setup
 
 1. Open Settings.
-2. Add or edit provider profiles.
+2. Add or edit provider profiles. Built-in profiles are seeded only for a new installation; deleting a profile stays deleted after restarting AI Chat. Use **Add Profile** to recreate one later.
 3. Enter API keys for the providers you want to use.
 4. Add, edit, remove, and drag model rows within each provider profile. Drag provider cards to set their order; use the chevron to collapse or open a card.
 5. In General settings, choose the default model/provider for regular new chats.
