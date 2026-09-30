@@ -72,3 +72,35 @@ test('ChatGPT aggregate output limit counts multibyte content', async () => {
  events.push(complete([]));
  await assert.rejects(collect(stream({ lease, model: 'test', messages: [], fetchFn: async () => sse(events, 400000) })), { code: 'chatgpt_output_too_large' });
 });
+
+test('ChatGPT accepts validated SSE without Content-Type and normalizes MIME case', async () => {
+ for (const mediaType of [null, 'Text/Event-Stream; charset=utf-8']) {
+  const response = sse([text('OK'), complete([])]);
+  if (mediaType === null) response.headers.delete('content-type');
+  else response.headers.set('content-type', mediaType);
+  const records = await collect(stream({ lease, model: 'test', messages: [], fetchFn: async () => response }));
+  assert.equal(records[0].choices[0].delta.content, 'OK');
+  assert.equal(records.at(-1).done, true);
+ }
+});
+
+test('ChatGPT missing Content-Type never accepts HTML, JSON, malformed SSE or missing completion', async () => {
+ for (const wire of ['<!doctype html><html>not a stream</html>', '{"ok":true}', 'data: {broken}\n\n', `data: ${JSON.stringify(text('partial'))}\n\n`]) {
+  const response = new Response(new TextEncoder().encode(wire));
+  assert.equal(response.headers.get('content-type'), null);
+  const records = [];
+  await assert.rejects(async () => { for await (const record of stream({ lease, model: 'test', messages: [], fetchFn: async () => response })) records.push(record); });
+  assert.ok(records.every(record => !record.done && !record.choices?.[0]?.delta?.tool_calls));
+ }
+});
+
+test('ChatGPT explicit non-SSE response is cancelled with bounded safe diagnostics', async () => {
+ let cancelled = false;
+ const response = new Response(new ReadableStream({ cancel() { cancelled = true; } }), { headers: { 'content-type': 'application/json' } });
+ await assert.rejects(collect(stream({ lease, model: 'test', messages: [], fetchFn: async () => response })), error => {
+  assert.equal(error.code, 'chatgpt_invalid_stream');
+  assert.match(error.message, /HTTP 200; application\/json/);
+  return true;
+ });
+ assert.equal(cancelled, true);
+});

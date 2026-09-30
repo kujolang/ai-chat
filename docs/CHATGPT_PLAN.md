@@ -16,6 +16,8 @@ No manually registered client, client secret or partner key is needed for this l
 
 If Settings shows `Unexpected token '<'` or says the connection endpoint returned a page, the browser received HTML instead of the connection API response. An older still-running server can serve newly updated frontend files without having loaded the new API routes. Stop that AI Chat process, start it again from the updated checkout with `npm start`, and reload the browser. Verify the URL points to that process, rather than a static-file server or proxy. Enabling the setting requires a server restart; refreshing the browser alone is insufficient. Keep the existing encryption secret and database path.
 
+A successful plan response can omit `Content-Type`. AI Chat accepts it only when the body parses as bounded SSE and reaches a valid `response.completed`; HTML, JSON, malformed streams and premature EOF still fail. Explicit non-SSE content types are rejected and their response bodies cancelled. A tool-free live `gpt-5.5` request verified this path on September 29, 2026; this does not certify every model, account or tool flow.
+
 ## What runs
 
 The new `openai_chatgpt_plan` provider sends text history and explicitly enabled neutral function tools to the fixed public `https://api.openai.com/v1/responses` endpoint. Every request streams with `store:false`. A JSON auxiliary request is collected from that same stream. No Kujo SDK change is required for this provider.
