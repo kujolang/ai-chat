@@ -721,7 +721,7 @@ test("POST /api/chat/stream runs Codex profiles through the local Codex CLI and 
 		return child;
 	};
 	const { runtime, destroy } = createIsolatedRuntime({
-		envMerge: { CODEX_MODEL_CACHE_PATH: cachePath },
+		envMerge: { CODEX_MODEL_CACHE_PATH: cachePath, CODEX_CLI_PATH: "codex" },
 		spawnFn
 	});
 	try {
@@ -740,7 +740,7 @@ test("POST /api/chat/stream runs Codex profiles through the local Codex CLI and 
 			assert.equal(response.status, 200);
 			const raw = await response.text();
 			const events = parseSseEvents(raw);
-			assert.equal(events.filter((entry) => entry.event === "token").map((entry) => entry.data.delta).join(""), "Codex review complete.");
+			assert.equal(events.filter((entry) => entry.event === "token").map((entry) => entry.data.delta).join(""), "Codex review complete.", raw);
 			const toolEvents = events.filter((entry) => entry.event === "tool");
 			assert.equal(toolEvents.length, 2);
 			assert.deepEqual(toolEvents.map((entry) => entry.data.phase), ["started", "completed"]);
