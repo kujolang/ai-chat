@@ -696,3 +696,28 @@ test('already cancelled shell request never spawns', async () => {
  await assert.rejects(runtime.runCommand({command:'pwd',args:[]},{signal:controller.signal}),e=>e.execution_started===false);
  assert.equal(spawned,false);
 });
+
+for (const scenario of [
+ {name:'default command',env:{},args:{},expected:120000},
+ {name:'explicit long command',env:{},args:{timeout_ms:600000},expected:600000},
+ {name:'legacy hard ceiling',env:{AI_CHAT_LOCAL_COMMAND_TIMEOUT_MS:'15000'},args:{timeout_ms:600000},expected:15000},
+ {name:'configured default',env:{AI_CHAT_LOCAL_COMMAND_DEFAULT_TIMEOUT_MS:'240000'},args:{},expected:240000},
+ {name:'default capped by ceiling',env:{AI_CHAT_LOCAL_COMMAND_TIMEOUT_MS:'10000'},args:{},expected:10000}
+]) {
+ test(`shell deadline policy: ${scenario.name}`, async t => {
+  t.mock.timers.enable({apis:['setTimeout']});
+  let child;
+  const runtime=createLocalRuntime({env:{AI_CHAT_LOCAL_TOOLS_ENABLED:'1',AI_CHAT_LOCAL_SHELL_ENABLED:'1',...scenario.env},spawnFn:()=>{child=fakeChild(()=>{});return child;}});
+  const pending=runtime.runCommand({command:'pwd',args:[],...scenario.args});
+  const rejected=assert.rejects(pending,e=>e.code==='local_shell_timeout' && e.execution_result.timeout_ms===scenario.expected);
+  t.mock.timers.tick(scenario.expected-1);
+  assert.deepEqual(child.kills,[]);
+  t.mock.timers.tick(1);
+  await rejected;
+  assert.deepEqual(child.kills,['SIGTERM']);
+  if (!Object.keys(scenario.env).length) {
+   assert.equal(runtime.status().limits.command_default_timeout_ms,120000);
+   assert.equal(runtime.status().limits.command_timeout_ms,600000);
+  }
+ });
+}

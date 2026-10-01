@@ -506,7 +506,13 @@ Authenticated `GET /api/local/permissions` returns `{ok, permissions: {skip_allo
 ### Local shell deadlines
 
 `local_workspace_list.meta.limits.command_timeout_ms` is the server-enforced cap;
-`local_shell.timeout_ms` cannot raise it. Permission bypass does not disable deadlines.
+`local_shell.timeout_ms` cannot raise it. The cap defaults to 600000 ms (10 minutes).
+An omitted timeout uses `meta.limits.command_default_timeout_ms`, default 120000 ms
+(2 minutes), configurable with `AI_CHAT_LOCAL_COMMAND_DEFAULT_TIMEOUT_MS`. Explicit
+existing caps remain respected, including caps below the default. These are per-command
+deadlines, not limits on the whole agent task. Provider idle timers are paused during
+local tool execution; SSE heartbeats and Stop remain active. Permission bypass does
+not disable deadlines.
 A timeout observed after process close is a failed tool receipt with
 `execution_completed: true`, `timed_out: true`, the effective `timeout_ms`, bounded
 `stdout`/`stderr`, `exit_code`, `signal`, and `partial_effects: "unknown"`.

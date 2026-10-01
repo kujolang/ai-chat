@@ -132,3 +132,13 @@ Measured confirmation: renaming `elapsed` to `benchmark_elapsed_us` in temporary
 Verification: full suite 489 tests, 488 passed, one platform skip, zero failures (93.4s; `/tmp/ai-chat-timeout-full.log`). Final local runtime tests cover timeout evidence, effective cap, missing executable, POSIX SIGTERM-ignoring process-tree termination, and cancellation before spawn. Server regression proves a confirmed timeout is saved failed and the model continues; unconfirmed shell failures still stop for reconciliation. `git diff --check` passed.
 
 The historical benchmark receipt was reconciled through the authenticated API with evidence from saved error, process absence, and inspected computation-only source. It is resumable; prior commands remain untouched. Original output was already discarded and is explicitly unavailable. Local server restarted only after zero active streams/runs; offline smoke result is recorded in `/tmp/ai-chat-timeout-smoke.log`. No changes to provider profiles or permission settings.
+
+## Agent command duration policy — September 30, 2026
+
+User requested practical durations for agent builds/tests, replacing the old 15-second policy. Commands now default to 120000ms with a default ceiling of 600000ms. An agent may request timeout_ms up to the ceiling; unknown workloads should still start small. AI_CHAT_LOCAL_COMMAND_TIMEOUT_MS retains its hard-cap meaning and explicit old values remain honored. New AI_CHAT_LOCAL_COMMAND_DEFAULT_TIMEOUT_MS configures the omitted-argument default, clamped to the cap.
+
+Status exposes both limits and the model schema shares constants with the executor. Updated environment template, README, setup and API contract. These are command deadlines, not whole-task deadlines. Existing stream code pauses upstream idle timeouts during tool batches and sends independent heartbeats; existing regressions verify this behavior. This change does not introduce background jobs or claim detached execution parity with another product.
+
+Five mock-clock regressions verify default, explicit ten-minute duration, legacy 15-second cap, configurable default and cap/default interaction. Target local/tool suite: 57 passed (/tmp/ai-chat-long-command-target.log). Neither local .env nor launch-agent configuration overrides these durations; restart applies the new defaults.
+
+Final verification: full suite 495 total, 494 passed, one platform skip, zero failures (153.6s; /tmp/ai-chat-long-command-full.log). git diff --check passed. Graceful restart after zero active streams/runs; authenticated deployed health reports command_default_timeout_ms=120000 and command_timeout_ms=600000. Offline smoke health/providers/state/chat passed (/tmp/ai-chat-long-command-smoke.log).
