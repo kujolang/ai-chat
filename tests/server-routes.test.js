@@ -5009,6 +5009,27 @@ for (const started of [false, true]) {
  });
 }
 
+ test('terminated shell timeout continues with partial evidence', async () => {
+  let calls=0;
+  const {runtime,destroy}=createIsolatedRuntime({
+   localRuntime:{canExecute:()=>true,status:()=>({enabled:true,shell_enabled:true}),runCommand:()=>{throw Object.assign(new Error('Fixture shell failure'),{code:'local_shell_timeout',execution_completed:true,execution_result:{stdout:'partial',timed_out:true,partial_effects:'unknown'}});}},
+   fetchFn:async()=>mockSseResponse([{choices:[{delta:++calls===1?{tool_calls:[{index:0,id:'shell-call',function:{name:'local_shell',arguments:JSON.stringify({command:'denied'})}}]}:{content:'Command was blocked; using another approach.'},finish_reason:calls===1?'tool_calls':'stop'}]}])
+  });
+  try {
+   const profileId=applyProfileMutation(runtime,p=>{p.provider_id='openai';p.api_key='fixture';});
+   await withServer(runtime.app,async base=>{
+    const response=await fetch(base+'/api/chat/stream',{method:'POST',headers:withAuthHeaders({'Content-Type':'application/json'}),body:JSON.stringify({request_id:'shell-preflight',profile_id:profileId,messages:[{role:'user',content:'Check shell'}],tools:[{type:'function',function:{name:'local_shell',parameters:{type:'object'}}}],include_saved_runtime_presets:false})});
+    const events=parseSseEvents(await response.text());
+    assert.equal(events.at(-1).event,'done');
+    assert.equal(calls,2);
+    const record=await fetchJson(base,'/api/executions/shell-preflight');
+    assert.equal(record.json.receipts[0].status,'failed');
+    assert.equal(record.json.receipts[0].result.stdout,'partial');
+    assert.equal(record.json.receipts[0].result.partial_effects,'unknown');
+   });
+  }finally{destroy();}
+ });
+
 for (const started of [false, true]) {
  test(`write rejection distinguishes preflight from uncertain execution (${started})`, async () => {
   let calls = 0;

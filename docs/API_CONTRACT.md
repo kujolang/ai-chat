@@ -502,3 +502,17 @@ With `tool_discovery: true`, a premature call to an authorized but deferred tool
 ### Local command permission settings
 
 Authenticated `GET /api/local/permissions` returns `{ok, permissions: {skip_allowlist, allow_destructive}, shell_enabled}`. Authenticated `POST /api/local/permissions` requires both boolean fields. Each false→true transition additionally requires its exact `skip_allowlist_confirmation` (`ALLOW UNRESTRICTED COMMANDS`) or `allow_destructive_confirmation` (`ALLOW DESTRUCTIVE COMMANDS`). Destructive mode without unrestricted mode returns 400. To disable unrestricted mode send both false. Changes are atomic, persist independently of ordinary state synchronization, and emit `local_command_permissions_changed` without storing confirmation text. These settings do not enable the server's local shell.
+
+### Local shell deadlines
+
+`local_workspace_list.meta.limits.command_timeout_ms` is the server-enforced cap;
+`local_shell.timeout_ms` cannot raise it. Permission bypass does not disable deadlines.
+A timeout observed after process close is a failed tool receipt with
+`execution_completed: true`, `timed_out: true`, the effective `timeout_ms`, bounded
+`stdout`/`stderr`, `exit_code`, `signal`, and `partial_effects: "unknown"`.
+The model receives this result and can inspect effects or adapt a pure benchmark.
+It must not interpret termination as rollback or blindly repeat consequential work.
+Errors without a confirmed execution outcome still require reconciliation.
+On POSIX, timeout/cancellation signals target the command process group with a
+one-second force-kill grace period. This is not containment of deliberately
+detached descendants. Windows uses direct-child termination.

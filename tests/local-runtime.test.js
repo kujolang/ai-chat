@@ -653,3 +653,46 @@ test('unrestricted commands and destructive opt-in are independent at every disp
   assert.equal(runtime.status().command_permissions.skip_allowlist,false);
  }finally{fs.rmSync(dir,{recursive:true,force:true});}
 });
+
+test('shell timeout preserves partial evidence after termination without claiming rollback', async () => {
+ const root = fs.mkdtempSync(path.join(os.tmpdir(), 'shell-timeout-'));
+ try {
+  const runtime = createLocalRuntime({projectRoot:root,env:{AI_CHAT_LOCAL_TOOLS_ENABLED:'1',AI_CHAT_LOCAL_SHELL_ENABLED:'1',AI_CHAT_LOCAL_SHELL_ALLOWLIST:'node',AI_CHAT_LOCAL_COMMAND_TIMEOUT_MS:'1000'},spawnFn:()=>fakeChild(child=>child.stdout.write('partial result'))});
+  await assert.rejects(runtime.runCommand({command:'node',args:[],timeout_ms:10000}),error=>{
+   assert.equal(error.code,'local_shell_timeout');
+   assert.equal(error.execution_completed,true);
+   assert.equal(error.execution_result.stdout,'partial result');
+   assert.equal(error.execution_result.timeout_ms,1000);
+   assert.equal(error.execution_result.partial_effects,'unknown');
+   assert.equal(error.retryable,false);
+   return true;
+  });
+ } finally {fs.rmSync(root,{recursive:true,force:true});}
+});
+
+test('missing executable is a known preflight failure', async () => {
+ const runtime = createLocalRuntime({env:{AI_CHAT_LOCAL_TOOLS_ENABLED:'1',AI_CHAT_LOCAL_SHELL_ENABLED:'1',AI_CHAT_LOCAL_SHELL_ALLOWLIST:'ai-chat-nonexistent-command'}});
+ await assert.rejects(runtime.runCommand({command:'ai-chat-nonexistent-command',args:[]}),e=>e.code==='local_shell_failed' && e.execution_started===false);
+});
+
+test('POSIX timeout kills a SIGTERM-ignoring process tree and keeps output', {skip:process.platform==='win32'}, async () => {
+ const root=fs.mkdtempSync(path.join(os.tmpdir(),'shell-tree-'));
+ try {
+  const runtime=createLocalRuntime({projectRoot:root,env:{AI_CHAT_LOCAL_TOOLS_ENABLED:'1',AI_CHAT_LOCAL_SHELL_ENABLED:'1',AI_CHAT_LOCAL_SHELL_ALLOWLIST:'node',AI_CHAT_LOCAL_COMMAND_TIMEOUT_MS:'1000'},spawnFn:(_command,args,options)=>require('child_process').spawn(process.execPath,args,options)});
+  const script=`process.on('SIGTERM',()=>{}); const c=require('child_process').spawn(process.execPath,['-e',"process.on('SIGTERM',()=>{});setInterval(()=>{},1000)"],{stdio:'inherit'}); console.log('child='+c.pid); setInterval(()=>{},1000);`;
+  await assert.rejects(runtime.runCommand({command:'node',args:['-e',script]}),error=>{
+   assert.equal(error.execution_completed,true);
+   assert.equal(error.execution_result.signal,'SIGKILL');
+   assert.match(error.execution_result.stdout,/child=\d+/);
+   return true;
+  });
+ } finally {fs.rmSync(root,{recursive:true,force:true});}
+});
+
+test('already cancelled shell request never spawns', async () => {
+ let spawned=false;
+ const runtime=createLocalRuntime({env:{AI_CHAT_LOCAL_TOOLS_ENABLED:'1',AI_CHAT_LOCAL_SHELL_ENABLED:'1'},spawnFn:()=>{spawned=true;}});
+ const controller=new AbortController();controller.abort();
+ await assert.rejects(runtime.runCommand({command:'pwd',args:[]},{signal:controller.signal}),e=>e.execution_started===false);
+ assert.equal(spawned,false);
+});
