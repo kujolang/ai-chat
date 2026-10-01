@@ -3859,6 +3859,26 @@ function scheduleStreamingMessagePatch(chatId, paneId, messageId) {
 	});
 }
 
+// Keep the live SVG connected: replacing it restarts its animation on every delta.
+function patchStreamingMessageNode(existing, html) {
+ const template = document.createElement("template");
+ template.innerHTML = html;
+ const next = template.content.firstElementChild;
+ const currentThinking = existing.querySelector(":scope > .message-thinking");
+ const nextThinking = next.querySelector(":scope > .message-thinking");
+ if (!currentThinking?.querySelector(".thinking-inline-progress") || !nextThinking?.querySelector(".thinking-inline-progress")) {
+  existing.replaceWith(next);
+  return;
+ }
+ existing.className = next.className;
+ currentThinking.querySelector(".thinking-label").textContent = nextThinking.querySelector(".thinking-label").textContent;
+ // Only the head owns animation state. Refresh the remaining disclosure/status DOM.
+ for (const child of Array.from(currentThinking.children).slice(1)) child.remove();
+ for (const child of Array.from(nextThinking.children).slice(1)) currentThinking.append(child);
+ for (const child of Array.from(existing.children)) if (child !== currentThinking) child.remove();
+ for (const child of Array.from(next.children)) if (child !== nextThinking) existing.append(child);
+}
+
 function applyStreamingMessagePatches(patches) {
 	if (!Array.isArray(patches) || patches.length === 0) {
 		return;
@@ -3900,7 +3920,7 @@ function applyStreamingMessagePatches(patches) {
 		const messageHtml = renderMessageNodeHtml(message, patch.paneId);
 		const existingMessageNode = messageList.querySelector(selector);
 		if (existingMessageNode) {
-			existingMessageNode.outerHTML = messageHtml;
+			patchStreamingMessageNode(existingMessageNode, messageHtml);
 		} else {
 			const emptyState = messageList.querySelector(".empty-state");
 			if (emptyState) {
@@ -6886,7 +6906,6 @@ function syncStreamingUiTicker(streaming) {
 	}
 
 	streamingUiTickTimer = window.setInterval(() => {
-		let updated = false;
 		for (const chat of state.chats || []) {
 			for (const pane of chat.panes || []) {
 				for (const message of pane.messages || []) {
@@ -6896,13 +6915,10 @@ function syncStreamingUiTicker(streaming) {
 					const startedAt = Number(message.request_started_at || 0);
 					if (startedAt > 0) {
 						message.response_time_ms = Math.max(0, Date.now() - startedAt);
-						updated = true;
+						scheduleStreamingMessagePatch(chat.id, pane.id, message.id);
 					}
 				}
 			}
-		}
-		if (updated) {
-			renderWorkspace({ preserveScroll: true });
 		}
 	}, 1000);
 }
@@ -9281,22 +9297,11 @@ function resolvedThinkingDurationMs(message) {
 		return 0;
 	}
 
-	const explicitThinkingMs = Number(message.thinking_duration_ms);
-	const responseTimeMs = Number(message.response_time_ms);
-	const hasThinkingText = Boolean(String(message.thinking || message.live_narration || "").trim());
-
-	if (!hasThinkingText) {
-		return Number.isFinite(explicitThinkingMs) && explicitThinkingMs > 0 ? explicitThinkingMs : 0;
-	}
-
-	if (Number.isFinite(explicitThinkingMs) && explicitThinkingMs > 0) {
-		if (Number.isFinite(responseTimeMs) && responseTimeMs > explicitThinkingMs * 2) {
-			return responseTimeMs;
-		}
-		return explicitThinkingMs;
-	}
-
-	return Number.isFinite(responseTimeMs) && responseTimeMs > 0 ? responseTimeMs : 0;
+	// Working describes the whole request, including tool-only responses.
+	const elapsed = message.streaming && Number(message.request_started_at) > 0
+		? Math.max(0, Date.now() - Number(message.request_started_at)) : 0;
+	return Math.max(0, ...[elapsed, message.response_time_ms, message.thinking_duration_ms]
+		.map(Number).filter(Number.isFinite));
 }
 
 function formatMessageTime(value) {

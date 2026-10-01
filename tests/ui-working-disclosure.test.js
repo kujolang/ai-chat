@@ -56,3 +56,32 @@ test('browser keeps live activity one line and save text visually hidden with er
   assert.equal(await label.evaluate(el => getComputedStyle(el).clipPath), 'none');
  } finally { await browser.close(); }
 });
+
+test('completed tool-only work retains elapsed time after serialization', () => {
+ const timing = source.slice(source.indexOf('function formatThinkingDurationMs('), source.indexOf('function formatMessageTime('));
+ const label = Function(`${timing}; return message => formatThinkingDurationMs(resolvedThinkingDurationMs(message));`)();
+ assert.equal(label(JSON.parse(JSON.stringify({streaming:false, response_time_ms:126000, thinking_duration_ms:0, tool_activity:[{label:'Done'}]}))), '2m 6s');
+ assert.equal(label({streaming:false, response_time_ms:6000}), '6s');
+});
+
+test('stream updates preserve the connected loading animation and completion removes it', async () => {
+ const browser = await chromium.launch({headless:true});
+ try {
+  const page = await browser.newPage();
+  const patchSource = source.slice(source.indexOf('function patchStreamingMessageNode('), source.indexOf('function applyStreamingMessagePatches('));
+  await page.setContent('<div id="root"></div>');
+  await page.addScriptTag({content:patchSource});
+  const result = await page.evaluate(() => {
+   const html = label => `<div class="message assistant"><div class="message-thinking"><div class="message-thinking-head"><div class="thinking-label">${label}</div><span class="thinking-inline-progress"><svg></svg></span></div><div>status</div></div><div>body</div></div>`;
+   const root = document.querySelector('#root'); root.innerHTML = html('Working');
+   const icon = root.querySelector('svg');
+   const mutations = new MutationObserver(() => {}); mutations.observe(root,{childList:true,subtree:true});
+   for(let i=1;i<=20;i++) patchStreamingMessageNode(root.firstElementChild,html(`Working for ${i}s`));
+   const detached = mutations.takeRecords().some(r => [...r.removedNodes].some(n => n === icon || n.contains?.(icon)));
+   const same = root.querySelector('svg') === icon;
+   patchStreamingMessageNode(root.firstElementChild,'<div class="message assistant">Worked for 1m 20s</div>');
+   return {same,detached,completed:root.textContent,icons:root.querySelectorAll('svg').length};
+  });
+  assert.deepEqual(result,{same:true,detached:false,completed:'Worked for 1m 20s',icons:0});
+ } finally {await browser.close();}
+});
