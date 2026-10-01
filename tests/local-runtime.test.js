@@ -198,7 +198,8 @@ test("local read dedup consumes hits and overwrite ledger prevents unseen or sta
 		fs.writeFileSync(file, "one\ntwo\n");
 		const runtime = createLocalRuntime({ env: { AI_CHAT_LOCAL_TOOLS_ENABLED: "1", AI_CHAT_LOCAL_WRITE_ENABLED: "1", AI_CHAT_LOCAL_WORKSPACE_ROOTS: tempRoot }, homeDir: tempRoot, projectRoot: tempRoot });
 		const context = { requestState: {}, enforceReadLedger: true };
-		assert.throws(() => runtime.writeFile({ path: "note.md", content: "new", mode: "overwrite" }, context), (error) => error.code === "local_file_not_read");
+		assert.throws(() => runtime.writeFile({ path: "note.md", content: "new", mode: "overwrite" }, context), (error) => error.code === "local_file_not_read" && error.execution_started === false);
+		assert.equal(fs.readFileSync(file, "utf8"), "one\ntwo\n");
 		const first = runtime.readFile({ path: "note.md" }, context);
 		assert.equal(first.complete, true);
 		const dedup = runtime.readFile({ path: "note.md" }, context);
@@ -209,7 +210,7 @@ test("local read dedup consumes hits and overwrite ledger prevents unseen or sta
 		assert.equal(runtime.readFile({ path: "note.md", limit: 1 }, partialContext).deduplicated, true);
 		assert.equal(runtime.readFile({ path: "note.md", limit: 1 }, partialContext).deduplicated, undefined);
 		fs.writeFileSync(file, "changed elsewhere\n");
-		assert.throws(() => runtime.writeFile({ path: "note.md", content: "new", mode: "overwrite" }, context), (error) => error.code === "local_file_changed_since_read");
+		assert.throws(() => runtime.writeFile({ path: "note.md", content: "new", mode: "overwrite" }, context), (error) => error.code === "local_file_changed_since_read" && error.execution_started === false);
 		const freshContext = { requestState: {}, enforceReadLedger: true };
 		runtime.readFile({ path: "note.md" }, freshContext);
 		assert.equal(runtime.writeFile({ path: "note.md", content: "new\n", mode: "overwrite" }, freshContext).ok, true);

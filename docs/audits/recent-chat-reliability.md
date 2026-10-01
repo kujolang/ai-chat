@@ -99,3 +99,18 @@ The initial capability instruction now lists only currently loaded schemas, matc
 
 Verification: `node --test --test-concurrency=1 tests/*.test.js` passed 473 tests, zero failed/cancelled, one Linux-only skip (474 total; 102.0 seconds; `/tmp/ai-chat-composer-verified-full.log`). Focused shell schema-recovery/validation tests passed three; discovery/observability tests passed six; composer/disclosure/discovery tests passed eight. `git diff --check` and syntax checking passed. Deployment preflight confirmed zero active streams/running executions before graceful restart. No failed user prompt or shell command was replayed, and no historical receipt was rewritten.
 Deployed `/healthz` and `node scripts/smoke-test.js` against port 4174 passed: health, providers, state and offline fixture chat all HTTP 200 (`/tmp/ai-chat-composer-smoke.log`). Implementation commits: `cc47c58` (composer), `db23641` (tool recovery).
+
+
+## File overwrite preflight recovery — September 30, 2026
+
+Chat `338tmx9lprwk2`, execution `b8ku46yftpcpk:pass:1`, stopped with `execution_reconciliation_required` after `local_file_write` raised `local_file_not_read`. The read-before-overwrite check correctly refused the write, but the stream handler only recognized pre-execution markers for shell calls. It incorrectly left receipt `call_cauijg5q` started and required manual reconciliation.
+
+`lib/local-runtime.js` now marks file-write validation failures before directory creation or file opening with `execution_started=false`. `lib/server-runtime.js` accepts that marker for file writes as well as shell calls, records the failed tool result, and allows the model to read and retry. Errors after the mutation boundary retain uncertain-outcome handling. Read-ledger, path, extension and write-enable protections remain intact; command permission settings do not bypass file overwrite protection.
+
+Regression coverage in `tests/local-runtime.test.js` verifies unread/stale-file preflight markers and unchanged file content. `tests/server-routes.test.js` verifies both model continuation after a known preflight rejection and reconciliation after an unknown write outcome.
+
+The specific historical receipt was reconciled through the authenticated API as a completed failed result with `execution_started=false`, supported by its saved error and the inspected pre-mutation rejection. An evidence event preserves the reason. The execution API now reports `resume.allowed=true`. No completed command was replayed and no chat message was rewritten. Earlier DNS (`ENOTFOUND`) failures in this chat are historical and are not claimed fixed by this change.
+
+Starting commit: `f7e9ed8`. Relevant local-runtime, execution-journal and server-route suite: 200 passed (`/tmp/ai-chat-write-verification.log`).
+
+Final verification: `node --test --test-concurrency=1 tests/*.test.js` passed 482 of 483 tests, zero failures and one platform-specific skip (83.8 seconds; `/tmp/ai-chat-write-full.log`). The final formatted regression selection passed both tests (`/tmp/ai-chat-write-final-focused.log`). `git diff --check` passed. With zero active streams/running executions, the launch agent was gracefully restarted. `/healthz` and `node scripts/smoke-test.js` against port 4174 passed (health/providers/state/offline chat HTTP 200; `/tmp/ai-chat-write-smoke.log`); the affected execution remained resumable after restart. No paid inference was used for verification.

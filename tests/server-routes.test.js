@@ -5009,6 +5009,52 @@ for (const started of [false, true]) {
  });
 }
 
+for (const started of [false, true]) {
+ test(`write rejection distinguishes preflight from uncertain execution (${started})`, async () => {
+  let calls = 0;
+  const { runtime, destroy } = createIsolatedRuntime({
+   localRuntime: {
+    canExecute: () => true,
+    status: () => ({ enabled: true, write_enabled: true }),
+    writeFile: () => {
+     throw Object.assign(new Error('Fixture write failure'), {
+      code: started ? 'local_file_write_failed' : 'local_file_not_read',
+      ...(started ? {} : { execution_started: false })
+     });
+    }
+   },
+   fetchFn: async () => mockSseResponse([{ choices: [{
+    delta: ++calls === 1
+     ? { tool_calls: [{ index: 0, id: 'write-call', function: {
+       name: 'local_file_write', arguments: JSON.stringify({ path: 'note.md', content: 'new', mode: 'overwrite' })
+      } }] }
+     : { content: 'Write was blocked; reading the file before retrying.' },
+    finish_reason: calls === 1 ? 'tool_calls' : 'stop'
+   }] }])
+  });
+  try {
+   const profileId = applyProfileMutation(runtime, p => { p.provider_id = 'openai'; p.api_key = 'fixture'; });
+   await withServer(runtime.app, async base => {
+    const response = await fetch(base + '/api/chat/stream', {
+     method: 'POST', headers: withAuthHeaders({ 'Content-Type': 'application/json' }),
+     body: JSON.stringify({
+      request_id: 'write-preflight', profile_id: profileId,
+      messages: [{ role: 'user', content: 'Update note.md' }],
+      tools: [{ type: 'function', function: { name: 'local_file_write', parameters: { type: 'object' } } }],
+      include_saved_runtime_presets: false
+     })
+    });
+    const events = parseSseEvents(await response.text());
+    assert.equal(events.at(-1).event, started ? 'error' : 'done');
+    assert.equal(calls, started ? 1 : 2);
+    if (started) assert.equal(events.at(-1).data.code, 'execution_reconciliation_required');
+    const record = await fetchJson(base, '/api/executions/write-preflight');
+    assert.equal(record.json.receipts[0].status, started ? 'started' : 'failed');
+   });
+  } finally { destroy(); }
+ });
+}
+
 for (const status of [408,410]) {
  test(`provider HTTP ${status} exposes actionable retry semantics`,async()=>{
   const {runtime,env,destroy}=createIsolatedRuntime({fetchFn:async()=>({ok:false,status,text:async()=>status===408?'Request Timeout':'private provider detail',headers:{get:()=> 'text/plain'}})});
