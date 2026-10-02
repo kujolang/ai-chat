@@ -185,13 +185,13 @@ function runBenchmark(args) {
 	});
 }
 
-async function startFixtureServer(initialState) {
+async function startFixtureServer(initialState, schemas = []) {
 	const state = structuredClone(initialState);
 	const mutations = [];
 	const streams = [];
 	const server = http.createServer(async (request, response) => {
 		if (request.url === "/api/health") {
-			return sendJson(response, { ok: true, instance: { role: "interactive" }, benchmark: { default_max_response_tokens: 1000, recommended_concurrency: 1, max_concurrency: 4 }, tool_runtime: { schemas: [] } });
+			return sendJson(response, { ok: true, instance: { role: "interactive" }, benchmark: { default_max_response_tokens: 1000, recommended_concurrency: 1, max_concurrency: 4 }, tool_runtime: { schemas } });
 		}
 		if (request.url === "/api/state" && request.method === "GET") {
 			return sendJson(response, { ok: true, state });
@@ -258,3 +258,20 @@ function sendJson(response, payload) {
 	response.writeHead(200, { "Content-Type": "application/json" });
 	response.end(JSON.stringify(payload));
 }
+
+ test("local-dev benchmark sends explicit executable schemas and rejects missing tools", async t => {
+ const dir=await fs.mkdtemp(path.join(os.tmpdir(),"dev-suite-"));
+ t.after(()=>fs.rm(dir,{recursive:true,force:true}));
+ const file=path.join(dir,"suite.md");await fs.writeFile(file,"# TEST 1: Dev\n\n## Prompt\nRun fixture.\n");
+ const names=["local_workspace_list","local_file_list","local_file_read","local_file_write","local_shell","documentation_query"];
+ const schemas=names.map(name=>({type:"function",function:{name,parameters:{type:"object"}}}));
+ const runtime=await startFixtureServer(fixtureState(),schemas);
+ t.after(()=>new Promise(resolve=>runtime.server.close(resolve)));
+ const args=["--tests",file,"--output-dir",dir,"--base-url",runtime.baseUrl,"--api-token","fixture","--require-instance-role","any","--model","glm-5.3-flash","--tool-preset","local-dev"];
+ const result=await runBenchmark(args);assert.equal(result.code,0,result.stderr);
+ assert.deepEqual(runtime.streams[0].tools.map(t=>t.function.name),names);
+ const missing=await startFixtureServer(fixtureState());
+ t.after(()=>new Promise(resolve=>missing.server.close(resolve)));
+ const rejected=await runBenchmark([...args,"--base-url",missing.baseUrl]);
+ assert.equal(rejected.code,1);assert.equal(missing.streams.length,0);
+ });

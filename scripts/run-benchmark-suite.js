@@ -414,11 +414,12 @@ function applyEvent(event, raw, result) {
 function resolveBenchmarkTools(health, preset) {
 	if (!preset || preset === "none") return [];
 	const presets = {
+		"local-dev": ["local_workspace_list", "local_file_list", "local_file_read", "local_file_write", "local_shell", "documentation_query"],
 		"local-read": ["local_workspace_list", "local_file_list", "local_file_read"],
 		"tool-repair": ["local_workspace_list", "local_file_list", "local_file_read"]
 	};
 	const names = presets[preset];
-	if (!names) fail(`Unknown benchmark tool preset: ${preset}. Supported: none, local-read, tool-repair.`);
+	if (!names) fail(`Unknown benchmark tool preset: ${preset}. Supported: none, local-read, local-dev, tool-repair.`);
 	const schemas = Array.isArray(health && health.tool_runtime && health.tool_runtime.schemas)
 		? health.tool_runtime.schemas
 		: [];
