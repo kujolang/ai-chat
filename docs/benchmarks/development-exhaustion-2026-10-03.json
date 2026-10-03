@@ -1,0 +1,1257 @@
+{
+  "grading": "Independently verified task completion, not transport success or subjective quality. Fresh directories; prior artifacts forbidden by prompt but not hermetically isolated. All adverse trials retained.",
+  "model": "deepseek-v4.1-flash:cloud",
+  "provider": "Watchdog / Ollama Cloud",
+  "requested_output_tokens": 6000,
+  "baseline_rounds": [
+    {
+      "round": 1,
+      "run_id": "dev-2026-10-02-deepseek",
+      "verified_passes": 3,
+      "cases_total": 6,
+      "duration_ms": 476319,
+      "reported_total_tokens": 814711,
+      "receipts": 187,
+      "cases": [
+        {
+          "case": 1,
+          "verified_pass": true,
+          "duration_ms": 54774,
+          "receipts": 19,
+          "usage": {
+            "input_tokens": 84203,
+            "output_tokens": 7918,
+            "total_tokens": 92121,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "chat_id": "55ba0a64-d091-4166-bd7c-bb0d38a992a8",
+          "execution_id": "f3df309a-6969-4e44-ac7c-15ab776c78f9",
+          "transport_ok": true
+        },
+        {
+          "case": 2,
+          "verified_pass": false,
+          "duration_ms": 333234,
+          "receipts": 135,
+          "usage": {
+            "input_tokens": 572619,
+            "output_tokens": 11366,
+            "total_tokens": 583985,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "chat_id": "c21bda61-ee1e-405c-af01-da852e5751bd",
+          "execution_id": "9fd9f087-f3a5-4392-be09-794e74fd58d7",
+          "transport_ok": false
+        },
+        {
+          "case": 3,
+          "verified_pass": true,
+          "duration_ms": 17046,
+          "receipts": 14,
+          "usage": {
+            "input_tokens": 65581,
+            "output_tokens": 2709,
+            "total_tokens": 68290,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "chat_id": "fddb2350-74de-4394-a6a8-4b1e8458b358",
+          "execution_id": "a22e452f-cfca-4f2a-8682-f87ab9aa8634",
+          "transport_ok": true
+        },
+        {
+          "case": 4,
+          "verified_pass": false,
+          "duration_ms": 27024,
+          "receipts": 5,
+          "usage": {
+            "input_tokens": 12038,
+            "output_tokens": 6277,
+            "total_tokens": 18315,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "chat_id": "b9702157-860b-49f5-8aff-f7ef66d9f281",
+          "execution_id": "ca494cf2-b12c-4bc6-89cb-102353e521e5",
+          "transport_ok": true
+        },
+        {
+          "case": 5,
+          "verified_pass": true,
+          "duration_ms": 15671,
+          "receipts": 8,
+          "usage": {
+            "input_tokens": 33743,
+            "output_tokens": 1830,
+            "total_tokens": 35573,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "chat_id": "fb3c57d1-f255-4db4-96a9-c55ce3564322",
+          "execution_id": "15e02827-1481-42fc-be7f-b678280440f7",
+          "transport_ok": true
+        },
+        {
+          "case": 6,
+          "verified_pass": false,
+          "duration_ms": 13495,
+          "receipts": 6,
+          "usage": {
+            "input_tokens": 11959,
+            "output_tokens": 4468,
+            "total_tokens": 16427,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "chat_id": "0c1a9674-a926-433d-a839-830db6db0d79",
+          "execution_id": "2aed8f52-7379-4299-97b7-6cffb8d99c28",
+          "transport_ok": false
+        }
+      ],
+      "median_case_duration_ms": 22035.0
+    },
+    {
+      "round": 2,
+      "run_id": "dev-2026-10-02-deepseek-final",
+      "verified_passes": 5,
+      "cases_total": 6,
+      "duration_ms": 405510,
+      "reported_total_tokens": 942912,
+      "receipts": 208,
+      "cases": [
+        {
+          "case": 1,
+          "verified_pass": true,
+          "duration_ms": 53364,
+          "receipts": 17,
+          "usage": {
+            "input_tokens": 104744,
+            "output_tokens": 7851,
+            "total_tokens": 112595,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "chat_id": "e9fec09d-3bde-4033-8364-7e899db5e1c3",
+          "execution_id": "f5b153eb-80cc-4640-90bf-d6c55ff3c7d4",
+          "transport_ok": true
+        },
+        {
+          "case": 2,
+          "verified_pass": false,
+          "duration_ms": 66416,
+          "receipts": 106,
+          "usage": {
+            "input_tokens": 331330,
+            "output_tokens": 8739,
+            "total_tokens": 340069,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "chat_id": "63c3e506-18f6-430d-8925-2312d0ce1e7f",
+          "execution_id": "ce91e4e5-1966-42ee-aa44-f9c8069362d0",
+          "transport_ok": false
+        },
+        {
+          "case": 3,
+          "verified_pass": true,
+          "duration_ms": 21479,
+          "receipts": 15,
+          "usage": {
+            "input_tokens": 66803,
+            "output_tokens": 2876,
+            "total_tokens": 69679,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "chat_id": "8ff2a106-710d-4c2a-9663-f0ae7e34b386",
+          "execution_id": "16ae53de-56a8-4f8d-828e-841b8385a5ff",
+          "transport_ok": true
+        },
+        {
+          "case": 4,
+          "verified_pass": true,
+          "duration_ms": 109699,
+          "receipts": 21,
+          "usage": {
+            "input_tokens": 158507,
+            "output_tokens": 16065,
+            "total_tokens": 174572,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "chat_id": "6c98e15d-6d4e-42a9-998d-9a43f75d286b",
+          "execution_id": "f7f1aed0-6c32-42fc-8240-4d53e1af23af",
+          "transport_ok": true
+        },
+        {
+          "case": 5,
+          "verified_pass": true,
+          "duration_ms": 17481,
+          "receipts": 7,
+          "usage": {
+            "input_tokens": 27291,
+            "output_tokens": 1256,
+            "total_tokens": 28547,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "chat_id": "ddda0132-77ab-435f-9f89-26429284c91c",
+          "execution_id": "a1ffd0d2-501d-458f-94d4-c0ea03eac88d",
+          "transport_ok": true
+        },
+        {
+          "case": 6,
+          "verified_pass": true,
+          "duration_ms": 124923,
+          "receipts": 42,
+          "usage": {
+            "input_tokens": 200934,
+            "output_tokens": 16516,
+            "total_tokens": 217450,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "chat_id": "a10cd89d-40ce-4183-8087-034332dfa1f6",
+          "execution_id": "96ef0652-a530-4449-92e8-1cc6b96a9304",
+          "transport_ok": true
+        }
+      ],
+      "median_case_duration_ms": 59890.0
+    },
+    {
+      "round": 3,
+      "run_id": "dev-2026-10-02-deepseek-round3f",
+      "runtime_revision": "5141b3a",
+      "verified_passes": 5,
+      "cases_total": 6,
+      "duration_ms": 610783,
+      "reported_total_tokens": 1771713,
+      "receipts": 300,
+      "cases": [
+        {
+          "case": 1,
+          "verified_pass": true,
+          "transport_ok": true,
+          "duration_ms": 35065,
+          "usage": {
+            "input_tokens": 115376,
+            "output_tokens": 10693,
+            "total_tokens": 126069,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 24,
+          "chat_id": "8f0c9134-d015-499b-8835-0fe8e96243e6",
+          "execution_id": "eea32b85-3a4c-4a3f-99e7-12a9e51a3840",
+          "error": null
+        },
+        {
+          "case": 2,
+          "verified_pass": false,
+          "transport_ok": false,
+          "duration_ms": 346841,
+          "usage": {
+            "input_tokens": 592701,
+            "output_tokens": 46279,
+            "total_tokens": 638980,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 146,
+          "chat_id": "696a00df-a5d2-4d1e-9a68-71e0bfb529f2",
+          "execution_id": "8df2fbd5-e977-41a6-8890-9b527de32c8f",
+          "error": "The model exhausted two output-limit continuations before completing the task. Completed tools and partial files are retained; inspect the saved execution before continuing."
+        },
+        {
+          "case": 3,
+          "verified_pass": true,
+          "transport_ok": true,
+          "duration_ms": 13016,
+          "usage": {
+            "input_tokens": 66944,
+            "output_tokens": 2508,
+            "total_tokens": 69452,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 14,
+          "chat_id": "35a9b640-fba3-4dd9-8bfb-8f3c08cead65",
+          "execution_id": "1e71c607-aa79-4a68-9fb4-52cae8318743",
+          "error": null
+        },
+        {
+          "case": 4,
+          "verified_pass": true,
+          "transport_ok": true,
+          "duration_ms": 75672,
+          "usage": {
+            "input_tokens": 425688,
+            "output_tokens": 24084,
+            "total_tokens": 449772,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 48,
+          "chat_id": "dd317ba1-a56c-4a2e-82ab-01a787e040b0",
+          "execution_id": "999b4ef1-a18e-4662-b996-1181c4e90755",
+          "error": null
+        },
+        {
+          "case": 5,
+          "verified_pass": true,
+          "transport_ok": true,
+          "duration_ms": 14094,
+          "usage": {
+            "input_tokens": 45092,
+            "output_tokens": 1590,
+            "total_tokens": 46682,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 8,
+          "chat_id": "1d280e9b-42c7-4831-8496-f91db85d7cf4",
+          "execution_id": "ff506f1f-b1aa-4447-b415-288a7a3b37a3",
+          "error": null
+        },
+        {
+          "case": 6,
+          "verified_pass": true,
+          "transport_ok": true,
+          "duration_ms": 118761,
+          "usage": {
+            "input_tokens": 411345,
+            "output_tokens": 29413,
+            "total_tokens": 440758,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 60,
+          "chat_id": "c347f3e5-3cac-4b86-bdb4-341c47d8caea",
+          "execution_id": "69fe743f-a276-4224-9304-a52cce19b75d",
+          "error": null
+        }
+      ],
+      "median_case_duration_ms": 55368.5
+    }
+  ],
+  "candidates": [
+    {
+      "candidate": "A",
+      "run_id": "dev-2026-10-03-exhaustion-a",
+      "runtime_revision": "ed03012",
+      "context_window": 65536,
+      "started_at": "2026-10-03T03:36:13.446Z",
+      "finished_at": "2026-10-03T03:42:57.775Z",
+      "duration_ms": 404329,
+      "verified_passes": 0,
+      "cases_total": 1,
+      "cases": [
+        {
+          "case": 2,
+          "title": "Kujo and Go benchmark",
+          "verified_pass": false,
+          "transport_ok": false,
+          "chat_id": "ffbd6b8f-5807-43ab-96ec-89ecca2f480d",
+          "execution_id": "475f523b-76ac-4860-b2a8-aa302d8b6b36",
+          "duration_ms": 399994,
+          "usage": {
+            "input_tokens": 1839423,
+            "output_tokens": 39224,
+            "total_tokens": 1878647,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 191,
+          "tools": {
+            "local_workspace_list": 1,
+            "system_time": 1,
+            "local_shell": 60,
+            "local_file_list": 16,
+            "local_file_read": 100,
+            "local_file_write": 9,
+            "tool_result_read": 4
+          },
+          "provider_rounds": 123,
+          "tool_input_repairs": 0,
+          "post_limit_checks": 0,
+          "length_continuations": 0,
+          "empty_continuations": 0,
+          "finish_reason": null,
+          "error": "Generation was cancelled.",
+          "grading_note": "Targeted diagnostic manually cancelled after repeated reads; no final completed deliverable."
+        }
+      ],
+      "reported_total_tokens": 1878647,
+      "receipts": 191,
+      "provider_rounds": 123
+    },
+    {
+      "candidate": "B",
+      "run_id": "dev-2026-10-03-exhaustion-b",
+      "runtime_revision": "70b765d",
+      "context_window": 65536,
+      "started_at": "2026-10-03T03:48:13.084Z",
+      "finished_at": "2026-10-03T04:04:35.239Z",
+      "duration_ms": 982155,
+      "verified_passes": 5,
+      "cases_total": 6,
+      "cases": [
+        {
+          "case": 1,
+          "title": "CSV program",
+          "verified_pass": true,
+          "transport_ok": true,
+          "chat_id": "ff4e20b8-a474-45cb-a23e-14d083cfb160",
+          "execution_id": "96612c5c-7dde-4ef4-abe5-bf3b7be0ee9f",
+          "duration_ms": 115758,
+          "usage": {
+            "input_tokens": 230037,
+            "output_tokens": 14277,
+            "total_tokens": 244314,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 34,
+          "tools": {
+            "local_workspace_list": 1,
+            "system_time": 1,
+            "local_shell": 13,
+            "local_file_list": 3,
+            "local_file_write": 9,
+            "local_file_read": 7
+          },
+          "provider_rounds": 19,
+          "tool_input_repairs": 2,
+          "post_limit_checks": 0,
+          "length_continuations": 0,
+          "empty_continuations": 0,
+          "finish_reason": "stop",
+          "error": null
+        },
+        {
+          "case": 2,
+          "title": "Kujo and Go benchmark",
+          "verified_pass": true,
+          "transport_ok": true,
+          "chat_id": "42617aae-34f1-40a9-a545-6be43e5f72b7",
+          "execution_id": "d6e38c92-f02f-494b-b3de-10957c4a672f",
+          "duration_ms": 323750,
+          "usage": {
+            "input_tokens": 863399,
+            "output_tokens": 27300,
+            "total_tokens": 890699,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 112,
+          "tools": {
+            "local_workspace_list": 1,
+            "system_time": 1,
+            "local_shell": 56,
+            "local_file_list": 9,
+            "local_file_read": 32,
+            "skill_list": 1,
+            "local_file_write": 12
+          },
+          "provider_rounds": 59,
+          "tool_input_repairs": 4,
+          "post_limit_checks": 0,
+          "length_continuations": 0,
+          "empty_continuations": 1,
+          "finish_reason": "stop",
+          "error": null
+        },
+        {
+          "case": 3,
+          "title": "Debug unfamiliar code",
+          "verified_pass": true,
+          "transport_ok": true,
+          "chat_id": "bdc4c7dc-491e-4ffc-b5f2-9cd994d82d9a",
+          "execution_id": "00c08551-f84f-4b73-9a9c-262d2abff169",
+          "duration_ms": 16289,
+          "usage": {
+            "input_tokens": 58213,
+            "output_tokens": 2563,
+            "total_tokens": 60776,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 13,
+          "tools": {
+            "local_workspace_list": 1,
+            "system_time": 1,
+            "local_file_list": 1,
+            "local_shell": 5,
+            "local_file_read": 3,
+            "local_file_write": 2
+          },
+          "provider_rounds": 9,
+          "tool_input_repairs": 0,
+          "post_limit_checks": 0,
+          "length_continuations": 0,
+          "empty_continuations": 0,
+          "finish_reason": "stop",
+          "error": null
+        },
+        {
+          "case": 4,
+          "title": "HTTP API",
+          "verified_pass": false,
+          "transport_ok": false,
+          "chat_id": "6c314205-5a55-45c0-b6cd-857115dfcd97",
+          "execution_id": "338cf813-4b83-40ff-bc2c-9b14ca668663",
+          "duration_ms": 239882,
+          "usage": {
+            "input_tokens": 920649,
+            "output_tokens": 31286,
+            "total_tokens": 951935,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 80,
+          "tools": {
+            "local_workspace_list": 1,
+            "system_time": 1,
+            "local_shell": 9,
+            "local_file_list": 4,
+            "local_file_write": 7,
+            "local_file_read": 54,
+            "tool_result_read": 4
+          },
+          "provider_rounds": 70,
+          "tool_input_repairs": 0,
+          "post_limit_checks": 0,
+          "length_continuations": 1,
+          "empty_continuations": 0,
+          "finish_reason": null,
+          "error": "Generation was cancelled.",
+          "grading_note": "Manually cancelled after repeated reads; independent tests confirm four pass and one fail."
+        },
+        {
+          "case": 5,
+          "title": "Intentional timeout recovery",
+          "verified_pass": true,
+          "transport_ok": true,
+          "chat_id": "7091211d-441e-46cd-b392-156e3f314ca7",
+          "execution_id": "de0216d8-89d0-4b6d-8fc6-fa090d826389",
+          "duration_ms": 16956,
+          "usage": {
+            "input_tokens": 28192,
+            "output_tokens": 1422,
+            "total_tokens": 29614,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 6,
+          "tools": {
+            "local_workspace_list": 1,
+            "local_shell": 3,
+            "local_file_list": 1,
+            "local_file_write": 1
+          },
+          "provider_rounds": 6,
+          "tool_input_repairs": 0,
+          "post_limit_checks": 0,
+          "length_continuations": 0,
+          "empty_continuations": 0,
+          "finish_reason": "stop",
+          "error": null
+        },
+        {
+          "case": 6,
+          "title": "Duplicate-file CLI",
+          "verified_pass": true,
+          "transport_ok": true,
+          "chat_id": "3ff3f91d-aea4-4faa-a060-f1f9013b3e2b",
+          "execution_id": "7a8d7394-edd7-4462-a1fc-e68f5de9e9c2",
+          "duration_ms": 262040,
+          "usage": {
+            "input_tokens": 684762,
+            "output_tokens": 36741,
+            "total_tokens": 721503,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 83,
+          "tools": {
+            "local_workspace_list": 1,
+            "system_time": 1,
+            "local_shell": 36,
+            "local_file_list": 2,
+            "local_file_write": 26,
+            "local_file_read": 12,
+            "tool_result_read": 5
+          },
+          "provider_rounds": 52,
+          "tool_input_repairs": 2,
+          "post_limit_checks": 0,
+          "length_continuations": 2,
+          "empty_continuations": 2,
+          "finish_reason": "stop",
+          "error": null
+        }
+      ],
+      "reported_total_tokens": 2898841,
+      "receipts": 328,
+      "provider_rounds": 215
+    },
+    {
+      "candidate": "C",
+      "run_id": "dev-2026-10-03-exhaustion-c",
+      "runtime_revision": "bf09588",
+      "context_window": 1048576,
+      "started_at": "2026-10-03T04:07:52.929Z",
+      "finished_at": "2026-10-03T04:20:58.705Z",
+      "duration_ms": 785776,
+      "verified_passes": 6,
+      "cases_total": 6,
+      "cases": [
+        {
+          "case": 1,
+          "title": "CSV program",
+          "verified_pass": true,
+          "transport_ok": true,
+          "chat_id": "3fb7fede-510e-43f6-bf24-e55af5a20686",
+          "execution_id": "5aaa8975-9e11-4b27-9c60-fd35e901a90e",
+          "duration_ms": 46657,
+          "usage": {
+            "input_tokens": 95697,
+            "output_tokens": 7403,
+            "total_tokens": 103100,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 21,
+          "tools": {
+            "local_workspace_list": 1,
+            "system_time": 1,
+            "local_shell": 7,
+            "local_file_list": 2,
+            "local_file_write": 10
+          },
+          "provider_rounds": 9,
+          "tool_input_repairs": 0,
+          "post_limit_checks": 0,
+          "length_continuations": 0,
+          "empty_continuations": 0,
+          "finish_reason": "stop",
+          "error": null
+        },
+        {
+          "case": 2,
+          "title": "Kujo and Go benchmark",
+          "verified_pass": true,
+          "transport_ok": true,
+          "chat_id": "6bf55123-d59a-4db0-88e0-0d8478075f0a",
+          "execution_id": "1a35c3b2-3afa-4bc0-8e15-549cbf9581c2",
+          "duration_ms": 299840,
+          "usage": {
+            "input_tokens": 1796842,
+            "output_tokens": 20116,
+            "total_tokens": 1816958,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 70,
+          "tools": {
+            "local_workspace_list": 1,
+            "system_time": 1,
+            "local_shell": 39,
+            "local_file_list": 10,
+            "local_file_read": 13,
+            "local_file_write": 6
+          },
+          "provider_rounds": 44,
+          "tool_input_repairs": 1,
+          "post_limit_checks": 0,
+          "length_continuations": 0,
+          "empty_continuations": 0,
+          "finish_reason": "stop",
+          "error": null
+        },
+        {
+          "case": 3,
+          "title": "Debug unfamiliar code",
+          "verified_pass": true,
+          "transport_ok": true,
+          "chat_id": "5f28681f-110a-4f37-9732-56e18e76f8f1",
+          "execution_id": "f13c582e-01ce-46bd-85e7-693035900fd5",
+          "duration_ms": 21408,
+          "usage": {
+            "input_tokens": 67676,
+            "output_tokens": 2489,
+            "total_tokens": 70165,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 14,
+          "tools": {
+            "local_workspace_list": 1,
+            "system_time": 1,
+            "local_file_list": 1,
+            "local_shell": 6,
+            "local_file_read": 3,
+            "local_file_write": 2
+          },
+          "provider_rounds": 10,
+          "tool_input_repairs": 0,
+          "post_limit_checks": 0,
+          "length_continuations": 0,
+          "empty_continuations": 0,
+          "finish_reason": "stop",
+          "error": null
+        },
+        {
+          "case": 4,
+          "title": "HTTP API",
+          "verified_pass": true,
+          "transport_ok": true,
+          "chat_id": "fcd16bf7-9f90-43af-8271-e39fa025d665",
+          "execution_id": "8a170374-2d36-4cb9-8aab-85f1a1071615",
+          "duration_ms": 199435,
+          "usage": {
+            "input_tokens": 1169217,
+            "output_tokens": 30594,
+            "total_tokens": 1199811,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 41,
+          "tools": {
+            "local_workspace_list": 1,
+            "system_time": 1,
+            "local_shell": 14,
+            "local_file_list": 2,
+            "local_file_write": 15,
+            "local_file_read": 8
+          },
+          "provider_rounds": 35,
+          "tool_input_repairs": 2,
+          "post_limit_checks": 0,
+          "length_continuations": 1,
+          "empty_continuations": 0,
+          "finish_reason": "stop",
+          "error": null
+        },
+        {
+          "case": 5,
+          "title": "Intentional timeout recovery",
+          "verified_pass": true,
+          "transport_ok": true,
+          "chat_id": "47142103-e0d3-41ae-9ab8-48e2eb3d8c5d",
+          "execution_id": "70389af3-6015-423e-9c79-cd9670f4681e",
+          "duration_ms": 26893,
+          "usage": {
+            "input_tokens": 77455,
+            "output_tokens": 2329,
+            "total_tokens": 79784,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 11,
+          "tools": {
+            "local_workspace_list": 1,
+            "system_time": 1,
+            "local_shell": 6,
+            "local_file_list": 2,
+            "local_file_write": 1
+          },
+          "provider_rounds": 8,
+          "tool_input_repairs": 0,
+          "post_limit_checks": 0,
+          "length_continuations": 0,
+          "empty_continuations": 0,
+          "finish_reason": "stop",
+          "error": null
+        },
+        {
+          "case": 6,
+          "title": "Duplicate-file CLI",
+          "verified_pass": true,
+          "transport_ok": true,
+          "chat_id": "3727517a-bd1d-4900-8901-df8f2b263679",
+          "execution_id": "64caa3c0-b792-41fa-81af-a3aa2ff2e9c0",
+          "duration_ms": 186157,
+          "usage": {
+            "input_tokens": 850711,
+            "output_tokens": 28358,
+            "total_tokens": 879069,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 60,
+          "tools": {
+            "local_workspace_list": 1,
+            "system_time": 1,
+            "local_shell": 32,
+            "local_file_list": 2,
+            "local_file_write": 22,
+            "local_file_read": 2
+          },
+          "provider_rounds": 27,
+          "tool_input_repairs": 0,
+          "post_limit_checks": 0,
+          "length_continuations": 1,
+          "empty_continuations": 0,
+          "finish_reason": "stop",
+          "error": null
+        }
+      ],
+      "reported_total_tokens": 4148887,
+      "receipts": 217,
+      "provider_rounds": 133
+    },
+    {
+      "candidate": "D",
+      "run_id": "dev-2026-10-03-exhaustion-d",
+      "runtime_revision": "00da58f",
+      "context_window": 1048576,
+      "started_at": "2026-10-03T04:24:00.330Z",
+      "finished_at": "2026-10-03T04:32:21.725Z",
+      "duration_ms": 501395,
+      "verified_passes": 5,
+      "cases_total": 6,
+      "cases": [
+        {
+          "case": 1,
+          "title": "CSV program",
+          "verified_pass": true,
+          "transport_ok": true,
+          "chat_id": "69911ca7-e123-485f-b947-31eadda58f4d",
+          "execution_id": "cfc8160a-7821-41a2-a2ae-644ce43105bb",
+          "duration_ms": 105586,
+          "usage": {
+            "input_tokens": 264117,
+            "output_tokens": 14194,
+            "total_tokens": 278311,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 24,
+          "tools": {
+            "local_workspace_list": 1,
+            "system_time": 1,
+            "local_shell": 10,
+            "local_file_list": 1,
+            "local_file_write": 9,
+            "local_file_read": 2
+          },
+          "provider_rounds": 16,
+          "tool_input_repairs": 0,
+          "post_limit_checks": 0,
+          "length_continuations": 0,
+          "empty_continuations": 0,
+          "finish_reason": "stop",
+          "error": null
+        },
+        {
+          "case": 2,
+          "title": "Kujo and Go benchmark",
+          "verified_pass": true,
+          "transport_ok": true,
+          "chat_id": "44fa8bb2-868d-4f96-9b25-db1a586e4d2a",
+          "execution_id": "c71100e0-7ff6-461b-81b4-9ae1d70e27e6",
+          "duration_ms": 212306,
+          "usage": {
+            "input_tokens": 1946857,
+            "output_tokens": 23088,
+            "total_tokens": 1969945,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 68,
+          "tools": {
+            "local_workspace_list": 1,
+            "local_shell": 43,
+            "local_file_list": 9,
+            "local_file_read": 8,
+            "local_file_write": 7
+          },
+          "provider_rounds": 44,
+          "tool_input_repairs": 0,
+          "post_limit_checks": 0,
+          "length_continuations": 0,
+          "empty_continuations": 0,
+          "finish_reason": "stop",
+          "error": null
+        },
+        {
+          "case": 3,
+          "title": "Debug unfamiliar code",
+          "verified_pass": true,
+          "transport_ok": true,
+          "chat_id": "2a676ced-0fb5-4996-8239-5a4280a675db",
+          "execution_id": "b873d93c-8017-41bc-ade3-a370a50bf3f6",
+          "duration_ms": 19144,
+          "usage": {
+            "input_tokens": 69114,
+            "output_tokens": 2625,
+            "total_tokens": 71739,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 14,
+          "tools": {
+            "local_workspace_list": 1,
+            "system_time": 1,
+            "local_file_list": 1,
+            "local_shell": 6,
+            "local_file_read": 3,
+            "local_file_write": 2
+          },
+          "provider_rounds": 10,
+          "tool_input_repairs": 0,
+          "post_limit_checks": 0,
+          "length_continuations": 0,
+          "empty_continuations": 0,
+          "finish_reason": "stop",
+          "error": null
+        },
+        {
+          "case": 4,
+          "title": "HTTP API",
+          "verified_pass": false,
+          "transport_ok": true,
+          "chat_id": "f2829b08-006b-45e7-ba04-8ec85cc5871b",
+          "execution_id": "d1b1037f-82ac-4150-bf19-7baec523b309",
+          "duration_ms": 35765,
+          "usage": {
+            "input_tokens": 22614,
+            "output_tokens": 6511,
+            "total_tokens": 29125,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 6,
+          "tools": {
+            "local_workspace_list": 1,
+            "system_time": 1,
+            "local_shell": 2,
+            "local_file_list": 2
+          },
+          "provider_rounds": 5,
+          "tool_input_repairs": 0,
+          "post_limit_checks": 0,
+          "length_continuations": 1,
+          "empty_continuations": 0,
+          "finish_reason": "stop",
+          "error": null,
+          "grading_note": "Progress announcement after output-limit recovery; no API artifacts created despite successful transport."
+        },
+        {
+          "case": 5,
+          "title": "Intentional timeout recovery",
+          "verified_pass": true,
+          "transport_ok": true,
+          "chat_id": "63c31ec7-81db-4981-bd89-8797041d0609",
+          "execution_id": "1d14db48-39ae-449c-94bc-40f553827c41",
+          "duration_ms": 19683,
+          "usage": {
+            "input_tokens": 47299,
+            "output_tokens": 1653,
+            "total_tokens": 48952,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 8,
+          "tools": {
+            "local_workspace_list": 1,
+            "local_shell": 4,
+            "local_file_list": 2,
+            "local_file_write": 1
+          },
+          "provider_rounds": 7,
+          "tool_input_repairs": 0,
+          "post_limit_checks": 0,
+          "length_continuations": 0,
+          "empty_continuations": 0,
+          "finish_reason": "stop",
+          "error": null
+        },
+        {
+          "case": 6,
+          "title": "Duplicate-file CLI",
+          "verified_pass": true,
+          "transport_ok": true,
+          "chat_id": "00c7bb66-4b06-450c-9595-409441157ef9",
+          "execution_id": "41398db7-51f4-43d0-845f-61c563116921",
+          "duration_ms": 102000,
+          "usage": {
+            "input_tokens": 315938,
+            "output_tokens": 17963,
+            "total_tokens": 333901,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 32,
+          "tools": {
+            "local_workspace_list": 1,
+            "system_time": 1,
+            "local_shell": 19,
+            "local_file_list": 2,
+            "local_file_write": 9
+          },
+          "provider_rounds": 16,
+          "tool_input_repairs": 0,
+          "post_limit_checks": 0,
+          "length_continuations": 1,
+          "empty_continuations": 0,
+          "finish_reason": "stop",
+          "error": null
+        }
+      ],
+      "reported_total_tokens": 2731973,
+      "receipts": 152,
+      "provider_rounds": 98
+    },
+    {
+      "candidate": "E",
+      "run_id": "dev-2026-10-03-exhaustion-e",
+      "runtime_revision": "c7e001f",
+      "context_window": 1048576,
+      "started_at": "2026-10-03T04:47:08.899Z",
+      "finished_at": "2026-10-03T05:03:13.951Z",
+      "duration_ms": 965052,
+      "verified_passes": 6,
+      "cases_total": 6,
+      "cases": [
+        {
+          "case": 1,
+          "title": "CSV program",
+          "verified_pass": true,
+          "transport_ok": true,
+          "chat_id": "415a6a9f-428d-4679-8060-a34c308b3747",
+          "execution_id": "b456ce62-3262-4116-bc05-dca55d24b551",
+          "duration_ms": 73371,
+          "usage": {
+            "input_tokens": 138769,
+            "output_tokens": 9615,
+            "total_tokens": 148384,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 21,
+          "tools": {
+            "local_workspace_list": 1,
+            "system_time": 1,
+            "local_shell": 13,
+            "local_file_list": 1,
+            "local_file_write": 5
+          },
+          "provider_rounds": 11,
+          "tool_input_repairs": 0,
+          "post_limit_checks": 0,
+          "length_continuations": 0,
+          "empty_continuations": 0,
+          "finish_reason": "stop",
+          "error": null
+        },
+        {
+          "case": 2,
+          "title": "Kujo and Go benchmark",
+          "verified_pass": true,
+          "transport_ok": true,
+          "chat_id": "fac9b442-b9c7-4e33-a923-6fb91794adbf",
+          "execution_id": "e952dd4a-9117-48f0-9eb8-3499b792b773",
+          "duration_ms": 570504,
+          "usage": {
+            "input_tokens": 1659215,
+            "output_tokens": 24514,
+            "total_tokens": 1683729,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 72,
+          "tools": {
+            "local_workspace_list": 1,
+            "system_time": 1,
+            "local_file_list": 7,
+            "local_shell": 51,
+            "skill_list": 1,
+            "documentation_query": 3,
+            "local_file_read": 5,
+            "local_file_write": 3
+          },
+          "provider_rounds": 38,
+          "tool_input_repairs": 1,
+          "post_limit_checks": 0,
+          "length_continuations": 0,
+          "empty_continuations": 0,
+          "finish_reason": "stop",
+          "error": null
+        },
+        {
+          "case": 3,
+          "title": "Debug unfamiliar code",
+          "verified_pass": true,
+          "transport_ok": true,
+          "chat_id": "7d8aa804-a99c-4625-9b73-eaba9aca8352",
+          "execution_id": "d7e84fdb-c8aa-47c4-bc4c-8d89a04587f7",
+          "duration_ms": 37638,
+          "usage": {
+            "input_tokens": 125398,
+            "output_tokens": 4099,
+            "total_tokens": 129497,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 16,
+          "tools": {
+            "local_workspace_list": 1,
+            "local_shell": 9,
+            "local_file_read": 4,
+            "local_file_write": 2
+          },
+          "provider_rounds": 10,
+          "tool_input_repairs": 0,
+          "post_limit_checks": 0,
+          "length_continuations": 0,
+          "empty_continuations": 0,
+          "finish_reason": "stop",
+          "error": null
+        },
+        {
+          "case": 4,
+          "title": "HTTP API",
+          "verified_pass": true,
+          "transport_ok": true,
+          "chat_id": "7c2b33c4-35e7-4ab0-a408-01e8f3834941",
+          "execution_id": "5567f847-d86e-427f-b0b3-1d06d57f00d0",
+          "duration_ms": 147989,
+          "usage": {
+            "input_tokens": 241895,
+            "output_tokens": 18513,
+            "total_tokens": 260408,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 23,
+          "tools": {
+            "local_workspace_list": 1,
+            "system_time": 1,
+            "local_shell": 10,
+            "local_file_list": 2,
+            "local_file_write": 9
+          },
+          "provider_rounds": 13,
+          "tool_input_repairs": 0,
+          "post_limit_checks": 0,
+          "length_continuations": 1,
+          "empty_continuations": 0,
+          "finish_reason": "stop",
+          "error": null
+        },
+        {
+          "case": 5,
+          "title": "Intentional timeout recovery",
+          "verified_pass": true,
+          "transport_ok": true,
+          "chat_id": "a08969d4-6e09-4051-bf27-70eac73bef57",
+          "execution_id": "a2cb5754-863b-4280-9f87-48e2ac3e563f",
+          "duration_ms": 14896,
+          "usage": {
+            "input_tokens": 47420,
+            "output_tokens": 1653,
+            "total_tokens": 49073,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 8,
+          "tools": {
+            "local_workspace_list": 1,
+            "local_shell": 4,
+            "local_file_list": 2,
+            "local_file_write": 1
+          },
+          "provider_rounds": 7,
+          "tool_input_repairs": 0,
+          "post_limit_checks": 0,
+          "length_continuations": 0,
+          "empty_continuations": 0,
+          "finish_reason": "stop",
+          "error": null
+        },
+        {
+          "case": 6,
+          "title": "Duplicate-file CLI",
+          "verified_pass": true,
+          "transport_ok": true,
+          "chat_id": "a41b445a-bfe6-4030-9033-85bc5f0d1247",
+          "execution_id": "e860e46a-d9ac-4cf4-b68d-f24d995937a5",
+          "duration_ms": 113831,
+          "usage": {
+            "input_tokens": 297425,
+            "output_tokens": 17548,
+            "total_tokens": 314973,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 34,
+          "tools": {
+            "local_workspace_list": 1,
+            "system_time": 1,
+            "local_shell": 15,
+            "local_file_list": 4,
+            "local_file_write": 13
+          },
+          "provider_rounds": 18,
+          "tool_input_repairs": 0,
+          "post_limit_checks": 0,
+          "length_continuations": 1,
+          "empty_continuations": 0,
+          "finish_reason": "stop",
+          "error": null
+        }
+      ],
+      "reported_total_tokens": 2586064,
+      "receipts": 174,
+      "provider_rounds": 97
+    }
+  ],
+  "all_candidate_reported_tokens": 14244412
+}
