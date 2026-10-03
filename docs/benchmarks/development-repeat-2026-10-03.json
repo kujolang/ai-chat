@@ -1,0 +1,1054 @@
+{
+  "grading": "Independent artifact/tests/receipt review. One unchanged-runtime repeat, no rerolls, no human patching of generated answers. Prompt forbids prior answer reads but filesystem is not hermetically isolated.",
+  "starting_revision": "27174aa9b152d672db65cc25ff33e057c346dda3",
+  "runtime_source_revision": "c7e001f",
+  "model": "deepseek-v4.1-flash:cloud",
+  "provider": "Watchdog / Ollama Cloud",
+  "controls": {
+    "concurrency": 1,
+    "max_attempts": 1,
+    "stream_timeout_ms": 1200000,
+    "max_tokens": 6000,
+    "tool_preset": "local-dev",
+    "tool_names": [
+      "local_workspace_list",
+      "local_file_list",
+      "local_file_read",
+      "local_file_write",
+      "local_shell",
+      "documentation_query"
+    ]
+  },
+  "started_at": "2026-10-03T14:12:34.828Z",
+  "finished_at": "2026-10-03T14:19:08.808Z",
+  "comparison": [
+    {
+      "round": 1,
+      "run_id": "dev-2026-10-02-deepseek",
+      "verified_passes": 3,
+      "cases_total": 6,
+      "duration_ms": 476319,
+      "reported_total_tokens": 814711,
+      "receipts": 187
+    },
+    {
+      "round": 2,
+      "run_id": "dev-2026-10-02-deepseek-final",
+      "verified_passes": 5,
+      "cases_total": 6,
+      "duration_ms": 405510,
+      "reported_total_tokens": 942912,
+      "receipts": 208
+    },
+    {
+      "round": 3,
+      "run_id": "dev-2026-10-02-deepseek-round3f",
+      "verified_passes": 5,
+      "cases_total": 6,
+      "duration_ms": 610783,
+      "reported_total_tokens": 1771713,
+      "receipts": 300
+    },
+    {
+      "round": "4 (E)",
+      "run_id": "dev-2026-10-03-exhaustion-e",
+      "verified_passes": 6,
+      "cases_total": 6,
+      "duration_ms": 965052,
+      "reported_total_tokens": 2586064,
+      "receipts": 174
+    },
+    {
+      "round": "repeat (F)",
+      "run_id": "dev-2026-10-03-exhaustion-f",
+      "verified_passes": 6,
+      "cases_total": 6,
+      "duration_ms": 393980,
+      "reported_total_tokens": 2912002,
+      "receipts": 198
+    }
+  ],
+  "previous_cases": [
+    {
+      "case": 1,
+      "title": "CSV program",
+      "verified_pass": true,
+      "transport_ok": true,
+      "chat_id": "415a6a9f-428d-4679-8060-a34c308b3747",
+      "execution_id": "b456ce62-3262-4116-bc05-dca55d24b551",
+      "duration_ms": 73371,
+      "usage": {
+        "input_tokens": 138769,
+        "output_tokens": 9615,
+        "total_tokens": 148384,
+        "cached_input_tokens": null,
+        "cache_write_input_tokens": null,
+        "cache_details_reported": false
+      },
+      "receipts": 21,
+      "tools": {
+        "local_workspace_list": 1,
+        "system_time": 1,
+        "local_shell": 13,
+        "local_file_list": 1,
+        "local_file_write": 5
+      },
+      "provider_rounds": 11,
+      "tool_input_repairs": 0,
+      "post_limit_checks": 0,
+      "length_continuations": 0,
+      "empty_continuations": 0,
+      "finish_reason": "stop",
+      "error": null
+    },
+    {
+      "case": 2,
+      "title": "Kujo and Go benchmark",
+      "verified_pass": true,
+      "transport_ok": true,
+      "chat_id": "fac9b442-b9c7-4e33-a923-6fb91794adbf",
+      "execution_id": "e952dd4a-9117-48f0-9eb8-3499b792b773",
+      "duration_ms": 570504,
+      "usage": {
+        "input_tokens": 1659215,
+        "output_tokens": 24514,
+        "total_tokens": 1683729,
+        "cached_input_tokens": null,
+        "cache_write_input_tokens": null,
+        "cache_details_reported": false
+      },
+      "receipts": 72,
+      "tools": {
+        "local_workspace_list": 1,
+        "system_time": 1,
+        "local_file_list": 7,
+        "local_shell": 51,
+        "skill_list": 1,
+        "documentation_query": 3,
+        "local_file_read": 5,
+        "local_file_write": 3
+      },
+      "provider_rounds": 38,
+      "tool_input_repairs": 1,
+      "post_limit_checks": 0,
+      "length_continuations": 0,
+      "empty_continuations": 0,
+      "finish_reason": "stop",
+      "error": null
+    },
+    {
+      "case": 3,
+      "title": "Debug unfamiliar code",
+      "verified_pass": true,
+      "transport_ok": true,
+      "chat_id": "7d8aa804-a99c-4625-9b73-eaba9aca8352",
+      "execution_id": "d7e84fdb-c8aa-47c4-bc4c-8d89a04587f7",
+      "duration_ms": 37638,
+      "usage": {
+        "input_tokens": 125398,
+        "output_tokens": 4099,
+        "total_tokens": 129497,
+        "cached_input_tokens": null,
+        "cache_write_input_tokens": null,
+        "cache_details_reported": false
+      },
+      "receipts": 16,
+      "tools": {
+        "local_workspace_list": 1,
+        "local_shell": 9,
+        "local_file_read": 4,
+        "local_file_write": 2
+      },
+      "provider_rounds": 10,
+      "tool_input_repairs": 0,
+      "post_limit_checks": 0,
+      "length_continuations": 0,
+      "empty_continuations": 0,
+      "finish_reason": "stop",
+      "error": null
+    },
+    {
+      "case": 4,
+      "title": "HTTP API",
+      "verified_pass": true,
+      "transport_ok": true,
+      "chat_id": "7c2b33c4-35e7-4ab0-a408-01e8f3834941",
+      "execution_id": "5567f847-d86e-427f-b0b3-1d06d57f00d0",
+      "duration_ms": 147989,
+      "usage": {
+        "input_tokens": 241895,
+        "output_tokens": 18513,
+        "total_tokens": 260408,
+        "cached_input_tokens": null,
+        "cache_write_input_tokens": null,
+        "cache_details_reported": false
+      },
+      "receipts": 23,
+      "tools": {
+        "local_workspace_list": 1,
+        "system_time": 1,
+        "local_shell": 10,
+        "local_file_list": 2,
+        "local_file_write": 9
+      },
+      "provider_rounds": 13,
+      "tool_input_repairs": 0,
+      "post_limit_checks": 0,
+      "length_continuations": 1,
+      "empty_continuations": 0,
+      "finish_reason": "stop",
+      "error": null
+    },
+    {
+      "case": 5,
+      "title": "Intentional timeout recovery",
+      "verified_pass": true,
+      "transport_ok": true,
+      "chat_id": "a08969d4-6e09-4051-bf27-70eac73bef57",
+      "execution_id": "a2cb5754-863b-4280-9f87-48e2ac3e563f",
+      "duration_ms": 14896,
+      "usage": {
+        "input_tokens": 47420,
+        "output_tokens": 1653,
+        "total_tokens": 49073,
+        "cached_input_tokens": null,
+        "cache_write_input_tokens": null,
+        "cache_details_reported": false
+      },
+      "receipts": 8,
+      "tools": {
+        "local_workspace_list": 1,
+        "local_shell": 4,
+        "local_file_list": 2,
+        "local_file_write": 1
+      },
+      "provider_rounds": 7,
+      "tool_input_repairs": 0,
+      "post_limit_checks": 0,
+      "length_continuations": 0,
+      "empty_continuations": 0,
+      "finish_reason": "stop",
+      "error": null
+    },
+    {
+      "case": 6,
+      "title": "Duplicate-file CLI",
+      "verified_pass": true,
+      "transport_ok": true,
+      "chat_id": "a41b445a-bfe6-4030-9033-85bc5f0d1247",
+      "execution_id": "e860e46a-d9ac-4cf4-b68d-f24d995937a5",
+      "duration_ms": 113831,
+      "usage": {
+        "input_tokens": 297425,
+        "output_tokens": 17548,
+        "total_tokens": 314973,
+        "cached_input_tokens": null,
+        "cache_write_input_tokens": null,
+        "cache_details_reported": false
+      },
+      "receipts": 34,
+      "tools": {
+        "local_workspace_list": 1,
+        "system_time": 1,
+        "local_shell": 15,
+        "local_file_list": 4,
+        "local_file_write": 13
+      },
+      "provider_rounds": 18,
+      "tool_input_repairs": 0,
+      "post_limit_checks": 0,
+      "length_continuations": 1,
+      "empty_continuations": 0,
+      "finish_reason": "stop",
+      "error": null
+    }
+  ],
+  "repeat_cases": [
+    {
+      "case": 1,
+      "title": "CSV program",
+      "verified_pass": true,
+      "transport_ok": true,
+      "chat_id": "902f75c6-1d72-4116-b3e0-c3ef90615eeb",
+      "execution_id": "d026e527-10a5-47e8-9e14-a1e7dfde7915",
+      "duration_ms": 31331,
+      "usage": {
+        "input_tokens": 115271,
+        "output_tokens": 9199,
+        "total_tokens": 124470,
+        "cached_input_tokens": null,
+        "cache_write_input_tokens": null,
+        "cache_details_reported": false
+      },
+      "receipts": 16,
+      "provider_rounds": 10,
+      "tool_input_repairs": 0,
+      "usage_complete": true,
+      "length_continuations": 0,
+      "empty_continuations": 0,
+      "post_limit_checks": 0,
+      "tool_counts": {
+        "local_workspace_list": 1,
+        "system_time": 1,
+        "local_shell": 6,
+        "local_file_list": 3,
+        "local_file_write": 5
+      },
+      "failed_tool_receipts": []
+    },
+    {
+      "case": 2,
+      "title": "Kujo and Go benchmark",
+      "verified_pass": true,
+      "transport_ok": true,
+      "chat_id": "54371518-9489-4ba8-8d16-e9c94920eb25",
+      "execution_id": "deb8b99b-7952-4ff5-9b9b-97f50f201389",
+      "duration_ms": 156635,
+      "usage": {
+        "input_tokens": 1216538,
+        "output_tokens": 18232,
+        "total_tokens": 1234770,
+        "cached_input_tokens": null,
+        "cache_write_input_tokens": null,
+        "cache_details_reported": false
+      },
+      "receipts": 77,
+      "provider_rounds": 39,
+      "tool_input_repairs": 0,
+      "usage_complete": true,
+      "length_continuations": 0,
+      "empty_continuations": 0,
+      "post_limit_checks": 0,
+      "tool_counts": {
+        "local_workspace_list": 1,
+        "system_time": 1,
+        "local_shell": 37,
+        "local_file_list": 12,
+        "skill_list": 2,
+        "documentation_query": 5,
+        "local_file_read": 1,
+        "local_file_write": 18
+      },
+      "failed_tool_receipts": [
+        {
+          "tool": "local_file_list",
+          "code": "local_path_not_found"
+        },
+        {
+          "tool": "local_file_list",
+          "code": "local_path_not_found"
+        }
+      ]
+    },
+    {
+      "case": 3,
+      "title": "Debug unfamiliar code",
+      "verified_pass": true,
+      "transport_ok": true,
+      "chat_id": "5032e52f-ca7e-4a3d-ace3-3ad7f502cca3",
+      "execution_id": "c65c27d6-5d73-4029-aea7-f2af1ff11f44",
+      "duration_ms": 13705,
+      "usage": {
+        "input_tokens": 67249,
+        "output_tokens": 2606,
+        "total_tokens": 69855,
+        "cached_input_tokens": null,
+        "cache_write_input_tokens": null,
+        "cache_details_reported": false
+      },
+      "receipts": 14,
+      "provider_rounds": 10,
+      "tool_input_repairs": 0,
+      "usage_complete": true,
+      "length_continuations": 0,
+      "empty_continuations": 0,
+      "post_limit_checks": 0,
+      "tool_counts": {
+        "local_workspace_list": 1,
+        "system_time": 1,
+        "local_file_list": 1,
+        "local_shell": 6,
+        "local_file_read": 3,
+        "local_file_write": 2
+      },
+      "failed_tool_receipts": []
+    },
+    {
+      "case": 4,
+      "title": "HTTP API",
+      "verified_pass": true,
+      "transport_ok": true,
+      "chat_id": "4466d433-7738-4f2c-82ff-12a568cd5514",
+      "execution_id": "1cd2b904-8a2f-422c-9b7a-78a49cecbd62",
+      "duration_ms": 58602,
+      "usage": {
+        "input_tokens": 311032,
+        "output_tokens": 18002,
+        "total_tokens": 329034,
+        "cached_input_tokens": null,
+        "cache_write_input_tokens": null,
+        "cache_details_reported": false
+      },
+      "receipts": 22,
+      "provider_rounds": 16,
+      "tool_input_repairs": 0,
+      "usage_complete": true,
+      "length_continuations": 1,
+      "empty_continuations": 0,
+      "post_limit_checks": 0,
+      "tool_counts": {
+        "local_workspace_list": 1,
+        "system_time": 1,
+        "local_shell": 10,
+        "local_file_list": 2,
+        "local_file_write": 7,
+        "local_file_read": 1
+      },
+      "failed_tool_receipts": [
+        {
+          "tool": "local_file_write",
+          "code": "local_file_write_blocked"
+        }
+      ]
+    },
+    {
+      "case": 5,
+      "title": "Intentional timeout recovery",
+      "verified_pass": true,
+      "transport_ok": true,
+      "chat_id": "da9b1cd8-63e3-4d98-b125-0397a7401465",
+      "execution_id": "9dca1454-3ae1-478a-ab7f-29b0377eec63",
+      "duration_ms": 15436,
+      "usage": {
+        "input_tokens": 56609,
+        "output_tokens": 2007,
+        "total_tokens": 58616,
+        "cached_input_tokens": null,
+        "cache_write_input_tokens": null,
+        "cache_details_reported": false
+      },
+      "receipts": 8,
+      "provider_rounds": 8,
+      "tool_input_repairs": 0,
+      "usage_complete": true,
+      "length_continuations": 0,
+      "empty_continuations": 0,
+      "post_limit_checks": 0,
+      "tool_counts": {
+        "local_workspace_list": 1,
+        "local_shell": 3,
+        "local_file_list": 3,
+        "local_file_write": 1
+      },
+      "failed_tool_receipts": [
+        {
+          "tool": "local_shell",
+          "code": "local_shell_timeout"
+        }
+      ]
+    },
+    {
+      "case": 6,
+      "title": "Duplicate-file CLI",
+      "verified_pass": true,
+      "transport_ok": true,
+      "chat_id": "aa24e52a-a2c2-49f4-8ea5-164db04e65d4",
+      "execution_id": "33cf91a9-9bd3-4a6b-b94d-74836eeee3d1",
+      "duration_ms": 109023,
+      "usage": {
+        "input_tokens": 1057149,
+        "output_tokens": 38108,
+        "total_tokens": 1095257,
+        "cached_input_tokens": null,
+        "cache_write_input_tokens": null,
+        "cache_details_reported": false
+      },
+      "receipts": 61,
+      "provider_rounds": 29,
+      "tool_input_repairs": 2,
+      "usage_complete": true,
+      "length_continuations": 1,
+      "empty_continuations": 0,
+      "post_limit_checks": 0,
+      "tool_counts": {
+        "local_workspace_list": 1,
+        "system_time": 1,
+        "local_shell": 30,
+        "local_file_list": 3,
+        "local_file_write": 23,
+        "local_file_read": 3
+      },
+      "failed_tool_receipts": [
+        {
+          "tool": "local_file_write",
+          "code": "local_file_not_read"
+        },
+        {
+          "tool": "local_file_write",
+          "code": "local_file_missing"
+        },
+        {
+          "tool": "local_file_write",
+          "code": "local_file_missing"
+        },
+        {
+          "tool": "local_file_write",
+          "code": "local_file_missing"
+        },
+        {
+          "tool": "local_file_write",
+          "code": "local_file_missing"
+        },
+        {
+          "tool": "local_file_write",
+          "code": "local_file_write_blocked"
+        },
+        {
+          "tool": "local_file_write",
+          "code": "local_file_missing"
+        }
+      ]
+    }
+  ],
+  "independent_verification": {
+    "verification": [
+      {
+        "case": 1,
+        "command": [
+          "go",
+          "test",
+          "-json",
+          "-count=1",
+          "./..."
+        ],
+        "cwd": "data/dev-benchmark-2026-10-03-exhaustion-f/01",
+        "exit_code": 0,
+        "log": "data/benchmark-runs/exhaustion-f-independent-1.log",
+        "passing_top_level_tests": 8,
+        "passing_subtests": 2
+      },
+      {
+        "case": 3,
+        "command": [
+          "node",
+          "--test"
+        ],
+        "cwd": "data/dev-benchmark-2026-10-03-exhaustion-f/03",
+        "exit_code": 0,
+        "log": "data/benchmark-runs/exhaustion-f-independent-3.log",
+        "passing_tests": 4
+      },
+      {
+        "case": 1,
+        "command": [
+          "./orders",
+          "testdata/orders.csv"
+        ],
+        "cwd": "data/dev-benchmark-2026-10-03-exhaustion-f/01",
+        "exit_code": 0,
+        "log": "data/benchmark-runs/exhaustion-f-csv-orders.csv.log",
+        "stdout": "customer,total\nalice,12.25\nbob,6.25\ncarol,100.00\n",
+        "stderr": ""
+      },
+      {
+        "case": 1,
+        "command": [
+          "./orders",
+          "testdata/orders_invalid.csv"
+        ],
+        "cwd": "data/dev-benchmark-2026-10-03-exhaustion-f/01",
+        "exit_code": 2,
+        "log": "data/benchmark-runs/exhaustion-f-csv-orders_invalid.csv.log",
+        "stdout": "customer,total\nalice,10.00\nbob,10.00\n",
+        "stderr": "skipped line 4: empty amount field\nskipped line 5: malformed amount \"not-a-number\"\nskipped line 7: empty customer field\n3 invalid row(s) skipped\n"
+      },
+      {
+        "case": 2,
+        "command": [
+          "kujo",
+          "run",
+          "primes.kujo",
+          "0"
+        ],
+        "cwd": "data/dev-benchmark-2026-10-03-exhaustion-f/02",
+        "exit_code": 0,
+        "log": "data/benchmark-runs/exhaustion-f-prime-kujo-0.log"
+      },
+      {
+        "case": 2,
+        "command": [
+          "./primes",
+          "0"
+        ],
+        "cwd": "data/dev-benchmark-2026-10-03-exhaustion-f/02",
+        "exit_code": 0,
+        "log": "data/benchmark-runs/exhaustion-f-prime-.primes-0.log"
+      },
+      {
+        "case": 2,
+        "command": [
+          "kujo",
+          "run",
+          "primes.kujo",
+          "1"
+        ],
+        "cwd": "data/dev-benchmark-2026-10-03-exhaustion-f/02",
+        "exit_code": 0,
+        "log": "data/benchmark-runs/exhaustion-f-prime-kujo-1.log"
+      },
+      {
+        "case": 2,
+        "command": [
+          "./primes",
+          "1"
+        ],
+        "cwd": "data/dev-benchmark-2026-10-03-exhaustion-f/02",
+        "exit_code": 0,
+        "log": "data/benchmark-runs/exhaustion-f-prime-.primes-1.log"
+      },
+      {
+        "case": 2,
+        "command": [
+          "kujo",
+          "run",
+          "primes.kujo",
+          "2"
+        ],
+        "cwd": "data/dev-benchmark-2026-10-03-exhaustion-f/02",
+        "exit_code": 0,
+        "log": "data/benchmark-runs/exhaustion-f-prime-kujo-2.log"
+      },
+      {
+        "case": 2,
+        "command": [
+          "./primes",
+          "2"
+        ],
+        "cwd": "data/dev-benchmark-2026-10-03-exhaustion-f/02",
+        "exit_code": 0,
+        "log": "data/benchmark-runs/exhaustion-f-prime-.primes-2.log"
+      },
+      {
+        "case": 2,
+        "command": [
+          "kujo",
+          "run",
+          "primes.kujo",
+          "3"
+        ],
+        "cwd": "data/dev-benchmark-2026-10-03-exhaustion-f/02",
+        "exit_code": 0,
+        "log": "data/benchmark-runs/exhaustion-f-prime-kujo-3.log"
+      },
+      {
+        "case": 2,
+        "command": [
+          "./primes",
+          "3"
+        ],
+        "cwd": "data/dev-benchmark-2026-10-03-exhaustion-f/02",
+        "exit_code": 0,
+        "log": "data/benchmark-runs/exhaustion-f-prime-.primes-3.log"
+      },
+      {
+        "case": 2,
+        "command": [
+          "kujo",
+          "run",
+          "primes.kujo",
+          "4"
+        ],
+        "cwd": "data/dev-benchmark-2026-10-03-exhaustion-f/02",
+        "exit_code": 0,
+        "log": "data/benchmark-runs/exhaustion-f-prime-kujo-4.log"
+      },
+      {
+        "case": 2,
+        "command": [
+          "./primes",
+          "4"
+        ],
+        "cwd": "data/dev-benchmark-2026-10-03-exhaustion-f/02",
+        "exit_code": 0,
+        "log": "data/benchmark-runs/exhaustion-f-prime-.primes-4.log"
+      },
+      {
+        "case": 2,
+        "command": [
+          "kujo",
+          "run",
+          "primes.kujo",
+          "49"
+        ],
+        "cwd": "data/dev-benchmark-2026-10-03-exhaustion-f/02",
+        "exit_code": 0,
+        "log": "data/benchmark-runs/exhaustion-f-prime-kujo-49.log"
+      },
+      {
+        "case": 2,
+        "command": [
+          "./primes",
+          "49"
+        ],
+        "cwd": "data/dev-benchmark-2026-10-03-exhaustion-f/02",
+        "exit_code": 0,
+        "log": "data/benchmark-runs/exhaustion-f-prime-.primes-49.log"
+      },
+      {
+        "case": 2,
+        "command": [
+          "kujo",
+          "run",
+          "primes.kujo",
+          "1000"
+        ],
+        "cwd": "data/dev-benchmark-2026-10-03-exhaustion-f/02",
+        "exit_code": 0,
+        "log": "data/benchmark-runs/exhaustion-f-prime-kujo-1000.log"
+      },
+      {
+        "case": 2,
+        "command": [
+          "./primes",
+          "1000"
+        ],
+        "cwd": "data/dev-benchmark-2026-10-03-exhaustion-f/02",
+        "exit_code": 0,
+        "log": "data/benchmark-runs/exhaustion-f-prime-.primes-1000.log"
+      },
+      {
+        "case": 1,
+        "command": [
+          "./orders",
+          "/tmp/exhaustion-f-nonfinite.csv"
+        ],
+        "cwd": "data/dev-benchmark-2026-10-03-exhaustion-f/01",
+        "exit_code": 2,
+        "log": "data/benchmark-runs/exhaustion-f-csv-quality-nonfinite.log",
+        "stdout": "customer,total\n",
+        "stderr": "skipped line 2: malformed amount \"NaN\"\nskipped line 3: malformed amount \"Inf\"\n2 invalid row(s) skipped\n"
+      },
+      {
+        "case": 1,
+        "command": [
+          "./orders",
+          "/tmp/exhaustion-f-overflow.csv"
+        ],
+        "cwd": "data/dev-benchmark-2026-10-03-exhaustion-f/01",
+        "exit_code": 0,
+        "log": "data/benchmark-runs/exhaustion-f-csv-quality-overflow.log",
+        "stdout": "customer,total\nAlice,-92233720368547760.00\n",
+        "stderr": ""
+      },
+      {
+        "case": 1,
+        "command": [
+          "./orders",
+          "/tmp/exhaustion-f-quoted.csv"
+        ],
+        "cwd": "data/dev-benchmark-2026-10-03-exhaustion-f/01",
+        "exit_code": 0,
+        "log": "data/benchmark-runs/exhaustion-f-csv-quality-quoted.log",
+        "stdout": "customer,total\nA,B,1.00\n",
+        "stderr": ""
+      },
+      {
+        "case": 6,
+        "command": [
+          "go",
+          "test",
+          "-json",
+          "-count=1",
+          "./..."
+        ],
+        "exit_code": 0,
+        "passing_top_level_tests": 19,
+        "log": "data/benchmark-runs/exhaustion-f-independent-6.log"
+      },
+      {
+        "case": 4,
+        "command": [
+          "npm",
+          "test"
+        ],
+        "exit_code": 0,
+        "passing_tests": 14,
+        "log": "data/benchmark-runs/exhaustion-f-independent-4.log"
+      },
+      {
+        "case": 4,
+        "command": [
+          "node",
+          "scripts/smoke-cli.js"
+        ],
+        "exit_code": 0,
+        "log": "data/benchmark-runs/exhaustion-f-api-cli-smoke.log"
+      }
+    ],
+    "prime_checks": [
+      {
+        "limit": 0,
+        "expected": 0,
+        "observed": [
+          0,
+          0
+        ]
+      },
+      {
+        "limit": 1,
+        "expected": 0,
+        "observed": [
+          0,
+          0
+        ]
+      },
+      {
+        "limit": 2,
+        "expected": 1,
+        "observed": [
+          1,
+          1
+        ]
+      },
+      {
+        "limit": 3,
+        "expected": 2,
+        "observed": [
+          2,
+          2
+        ]
+      },
+      {
+        "limit": 4,
+        "expected": 2,
+        "observed": [
+          2,
+          2
+        ]
+      },
+      {
+        "limit": 49,
+        "expected": 15,
+        "observed": [
+          15,
+          15
+        ]
+      },
+      {
+        "limit": 1000,
+        "expected": 168,
+        "observed": [
+          168,
+          168
+        ]
+      }
+    ],
+    "timings": {
+      "kujo": {
+        "warmup": {
+          "compute_ms": 6549,
+          "wall_ms": 6592.411
+        },
+        "trials": [
+          {
+            "compute_ms": 6552,
+            "wall_ms": 6598.246
+          },
+          {
+            "compute_ms": 7074,
+            "wall_ms": 7172.354
+          },
+          {
+            "compute_ms": 5629,
+            "wall_ms": 5652.468
+          },
+          {
+            "compute_ms": 6842,
+            "wall_ms": 6900.189
+          },
+          {
+            "compute_ms": 7245,
+            "wall_ms": 7257.686
+          }
+        ],
+        "median_compute_ms": 6842,
+        "median_wall_ms": 6900.189
+      },
+      "go": {
+        "warmup": {
+          "compute_ms": 72,
+          "wall_ms": 82.286
+        },
+        "trials": [
+          {
+            "compute_ms": 73,
+            "wall_ms": 333.149
+          },
+          {
+            "compute_ms": 45,
+            "wall_ms": 62.552
+          },
+          {
+            "compute_ms": 42,
+            "wall_ms": 49.322
+          },
+          {
+            "compute_ms": 84,
+            "wall_ms": 97.618
+          },
+          {
+            "compute_ms": 67,
+            "wall_ms": 95.296
+          }
+        ],
+        "median_compute_ms": 67,
+        "median_wall_ms": 95.296
+      }
+    },
+    "compile_durations_ms": [
+      1187.671
+    ],
+    "failed_prime_probes": [
+      {
+        "command": "kujo",
+        "args": [
+          "run",
+          "Kujolang/kujo-repos/ai-chat/data/dev-benchmark-2026-10-03-exhaustion-f/02/p1.kujo"
+        ],
+        "exit_code": 4,
+        "stderr": "[KUJOVM001] [vm] Runtime Error: Undefined variable: now_ms\n  --> 0:0\n   = help: Define this name before using it, check the spelling, or import the module that provides it.\n\n"
+      },
+      {
+        "command": "kujo",
+        "args": [
+          "run",
+          "Kujolang/kujo-repos/ai-chat/data/dev-benchmark-2026-10-03-exhaustion-f/02/p2.kujo"
+        ],
+        "exit_code": 4,
+        "stderr": "[KUJOVM001] [vm] Runtime Error: Undefined variable: millis\n  --> 0:0\n   = help: Define this name before using it, check the spelling, or import the module that provides it.\n\n"
+      },
+      {
+        "command": "kujo",
+        "args": [
+          "run",
+          "Kujolang/kujo-repos/ai-chat/data/dev-benchmark-2026-10-03-exhaustion-f/02/p3.kujo"
+        ],
+        "exit_code": 4,
+        "stderr": "[KUJOVM001] [vm] Runtime Error: Undefined variable: unix_ms\n  --> 0:0\n   = help: Define this name before using it, check the spelling, or import the module that provides it.\n\n"
+      },
+      {
+        "command": "kujo",
+        "args": [
+          "run",
+          "Kujolang/kujo-repos/ai-chat/data/dev-benchmark-2026-10-03-exhaustion-f/02/p4.kujo"
+        ],
+        "exit_code": 4,
+        "stderr": "[KUJOVM001] [vm] Runtime Error: Undefined variable: clock\n  --> 0:0\n   = help: Define this name before using it, check the spelling, or import the module that provides it.\n\n"
+      },
+      {
+        "command": "kujo",
+        "args": [
+          "run",
+          "Kujolang/kujo-repos/ai-chat/data/dev-benchmark-2026-10-03-exhaustion-f/02/p6.kujo"
+        ],
+        "exit_code": 4,
+        "stderr": "[KUJOVM001] [vm] Runtime Error: Undefined variable: timestamp\n  --> 0:0\n   = help: Define this name before using it, check the spelling, or import the module that provides it.\n\n"
+      },
+      {
+        "command": "kujo",
+        "args": [
+          "run",
+          "Kujolang/kujo-repos/ai-chat/data/dev-benchmark-2026-10-03-exhaustion-f/02/q1.kujo"
+        ],
+        "exit_code": 3,
+        "stderr": "[KUJOPARSE001] [parser] error: Expected expression\n  --> Kujolang/kujo-repos/ai-chat/data/dev-benchmark-2026-10-03-exhaustion-f/02/q1.kujo:1:10\n  = help: Fix the parse error and rerun Kujo.\n[KUJOPARSE001] [parser] error: Expected ')' to close function call arguments but found Punctuation('(')\n  --> Kujolang/kujo-repos/ai-chat/data/dev-benchmark-2026-10-03-exhaustion-f/02/q1.kujo:1:10\n  = help: Fix the parse error and rerun Kujo.\n[KUJOPARSE001] [parser] error: Expected expression\n  --> Kujolang/kujo-repos/ai-chat/data/dev-benchmark-2026-10-03-exhaustion-f/02/q1.kujo:2:1\n  = help: Fix the parse error and rerun Kujo.\n"
+      },
+      {
+        "command": "kujo",
+        "args": [
+          "run",
+          "Kujolang/kujo-repos/ai-chat/data/dev-benchmark-2026-10-03-exhaustion-f/02/q4.kujo"
+        ],
+        "exit_code": 4,
+        "stderr": "[KUJOVM001] [vm] Runtime Error: Undefined variable: number\n  --> 0:0\n   = help: Define this name before using it, check the spelling, or import the module that provides it.\n\n"
+      }
+    ],
+    "cli_determinism": {
+      "runs": 2,
+      "command": [
+        "./dupefind",
+        "-json",
+        "fixtures"
+      ],
+      "expected_exit_code": 1,
+      "identical": true,
+      "result": {
+        "root": "fixtures",
+        "scanned_files": 10,
+        "scanned_bytes": 121,
+        "duplicate_groups": 4,
+        "duplicate_files": 9,
+        "reclaimable_bytes": 62,
+        "warnings": [],
+        "groups": [
+          {
+            "hash": "sha256:3b4f53c31f360ecf6b16bb4d93378e45e3ea30d58f1dfd2ebbc1694f32dfa638",
+            "size": 12,
+            "files": [
+              "perm/locked.txt",
+              "perm/readable.txt"
+            ]
+          },
+          {
+            "hash": "sha256:680c382f3c672b5d748e13587f747a1050eb967a406670480a46dc119a37205e",
+            "size": 16,
+            "files": [
+              "nested/deep/notes.txt",
+              "nested/notes-copy.txt"
+            ]
+          },
+          {
+            "hash": "sha256:9ecdebad208a0bd80f82fee680af0c2bea0cfca1a6049f7cb3bcb81bbd859d55",
+            "size": 17,
+            "files": [
+              "archive/report-copy.txt",
+              "copy-of-report.txt",
+              "report.txt"
+            ]
+          },
+          {
+            "hash": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "size": 0,
+            "files": [
+              "empty-a.txt",
+              "nested/empty-b.txt"
+            ]
+          }
+        ]
+      },
+      "actual_hashes_verified": true
+    },
+    "api_process_restart": {
+      "real_process_restart": true,
+      "create": 201,
+      "update": 200,
+      "delete": 204,
+      "malformed": 400,
+      "invalid": 400,
+      "count_after_restart": 1,
+      "completed_after_restart": true,
+      "deleted_stays_missing": true,
+      "both_children_reaped": true
+    },
+    "timeout_verification": {
+      "attempts": 2,
+      "short_duration_ms": 1541.923,
+      "long_duration_ms": 5190.411,
+      "short_output": "started\n",
+      "long_output": "started\nfinished\n",
+      "script_review": "Print, setTimeout(5000), print; no file writes or subprocesses."
+    },
+    "scope_audit": "All file-tool writes target assigned task directory; no previous benchmark paths requested. Reviewed shell inputs separately. Not a hermetic sandbox."
+  },
+  "previous_adverse_trials": "docs/benchmarks/development-exhaustion-2026-10-03.json"
+}
