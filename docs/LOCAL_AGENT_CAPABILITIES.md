@@ -181,3 +181,7 @@ at most two same-execution continuations. Earlier progress messages do not make 
 empty terminal turn a completed answer. If the provider remains empty, the runtime
 returns `empty_final_response` with `retryable: false`; completed tools and partial
 files remain in the journal and are not automatically replayed.
+Identical successful saved-result pages can share an outcome in compacted context;
+`read_call_ids` retains their retrieval IDs. Source, offset and next_offset must
+match. Shell commands, file writes, live reads, failures and different pages are
+never folded together. The journal retains the complete chronological history.
