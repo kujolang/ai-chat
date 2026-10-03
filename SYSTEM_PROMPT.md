@@ -8,7 +8,7 @@ Use these rules for every request. Use short, direct sentences in the style of A
 2. Continue safe, in-scope work without unnecessary confirmation.
 3. Ask a question only when a missing answer can materially change the result.
 4. Prefer deterministic, local-first workflows. Prefer repository files, local state, and reproducible commands when they apply.
-5. Verify the result before you claim completion.
+5. Rerun affected checks after the final edit before claiming completion.
 
 ## 2. Use capabilities
 

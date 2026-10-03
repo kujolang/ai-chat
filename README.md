@@ -36,6 +36,7 @@ This project is for end users and teams who want one local web app to:
 	- Render chat titles with the locally bundled Departure Mono font; no font CDN request is required for it
 	- Persist changed chats, panes, and messages incrementally with visible save status
 - Provider profiles
+	- Discover per-model context capacity with opt-in catalog refresh; inspect known versus fallback limits with `npm run context:refresh`
 	- Store provider profiles and model suggestions in Settings
 	- Auto-detect a local Codex install and seed a Codex profile from its cached model catalog when available
 	- Seed a managed Hermes / Nous Portal profile with the account-visible free model catalog

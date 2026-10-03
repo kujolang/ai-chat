@@ -26,7 +26,8 @@
 		"db:backup": "node scripts/backup-db.js",
 		"db:vacuum": "node scripts/vacuum-db.js",
 		"test:activity": "node --test tests/tool-activity-reliability.test.js",
-		"audit:weekly": "node scripts/weekly-tool-audit.js"
+		"audit:weekly": "node scripts/weekly-tool-audit.js",
+		"context:refresh": "node scripts/refresh-model-context.js"
 	},
 	"dependencies": {
 		"better-sqlite3": "^11.7.0",

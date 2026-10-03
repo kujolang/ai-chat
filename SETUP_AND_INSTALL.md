@@ -548,3 +548,34 @@ node scripts/refresh-hermes-context.js
 ```
 
 Set `MODEL_CONTEXT_METADATA_PATH=data/hermes-context.json` in AI Chat's `.env`, then restart AI Chat. The file stores exact model IDs, numeric context windows and a retrieval date, not credentials or catalog instructions. Refresh after catalog changes and at least every 30 days; stale metadata safely falls back to configured limits or the conservative default. This command replaces the destination with a Hermes-only snapshot; use a separate file if you maintain combined provider metadata. It does not change model availability or enable paid models.
+
+
+## Model context capacity and refresh
+
+Enable `MODEL_CONTEXT_DISCOVERY_ENABLED=1` and set exact source mappings in
+`MODEL_CONTEXT_SOURCES_JSON`. For a Watchdog profile confirmed to route to Ollama
+Cloud, use its profile ID as the key with
+`{"type":"ollama","url":"https://ollama.com"}`. A custom model catalog uses
+`{"type":"models","url":"https://provider.example/v1"}`. Never put API keys in
+this setting or substitute cloud capacity for local runtime context. Restart
+once after environment changes, then run:
+
+```bash
+AI_CHAT_BASE_URL=http://127.0.0.1:4173 npm run context:refresh -- data/context-coverage.json
+```
+
+Expected output: a known/total count followed by any unknown model selections.
+Unknown models retain an explicitly labeled conservative fallback. Check provider
+availability, exact IDs, source mapping or supply reviewed exact overrides via
+`MODEL_CONTEXT_LIMITS_JSON`; do not give every model the same large allowance.
+Live requests discover new models automatically and refresh cached metadata daily.
+The authenticated coverage endpoint is `GET /api/model-context`. See the API
+contract for precedence, expiry, error behavior and separate output limits.
+
+Older `.env` files may still impose 200-message/200k-character request limits.
+The current example uses 2,000 messages, 1M characters per message, 4M characters
+total and an 8 MiB JSON body. Review those ingress limits before comparing long
+model contexts. They bound uploads independently of model token budgets. Explicit
+tool-history caps also remain in effect. The estimator is a conservative UTF-8
+byte upper bound, not a provider tokenizer; reported capacity does not imply that
+the application can fill every token in that window with arbitrary text.

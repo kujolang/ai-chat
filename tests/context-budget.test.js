@@ -131,3 +131,24 @@ test("fresh file content reaches the model before optional old evidence details"
  assert.match(messages[1].content,/"result_ref":"old"/);
  assert.doesNotMatch(messages[1].content,/old detail/);
 });
+
+test('a verified larger window retains evidence that the fallback would compact',()=>{
+ const original=[{role:'user',content:'Keep evidence'}, {role:'assistant',tool_calls:[{id:'read',function:{name:'local_shell',arguments:'{}'}}]},
+  {role:'tool',tool_call_id:'read',content:JSON.stringify({stdout:'evidence '.repeat(16000),exit_code:0,saved_result_ref:'read'})}];
+ const small=structuredClone(original),large=structuredClone(original);
+ const limited=budgetContext(small,[],{window_tokens:65536,output_tokens:6000});
+ const expanded=budgetContext(large,[],{window_tokens:1048576,output_tokens:6000});
+ assert.ok(limited.compacted_calls>0);assert.equal(expanded.compacted_calls,0);assert.deepEqual(large,original);
+ assert.equal(contextPolicy('p','m').known,false);
+ assert.equal(contextPolicy('p','m',{}, {'p:m':{window_tokens:1048576,source:'catalog',max_output_tokens:8192}}).max_output_tokens,8192);
+ assert.equal(contextPolicy('p','m',{'p:m':32768},{'p:m':{window_tokens:1048576,source:'catalog'}}).window_tokens,32768);
+});
+
+test('long receipt history stays intact at verified 1M capacity instead of exhausting 64k',()=>{
+ const {receiptPrefix}=require('../lib/receipt-context');
+ const receipts=Array.from({length:400},(_,i)=>({call_id:`call-${i}`,tool:'local_shell',result_ref:`call-${i}`,returned_ok:true,outcome:{exit_code:0,stdout:'Verified file result '+i+' '+'.'.repeat(180)}}));
+ const messages=[{role:'system',content:'Preserve constraints'}, {role:'user',content:'Complete the task'}, {role:'assistant',content:receiptPrefix+JSON.stringify(receipts)}];
+ const original=structuredClone(messages);
+ const report=budgetContext(messages,[],{window_tokens:1048576,output_tokens:24000});
+ assert.equal(report.removed_messages,0);assert.equal(report.output_reservation,24000);assert.deepEqual(messages,original);
+});

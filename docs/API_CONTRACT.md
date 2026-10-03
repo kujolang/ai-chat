@@ -12,6 +12,8 @@ Current endpoints:
 - `GET /api/healthz`
 - `GET /api/health`
 - `GET /api/providers`
+- `GET /api/model-context`
+- `POST /api/model-context/refresh`
 - `GET /api/state`
 - `GET /api/chats/:chatId`
 - `GET /api/automations`
@@ -420,9 +422,50 @@ Legacy native runs created without persistent session metadata, or runs whose Co
 
 ### Whole-request context allowance
 
-`MODEL_CONTEXT_LIMITS_JSON` maps `provider:model`, provider name, or `default` to a context window between 1,024 and 4,000,000 tokens. Selection order is exact override, provider override, dated exact-model metadata, configured default, then 65,536. `MODEL_CONTEXT_METADATA_PATH` optionally points to a local JSON file with `fetched_at` (ISO timestamp) and `models: [{provider, model, context_window}]`. Use the actual route provider ID, including managed routes such as `watchdog_openrouter`. Populate values from the provider's current catalog; the application does not infer a limit from the model name. The Codex model cache is also read, including its effective context percentage. Catalogs over 8 MiB, invalid timestamps, or timestamps older than 30 days are ignored. Metadata loads at server startup and never adds prompt instructions or network access.
+`MODEL_CONTEXT_LIMITS_JSON` maps `provider:model`, provider name, or `default` to a context window between 1,024 and 4,000,000 tokens. Selection order is exact override, provider override, dated exact-model metadata, configured default, then 65,536. `MODEL_CONTEXT_METADATA_PATH` optionally points to a local JSON file with `fetched_at` (ISO timestamp) and `models: [{provider, model, context_window}]`. Use the actual route provider ID, including managed routes such as `watchdog_openrouter`. Populate values from the provider's current catalog; the application does not infer a limit from the model name. The Codex model cache is also read, including its effective context percentage. Catalogs over 8 MiB, invalid timestamps, or timestamps older than 30 days are ignored. Static metadata is rechecked at most once per minute, so expiry and file changes take effect without restart. It never adds prompt instructions.
 
-Both JSON and streaming requests reserve requested output and estimate input from serialized messages, reasoning, tool arguments, schemas, and receipts using UTF-8 bytes plus framing. Streaming repeats this check with the currently loaded schemas before each model round. JSON checks its final bridge payload before dispatch. If the requested output reservation prevents protected input or completed tool receipts from fitting, AI Chat halves that reservation down to a 1,024-token floor, retrying against the original messages; the reduced `max_tokens` is sent to the provider and reported as `output_reservation`. Impossible protected input still fails with `context_budget_exceeded` (HTTP 400 for JSON). Success responses expose `context_budget`, including the selected limit/source, removals, reservation and measurement scope. Estimates are not vendor tokenizer counts or billing measurements.
+
+Opt-in `MODEL_CONTEXT_DISCOVERY_ENABLED=1` discovers exact-model capacities before
+requests and caches them beside the database (`MODEL_CONTEXT_CACHE_PATH` overrides
+the path). `MODEL_CONTEXT_SOURCES_JSON` maps a profile ID (preferred) or provider ID
+to `{type:"ollama",url:"https://ollama.com"}` or
+`{type:"models",url:"https://provider.example/v1"}`. These operator-configured
+sources are public, credential-free metadata endpoints. OpenRouter has a default
+source; Hermes/xAI use their configured authenticated local model catalogs and
+ChatGPT uses its existing connection lease. Codex retains its effective-window
+cache. An unknown native Codex model keeps a conservative initial-transcript
+check, but AI Chat does not override the native harness window/compaction limit
+with that guess; explicit configured overrides still apply. Other/custom/Watchdog routes require an explicit source mapping: model names
+do not prove routing or capacity. Do not map local Ollama to cloud metadata;
+local runtime `num_ctx` can be smaller than the model architecture maximum.
+
+Selection is exact/provider override, fresh discovered profile/route/model record,
+static exact-model metadata, configured default, then conservative 65,536 fallback.
+Discovered catalogs are numeric-only, bounded to 8 MiB/4,096 entries, use 10-second
+HTTP deadlines and reject redirects. Refresh interval is one day; failed discovery
+backs off for five minutes and may retain a previous record for at most 30 days.
+Profile route/source/account changes invalidate discovery identity. Descriptions,
+credentials and remote instructions are never persisted. A documented output cap
+is reserved separately and limits `max_tokens` on actual requests.
+
+Authenticated `GET /api/model-context` returns `{ok,discovery_enabled,models}`;
+each row includes `profile_id`, `provider_id`, `model`, `window_tokens`, `source`,
+`known` and optional `max_output_tokens`. `known:false` identifies an unverified
+fallback, not a provider-advertised capacity. Authenticated
+`POST /api/model-context/refresh` refreshes all saved model selections with three
+workers, deduplicates concurrent refreshes and returns the same coverage shape.
+It respects cache/backoff, does not change profiles or model selections, and
+returns 409 if discovery is disabled. Partial discovery remains explicit in rows;
+`ok:true` does not assert every model is known. `npm run context:refresh` invokes
+this endpoint on a loopback server; an optional filename saves the numeric report.
+
+Without an explicit `MAX_TOOL_CONTEXT_CHARS`, tool-result retention grows to the
+selected model's input allowance; the whole-request budget still enforces safety.
+An explicit operator cap remains authoritative. Small models retain the existing
+conservative path. No receipts, protocol IDs or protected constraints are dropped
+to pretend an over-budget request succeeded.
+
+Both JSON and streaming requests reserve requested output and estimate input from serialized messages, reasoning, tool arguments, schemas, and receipts using UTF-8 bytes plus framing. Streaming repeats this check with the currently loaded schemas before each model round. JSON checks its final bridge payload before dispatch. If the requested output reservation prevents protected input or completed tool receipts from fitting, AI Chat halves that reservation down to a 1,024-token floor, retrying against the original messages; the reduced `max_tokens` is sent to the provider and reported as `output_reservation`. Impossible protected input still fails with `context_budget_exceeded` (HTTP 400 for JSON). Success responses expose `context_budget`, including the selected limit/source, `context_limit_known`, optional `model_max_output_tokens`, removals, reservation and measurement scope. Estimates are not vendor tokenizer counts or billing measurements.
 
 Native Codex requests budget the supplied transcript and wrapper before spawn; `context_scope: "codex_initial_transcript"` distinguishes that measurement from the CLI's additional instructions, tools and internal history. AI Chat passes the chosen window and a total-context auto-compaction threshold (at most 80% of the window and within the input allowance) to Codex for its own continuing loop. The requested output amount is an input reservation, not a native CLI output cap. See the official [Codex configuration reference](https://learn.chatgpt.com/docs/config-file/config-reference) for `model_context_window`, `model_auto_compact_token_limit` and its `total` scope.
 

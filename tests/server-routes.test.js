@@ -5324,3 +5324,43 @@ for (const providerId of ['openai','ollama']) {
   });
  }
 }
+
+test('discovered model windows reach JSON and streaming requests without changing profiles',async()=>{
+ let catalogCalls=0,sent;
+ const {runtime,destroy}=createIsolatedRuntime({envMerge:{MODEL_CONTEXT_DISCOVERY_ENABLED:'1',MODEL_CONTEXT_SOURCES_JSON:JSON.stringify({custom:{type:'models',url:'https://example.com/v1'}}),ALLOWED_CUSTOM_PROVIDER_HOSTS:'example.com'},
+  fetchFn:async(url,options)=>{
+   if(url.endsWith('/models')) {catalogCalls++;return mockJsonResponse({data:[{id:'large',context_length:1048576,max_output_tokens:8192}]});}
+   sent=JSON.parse(options.body);
+   return new Response('data: {"choices":[{"delta":{"content":"Answered"},"finish_reason":"stop"}]}\n\ndata: [DONE]\n\n',{headers:{'Content-Type':'text/event-stream'}});
+  },spawnSyncFn:(_bin,args)=>{sent=JSON.parse(args[args.indexOf('--payload')+1]);return {status:0,stdout:JSON.stringify({ok:true,output_text:'Answered'}),stderr:''};}});
+ try{
+  const profileId=applyProfileMutation(runtime,p=>{p.provider_id='custom';p.api_key='fixture-key';p.base_url='https://example.com/v1';p.models_csv='large,unknown';});
+  const before=runtime.helpers.readState().settings.profiles;
+  await withServer(runtime.app,async base=>{
+   assert.equal((await fetch(base+'/api/model-context')).status,401);
+   const body={profile_id:profileId,model:'large',max_tokens:24000,messages:[{role:'user',content:'Important evidence '.repeat(5000)}],tools:[],include_saved_runtime_presets:false};
+   const first=await fetchJson(base,'/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+   assert.equal(first.response.status,200);assert.equal(first.json.context_budget.context_window_tokens,1048576);assert.equal(first.json.context_budget.context_limit_known,true);assert.equal(sent.max_tokens,8192);assert.equal(sent.messages.at(-1).content,body.messages[0].content);
+   const stream=await fetch(base+'/api/chat/stream',{method:'POST',headers:withAuthHeaders({'Content-Type':'application/json'}),body:JSON.stringify(body)});
+   const done=parseSseEvents(await stream.text()).find(e=>e.event==='done');assert.ok(done);assert.equal(done.data.context_budget.context_window_tokens,1048576);assert.equal(sent.max_tokens,8192);assert.equal(catalogCalls,1);
+   const audit=await fetchJson(base,'/api/model-context');const rows=audit.json.models.filter(r=>r.profile_id===profileId);assert.equal(rows.find(r=>r.model==='large').known,true);assert.equal(rows.find(r=>r.model==='unknown').known,false);
+   assert.deepEqual(runtime.helpers.readState().settings.profiles,before);
+  });
+ }finally{destroy();}
+});
+
+test('unknown native Codex model does not inherit a guessed CLI context override',async()=>{
+ let argsSeen;
+ const {runtime,destroy}=createIsolatedRuntime({envMerge:{CODEX_MODEL_CACHE_PATH:'/nonexistent-context-fixture.json'},spawnFn:(_command,args)=>{
+  argsSeen=args;const child=new(require('events').EventEmitter)();child.stdout=new PassThrough();child.stderr=new PassThrough();child.kill=()=>{};
+  process.nextTick(()=>{child.stdout.write('{"type":"thread.started","thread_id":"fixture-native"}\n{"type":"item.completed","item":{"type":"agent_message","text":"Done"}}\n{"type":"turn.completed","usage":{"input_tokens":1,"output_tokens":1}}\n');child.stdout.end();child.stderr.end();child.emit('close',0);});return child;
+ }});
+ try{
+  const profileId=applyProfileMutation(runtime,p=>{p.provider_id='codex';p.models_csv='unknown-native';});
+  await withServer(runtime.app,async base=>{
+   const r=await fetch(base+'/api/chat/stream',{method:'POST',headers:withAuthHeaders({'Content-Type':'application/json'}),body:JSON.stringify({profile_id:profileId,model:'unknown-native',messages:[{role:'user',content:'Hello'}]})});
+   const done=parseSseEvents(await r.text()).find(e=>e.event==='done');assert.ok(done);assert.equal(done.data.context_budget.context_limit_known,false);assert.equal(done.data.context_budget.context_scope,'codex_initial_transcript');
+   assert.ok(!argsSeen.some(a=>a.startsWith('model_context_window=')||a.startsWith('model_auto_compact_token_limit=')));
+  });
+ }finally{destroy();}
+});
