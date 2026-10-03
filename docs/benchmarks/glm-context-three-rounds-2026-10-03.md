@@ -174,6 +174,38 @@ language task instead of repeatedly losing completion. It still needs independen
 review for cleanup, numeric boundaries, transactional persistence and validation.
 Three rounds cannot prove universal reliability or isolate model training quality.
 
+## Professional quality grading
+
+The improvement is strongest in complete, verifiable delivery. Intrinsic artifact
+quality improved less consistently: unfamiliar-language programs now work and
+have defensible timing evidence, but numerical overflow and storage-failure
+semantics remain weak. The small sample does not establish a broad increase in
+production engineering quality.
+
+| Dimension | Current GLM judgment / 10 | Basis |
+|---|---:|---|
+| Overall capability for these development tasks | 7 | Completes and recovers through real tools, including unfamiliar Kujo |
+| Delivered code quality | 6.5 | Useful tested prototypes; recurring numeric, persistence and validation defects |
+| Practical usefulness with review | 8 | Working scripts, reproducible fixes, deterministic CLIs and restart-tested APIs |
+| Independent production judgment | 4 | Incomplete edge-case coverage, nontransactional failure handling and cleanup gaps |
+
+These are subjective professional judgments, not calculated scores or an extension
+of the acceptance percentage. They assess the GLM-plus-AI-Chat configuration.
+The earlier numeric grading in `overall-assessment-2026-10-03.md` assessed
+DeepSeek, not a numeric GLM baseline; do not present those numbers as GLM's old
+scores. The human-role analogy is a useful supervised mid-level coding assistant,
+with junior-level inconsistency in defensive programming. Senior-level architecture
+and unattended production ownership were not demonstrated by these six task types.
+
+Compared with the previous GLM artifacts, all three new CSV implementations reject
+NaN/Infinity and all new API fault probes keep their processes alive, whereas some
+old artifacts failed those checks. Those are specific improvements, not complete
+solutions: overflow persists, all three APIs expose memory/disk divergence on
+failed writes, and one hangs on JSON null. Recovery/completion is substantially
+better; robustness still needs review. The 94.4% acceptance rate is not a 9.4/10
+code-quality grade. Higher reported token use also prevents claiming an efficiency
+improvement from the better completion rate alone.
+
 ## Verification receipt
 
 Three sequential runner invocations, N=1,2,3:
