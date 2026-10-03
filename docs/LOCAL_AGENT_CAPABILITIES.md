@@ -164,3 +164,7 @@ allowance. It lowers the allowance only when protected input still cannot fit.
 Exhausting the two output-limit continuations returns `output_continuation_limit`
 with `retryable: false`, not a network error. Error events retain attempted tool-call
 counts as well as usage, so failed runs remain measurable.
+Consecutive compacted receipt groups share a single instruction envelope when
+needed to fit context; call identities, result references, pagination coordinates
+and ordering are retained. A receipt overflow remains an explicit error when the
+remaining protected context genuinely cannot fit.

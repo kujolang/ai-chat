@@ -88,3 +88,16 @@ test('native completed calls compact safely but mismatched native results do not
  assert.ok(!messages.some(m=>m.role==='tool'||m.tool_calls));
  assert.throws(()=>budgetContext(make('other'),[],{window_tokens:4096,output_tokens:1024}),{code:'context_budget_exceeded'});
 });
+
+test('consecutive receipt groups share an envelope without losing call identities or page coordinates', () => {
+ const prefix='Completed tool-call receipts; output omitted to fit context. These calls already ran; do not repeat consequential work. Recover missing evidence using tool_result_read with result_ref. ';
+ const receipts=Array.from({length:30},(_,i)=>({call_id:`read-${i}`,tool:'tool_result_read',result_ref:`source-${i}`,offset:i,next_offset:i+1}));
+ const messages=[{role:'user',content:'Keep working'},...receipts.map(r=>({role:'assistant',content:prefix+JSON.stringify([r])}))];
+ const before=estimateContext(messages,[]);
+ const report=budgetContext(messages,[],{window_tokens:8000,output_tokens:2000});
+ assert.ok(report.after_upper_bound<before);
+ assert.ok(report.after_upper_bound<=6000);
+ const retained=messages.slice(1).flatMap(m=>JSON.parse(m.content.slice(prefix.length)));
+ assert.deepEqual(retained,receipts);
+ assert.equal(messages[0].content,'Keep working');
+});
