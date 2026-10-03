@@ -721,3 +721,15 @@ for (const scenario of [
   }
  });
 }
+
+test('failed file open before mutation is recoverable; mkdir-assisted retry succeeds', () => {
+ const root=fs.mkdtempSync(path.join(os.tmpdir(),'open-preflight-'));
+ try {
+  const runtime=createLocalRuntime({projectRoot:root,env:{AI_CHAT_LOCAL_TOOLS_ENABLED:'1',AI_CHAT_LOCAL_WRITE_ENABLED:'1'}});
+  assert.throws(()=>runtime.writeFile({path:'new/main.go',content:'package main'}),e=>e.code==='local_file_missing' && e.execution_started===false);
+  assert.equal(fs.existsSync(path.join(root,'new')),false);
+  runtime.writeFile({path:'new/go.mod',content:'module fixture',create_dirs:true});
+  runtime.writeFile({path:'new/main.go',content:'package main'});
+  assert.equal(fs.readFileSync(path.join(root,'new/main.go'),'utf8'),'package main');
+ } finally {fs.rmSync(root,{recursive:true,force:true});}
+});

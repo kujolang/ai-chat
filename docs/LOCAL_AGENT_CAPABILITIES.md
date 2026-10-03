@@ -146,3 +146,15 @@ Both default off. Disabling the first also clears the second; re-enabling requir
 This is accident prevention, **not a sandbox or a guarantee against destructive behavior**. Kujo, Go, Node, Python, npm, custom programs and scripts can mutate files directly, bypassing command-name checks. Commands execute with the service account's filesystem/network access; a workspace sets the starting directory, not a filesystem jail. Unrestricted mode can expose local files and credentials to executed code. Only use it with tasks and workspaces you trust.
 
 `local_workspace_list` metadata reports the current `command_permissions` and `shell_policy`; the configured `shell_allowlist` is ignored while `skip_allowlist` is true. The model cannot request mode changes via tool arguments.
+
+Go module metadata (`.mod` and `.sum`) is supported alongside `.go`. Creating a
+file in a missing directory without `create_dirs=true` returns a recoverable
+pre-execution error when open failed before any mutation. Errors after opening or
+creating directories still retain conservative side-effect handling.
+
+Tool-enabled streams can continue at most twice after an explicit provider output
+limit. Completed tool results stay in the same execution; this is continuation,
+not replay of the original user request. Exhaustion is an error, not completion.
+Saved-result retrieval resolves prior retrieval receipts back to original evidence;
+page offsets address that original JSON result. Compacted retrieval receipts retain
+the source reference and page coordinates instead of pointing at nested envelopes.

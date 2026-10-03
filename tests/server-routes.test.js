@@ -5163,3 +5163,26 @@ test('local command permissions require authentication and independent explicit 
   });
  }finally{destroy();}
 });
+
+for (const exhausted of [false,true]) {
+ test(`tool-enabled output-limit continuation is bounded (${exhausted})`,async()=>{
+  let calls=0;
+  const {runtime,destroy}=createIsolatedRuntime({fetchFn:async()=>{
+   calls++;
+   return mockSseResponse([{choices:[{delta:{content:calls===1?'Beginning.':'Finished.'},finish_reason:exhausted||calls===1?'length':'stop'}]}]);
+  }});
+  try {
+   const profileId=applyProfileMutation(runtime,p=>{p.provider_id='openai';p.api_key='fixture';});
+   await withServer(runtime.app,async base=>{
+    const response=await fetch(base+'/api/chat/stream',{method:'POST',headers:withAuthHeaders({'Content-Type':'application/json'}),body:JSON.stringify({profile_id:profileId,messages:[{role:'user',content:'Complete this task'}],tools:[{type:'function',function:{name:'system_time',parameters:{type:'object'}}}],include_saved_runtime_presets:false})});
+    const events=parseSseEvents(await response.text());
+    assert.equal(calls,exhausted?3:2);
+    assert.equal(events.at(-1).event,exhausted?'error':'done');
+    if(!exhausted) {
+     assert.equal(events.at(-1).data.length_continuations,1);
+     assert.equal(events.at(-1).data.tool_calls_executed,0);
+    }
+   });
+  }finally{destroy();}
+ });
+}
