@@ -552,3 +552,8 @@ separate. This only reduces provider context: each live read still executes and
 retains its own journal receipt. `folded_file_reads` reports projected rows folded.
 Under context pressure, old read excerpts and input copies give way before recent
 execution outcomes, preserving actionable failure evidence longer.
+
+`local_shell` successful and completed-timeout results include nonnegative
+`duration_ms` (monotonic spawn-to-close elapsed milliseconds). Completed-timeout
+results also retain workspace-relative `cwd`. These additive fields survive bounded
+outcome projection. Spawn failures have no completed-process measurement.

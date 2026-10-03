@@ -60,9 +60,10 @@ test('identical immutable evidence pages share outcomes but keep every read ID; 
 });
 
 test('long command excerpts preserve the real final test summary within the same bound', () => {
- const result={exit_code:1,stdout:'test started\n'+'verbose 😀 '.repeat(4000)+'\nFAIL: 1 regression\n',stderr:''};
+ const result={duration_ms:123.456,exit_code:1,stdout:'test started\n'+'verbose 😀 '.repeat(4000)+'\nFAIL: 1 regression\n',stderr:''};
  const receipt=receiptOutcome(result);
  assert.equal(receipt.outcome.exit_code,1);
+ assert.equal(receipt.outcome.duration_ms,123.456);
  assert.match(receipt.outcome.stdout.head,/test started/);
  assert.match(receipt.outcome.stdout.tail,/FAIL: 1 regression\n$/);
  assert.equal(receipt.outcome.stdout.omitted,true);

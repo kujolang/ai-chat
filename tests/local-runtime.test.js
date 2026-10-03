@@ -378,6 +378,7 @@ test("local shell uses allowlisted commands without shell interpolation", async 
 		});
 		const result = await runtime.runCommand({ command: "rg", args: ["needle", "README.md"] });
 		assert.equal(result.exit_code, 0);
+		assert.ok(Number.isFinite(result.duration_ms) && result.duration_ms >= 0);
 		assert.match(result.stdout, /needle/);
 		await assert.rejects(() => runtime.runCommand({ command: "node", args: ["-e", "console.log(1)"] }), (error) => error.code === "local_shell_command_blocked" && error.execution_started === false);
 	} finally {
@@ -665,6 +666,8 @@ test('shell timeout preserves partial evidence after termination without claimin
    assert.equal(error.execution_completed,true);
    assert.equal(error.execution_result.stdout,'partial result');
    assert.equal(error.execution_result.timeout_ms,1000);
+   assert.ok(Number.isFinite(error.execution_result.duration_ms) && error.execution_result.duration_ms >= 0);
+   assert.equal(error.execution_result.cwd,'.');
    assert.equal(error.execution_result.partial_effects,'unknown');
    assert.equal(error.retryable,false);
    return true;

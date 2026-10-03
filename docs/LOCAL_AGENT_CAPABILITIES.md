@@ -215,3 +215,19 @@ or changes journal retention, context limits, output limits or permission checks
 Context compaction shares identical historical file-read snapshots, preserving all
 read receipt IDs. It never skips a requested live read. Old read excerpts are
 retired ahead of recent execution results; complete evidence stays in the journal.
+
+Shell results expose `duration_ms`, a monotonic elapsed measurement from spawn
+through process close, including startup and output collection. It is not CPU time
+or an internal algorithm timing. Completed timeout receipts retain this measurement
+and `cwd` alongside partial output. Use it to distinguish compilation from execution.
+
+For a known model, configure its verified context limit instead of relying on the
+65,536 conservative fallback. `MODEL_CONTEXT_LIMITS_JSON` keys use the profile's
+provider ID, not the downstream transport name. For example, a Watchdog profile
+routing Ollama Cloud uses `watchdog:<exact-model-id>`. Preserve existing overrides
+and metadata when adding a key, then restart AI Chat. Verify
+`context_budget.context_policy_source` and `context_window_tokens` on an execution.
+Only use limits verified for the actual serving route. A local model's advertised
+maximum may differ from its allocated context. Do not apply one vendor's window
+to all providers. The byte-based estimator remains conservative; raising a verified
+window can retain more context and increase request cost.
