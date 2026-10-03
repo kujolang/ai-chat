@@ -5212,3 +5212,29 @@ test('context budgeting compacts old history before shrinking the output allowan
   });
  }finally{destroy();}
 });
+
+for (const exhausted of [false, true]) {
+ test(`empty terminal tool turn cannot pass using earlier progress text (${exhausted})`, async () => {
+  let calls=0;
+  const {runtime,destroy}=createIsolatedRuntime({fetchFn:async()=>{
+   calls++;
+   if(calls===1) return mockSseResponse([{choices:[{delta:{content:'I will inspect the clock.',tool_calls:[{index:0,id:'clock-once',type:'function',function:{name:'system_time',arguments:'{}'}}]},finish_reason:'tool_calls'}]}]);
+   return mockSseResponse([{choices:[{delta:{content:exhausted||calls===2?'':'Verified result.'},finish_reason:'stop'}]}]);
+  }});
+  try {
+   const profileId=applyProfileMutation(runtime,p=>{p.provider_id='openai';p.api_key='fixture';});
+   await withServer(runtime.app,async base=>{
+    const res=await fetch(base+'/api/chat/stream',{method:'POST',headers:withAuthHeaders({'Content-Type':'application/json'}),body:JSON.stringify({request_id:'empty-final',profile_id:profileId,messages:[{role:'user',content:'Check the time'}],tools:[{type:'function',function:{name:'system_time',parameters:{type:'object'}}}],include_saved_runtime_presets:false})});
+    const events=parseSseEvents(await res.text()),last=events.at(-1);
+    assert.equal(last.event,exhausted?'error':'done');
+    assert.equal(calls,exhausted?4:3);
+    assert.equal(last.data.empty_continuations,exhausted?2:1);
+    assert.equal(last.data.tool_calls_executed,1);
+    if(exhausted){assert.equal(last.data.code,'empty_final_response');assert.equal(last.data.retryable,false);}
+    else assert.match(last.data.output_text,/Verified result/);
+    const journal=await fetchJson(base,'/api/executions/empty-final');
+    assert.equal(journal.json.receipts.length,1);
+   });
+  } finally {destroy();}
+ });
+}

@@ -175,3 +175,9 @@ references. This lets agents retain runtime versions, paths and command exit
 statuses without rereading every result. Under severe context pressure, the
 largest optional details are removed first; all call identities and references
 remain. Excerpts are untrusted data, not new instructions or complete documents.
+
+A tool-enabled provider turn that explicitly stops without final answer text gets
+at most two same-execution continuations. Earlier progress messages do not make an
+empty terminal turn a completed answer. If the provider remains empty, the runtime
+returns `empty_final_response` with `retryable: false`; completed tools and partial
+files remain in the journal and are not automatically replayed.
