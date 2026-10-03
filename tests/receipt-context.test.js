@@ -57,3 +57,32 @@ test('native compacted receipts use durable identities rather than reused per-ro
  const rows=messages.flatMap(m=>parseReceipts(m)||[]);
  assert.deepEqual(rows.map(r=>r.call_id),['call-0','call-1']);
 });
+
+test('identical historical live file snapshots fold across groups without suppressing reads or losing identities', () => {
+ const {fileReadFingerprint,coalesceFileReads}=require('../lib/receipt-context');
+ const args={path:'program.go',offset:0};
+ const result={path:'program.go',content:'package main',meta:{mtime_ms:12},saved_result_ref:'first'};
+ const fingerprint=fileReadFingerprint('local_file_read',result,args);
+ assert.equal(fileReadFingerprint('local_file_read',{...result,saved_result_ref:'other',unchanged:true,deduplicated:true,meta:{mtime_ms:12,deduplicated:true,cache:'bounded_reread'}},args),fingerprint);
+ assert.notEqual(fileReadFingerprint('local_file_read',{...result,content:'changed'},args),fingerprint);
+ assert.notEqual(fileReadFingerprint('local_file_read',result,{...args,offset:1}),fingerprint);
+ assert.equal(fileReadFingerprint('local_shell',result,args),null);
+ assert.equal(fileReadFingerprint('local_file_read',{...result,error:{code:'failure'}},args),null);
+ const rows=Array.from({length:70},(_,i)=>({tool:'local_file_read',call_id:`read-${i}`,result_ref:`read-${i}`,read_fingerprint:fingerprint,outcome:result}));
+ const messages=rows.map(row=>envelope([row]));
+ assert.equal(coalesceFileReads(messages),69);
+ assert.equal(messages.length,1);
+ assert.deepEqual(parseReceipts(messages[0])[0].read_call_ids,rows.map(r=>r.call_id));
+ assert.deepEqual(parseReceipts(messages[0])[0].outcome,result);
+ assert.equal(coalesceFileReads(messages),0);
+});
+
+test('historical read excerpts give way before recent execution results under pressure', () => {
+ const rows=[{tool:'local_file_read',call_id:'docs',result_ref:'docs',outcome:{content:'old docs '.repeat(200)}},
+  {tool:'local_shell',call_id:'check',result_ref:'check',outcome:{command:'kujo',exit_code:4,stderr:'range exceeds maximum generated sequence length'}}];
+ const messages=[{role:'user',content:'Complete the task'},envelope(rows)];
+ budgetContext(messages,[],{window_tokens:3200,output_tokens:1024});
+ const kept=parseReceipts(messages[1]);
+ assert.equal(kept[0].outcome,undefined);
+ assert.deepEqual(kept[1].outcome,rows[1].outcome);
+});

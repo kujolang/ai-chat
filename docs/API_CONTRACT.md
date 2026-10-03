@@ -544,3 +544,11 @@ ambiguous source identities are not folded. Full chronological receipts remain i
 Context metrics may include `recovered_facts`, the number of projected retrieval
 records folded into original actions on that budget pass. This is not a count of
 reexecuted actions or newly verified task completions.
+
+Identical historical `local_file_read` snapshots share a projected outcome and keep
+all read identities in `read_call_ids`. The fingerprint includes request arguments,
+content, pagination and stable file metadata. Changed snapshots and failures remain
+separate. This only reduces provider context: each live read still executes and
+retains its own journal receipt. `folded_file_reads` reports projected rows folded.
+Under context pressure, old read excerpts and input copies give way before recent
+execution outcomes, preserving actionable failure evidence longer.

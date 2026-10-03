@@ -211,3 +211,7 @@ assistant/tool protocol remains intact. Long command excerpts retain both the st
 and final summary with explicit omission markers. Native receipts use durable journal
 IDs rather than per-round tool indices. None of this reexecutes a completed action
 or changes journal retention, context limits, output limits or permission checks.
+
+Context compaction shares identical historical file-read snapshots, preserving all
+read receipt IDs. It never skips a requested live read. Old read excerpts are
+retired ahead of recent execution results; complete evidence stays in the journal.
