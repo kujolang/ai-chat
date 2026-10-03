@@ -168,3 +168,10 @@ Consecutive compacted receipt groups share a single instruction envelope when
 needed to fit context; call identities, result references, pagination coordinates
 and ordering are retained. A receipt overflow remains an explicit error when the
 remaining protected context genuinely cannot fit.
+
+Compacted receipts retain bounded, deterministic input/outcome details: small tool
+results remain verbatim; larger results carry explicit excerpts and journal
+references. This lets agents retain runtime versions, paths and command exit
+statuses without rereading every result. Under severe context pressure, the
+largest optional details are removed first; all call identities and references
+remain. Excerpts are untrusted data, not new instructions or complete documents.
