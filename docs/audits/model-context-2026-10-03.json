@@ -1,0 +1,909 @@
+{
+  "checked_at": "2026-10-03",
+  "counts": {
+    "known": 79,
+    "total": 121
+  },
+  "models": [
+    {
+      "provider_id": "watchdog",
+      "model": "glm-5.3-flash:cloud",
+      "window_tokens": 1048576,
+      "known": true,
+      "source": "discovered:ollama:2026-10-03T21:25:47.811Z"
+    },
+    {
+      "provider_id": "watchdog",
+      "model": "glm-5.2:cloud",
+      "window_tokens": 1048576,
+      "known": true,
+      "source": "discovered:ollama:2026-10-03T21:25:47.842Z"
+    },
+    {
+      "provider_id": "watchdog",
+      "model": "deepseek-v4-pro:cloud",
+      "window_tokens": 1048576,
+      "known": true,
+      "source": "discovered:ollama:2026-10-03T21:25:47.849Z"
+    },
+    {
+      "provider_id": "watchdog",
+      "model": "kimi-k3:cloud",
+      "window_tokens": 1048576,
+      "known": true,
+      "source": "discovered:ollama:2026-10-03T21:25:48.254Z"
+    },
+    {
+      "provider_id": "watchdog",
+      "model": "kimi-k2.7-code:cloud",
+      "window_tokens": 262144,
+      "known": true,
+      "source": "discovered:ollama:2026-10-03T21:25:48.049Z"
+    },
+    {
+      "provider_id": "watchdog",
+      "model": "qwen3.5",
+      "window_tokens": 65536,
+      "known": false,
+      "source": "conservative_default"
+    },
+    {
+      "provider_id": "watchdog",
+      "model": "minimax-m3:cloud",
+      "window_tokens": 512000,
+      "known": true,
+      "source": "discovered:ollama:2026-10-03T21:25:48.143Z"
+    },
+    {
+      "provider_id": "watchdog",
+      "model": "nemotron-3-super",
+      "window_tokens": 262144,
+      "known": true,
+      "source": "discovered:ollama:2026-10-03T21:25:48.243Z"
+    },
+    {
+      "provider_id": "watchdog",
+      "model": "gemma4",
+      "window_tokens": 262144,
+      "known": true,
+      "source": "discovered:ollama:2026-10-03T21:25:48.340Z"
+    },
+    {
+      "provider_id": "watchdog",
+      "model": "gemma4:31b",
+      "window_tokens": 262144,
+      "known": true,
+      "source": "discovered:ollama:2026-10-03T21:25:48.349Z"
+    },
+    {
+      "provider_id": "watchdog",
+      "model": "qwen3.5:397b",
+      "window_tokens": 65536,
+      "known": false,
+      "source": "conservative_default"
+    },
+    {
+      "provider_id": "watchdog",
+      "model": "minimax-m2.7",
+      "window_tokens": 196608,
+      "known": true,
+      "source": "discovered:ollama:2026-10-03T21:25:48.849Z"
+    },
+    {
+      "provider_id": "watchdog",
+      "model": "nemotron-3-super:120b",
+      "window_tokens": 65536,
+      "known": false,
+      "source": "conservative_default"
+    },
+    {
+      "provider_id": "watchdog",
+      "model": "minimax-m2.5",
+      "window_tokens": 65536,
+      "known": false,
+      "source": "conservative_default"
+    },
+    {
+      "provider_id": "watchdog",
+      "model": "minimax-m3",
+      "window_tokens": 512000,
+      "known": true,
+      "source": "discovered:ollama:2026-10-03T21:25:48.594Z"
+    },
+    {
+      "provider_id": "watchdog",
+      "model": "kimi-k2.7-code",
+      "window_tokens": 262144,
+      "known": true,
+      "source": "discovered:ollama:2026-10-03T21:25:48.606Z"
+    },
+    {
+      "provider_id": "watchdog",
+      "model": "kimi-k2.6",
+      "window_tokens": 262144,
+      "known": true,
+      "source": "discovered:ollama:2026-10-03T21:25:48.709Z"
+    },
+    {
+      "provider_id": "watchdog",
+      "model": "kimi-k2.5",
+      "window_tokens": 65536,
+      "known": false,
+      "source": "conservative_default"
+    },
+    {
+      "provider_id": "watchdog",
+      "model": "nemotron-3-ultra",
+      "window_tokens": 262144,
+      "known": true,
+      "source": "discovered:ollama:2026-10-03T21:25:48.798Z"
+    },
+    {
+      "provider_id": "watchdog",
+      "model": "gpt-oss:20b",
+      "window_tokens": 131072,
+      "known": true,
+      "source": "discovered:ollama:2026-10-03T21:25:48.803Z"
+    },
+    {
+      "provider_id": "watchdog",
+      "model": "gpt-oss:120b",
+      "window_tokens": 131072,
+      "known": true,
+      "source": "discovered:ollama:2026-10-03T21:25:48.956Z"
+    },
+    {
+      "provider_id": "watchdog",
+      "model": "nemotron-3-nano:30b",
+      "window_tokens": 262144,
+      "known": true,
+      "source": "discovered:ollama:2026-10-03T21:25:48.951Z"
+    },
+    {
+      "provider_id": "watchdog",
+      "model": "mistral-large-3:675b",
+      "window_tokens": 262144,
+      "known": true,
+      "source": "discovered:ollama:2026-10-03T21:25:48.965Z"
+    },
+    {
+      "provider_id": "watchdog",
+      "model": "deepseek-v4-pro",
+      "window_tokens": 1048576,
+      "known": true,
+      "source": "discovered:ollama:2026-10-03T21:25:49.120Z"
+    },
+    {
+      "provider_id": "watchdog",
+      "model": "glm-5.2",
+      "window_tokens": 1048576,
+      "known": true,
+      "source": "discovered:ollama:2026-10-03T21:25:49.102Z"
+    },
+    {
+      "provider_id": "watchdog",
+      "model": "glm-5.1",
+      "window_tokens": 65536,
+      "known": false,
+      "source": "conservative_default"
+    },
+    {
+      "provider_id": "watchdog",
+      "model": "deepseek-v4.1-flash:cloud",
+      "window_tokens": 1048576,
+      "known": true,
+      "source": "watchdog:deepseek-v4.1-flash:cloud"
+    },
+    {
+      "provider_id": "watchdog",
+      "model": "deepseek-v4.1-flash",
+      "window_tokens": 1048576,
+      "known": true,
+      "source": "discovered:ollama:2026-10-03T21:25:49.245Z"
+    },
+    {
+      "provider_id": "watchdog",
+      "model": "glm-5.3",
+      "window_tokens": 1048576,
+      "known": true,
+      "source": "discovered:ollama:2026-10-03T21:25:49.339Z"
+    },
+    {
+      "provider_id": "watchdog",
+      "model": "glm-5.3-flash",
+      "window_tokens": 1048576,
+      "known": true,
+      "source": "discovered:ollama:2026-10-03T21:25:49.405Z"
+    },
+    {
+      "provider_id": "custom",
+      "model": "glm-5.2:cloud",
+      "window_tokens": 1048576,
+      "known": true,
+      "source": "discovered:ollama:2026-10-03T21:25:49.289Z"
+    },
+    {
+      "provider_id": "custom",
+      "model": "qwen3.5",
+      "window_tokens": 65536,
+      "known": false,
+      "source": "conservative_default"
+    },
+    {
+      "provider_id": "custom",
+      "model": "kimi-k2.7-code:cloud",
+      "window_tokens": 262144,
+      "known": true,
+      "source": "discovered:ollama:2026-10-03T21:25:49.343Z"
+    },
+    {
+      "provider_id": "custom",
+      "model": "minimax-m3:cloud",
+      "window_tokens": 512000,
+      "known": true,
+      "source": "discovered:ollama:2026-10-03T21:25:49.402Z"
+    },
+    {
+      "provider_id": "custom",
+      "model": "deepseek-v4-flash:cloud",
+      "window_tokens": 65536,
+      "known": false,
+      "source": "conservative_default"
+    },
+    {
+      "provider_id": "custom",
+      "model": "deepseek-v4-pro:cloud",
+      "window_tokens": 1048576,
+      "known": true,
+      "source": "discovered:ollama:2026-10-03T21:25:49.407Z"
+    },
+    {
+      "provider_id": "custom",
+      "model": "gemma4",
+      "window_tokens": 262144,
+      "known": true,
+      "source": "discovered:ollama:2026-10-03T21:25:49.409Z"
+    },
+    {
+      "provider_id": "custom",
+      "model": "nemotron-3-super",
+      "window_tokens": 262144,
+      "known": true,
+      "source": "discovered:ollama:2026-10-03T21:25:49.411Z"
+    },
+    {
+      "provider_id": "custom",
+      "model": "gemma4:e2b",
+      "window_tokens": 65536,
+      "known": false,
+      "source": "conservative_default"
+    },
+    {
+      "provider_id": "custom",
+      "model": "gemma4:e4b",
+      "window_tokens": 65536,
+      "known": false,
+      "source": "conservative_default"
+    },
+    {
+      "provider_id": "custom",
+      "model": "gemma4:12b",
+      "window_tokens": 65536,
+      "known": false,
+      "source": "conservative_default"
+    },
+    {
+      "provider_id": "custom",
+      "model": "gemma4:26b",
+      "window_tokens": 65536,
+      "known": false,
+      "source": "conservative_default"
+    },
+    {
+      "provider_id": "custom",
+      "model": "gemma4:31b",
+      "window_tokens": 262144,
+      "known": true,
+      "source": "discovered:ollama:2026-10-03T21:25:49.610Z"
+    },
+    {
+      "provider_id": "custom",
+      "model": "qwen3.5:0.8b",
+      "window_tokens": 65536,
+      "known": false,
+      "source": "conservative_default"
+    },
+    {
+      "provider_id": "custom",
+      "model": "qwen3.5:2b",
+      "window_tokens": 65536,
+      "known": false,
+      "source": "conservative_default"
+    },
+    {
+      "provider_id": "custom",
+      "model": "qwen3.5:4b",
+      "window_tokens": 65536,
+      "known": false,
+      "source": "conservative_default"
+    },
+    {
+      "provider_id": "custom",
+      "model": "qwen3.5:9b",
+      "window_tokens": 65536,
+      "known": false,
+      "source": "conservative_default"
+    },
+    {
+      "provider_id": "custom",
+      "model": "qwen3.5:27b",
+      "window_tokens": 65536,
+      "known": false,
+      "source": "conservative_default"
+    },
+    {
+      "provider_id": "custom",
+      "model": "qwen3.5:35b",
+      "window_tokens": 65536,
+      "known": false,
+      "source": "conservative_default"
+    },
+    {
+      "provider_id": "custom",
+      "model": "qwen3.5:122b",
+      "window_tokens": 65536,
+      "known": false,
+      "source": "conservative_default"
+    },
+    {
+      "provider_id": "custom",
+      "model": "qwen3.5:397b",
+      "window_tokens": 65536,
+      "known": false,
+      "source": "conservative_default"
+    },
+    {
+      "provider_id": "custom",
+      "model": "glm-5.1",
+      "window_tokens": 65536,
+      "known": false,
+      "source": "conservative_default"
+    },
+    {
+      "provider_id": "custom",
+      "model": "minimax-m2.7",
+      "window_tokens": 196608,
+      "known": true,
+      "source": "discovered:ollama:2026-10-03T21:25:50.139Z"
+    },
+    {
+      "provider_id": "custom",
+      "model": "nemotron-3-super:120b",
+      "window_tokens": 65536,
+      "known": false,
+      "source": "conservative_default"
+    },
+    {
+      "provider_id": "custom",
+      "model": "minimax-m2.5",
+      "window_tokens": 65536,
+      "known": false,
+      "source": "conservative_default"
+    },
+    {
+      "provider_id": "custom",
+      "model": "glm-5.2",
+      "window_tokens": 1048576,
+      "known": true,
+      "source": "discovered:ollama:2026-10-03T21:25:50.144Z"
+    },
+    {
+      "provider_id": "custom",
+      "model": "minimax-m3",
+      "window_tokens": 512000,
+      "known": true,
+      "source": "discovered:ollama:2026-10-03T21:25:50.146Z"
+    },
+    {
+      "provider_id": "custom",
+      "model": "kimi-k2.7-code",
+      "window_tokens": 262144,
+      "known": true,
+      "source": "discovered:ollama:2026-10-03T21:25:50.147Z"
+    },
+    {
+      "provider_id": "custom",
+      "model": "kimi-k2.6",
+      "window_tokens": 262144,
+      "known": true,
+      "source": "discovered:ollama:2026-10-03T21:25:50.148Z"
+    },
+    {
+      "provider_id": "custom",
+      "model": "deepseek-v4-flash",
+      "window_tokens": 65536,
+      "known": false,
+      "source": "conservative_default"
+    },
+    {
+      "provider_id": "custom",
+      "model": "deepseek-v4-pro",
+      "window_tokens": 1048576,
+      "known": true,
+      "source": "discovered:ollama:2026-10-03T21:25:50.238Z"
+    },
+    {
+      "provider_id": "custom",
+      "model": "kimi-k2.5",
+      "window_tokens": 65536,
+      "known": false,
+      "source": "conservative_default"
+    },
+    {
+      "provider_id": "custom",
+      "model": "nemotron-3-ultra",
+      "window_tokens": 262144,
+      "known": true,
+      "source": "discovered:ollama:2026-10-03T21:25:50.244Z"
+    },
+    {
+      "provider_id": "custom",
+      "model": "gpt-oss:20b",
+      "window_tokens": 131072,
+      "known": true,
+      "source": "discovered:ollama:2026-10-03T21:25:50.247Z"
+    },
+    {
+      "provider_id": "custom",
+      "model": "gpt-oss:120b",
+      "window_tokens": 131072,
+      "known": true,
+      "source": "discovered:ollama:2026-10-03T21:25:50.248Z"
+    },
+    {
+      "provider_id": "custom",
+      "model": "gemini-3-flash-preview",
+      "window_tokens": 65536,
+      "known": false,
+      "source": "conservative_default"
+    },
+    {
+      "provider_id": "custom",
+      "model": "nemotron-3-nano:4b",
+      "window_tokens": 65536,
+      "known": false,
+      "source": "conservative_default"
+    },
+    {
+      "provider_id": "custom",
+      "model": "nemotron-3-nano:30b",
+      "window_tokens": 262144,
+      "known": true,
+      "source": "discovered:ollama:2026-10-03T21:25:50.338Z"
+    },
+    {
+      "provider_id": "custom",
+      "model": "mistral-large-3:675b",
+      "window_tokens": 262144,
+      "known": true,
+      "source": "discovered:ollama:2026-10-03T21:25:50.340Z"
+    },
+    {
+      "provider_id": "codex",
+      "model": "gpt-5.6-sol",
+      "window_tokens": 258400,
+      "known": true,
+      "source": "codex_model_cache:2026-10-01T00:07:48.299Z"
+    },
+    {
+      "provider_id": "codex",
+      "model": "gpt-5.6-terra",
+      "window_tokens": 258400,
+      "known": true,
+      "source": "codex_model_cache:2026-10-01T00:07:48.299Z"
+    },
+    {
+      "provider_id": "codex",
+      "model": "gpt-5.6-luna",
+      "window_tokens": 258400,
+      "known": true,
+      "source": "codex_model_cache:2026-10-01T00:07:48.299Z"
+    },
+    {
+      "provider_id": "codex",
+      "model": "gpt-5.5",
+      "window_tokens": 258400,
+      "known": true,
+      "source": "codex_model_cache:2026-10-01T00:07:48.299Z"
+    },
+    {
+      "provider_id": "codex",
+      "model": "gpt-5.3-codex-spark",
+      "window_tokens": 65536,
+      "known": false,
+      "source": "conservative_default"
+    },
+    {
+      "provider_id": "codex",
+      "model": "gpt-daybreak-blue-latest",
+      "window_tokens": 258400,
+      "known": true,
+      "source": "codex_model_cache:2026-10-01T00:07:48.299Z"
+    },
+    {
+      "provider_id": "codex",
+      "model": "gpt-5.4",
+      "window_tokens": 65536,
+      "known": false,
+      "source": "conservative_default"
+    },
+    {
+      "provider_id": "codex",
+      "model": "gpt-5.4-mini",
+      "window_tokens": 65536,
+      "known": false,
+      "source": "conservative_default"
+    },
+    {
+      "provider_id": "codex",
+      "model": "gpt-6-astra",
+      "window_tokens": 65536,
+      "known": false,
+      "source": "conservative_default"
+    },
+    {
+      "provider_id": "hermes",
+      "model": "upstage/solar-pro4:free",
+      "window_tokens": 524288,
+      "known": true,
+      "source": "model_metadata:2026-09-30T22:27:18.254Z"
+    },
+    {
+      "provider_id": "hermes",
+      "model": "meituan/longcat-2.5-preview:free",
+      "window_tokens": 1048576,
+      "known": true,
+      "source": "model_metadata:2026-09-30T22:27:18.254Z"
+    },
+    {
+      "provider_id": "hermes",
+      "model": "inclusionai/ling-3.0-flash-sante:free",
+      "window_tokens": 262144,
+      "known": true,
+      "source": "model_metadata:2026-09-30T22:27:18.254Z"
+    },
+    {
+      "provider_id": "hermes",
+      "model": "inclusionai/ling-3.0-flash-fin:free",
+      "window_tokens": 262144,
+      "known": true,
+      "source": "model_metadata:2026-09-30T22:27:18.254Z"
+    },
+    {
+      "provider_id": "hermes",
+      "model": "stealth/space-bunny-alpha",
+      "window_tokens": 1000000,
+      "known": true,
+      "source": "model_metadata:2026-09-30T22:27:18.254Z"
+    },
+    {
+      "provider_id": "hermes",
+      "model": "poolside/laguna-xs-2.1:free",
+      "window_tokens": 262144,
+      "known": true,
+      "source": "model_metadata:2026-09-30T22:27:18.254Z"
+    },
+    {
+      "provider_id": "hermes",
+      "model": "poolside/laguna-s-2.1:free",
+      "window_tokens": 262144,
+      "known": true,
+      "source": "model_metadata:2026-09-30T22:27:18.254Z"
+    },
+    {
+      "provider_id": "hermes",
+      "model": "stepfun/step-3.7-flash:free",
+      "window_tokens": 262144,
+      "known": true,
+      "source": "model_metadata:2026-09-30T22:27:18.254Z"
+    },
+    {
+      "provider_id": "hermes",
+      "model": "meituan/longcat-2.0:free",
+      "window_tokens": 1048756,
+      "known": true,
+      "source": "model_metadata:2026-09-30T22:27:18.254Z"
+    },
+    {
+      "provider_id": "xai_oauth",
+      "model": "grok-4.6",
+      "window_tokens": 65536,
+      "known": false,
+      "source": "conservative_default"
+    },
+    {
+      "provider_id": "xai_oauth",
+      "model": "grok-4.5",
+      "window_tokens": 65536,
+      "known": false,
+      "source": "conservative_default"
+    },
+    {
+      "provider_id": "xai_oauth",
+      "model": "grok-4.3",
+      "window_tokens": 65536,
+      "known": false,
+      "source": "conservative_default"
+    },
+    {
+      "provider_id": "xai_oauth",
+      "model": "grok-4.20-0309-non-reasoning",
+      "window_tokens": 65536,
+      "known": false,
+      "source": "conservative_default"
+    },
+    {
+      "provider_id": "xai_oauth",
+      "model": "grok-4.20-0309-reasoning",
+      "window_tokens": 65536,
+      "known": false,
+      "source": "conservative_default"
+    },
+    {
+      "provider_id": "xai_oauth",
+      "model": "grok-4.20-multi-agent-0309",
+      "window_tokens": 65536,
+      "known": false,
+      "source": "conservative_default"
+    },
+    {
+      "provider_id": "xai_oauth",
+      "model": "grok-build-0.1",
+      "window_tokens": 65536,
+      "known": false,
+      "source": "conservative_default"
+    },
+    {
+      "provider_id": "openai_chatgpt_plan",
+      "model": "gpt-6-astra",
+      "window_tokens": 272000,
+      "known": true,
+      "source": "discovered:openai_chatgpt_plan:2026-10-03T21:25:53.743Z"
+    },
+    {
+      "provider_id": "openai_chatgpt_plan",
+      "model": "gpt-5.6-sol",
+      "window_tokens": 272000,
+      "known": true,
+      "source": "discovered:openai_chatgpt_plan:2026-10-03T21:25:53.746Z"
+    },
+    {
+      "provider_id": "openai_chatgpt_plan",
+      "model": "gpt-5.6-terra",
+      "window_tokens": 272000,
+      "known": true,
+      "source": "discovered:openai_chatgpt_plan:2026-10-03T21:25:53.749Z"
+    },
+    {
+      "provider_id": "openai_chatgpt_plan",
+      "model": "gpt-5.6-luna",
+      "window_tokens": 272000,
+      "known": true,
+      "source": "discovered:openai_chatgpt_plan:2026-10-03T21:25:53.750Z"
+    },
+    {
+      "provider_id": "openai_chatgpt_plan",
+      "model": "gpt-daybreak-blue-latest",
+      "window_tokens": 272000,
+      "known": true,
+      "source": "discovered:openai_chatgpt_plan:2026-10-03T21:25:53.755Z"
+    },
+    {
+      "provider_id": "openai_chatgpt_plan",
+      "model": "gpt-5.5",
+      "window_tokens": 272000,
+      "known": true,
+      "source": "discovered:openai_chatgpt_plan:2026-10-03T21:25:53.756Z"
+    },
+    {
+      "provider_id": "watchdog_ollama_tud",
+      "model": "kimi-k3:cloud",
+      "window_tokens": 1048576,
+      "known": true,
+      "source": "discovered:ollama:2026-10-03T21:25:53.758Z"
+    },
+    {
+      "provider_id": "watchdog_ollama_tud",
+      "model": "kimi-k2.7-code",
+      "window_tokens": 262144,
+      "known": true,
+      "source": "discovered:ollama:2026-10-03T21:25:53.759Z"
+    },
+    {
+      "provider_id": "watchdog_ollama_tud",
+      "model": "gpt-oss:120b",
+      "window_tokens": 131072,
+      "known": true,
+      "source": "discovered:ollama:2026-10-03T21:25:53.769Z"
+    },
+    {
+      "provider_id": "watchdog_ollama_tud",
+      "model": "mistral-large-3:675b",
+      "window_tokens": 262144,
+      "known": true,
+      "source": "discovered:ollama:2026-10-03T21:25:53.788Z"
+    },
+    {
+      "provider_id": "watchdog_ollama_tud",
+      "model": "gemma4:31b",
+      "window_tokens": 262144,
+      "known": true,
+      "source": "discovered:ollama:2026-10-03T21:25:53.789Z"
+    },
+    {
+      "provider_id": "watchdog_ollama_tud",
+      "model": "glm-5.2",
+      "window_tokens": 1048576,
+      "known": true,
+      "source": "discovered:ollama:2026-10-03T21:25:53.790Z"
+    },
+    {
+      "provider_id": "watchdog_ollama_tud",
+      "model": "kimi-k2.5",
+      "window_tokens": 65536,
+      "known": false,
+      "source": "conservative_default"
+    },
+    {
+      "provider_id": "watchdog_ollama_tud",
+      "model": "kimi-k2.6",
+      "window_tokens": 262144,
+      "known": true,
+      "source": "discovered:ollama:2026-10-03T21:25:53.793Z"
+    },
+    {
+      "provider_id": "watchdog_ollama_tud",
+      "model": "deepseek-v4-pro",
+      "window_tokens": 1048576,
+      "known": true,
+      "source": "discovered:ollama:2026-10-03T21:25:53.796Z"
+    },
+    {
+      "provider_id": "watchdog_ollama_tud",
+      "model": "gpt-oss:20b",
+      "window_tokens": 131072,
+      "known": true,
+      "source": "discovered:ollama:2026-10-03T21:25:53.802Z"
+    },
+    {
+      "provider_id": "watchdog_ollama_tud",
+      "model": "minimax-m2.5",
+      "window_tokens": 65536,
+      "known": false,
+      "source": "conservative_default"
+    },
+    {
+      "provider_id": "watchdog_ollama_tud",
+      "model": "nemotron-3-ultra",
+      "window_tokens": 262144,
+      "known": true,
+      "source": "discovered:ollama:2026-10-03T21:25:53.806Z"
+    },
+    {
+      "provider_id": "watchdog_ollama_tud",
+      "model": "nemotron-3-nano:30b",
+      "window_tokens": 262144,
+      "known": true,
+      "source": "discovered:ollama:2026-10-03T21:25:53.809Z"
+    },
+    {
+      "provider_id": "watchdog_ollama_tud",
+      "model": "minimax-m3",
+      "window_tokens": 512000,
+      "known": true,
+      "source": "discovered:ollama:2026-10-03T21:25:53.840Z"
+    },
+    {
+      "provider_id": "watchdog_ollama_tud",
+      "model": "qwen3.5:397b",
+      "window_tokens": 65536,
+      "known": false,
+      "source": "conservative_default"
+    },
+    {
+      "provider_id": "watchdog_ollama_tud",
+      "model": "minimax-m2.7",
+      "window_tokens": 196608,
+      "known": true,
+      "source": "discovered:ollama:2026-10-03T21:25:53.895Z"
+    },
+    {
+      "provider_id": "watchdog_ollama_tud",
+      "model": "nemotron-3-super",
+      "window_tokens": 262144,
+      "known": true,
+      "source": "discovered:ollama:2026-10-03T21:25:53.901Z"
+    },
+    {
+      "provider_id": "watchdog_ollama_tud",
+      "model": "glm-5.1",
+      "window_tokens": 65536,
+      "known": false,
+      "source": "conservative_default"
+    },
+    {
+      "provider_id": "watchdog_ollama_tud",
+      "model": "deepseek-v4.1-flash",
+      "window_tokens": 1048576,
+      "known": true,
+      "source": "discovered:ollama:2026-10-03T21:25:53.938Z"
+    },
+    {
+      "provider_id": "watchdog_ollama_tud",
+      "model": "glm-5.3",
+      "window_tokens": 1048576,
+      "known": true,
+      "source": "discovered:ollama:2026-10-03T21:25:53.988Z"
+    },
+    {
+      "provider_id": "watchdog_ollama_tud",
+      "model": "glm-5.3-flash",
+      "window_tokens": 1048576,
+      "known": true,
+      "source": "discovered:ollama:2026-10-03T21:25:53.996Z"
+    }
+  ],
+  "limitations": {
+    "ollama_missing_or_retired_selections": 31,
+    "ollama_distinct_missing_or_retired_ids": 21,
+    "offline_xai_proxy_selections": 7,
+    "codex_models_absent_from_cache": 4
+  },
+  "live_glm_check": {
+    "model": "glm-5.3-flash:cloud",
+    "provider": "watchdog",
+    "context_budget": {
+      "system_chars": 5992,
+      "conversation_chars": 43,
+      "tool_result_chars": 0,
+      "tool_call_chars": 0,
+      "tool_schema_bytes": 2,
+      "tool_schema_count": 0,
+      "before_upper_bound": 7320,
+      "after_upper_bound": 7320,
+      "input_allowance": 1047552,
+      "output_reservation": 1024,
+      "envelope_reservation": 0,
+      "compacted_calls": 0,
+      "recovered_facts": 0,
+      "folded_file_reads": 0,
+      "removed_messages": 0,
+      "estimator": "utf8_bytes_plus_framing_upper_bound",
+      "context_window_tokens": 1048576,
+      "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+      "context_limit_known": true,
+      "context_scope": "provider_request"
+    },
+    "finish_reason": "stop",
+    "execution_id": null,
+    "usage": {
+      "input_tokens": 1287,
+      "output_tokens": 31,
+      "total_tokens": 1318,
+      "cached_input_tokens": null,
+      "cache_write_input_tokens": null,
+      "cache_details_reported": false
+    }
+  },
+  "verification": {
+    "tests": {
+      "passed": 552,
+      "failed": 0,
+      "skipped": 1
+    },
+    "live_smoke": "pass",
+    "glm_window_persisted_across_restart": 1048576,
+    "profile_model_fingerprint_unchanged": true
+  },
+  "implementation_commit": "3a492d8f4d68da0c047328ad12ab0b9e09c76d46"
+}
