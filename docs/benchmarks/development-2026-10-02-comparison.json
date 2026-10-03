@@ -1,0 +1,327 @@
+{
+  "grading": "manual artifact and execution-receipt inspection with independent tests; one trial per case per revision",
+  "model": "deepseek-v4.1-flash:cloud",
+  "provider": "Watchdog / Ollama Cloud",
+  "requested_output_tokens": 6000,
+  "cases": [
+    {
+      "case": 1,
+      "baseline": {
+        "verified_pass": true,
+        "duration_ms": 54774,
+        "receipts": 19,
+        "usage": {
+          "input_tokens": 84203,
+          "output_tokens": 7918,
+          "total_tokens": 92121,
+          "cached_input_tokens": null,
+          "cache_write_input_tokens": null,
+          "cache_details_reported": false
+        },
+        "chat_id": "55ba0a64-d091-4166-bd7c-bb0d38a992a8",
+        "execution_id": "f3df309a-6969-4e44-ac7c-15ab776c78f9",
+        "transport_ok": true
+      },
+      "intermediate": {
+        "verified_pass": true,
+        "duration_ms": 62755,
+        "receipts": 21,
+        "usage": {
+          "input_tokens": 136236,
+          "output_tokens": 8497,
+          "total_tokens": 144733,
+          "cached_input_tokens": null,
+          "cache_write_input_tokens": null,
+          "cache_details_reported": false
+        },
+        "chat_id": "59a8a74c-765f-48be-80b4-d94b8e6ec940",
+        "execution_id": "b96f2099-8f02-4640-bd23-5cbb92816d44",
+        "transport_ok": true
+      },
+      "final": {
+        "verified_pass": true,
+        "duration_ms": 53364,
+        "receipts": 17,
+        "usage": {
+          "input_tokens": 104744,
+          "output_tokens": 7851,
+          "total_tokens": 112595,
+          "cached_input_tokens": null,
+          "cache_write_input_tokens": null,
+          "cache_details_reported": false
+        },
+        "chat_id": "e9fec09d-3bde-4033-8364-7e899db5e1c3",
+        "execution_id": "f5b153eb-80cc-4640-90bf-d6c55ff3c7d4",
+        "transport_ok": true
+      }
+    },
+    {
+      "case": 2,
+      "baseline": {
+        "verified_pass": false,
+        "duration_ms": 333234,
+        "receipts": 135,
+        "usage": {
+          "input_tokens": 572619,
+          "output_tokens": 11366,
+          "total_tokens": 583985,
+          "cached_input_tokens": null,
+          "cache_write_input_tokens": null,
+          "cache_details_reported": false
+        },
+        "chat_id": "c21bda61-ee1e-405c-af01-da852e5751bd",
+        "execution_id": "9fd9f087-f3a5-4392-be09-794e74fd58d7",
+        "transport_ok": false
+      },
+      "intermediate": {
+        "verified_pass": false,
+        "duration_ms": 228057,
+        "receipts": 132,
+        "usage": {
+          "input_tokens": 717739,
+          "output_tokens": 21177,
+          "total_tokens": 738916,
+          "cached_input_tokens": null,
+          "cache_write_input_tokens": null,
+          "cache_details_reported": false
+        },
+        "chat_id": "13f1bb75-3714-4546-a427-dedef4f66724",
+        "execution_id": "2b85a987-ae51-48ec-8f84-33ca45d0050f",
+        "transport_ok": false
+      },
+      "final": {
+        "verified_pass": false,
+        "duration_ms": 66416,
+        "receipts": 106,
+        "usage": {
+          "input_tokens": 331330,
+          "output_tokens": 8739,
+          "total_tokens": 340069,
+          "cached_input_tokens": null,
+          "cache_write_input_tokens": null,
+          "cache_details_reported": false
+        },
+        "chat_id": "63c3e506-18f6-430d-8925-2312d0ce1e7f",
+        "execution_id": "ce91e4e5-1966-42ee-aa44-f9c8069362d0",
+        "transport_ok": false
+      }
+    },
+    {
+      "case": 3,
+      "baseline": {
+        "verified_pass": true,
+        "duration_ms": 17046,
+        "receipts": 14,
+        "usage": {
+          "input_tokens": 65581,
+          "output_tokens": 2709,
+          "total_tokens": 68290,
+          "cached_input_tokens": null,
+          "cache_write_input_tokens": null,
+          "cache_details_reported": false
+        },
+        "chat_id": "fddb2350-74de-4394-a6a8-4b1e8458b358",
+        "execution_id": "a22e452f-cfca-4f2a-8682-f87ab9aa8634",
+        "transport_ok": true
+      },
+      "intermediate": {
+        "verified_pass": true,
+        "duration_ms": 31395,
+        "receipts": 15,
+        "usage": {
+          "input_tokens": 73842,
+          "output_tokens": 2820,
+          "total_tokens": 76662,
+          "cached_input_tokens": null,
+          "cache_write_input_tokens": null,
+          "cache_details_reported": false
+        },
+        "chat_id": "5bfec3be-684e-4238-a31b-f9c0f05c5d54",
+        "execution_id": "fb4eaa8d-7231-4af6-8704-dd882199f920",
+        "transport_ok": true
+      },
+      "final": {
+        "verified_pass": true,
+        "duration_ms": 21479,
+        "receipts": 15,
+        "usage": {
+          "input_tokens": 66803,
+          "output_tokens": 2876,
+          "total_tokens": 69679,
+          "cached_input_tokens": null,
+          "cache_write_input_tokens": null,
+          "cache_details_reported": false
+        },
+        "chat_id": "8ff2a106-710d-4c2a-9663-f0ae7e34b386",
+        "execution_id": "16ae53de-56a8-4f8d-828e-841b8385a5ff",
+        "transport_ok": true
+      }
+    },
+    {
+      "case": 4,
+      "baseline": {
+        "verified_pass": false,
+        "duration_ms": 27024,
+        "receipts": 5,
+        "usage": {
+          "input_tokens": 12038,
+          "output_tokens": 6277,
+          "total_tokens": 18315,
+          "cached_input_tokens": null,
+          "cache_write_input_tokens": null,
+          "cache_details_reported": false
+        },
+        "chat_id": "b9702157-860b-49f5-8aff-f7ef66d9f281",
+        "execution_id": "ca494cf2-b12c-4bc6-89cb-102353e521e5",
+        "transport_ok": true
+      },
+      "intermediate": {
+        "verified_pass": false,
+        "duration_ms": 46595,
+        "receipts": 12,
+        "usage": {
+          "input_tokens": 102061,
+          "output_tokens": 11733,
+          "total_tokens": 113794,
+          "cached_input_tokens": null,
+          "cache_write_input_tokens": null,
+          "cache_details_reported": false
+        },
+        "chat_id": "7b7a0303-172e-4bb0-b0b0-de977eeadb4a",
+        "execution_id": "2fbb5059-d0d8-4891-be9d-1a48e8c96e27",
+        "transport_ok": false
+      },
+      "final": {
+        "verified_pass": true,
+        "duration_ms": 109699,
+        "receipts": 21,
+        "usage": {
+          "input_tokens": 158507,
+          "output_tokens": 16065,
+          "total_tokens": 174572,
+          "cached_input_tokens": null,
+          "cache_write_input_tokens": null,
+          "cache_details_reported": false
+        },
+        "chat_id": "6c98e15d-6d4e-42a9-998d-9a43f75d286b",
+        "execution_id": "f7f1aed0-6c32-42fc-8240-4d53e1af23af",
+        "transport_ok": true
+      }
+    },
+    {
+      "case": 5,
+      "baseline": {
+        "verified_pass": true,
+        "duration_ms": 15671,
+        "receipts": 8,
+        "usage": {
+          "input_tokens": 33743,
+          "output_tokens": 1830,
+          "total_tokens": 35573,
+          "cached_input_tokens": null,
+          "cache_write_input_tokens": null,
+          "cache_details_reported": false
+        },
+        "chat_id": "fb3c57d1-f255-4db4-96a9-c55ce3564322",
+        "execution_id": "15e02827-1481-42fc-be7f-b678280440f7",
+        "transport_ok": true
+      },
+      "intermediate": {
+        "verified_pass": true,
+        "duration_ms": 19970,
+        "receipts": 10,
+        "usage": {
+          "input_tokens": 65734,
+          "output_tokens": 1678,
+          "total_tokens": 67412,
+          "cached_input_tokens": null,
+          "cache_write_input_tokens": null,
+          "cache_details_reported": false
+        },
+        "chat_id": "1120ddd8-98b5-435d-acf4-346ab9913f6a",
+        "execution_id": "0be0fa9c-a9a4-43e7-a037-6b1175ed2d0e",
+        "transport_ok": true
+      },
+      "final": {
+        "verified_pass": true,
+        "duration_ms": 17481,
+        "receipts": 7,
+        "usage": {
+          "input_tokens": 27291,
+          "output_tokens": 1256,
+          "total_tokens": 28547,
+          "cached_input_tokens": null,
+          "cache_write_input_tokens": null,
+          "cache_details_reported": false
+        },
+        "chat_id": "ddda0132-77ab-435f-9f89-26429284c91c",
+        "execution_id": "a1ffd0d2-501d-458f-94d4-c0ea03eac88d",
+        "transport_ok": true
+      }
+    },
+    {
+      "case": 6,
+      "baseline": {
+        "verified_pass": false,
+        "duration_ms": 13495,
+        "receipts": 6,
+        "usage": {
+          "input_tokens": 11959,
+          "output_tokens": 4468,
+          "total_tokens": 16427,
+          "cached_input_tokens": null,
+          "cache_write_input_tokens": null,
+          "cache_details_reported": false
+        },
+        "chat_id": "0c1a9674-a926-433d-a839-830db6db0d79",
+        "execution_id": "2aed8f52-7379-4299-97b7-6cffb8d99c28",
+        "transport_ok": false
+      },
+      "intermediate": {
+        "verified_pass": false,
+        "duration_ms": 54087,
+        "receipts": 6,
+        "usage": {
+          "input_tokens": 45813,
+          "output_tokens": 18442,
+          "total_tokens": 64255,
+          "cached_input_tokens": null,
+          "cache_write_input_tokens": null,
+          "cache_details_reported": false
+        },
+        "chat_id": "4ec7fb4f-e4ec-4c15-8a79-94fb6717fb9a",
+        "execution_id": "a300484d-ecaa-45bd-9101-03c6a1a63ab2",
+        "transport_ok": false
+      },
+      "final": {
+        "verified_pass": true,
+        "duration_ms": 124923,
+        "receipts": 42,
+        "usage": {
+          "input_tokens": 200934,
+          "output_tokens": 16516,
+          "total_tokens": 217450,
+          "cached_input_tokens": null,
+          "cache_write_input_tokens": null,
+          "cache_details_reported": false
+        },
+        "chat_id": "a10cd89d-40ce-4183-8087-034332dfa1f6",
+        "execution_id": "96ef0652-a530-4449-92e8-1cc6b96a9304",
+        "transport_ok": true
+      }
+    }
+  ],
+  "targeted_followup": {
+    "run_id": "dev-2026-10-02-deepseek-receipts",
+    "revision": "bf6a492",
+    "case": 2,
+    "verified_pass": false,
+    "duration_ms": 110971,
+    "receipts": 162,
+    "tokens": 469745,
+    "error": "context_budget_exceeded",
+    "chat_id": "bb63d298-6cd8-4db4-abd4-338fe81b1cbd",
+    "execution_id": "a243e273-0aa5-4257-998b-d5d31fed5ecc",
+    "included_in_full_run_score": false
+  }
+}
