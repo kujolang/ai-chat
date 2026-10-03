@@ -31,3 +31,10 @@ A successful stream is not proof of task success. Review saved execution receipt
 inspect generated files, rerun their tests, and check outputs against the prompt.
 Keep raw responses and execution artifacts under ignored `data/`; record sanitized
 results, limitations, chat IDs and reproduction steps in a report.
+
+Runner reports `transport_completion_rate`; `task_completion_rate` is null until
+independently graded. Explicit length/max_tokens endings and nonterminal EOF are
+failures. Error-event usage and partial response evidence are retained. Tool-enabled
+runs never automatically retry a whole request, even when max-attempts is greater
+than one. At the runner deadline it requests server cancellation instead of merely
+dropping the connection. A completed transport still needs artifact/test review.

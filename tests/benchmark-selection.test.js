@@ -185,7 +185,7 @@ function runBenchmark(args) {
 	});
 }
 
-async function startFixtureServer(initialState, schemas = []) {
+async function startFixtureServer(initialState, schemas = [], terminal = {}) {
 	const state = structuredClone(initialState);
 	const mutations = [];
 	const streams = [];
@@ -206,7 +206,7 @@ async function startFixtureServer(initialState, schemas = []) {
 			const body = await readJson(request);
 			streams.push(body);
 			response.writeHead(200, { "Content-Type": "text/event-stream" });
-			response.end(`event: done\ndata: ${JSON.stringify({ output_text: `fixture:${body.model}`, model: body.model, provider: body.profile_id, usage: { input_tokens: 1, output_tokens: 1, total_tokens: 2 } })}\n\n`);
+			response.end(`event: ${terminal.event || "done"}\ndata: ${JSON.stringify({ ...terminal.payload, output_text: `fixture:${body.model}`, model: body.model, provider: body.profile_id, usage: { input_tokens: 1, output_tokens: 1, total_tokens: 2 } })}\n\n`);
 			return;
 		}
 		response.writeHead(404);
@@ -275,3 +275,19 @@ function sendJson(response, payload) {
  const rejected=await runBenchmark([...args,"--base-url",missing.baseUrl]);
  assert.equal(rejected.code,1);assert.equal(missing.streams.length,0);
  });
+
+for (const event of ['done','error']) {
+ test(`runner preserves failure usage and never grades truncation as success (${event})`,async t=>{
+  const dir=await fs.mkdtemp(path.join(os.tmpdir(),'grade-suite-'));
+  t.after(()=>fs.rm(dir,{recursive:true,force:true}));
+  const file=path.join(dir,'suite.md');await fs.writeFile(file,'# TEST 1: Fixture\n\n## Prompt\nDo work.\n');
+  const runtime=await startFixtureServer(fixtureState(),[],{event,payload:{finish_reason:'length',message:'failure',tool_calls_executed:4}});
+  t.after(()=>new Promise(resolve=>runtime.server.close(resolve)));
+  await runBenchmark(['--tests',file,'--output-dir',dir,'--base-url',runtime.baseUrl,'--api-token','fixture','--require-instance-role','any','--model','glm-5.3-flash','--max-attempts','1','--run-id','grade']);
+  const report=JSON.parse(await fs.readFile(path.join(dir,'grade.json'),'utf8'));
+  assert.equal(report.summary.failed,1);assert.equal(report.summary.completed,0);
+  assert.equal(report.summary.token_use.total_tokens,2);
+  assert.equal(report.summary.tool_calls_executed,4);
+  assert.equal(report.summary.task_completion_rate,null);
+ });
+}

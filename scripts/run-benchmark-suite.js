@@ -142,7 +142,8 @@ async function main() {
 	} finally {
 		run.finished_at = new Date().toISOString();
 		run.duration_ms = Date.parse(run.finished_at) - Date.parse(run.started_at);
-		run.summary.task_completion_rate = ratio(run.summary.completed, run.summary.total);
+		run.summary.transport_completion_rate = ratio(run.summary.completed, run.summary.total);
+		run.summary.task_completion_rate = null; // Requires independent artifact/behavior grading.
 		run.summary.repair_rate = ratio(run.summary.tool_input_repairs, run.summary.tool_calls_executed);
 		run.summary.average_latency_ms = run.summary.latency_samples ? Math.round(run.summary.latency_ms_total / run.summary.latency_samples) : null;
 		await writeRun();
@@ -259,8 +260,8 @@ async function runPane({ chat, pane, benchmark, maxTokens, temperature }) {
 			break;
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
-			result = { ok: false, error: message, content: "", thinking: "", usage: null };
-			if (attempts >= maxAttempts || !isRetryableBenchmarkError(message)) break;
+			result = { ...(error.benchmarkResult || {}), ok: false, error: message, content: error.benchmarkResult?.content || "", thinking: error.benchmarkResult?.thinking || "", usage: error.benchmarkResult?.usage || null };
+			if (toolPreset !== "none" || attempts >= maxAttempts || !isRetryableBenchmarkError(message)) break;
 			await delay(1000 * 2 ** (attempts - 1));
 		}
 	}
@@ -287,7 +288,8 @@ async function runPane({ chat, pane, benchmark, maxTokens, temperature }) {
 		tool_calls_executed: Number(result.tool_calls_executed || 0),
 		tool_input_repairs: Number(result.tool_input_repairs || 0),
 		provider_rounds: Number(result.provider_rounds || 0),
-		trace_id: result.trace_id || null
+		trace_id: result.trace_id || null,
+		finish_reason: result.finish_reason || null
 	};
 }
 
@@ -321,6 +323,7 @@ function delay(milliseconds) {
 async function streamChat(payload) {
 	const controller = new AbortController();
 	const timeout = setTimeout(() => controller.abort(new Error(`Stream timed out after ${streamTimeoutMs}ms.`)), streamTimeoutMs);
+	const result = { ok: true, terminal_seen: false, content: "", thinking: "", usage: null, provider: null, model: null, error: null, tool_calls_executed: 0, tool_input_repairs: 0, provider_rounds: 0, trace_id: null };
 	try {
 		const response = await fetch(`${baseUrl}/api/chat/stream`, {
 			method: "POST",
@@ -334,7 +337,6 @@ async function streamChat(payload) {
 		let buffer = "";
 		let event = "message";
 		let lines = [];
-		const result = { ok: true, content: "", thinking: "", usage: null, provider: null, model: null, error: null, tool_calls_executed: 0, tool_input_repairs: 0, provider_rounds: 0, trace_id: null };
 		const consume = (flush = false) => {
 			const parts = buffer.split(/\r?\n/);
 			buffer = flush ? "" : (parts.pop() || "");
@@ -352,13 +354,18 @@ async function streamChat(payload) {
 			if (done) { buffer += decoder.decode(); consume(true); break; }
 			buffer += decoder.decode(value, { stream: true }); consume();
 		}
-		if (!result.ok) throw new Error(result.error || "Provider stream failed.");
+		if (!result.terminal_seen) { result.ok = false; result.error = "Stream ended without a terminal event."; }
+		if (!result.ok) throw Object.assign(new Error(result.error || "Provider stream failed."), { benchmarkResult: result });
 		return result;
 	} catch (error) {
 		if (controller.signal.aborted) {
-			throw controller.signal.reason instanceof Error ? controller.signal.reason : new Error(`Stream timed out after ${streamTimeoutMs}ms.`);
+			try {
+				const cancelled = await fetch(`${baseUrl}/api/chat/stream/cancel`, { method: "POST", headers: { "Content-Type": "application/json", "X-API-Token": apiToken }, body: JSON.stringify({ request_id: payload.request_id }), signal: AbortSignal.timeout(5000) });
+				result.cancellation_requested = cancelled.ok;
+			} catch { result.cancellation_requested = false; }
+			error = controller.signal.reason instanceof Error ? controller.signal.reason : new Error(`Stream timed out after ${streamTimeoutMs}ms.`);
 		}
-		throw error;
+		throw Object.assign(error, { benchmarkResult: error.benchmarkResult || result });
 	} finally {
 		clearTimeout(timeout);
 	}
@@ -396,7 +403,8 @@ function applyEvent(event, raw, result) {
 	if (event === "token") result.content += payload.delta || "";
 	if (event === "thinking") result.thinking += payload.delta || "";
 	if (event === "error") { result.ok = false; result.error = payload.message || payload.error || "Provider stream failed."; }
-	if (event === "done") {
+	if (event === "done" || event === "error") {
+		result.terminal_seen = true;
 		// Some compatible upstreams stream token deltas but omit output_text in the
 		// final event. Do not replace a valid streamed response with that empty field.
 		if (String(payload.output_text || "").trim()) result.content = payload.output_text;
@@ -408,6 +416,10 @@ function applyEvent(event, raw, result) {
 		result.tool_input_repairs = Number(payload.tool_input_repairs || 0);
 		result.provider_rounds = Number(payload.provider_rounds || 0);
 		result.trace_id = payload.trace_id || null;
+		result.finish_reason = payload.finish_reason || null;
+		if (event === "done" && ["length", "max_tokens"].includes(result.finish_reason)) {
+			result.ok = false; result.error = "Output limit reached before completion.";
+		}
 	}
 }
 
