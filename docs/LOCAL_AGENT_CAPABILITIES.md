@@ -200,3 +200,14 @@ outcomes with journal references; a retrieval call does not exempt sibling shell
 output from the context budget. Repeated unchanged local file reads immediately
 return their bounded content instead of requiring a second call after an empty
 "already read" notice. Read-before-write and stale-write checks still apply.
+
+Compacted context labels retained facts as available evidence. Legacy checkpoint
+receipt envelopes are migrated on read. Complete saved-result pages reattach
+bounded facts to the original action, recording the retrieval IDs there; this
+avoids repeatedly copying the same command result into unrelated receipt rows.
+Partial pages, failures, mismatched sources and ambiguous identities stay separate.
+Obsolete standalone reasoning is retired before observed outcomes, while the current
+assistant/tool protocol remains intact. Long command excerpts retain both the start
+and final summary with explicit omission markers. Native receipts use durable journal
+IDs rather than per-round tool indices. None of this reexecutes a completed action
+or changes journal retention, context limits, output limits or permission checks.

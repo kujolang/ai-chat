@@ -533,3 +533,14 @@ Errors without a confirmed execution outcome still require reconciliation.
 On POSIX, timeout/cancellation signals target the command process group with a
 one-second force-kill grace period. This is not containment of deliberately
 detached descendants. Windows uses direct-child termination.
+
+### Retained execution evidence
+
+Provider-bound compacted receipts retain deterministic `outcome` facts. Successful
+complete `tool_result_read` pages can restore those facts to their original action;
+`read_call_ids` then lists its evidence-retrieval calls. Partial or failed reads and
+ambiguous source identities are not folded. Full chronological receipts remain in
+`GET /api/executions/:id`. Legacy compacted checkpoint text is accepted on resume.
+Context metrics may include `recovered_facts`, the number of projected retrieval
+records folded into original actions on that budget pass. This is not a count of
+reexecuted actions or newly verified task completions.

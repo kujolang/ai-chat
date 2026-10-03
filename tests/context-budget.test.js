@@ -90,7 +90,7 @@ test('native completed calls compact safely but mismatched native results do not
 });
 
 test('consecutive receipt groups share an envelope without losing call identities or page coordinates', () => {
- const prefix='Completed tool-call receipts; output omitted to fit context. These calls already ran; do not repeat consequential work. Recover missing evidence using tool_result_read with result_ref. ';
+ const {receiptPrefix:prefix}=require('../lib/receipt-context');
  const receipts=Array.from({length:30},(_,i)=>({call_id:`read-${i}`,tool:'tool_result_read',result_ref:`source-${i}`,offset:i,next_offset:i+1}));
  const messages=[{role:'user',content:'Keep working'},...receipts.map(r=>({role:'assistant',content:prefix+JSON.stringify([r])}))];
  const before=estimateContext(messages,[]);
@@ -119,7 +119,7 @@ for (const native of [false, true]) {
 
 
 test("fresh file content reaches the model before optional old evidence details", () => {
- const prefix="Completed tool-call receipts; output omitted to fit context. These calls already ran; do not repeat consequential work. Recover missing evidence using tool_result_read with result_ref. ";
+ const {receiptPrefix:prefix}=require('../lib/receipt-context');
  const content=JSON.stringify({saved_result_ref:"fresh",content:"Required report fact. ".repeat(70)});
  const messages=[{role:"user",content:"Read the report"},{role:"assistant",content:prefix+JSON.stringify([{call_id:"old",tool:"local_shell",result_ref:"old",outcome:{stdout:"old detail ".repeat(700)}}])},
   {role:"assistant",content:"",tool_calls:[{id:"fresh",function:{name:"local_file_read",arguments:"{}"}}]},

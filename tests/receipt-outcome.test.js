@@ -33,7 +33,7 @@ test('receipt inputs do not duplicate write payloads, and malformed result array
 });
 
 test('tight budgets discard optional excerpts before losing protected execution identities', () => {
- const prefix='Completed tool-call receipts; output omitted to fit context. These calls already ran; do not repeat consequential work. Recover missing evidence using tool_result_read with result_ref. ';
+ const {receiptPrefix:prefix}=require('../lib/receipt-context');
  const records=Array.from({length:8},(_,i)=>({call_id:`write-${i}`,tool:'local_file_write',result_ref:`write-${i}`,outcome:{content:'evidence'.repeat(300)}}));
  const messages=[{role:'system',content:'Never replay a write'}, {role:'user',content:'Continue'}, {role:'assistant',content:prefix+JSON.stringify(records)}];
  const report=budgetContext(messages,[],{window_tokens:4096,output_tokens:1024});
@@ -45,7 +45,7 @@ test('tight budgets discard optional excerpts before losing protected execution 
 });
 
 test('identical immutable evidence pages share outcomes but keep every read ID; actions and distinct pages stay separate', () => {
- const prefix='Completed tool-call receipts; output omitted to fit context. These calls already ran; do not repeat consequential work. Recover missing evidence using tool_result_read with result_ref. ';
+ const {receiptPrefix:prefix}=require('../lib/receipt-context');
  const page={tool:'tool_result_read',returned_ok:true,result_ref:'source',source_tool:'local_shell',offset:0,next_offset:100,outcome:{stdout:'result'}};
  const receipts=[{...page,call_id:'a'},{call_id:'write',tool:'local_file_write',returned_ok:true,result_ref:'write'}, {...page,call_id:'b'}, {...page,call_id:'other-page',offset:100,next_offset:null}, {...page,call_id:'failed',returned_ok:false}, {...page,call_id:'different-source',result_ref:'other'}, {call_id:'shell',tool:'local_shell',result_ref:'source'}];
  const messages=[{role:'user',content:'Task'},{role:'assistant',content:prefix+JSON.stringify(receipts)}];
@@ -57,4 +57,14 @@ test('identical immutable evidence pages share outcomes but keep every read ID; 
  assert.deepEqual(compacted.slice(1).map(r=>r.call_id),['write','other-page','failed','different-source','shell']);
  budgetContext(messages,[],{window_tokens:10000,output_tokens:1000});
  assert.deepEqual(JSON.parse(messages[1].content.slice(prefix.length)),compacted);
+});
+
+test('long command excerpts preserve the real final test summary within the same bound', () => {
+ const result={exit_code:1,stdout:'test started\n'+'verbose 😀 '.repeat(4000)+'\nFAIL: 1 regression\n',stderr:''};
+ const receipt=receiptOutcome(result);
+ assert.equal(receipt.outcome.exit_code,1);
+ assert.match(receipt.outcome.stdout.head,/test started/);
+ assert.match(receipt.outcome.stdout.tail,/FAIL: 1 regression\n$/);
+ assert.equal(receipt.outcome.stdout.omitted,true);
+ assert.ok(Buffer.byteLength(JSON.stringify(receipt.outcome.stdout))<=400);
 });
