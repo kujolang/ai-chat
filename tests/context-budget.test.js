@@ -116,3 +116,18 @@ for (const native of [false, true]) {
   const shell=JSON.parse(results[1].content);assert.equal(shell.saved_result_ref,"shell");assert.equal(shell.outcome.exit_code,0);assert.equal(shell.compacted,true);
  });
 }
+
+
+test("fresh file content reaches the model before optional old evidence details", () => {
+ const prefix="Completed tool-call receipts; output omitted to fit context. These calls already ran; do not repeat consequential work. Recover missing evidence using tool_result_read with result_ref. ";
+ const content=JSON.stringify({saved_result_ref:"fresh",content:"Required report fact. ".repeat(70)});
+ const messages=[{role:"user",content:"Read the report"},{role:"assistant",content:prefix+JSON.stringify([{call_id:"old",tool:"local_shell",result_ref:"old",outcome:{stdout:"old detail ".repeat(700)}}])},
+  {role:"assistant",content:"",tool_calls:[{id:"fresh",function:{name:"local_file_read",arguments:"{}"}}]},
+  {role:"tool",tool_call_id:"fresh",content}];
+ const report=budgetContext(messages,[],{window_tokens:8192,output_tokens:4096});
+ assert.ok(report.after_upper_bound<=4096);
+ assert.equal(messages.at(-1).content,content);
+ assert.equal(messages.at(-1).tool_call_id,"fresh");
+ assert.match(messages[1].content,/"result_ref":"old"/);
+ assert.doesNotMatch(messages[1].content,/old detail/);
+});
