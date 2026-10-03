@@ -242,3 +242,20 @@ that already used tools stops with text but makes no further tool progress. Fini
 remaining work, give a concise verified result, or identify the blocker. Completed
 commands are not replayed automatically. A successful response is still subject
 to ordinary artifact and test verification.
+
+## Engineering quality guidance
+
+The provider-neutral streaming tool loop includes a compact engineering workflow
+when the request authorizes `local_file_write` or `local_shell`. It covers scoped
+acceptance criteria, unfamiliar-language documentation, risk-driven tests,
+numeric boundaries, structured-input handling, persistence failures, cleanup,
+and final-source verification. Completion claims should name checks and remaining
+limitations. This is model guidance, not a production-readiness certification or
+an automatic artifact validator.
+
+Guidance is selected from the full authorized request catalog, including deferred
+tools. Deferred schemas still require `tool_discover` before execution; no new
+permissions are granted. Read-only and research catalogs omit this workflow.
+The guidance adds no provider calls, retries, or timeouts. Native Codex's separate
+harness and the non-tool JSON route are unchanged. Existing durable executions
+resume their saved instructions; start a new execution to evaluate this change.

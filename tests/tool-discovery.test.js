@@ -32,3 +32,22 @@ test("capability instructions route inexpensive search and explain available fal
 	assert.equal(budget.tool_result_chars, 4);
 	assert.ok(budget.tool_schema_bytes > 0);
 });
+
+for (const name of ["local_file_write", "local_shell"]) {
+	test(`engineering guidance follows authorized ${name} even before discovery`, () => {
+		const catalog = ["local_file_read", name].map(schema);
+		const discovery = createToolDiscovery(catalog, true);
+		const instructions = capabilityInstructions(discovery.schemas(), catalog);
+		assert.match(instructions, /Engineering quality workflow/);
+		assert.ok(!instructions.split("\n")[0].includes(name), "deferred schemas must not be advertised as callable");
+		assert.equal(discovery.isDeferred(name), true, "guidance must not grant tool access");
+		const guidance = instructions.slice(instructions.indexOf("Engineering quality workflow"));
+		assert.ok(guidance.length <= 2400, "keep optional engineering guidance bounded");
+		assert.equal(capabilityInstructions(catalog).match(/Engineering quality workflow/g).length, 1);
+	});
+}
+test("read-only, research and ordinary chat do not receive implementation guidance", () => {
+	for (const names of [[], ["local_workspace_list", "local_file_read"], ["web_search", "browser_open"]]) {
+		assert.doesNotMatch(capabilityInstructions(names.map(schema)), /Engineering quality workflow/);
+	}
+});

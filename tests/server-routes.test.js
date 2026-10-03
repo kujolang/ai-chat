@@ -5364,3 +5364,36 @@ test('unknown native Codex model does not inherit a guessed CLI context override
   });
  }finally{destroy();}
 });
+
+for (const providerId of ['openai', 'ollama']) {
+ for (const development of [false, true]) {
+  test(`engineering guidance is scoped to authorized development tools (${providerId}, ${development})`, async () => {
+   let calls = 0;
+   const { runtime, destroy } = createIsolatedRuntime({
+    localRuntime: { canExecute: () => true, status: () => ({ enabled: true }) },
+    fetchFn: async (_url, options) => {
+     calls++;
+     const body = JSON.parse(options.body);
+     const system = body.messages.filter(m => m.role === 'system').map(m => m.content).join('\n');
+     assert.equal((system.match(/Engineering quality workflow/g) || []).length, development ? 1 : 0);
+     assert.ok(!body.tools.some(t => t.function.name === 'local_file_write'), 'deferred writes remain unavailable until discovery');
+     if (development) assert.match(system, /Additional authorized tools.*local_file_write/);
+     if (providerId === 'ollama') return mockChunkedResponse([JSON.stringify({ message: { content: 'Ready.' }, done: true, done_reason: 'stop' }) + '\n']);
+     return mockSseResponse([{ choices: [{ delta: { content: 'Ready.' }, finish_reason: 'stop' }] }]);
+    }
+   });
+   try {
+    const profileId = applyProfileMutation(runtime, p => { p.provider_id = providerId; p.api_key = 'fixture'; });
+    await withServer(runtime.app, async base => {
+     const names = development ? ['local_file_read', 'local_file_write'] : ['local_file_read'];
+     const response = await fetch(base + '/api/chat/stream', { method: 'POST', headers: withAuthHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify({ profile_id: profileId, tool_discovery: true, include_saved_runtime_presets: false, messages: [{ role: 'user', content: 'Explain the available workflow.' }], tools: names.map(name => ({ type: 'function', function: { name, parameters: { type: 'object' } } })) }) });
+     const last = parseSseEvents(await response.text()).at(-1);
+     assert.equal(last.event, 'done', JSON.stringify(last));
+     assert.equal(last.data.output_text, 'Ready.');
+     assert.equal(calls, 1, 'guidance must not add model calls');
+     assert.equal(last.data.tool_calls_executed, 0);
+    });
+   } finally { destroy(); }
+  });
+ }
+}
