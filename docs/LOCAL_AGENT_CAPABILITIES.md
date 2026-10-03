@@ -158,3 +158,9 @@ not replay of the original user request. Exhaustion is an error, not completion.
 Saved-result retrieval resolves prior retrieval receipts back to original evidence;
 page offsets address that original JSON result. Compacted retrieval receipts retain
 the source reference and page coordinates instead of pointing at nested envelopes.
+
+Context budgeting compacts recoverable history before reducing the requested output
+allowance. It lowers the allowance only when protected input still cannot fit.
+Exhausting the two output-limit continuations returns `output_continuation_limit`
+with `retryable: false`, not a network error. Error events retain attempted tool-call
+counts as well as usage, so failed runs remain measurable.

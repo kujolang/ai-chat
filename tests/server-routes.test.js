@@ -4611,6 +4611,7 @@ for (const failure of ['http','tool_limit']) {
     const error=parseSseEvents(await res.text()).find(e=>e.event==='error').data;
     assert.equal(error.code,failure==='http'?'provider_http_error':'tool_iteration_limit');
     assert.equal(error.provider_rounds,2);
+    assert.equal(error.tool_calls_executed,1);
     assert.equal(error.usage_reported_rounds,failure==='http'?1:2);
     assert.equal(error.usage_complete,failure!=='http');
     assert.equal(error.usage.input_tokens,failure==='http'?10:20);
@@ -5178,7 +5179,12 @@ for (const exhausted of [false,true]) {
     const events=parseSseEvents(await response.text());
     assert.equal(calls,exhausted?3:2);
     assert.equal(events.at(-1).event,exhausted?'error':'done');
-    if(!exhausted) {
+    if(exhausted) {
+     assert.equal(events.at(-1).data.code,'output_continuation_limit');
+     assert.equal(events.at(-1).data.retryable,false);
+     assert.equal(events.at(-1).data.tool_calls_executed,0);
+     assert.doesNotMatch(events.at(-1).data.message,/connection failed|Retry the request/);
+    } else {
      assert.equal(events.at(-1).data.length_continuations,1);
      assert.equal(events.at(-1).data.tool_calls_executed,0);
     }
@@ -5186,3 +5192,23 @@ for (const exhausted of [false,true]) {
   }finally{destroy();}
  });
 }
+
+test('context budgeting compacts old history before shrinking the output allowance', async () => {
+ let sent;
+ const {runtime,destroy}=createIsolatedRuntime({envMerge:{MODEL_CONTEXT_LIMITS_JSON:'{"custom:budget-fixture":24000}',ALLOWED_CUSTOM_PROVIDER_HOSTS:'example.com'},fetchFn:async(_url,options)=>{
+  sent=JSON.parse(options.body);
+  return mockSseResponse([{choices:[{delta:{content:'Done'},finish_reason:'stop'}]}]);
+ }});
+ try {
+  const profileId=applyProfileMutation(runtime,p=>{p.provider_id='custom';p.api_key='fixture';p.base_url='https://example.com/v1';});
+  await withServer(runtime.app,async base=>{
+   const messages=[{role:'user',content:'Build the program'},{role:'assistant',content:'Old planning. '.repeat(2000)},{role:'user',content:'Continue and verify'}];
+   const res=await fetch(base+'/api/chat/stream',{method:'POST',headers:withAuthHeaders({'Content-Type':'application/json'}),body:JSON.stringify({profile_id:profileId,model:'budget-fixture',max_tokens:6000,messages,tools:[],include_saved_runtime_presets:false})});
+   const events=parseSseEvents(await res.text());
+   assert.equal(events.at(-1).event,'done');
+   assert.equal(sent.max_tokens,6000);
+   assert.ok(events.at(-1).data.context_budget.removed_messages>0);
+   assert.equal(sent.messages.at(-1).content,'Continue and verify');
+  });
+ }finally{destroy();}
+});
