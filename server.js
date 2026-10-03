@@ -67,7 +67,8 @@ function probeHealth(url, timeoutMs = 1000) {
 		};
 		// A wall-clock deadline also bounds a listener trickling partial JSON.
 		let request;
-		const deadline = setTimeout(() => { finish(null); request?.destroy(); }, timeoutMs);
+		let connected = false;
+		const deadline = setTimeout(() => { finish(connected ? false : null); request?.destroy(); }, timeoutMs);
 		request = http.get(`${url}/healthz`, (response) => {
 			let body = "";
 			response.setEncoding("utf8");
@@ -84,7 +85,13 @@ function probeHealth(url, timeoutMs = 1000) {
 				} catch { finish(false); }
 			});
 		});
-		request.on("error", () => finish(null));
+		// A successful TCP connection proves ownership even if the listener never
+		// sends headers or completes JSON. Do not initialize a second runtime.
+		request.on("socket", (socket) => {
+			if (!socket.connecting) connected = true;
+			else socket.once("connect", () => { connected = true; });
+		});
+		request.on("error", () => finish(connected ? false : null));
 	});
 }
 

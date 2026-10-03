@@ -121,12 +121,13 @@ test("server startup reports a friendly error when another process owns the port
 	}
 });
 
-for (const mode of ["oversized", "aborted", "trickled"]) test(`startup health probe settles for ${mode} occupied-port responses`, async () => {
+for (const mode of ["oversized", "aborted", "trickled", "silent"]) test(`startup health probe settles for ${mode} occupied-port responses`, async () => {
  const { tempRoot, env } = createTestEnv();
  try {
   await withListener((req, res) => {
    if (mode === "oversized") { res.write("x".repeat(5000)); return; }
    if (mode === "aborted") { res.write("{\"ok\":"); res.flushHeaders(); setImmediate(() => res.destroy()); return; }
+   if (mode === "silent") return;
    const timer = setInterval(() => res.write(" "), 20);
    res.on("close", () => clearInterval(timer));
   }, async port => {
@@ -134,6 +135,7 @@ for (const mode of ["oversized", "aborted", "trickled"]) test(`startup health pr
    assert.equal(result.code, 1);
    assert.match(result.stderr, /already in use/);
    assert.doesNotMatch(result.stderr, /uncaughtException/);
+   assert.equal(fs.existsSync(env.DB_PATH), false, "connected listeners must not initialize integrations or claim a database");
   });
  } finally { fs.rmSync(tempRoot, { recursive: true, force: true }); }
 });
