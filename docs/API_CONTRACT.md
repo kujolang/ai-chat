@@ -565,3 +565,18 @@ they are no longer silently truncated and dispatched. Use a script file for long
 inline programs. Valid argument whitespace and empty arguments are preserved.
 Executable paths retain internal whitespace and reject overlength rather than
 truncating. This intentionally corrects behavior for previously corrupted inputs.
+
+After actual tool use, a text-only stop immediately following output-limit recovery
+receives one bounded completion review if no intervening tool call made progress.
+The review asks the model to finish outstanding work or report a verified result
+or blocker; it does not infer completeness from particular words or require new
+side effects. `post_limit_checks` records this extra review, and its state persists
+in execution checkpoints. The existing two output-limit and two empty-answer
+continuation caps remain unchanged. This is a recovery aid, not proof that an
+arbitrary task is semantically complete; benchmark adjudication remains separate
+from transport success.
+
+Process-group termination errors return `local_shell_termination_failed` with
+`execution_completed: false`, `retryable: false`, and retained partial output.
+They never claim rollback or confirmed process termination. Inspect the process
+before retrying. Successful force-kill is not repeated after the child closes.

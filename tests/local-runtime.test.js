@@ -759,3 +759,26 @@ test('shell argument bounds reject before execution rather than corrupting comma
   assert.deepEqual(calls,[{command:'./program  with spaces',args}]);
  } finally {fs.rmSync(root,{recursive:true,force:true});}
 });
+
+for (const deniedSignal of ['SIGTERM', 'SIGKILL']) {
+ test(`process-group ${deniedSignal} failure rejects safely with uncertain termination`, {skip:process.platform==='win32'}, async t => {
+  t.mock.timers.enable({apis:['setTimeout']});
+  let child;
+  const sent=[];
+  t.mock.method(process,'kill',(_pid,signal)=>{
+   sent.push(signal);
+   if(signal===deniedSignal) throw Object.assign(new Error('denied'),{code:'EPERM'});
+  });
+  const runtime=createLocalRuntime({env:{AI_CHAT_LOCAL_TOOLS_ENABLED:'1',AI_CHAT_LOCAL_SHELL_ENABLED:'1'},
+   spawnFn:()=>{child=fakeChild(()=>{});child.pid=123456;return child;}});
+  const pending=runtime.runCommand({command:'pwd',args:[]});
+  const rejected=assert.rejects(pending,e=>e.code==='local_shell_termination_failed' && e.execution_completed===false && e.retryable===false);
+  child.stdout.write('partial evidence');
+  t.mock.timers.tick(120000);
+  if(deniedSignal==='SIGKILL') t.mock.timers.tick(1000);
+  await rejected;
+  child.emit('close',null,'SIGKILL');
+  t.mock.timers.tick(1000);
+  assert.deepEqual(sent,deniedSignal==='SIGTERM'?['SIGTERM']:['SIGTERM','SIGKILL']);
+ });
+}
