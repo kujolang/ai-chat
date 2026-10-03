@@ -378,6 +378,17 @@ Streaming `done.context_budget` and value-free `model_context_budget` audit/trac
 
 HTTP-provider streaming `done` and `error` records include dispatched `provider_rounds`, `usage_reported_rounds`, and `usage_complete`. Errors preserve usage from completed rounds even if a later provider call fails. A present numeric `usage.cost` is retained and summed only when each reported round supplies it; incomplete cost stays unknown. Check round coverage before treating usage as a total-task measurement. Context rejection before dispatch does not count as a provider round.
 
+Tool-enabled streams retain `tool_calls_executed` on errors. A length-limited turn
+can continue at most twice within the same execution (`length_continuations`). An
+explicit `stop` with no answer text in the terminal turn can also continue at most
+twice (`empty_continuations`); earlier progress text does not count as that answer.
+Exhaustion returns `output_continuation_limit` or `empty_final_response`, with
+`retryable: false`. These are completion failures, not network failures. Partial
+output and tool receipts remain inspectable; automatic recovery does not replay
+completed tool calls. Clients must still verify task-specific artifacts before
+calling a successfully delivered response a successful task.
+
+
 `GET /api/health` includes `streaming.active`, `streaming.max_active`, and `streaming.heartbeat_ms`. SSE parsing bounds retained records to 1 MiB; provider HTTP error responses and search upstream JSON are bounded to 2 MiB while reading. Action adapters enforce their configured byte limit during reads.
 
 ### Search attempt provenance
