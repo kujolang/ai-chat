@@ -5187,6 +5187,7 @@ for (const exhausted of [false,true]) {
      assert.doesNotMatch(events.at(-1).data.message,/connection failed|Retry the request/);
     } else {
      assert.equal(events.at(-1).data.length_continuations,1);
+     assert.equal(events.at(-1).data.post_limit_checks,0);
      assert.equal(events.at(-1).data.tool_calls_executed,0);
     }
    });
@@ -5283,4 +5284,43 @@ for (const finish of ['length','stop']) {
    });
   }finally{destroy();}
  });
+}
+
+for (const providerId of ['openai','ollama']) {
+ for (const recovery of ['announce','blocked','tools']) {
+  test(`post-limit completion review is bounded and preserves tool progress (${providerId}, ${recovery})`,async()=>{
+   let rounds=0,writes=0,reads=0;
+   const {runtime,destroy}=createIsolatedRuntime({
+    localRuntime:{canExecute:()=>true,status:()=>({enabled:true}),listFiles:()=>{reads++;return {ok:true,entries:[]};},writeFile:()=>{writes++;return {ok:true,path:'result.txt'};}},
+    fetchFn:async(_url,options)=>{
+     rounds++;const body=JSON.parse(options.body);let call,content='',finish='stop';
+     if(rounds===1)call={index:0,id:'inspect',function:{name:'local_file_list',arguments:{}}};
+     else if(rounds===2)finish='length';
+     else if(rounds===3 && recovery!=='tools')content='Writing the project now.';
+     else if(rounds===(recovery==='tools'?3:4) && recovery!=='blocked') {
+      if(recovery==='announce')assert.match(body.messages.at(-1).content,/Completion check after output-limit recovery/);
+      call={index:0,id:'write-once',function:{name:'local_file_write',arguments:{path:'result.txt',content:'verified'}}};
+     } else {
+      if(recovery==='blocked')assert.match(body.messages.at(-1).content,/Completion check after output-limit recovery/);
+      content=recovery==='blocked'?'Blocked: required input is missing.':'Verified final result.';
+     }
+     if(providerId==='ollama')return mockChunkedResponse([JSON.stringify({message:call?{content,tool_calls:[{function:call.function}]}:{content},done:true,done_reason:finish})+'\n']);
+     return mockSseResponse([{choices:[{delta:call?{content,tool_calls:[{...call,function:{...call.function,arguments:JSON.stringify(call.function.arguments)}}]}:{content},finish_reason:call?'tool_calls':finish}]}]);
+    }
+   });
+   try {
+    const profileId=applyProfileMutation(runtime,p=>{p.provider_id=providerId;p.api_key='fixture';});
+    await withServer(runtime.app,async base=>{
+     const res=await fetch(base+'/api/chat/stream',{method:'POST',headers:withAuthHeaders({'Content-Type':'application/json'}),body:JSON.stringify({request_id:'post-limit-review',profile_id:profileId,messages:[{role:'user',content:'Create the requested result and verify it'}],tools:['local_file_list','local_file_write'].map(name=>({type:'function',function:{name,parameters:{type:'object'}}})),include_saved_runtime_presets:false})});
+     const last=parseSseEvents(await res.text()).at(-1);assert.equal(last.event,'done',JSON.stringify(last));
+     assert.equal(last.data.post_limit_checks,recovery==='tools'?0:1);
+     assert.equal(rounds,recovery==='announce'?5:4);assert.equal(reads,1);assert.equal(writes,recovery==='blocked'?0:1);
+     assert.match(last.data.output_text,recovery==='blocked'?/Blocked: required input/:/Verified final result/);
+     const journal=await fetchJson(base,'/api/executions/post-limit-review');
+     assert.equal(journal.json.receipts.filter(r=>r.tool_name==='local_file_write').length,writes);
+     assert.equal(journal.json.execution.checkpoint.post_limit_checks,last.data.post_limit_checks);
+    });
+   }finally{destroy();}
+  });
+ }
 }

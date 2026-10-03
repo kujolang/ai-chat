@@ -236,3 +236,9 @@ window can retain more context and increase request cost.
 most 40 arguments is limited to 1,000 UTF-16 code units and cannot contain NUL.
 Oversized arguments fail before execution, with a hint to write a script file.
 Arguments are never silently shortened. Empty arguments and whitespace are valid.
+
+After a clipped response, AI Chat may ask for one completion review when an agent
+that already used tools stops with text but makes no further tool progress. Finish
+remaining work, give a concise verified result, or identify the blocker. Completed
+commands are not replayed automatically. A successful response is still subject
+to ordinary artifact and test verification.
