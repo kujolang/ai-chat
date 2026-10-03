@@ -1,0 +1,977 @@
+{
+  "grading": "Independently reviewed task completion; stream success alone is insufficient. One trial per case per revision. Prior artifacts remained readable; not hermetic independent generation.",
+  "model": "deepseek-v4.1-flash:cloud",
+  "provider": "Watchdog / Ollama Cloud",
+  "requested_output_tokens": 6000,
+  "rounds": [
+    {
+      "round": 1,
+      "run_id": "dev-2026-10-02-deepseek",
+      "verified_passes": 3,
+      "cases_total": 6,
+      "duration_ms": 476319,
+      "reported_total_tokens": 814711,
+      "receipts": 187,
+      "cases": [
+        {
+          "case": 1,
+          "verified_pass": true,
+          "duration_ms": 54774,
+          "receipts": 19,
+          "usage": {
+            "input_tokens": 84203,
+            "output_tokens": 7918,
+            "total_tokens": 92121,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "chat_id": "55ba0a64-d091-4166-bd7c-bb0d38a992a8",
+          "execution_id": "f3df309a-6969-4e44-ac7c-15ab776c78f9",
+          "transport_ok": true
+        },
+        {
+          "case": 2,
+          "verified_pass": false,
+          "duration_ms": 333234,
+          "receipts": 135,
+          "usage": {
+            "input_tokens": 572619,
+            "output_tokens": 11366,
+            "total_tokens": 583985,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "chat_id": "c21bda61-ee1e-405c-af01-da852e5751bd",
+          "execution_id": "9fd9f087-f3a5-4392-be09-794e74fd58d7",
+          "transport_ok": false
+        },
+        {
+          "case": 3,
+          "verified_pass": true,
+          "duration_ms": 17046,
+          "receipts": 14,
+          "usage": {
+            "input_tokens": 65581,
+            "output_tokens": 2709,
+            "total_tokens": 68290,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "chat_id": "fddb2350-74de-4394-a6a8-4b1e8458b358",
+          "execution_id": "a22e452f-cfca-4f2a-8682-f87ab9aa8634",
+          "transport_ok": true
+        },
+        {
+          "case": 4,
+          "verified_pass": false,
+          "duration_ms": 27024,
+          "receipts": 5,
+          "usage": {
+            "input_tokens": 12038,
+            "output_tokens": 6277,
+            "total_tokens": 18315,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "chat_id": "b9702157-860b-49f5-8aff-f7ef66d9f281",
+          "execution_id": "ca494cf2-b12c-4bc6-89cb-102353e521e5",
+          "transport_ok": true
+        },
+        {
+          "case": 5,
+          "verified_pass": true,
+          "duration_ms": 15671,
+          "receipts": 8,
+          "usage": {
+            "input_tokens": 33743,
+            "output_tokens": 1830,
+            "total_tokens": 35573,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "chat_id": "fb3c57d1-f255-4db4-96a9-c55ce3564322",
+          "execution_id": "15e02827-1481-42fc-be7f-b678280440f7",
+          "transport_ok": true
+        },
+        {
+          "case": 6,
+          "verified_pass": false,
+          "duration_ms": 13495,
+          "receipts": 6,
+          "usage": {
+            "input_tokens": 11959,
+            "output_tokens": 4468,
+            "total_tokens": 16427,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "chat_id": "0c1a9674-a926-433d-a839-830db6db0d79",
+          "execution_id": "2aed8f52-7379-4299-97b7-6cffb8d99c28",
+          "transport_ok": false
+        }
+      ],
+      "median_case_duration_ms": 22035.0
+    },
+    {
+      "round": 2,
+      "run_id": "dev-2026-10-02-deepseek-final",
+      "verified_passes": 5,
+      "cases_total": 6,
+      "duration_ms": 405510,
+      "reported_total_tokens": 942912,
+      "receipts": 208,
+      "cases": [
+        {
+          "case": 1,
+          "verified_pass": true,
+          "duration_ms": 53364,
+          "receipts": 17,
+          "usage": {
+            "input_tokens": 104744,
+            "output_tokens": 7851,
+            "total_tokens": 112595,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "chat_id": "e9fec09d-3bde-4033-8364-7e899db5e1c3",
+          "execution_id": "f5b153eb-80cc-4640-90bf-d6c55ff3c7d4",
+          "transport_ok": true
+        },
+        {
+          "case": 2,
+          "verified_pass": false,
+          "duration_ms": 66416,
+          "receipts": 106,
+          "usage": {
+            "input_tokens": 331330,
+            "output_tokens": 8739,
+            "total_tokens": 340069,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "chat_id": "63c3e506-18f6-430d-8925-2312d0ce1e7f",
+          "execution_id": "ce91e4e5-1966-42ee-aa44-f9c8069362d0",
+          "transport_ok": false
+        },
+        {
+          "case": 3,
+          "verified_pass": true,
+          "duration_ms": 21479,
+          "receipts": 15,
+          "usage": {
+            "input_tokens": 66803,
+            "output_tokens": 2876,
+            "total_tokens": 69679,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "chat_id": "8ff2a106-710d-4c2a-9663-f0ae7e34b386",
+          "execution_id": "16ae53de-56a8-4f8d-828e-841b8385a5ff",
+          "transport_ok": true
+        },
+        {
+          "case": 4,
+          "verified_pass": true,
+          "duration_ms": 109699,
+          "receipts": 21,
+          "usage": {
+            "input_tokens": 158507,
+            "output_tokens": 16065,
+            "total_tokens": 174572,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "chat_id": "6c98e15d-6d4e-42a9-998d-9a43f75d286b",
+          "execution_id": "f7f1aed0-6c32-42fc-8240-4d53e1af23af",
+          "transport_ok": true
+        },
+        {
+          "case": 5,
+          "verified_pass": true,
+          "duration_ms": 17481,
+          "receipts": 7,
+          "usage": {
+            "input_tokens": 27291,
+            "output_tokens": 1256,
+            "total_tokens": 28547,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "chat_id": "ddda0132-77ab-435f-9f89-26429284c91c",
+          "execution_id": "a1ffd0d2-501d-458f-94d4-c0ea03eac88d",
+          "transport_ok": true
+        },
+        {
+          "case": 6,
+          "verified_pass": true,
+          "duration_ms": 124923,
+          "receipts": 42,
+          "usage": {
+            "input_tokens": 200934,
+            "output_tokens": 16516,
+            "total_tokens": 217450,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "chat_id": "a10cd89d-40ce-4183-8087-034332dfa1f6",
+          "execution_id": "96ef0652-a530-4449-92e8-1cc6b96a9304",
+          "transport_ok": true
+        }
+      ],
+      "median_case_duration_ms": 59890.0
+    },
+    {
+      "round": 3,
+      "run_id": "dev-2026-10-02-deepseek-round3f",
+      "runtime_revision": "5141b3a",
+      "verified_passes": 5,
+      "cases_total": 6,
+      "duration_ms": 610783,
+      "reported_total_tokens": 1771713,
+      "receipts": 300,
+      "cases": [
+        {
+          "case": 1,
+          "verified_pass": true,
+          "transport_ok": true,
+          "duration_ms": 35065,
+          "usage": {
+            "input_tokens": 115376,
+            "output_tokens": 10693,
+            "total_tokens": 126069,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 24,
+          "chat_id": "8f0c9134-d015-499b-8835-0fe8e96243e6",
+          "execution_id": "eea32b85-3a4c-4a3f-99e7-12a9e51a3840",
+          "error": null
+        },
+        {
+          "case": 2,
+          "verified_pass": false,
+          "transport_ok": false,
+          "duration_ms": 346841,
+          "usage": {
+            "input_tokens": 592701,
+            "output_tokens": 46279,
+            "total_tokens": 638980,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 146,
+          "chat_id": "696a00df-a5d2-4d1e-9a68-71e0bfb529f2",
+          "execution_id": "8df2fbd5-e977-41a6-8890-9b527de32c8f",
+          "error": "The model exhausted two output-limit continuations before completing the task. Completed tools and partial files are retained; inspect the saved execution before continuing."
+        },
+        {
+          "case": 3,
+          "verified_pass": true,
+          "transport_ok": true,
+          "duration_ms": 13016,
+          "usage": {
+            "input_tokens": 66944,
+            "output_tokens": 2508,
+            "total_tokens": 69452,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 14,
+          "chat_id": "35a9b640-fba3-4dd9-8bfb-8f3c08cead65",
+          "execution_id": "1e71c607-aa79-4a68-9fb4-52cae8318743",
+          "error": null
+        },
+        {
+          "case": 4,
+          "verified_pass": true,
+          "transport_ok": true,
+          "duration_ms": 75672,
+          "usage": {
+            "input_tokens": 425688,
+            "output_tokens": 24084,
+            "total_tokens": 449772,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 48,
+          "chat_id": "dd317ba1-a56c-4a2e-82ab-01a787e040b0",
+          "execution_id": "999b4ef1-a18e-4662-b996-1181c4e90755",
+          "error": null
+        },
+        {
+          "case": 5,
+          "verified_pass": true,
+          "transport_ok": true,
+          "duration_ms": 14094,
+          "usage": {
+            "input_tokens": 45092,
+            "output_tokens": 1590,
+            "total_tokens": 46682,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 8,
+          "chat_id": "1d280e9b-42c7-4831-8496-f91db85d7cf4",
+          "execution_id": "ff506f1f-b1aa-4447-b415-288a7a3b37a3",
+          "error": null
+        },
+        {
+          "case": 6,
+          "verified_pass": true,
+          "transport_ok": true,
+          "duration_ms": 118761,
+          "usage": {
+            "input_tokens": 411345,
+            "output_tokens": 29413,
+            "total_tokens": 440758,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 60,
+          "chat_id": "c347f3e5-3cac-4b86-bdb4-341c47d8caea",
+          "execution_id": "69fe743f-a276-4224-9304-a52cce19b75d",
+          "error": null
+        }
+      ],
+      "median_case_duration_ms": 55368.5
+    }
+  ],
+  "diagnostic_candidates": [
+    {
+      "run_id": "dev-2026-10-02-deepseek-round3",
+      "runtime_revision": "92ba4f7",
+      "verified_passes": 4,
+      "cases_total": 6,
+      "duration_ms": 229754,
+      "reported_total_tokens": 1147471,
+      "receipts": 158,
+      "cases": [
+        {
+          "case": 1,
+          "verified_pass": true,
+          "transport_ok": true,
+          "duration_ms": 24707,
+          "usage": {
+            "input_tokens": 78230,
+            "output_tokens": 6593,
+            "total_tokens": 84823,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 17,
+          "chat_id": "25884571-abad-495f-b411-b14e85920fcf",
+          "execution_id": "6c2ccd3c-94e0-4d42-8dc1-b2fcdc7fb449",
+          "error": null
+        },
+        {
+          "case": 2,
+          "verified_pass": false,
+          "transport_ok": true,
+          "duration_ms": 28053,
+          "usage": {
+            "input_tokens": 232651,
+            "output_tokens": 8352,
+            "total_tokens": 241003,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 45,
+          "chat_id": "f8bcd365-414c-451c-9cc8-ea6dd31be6a2",
+          "execution_id": "79ac1c6d-aca3-4c1f-8f59-a09d0f7102b3",
+          "error": null
+        },
+        {
+          "case": 3,
+          "verified_pass": true,
+          "transport_ok": true,
+          "duration_ms": 13122,
+          "usage": {
+            "input_tokens": 66997,
+            "output_tokens": 2479,
+            "total_tokens": 69476,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 14,
+          "chat_id": "7fab6953-4dec-42f5-9650-a3d9ffe0d327",
+          "execution_id": "5929e14d-9664-4103-8dc4-dfba6a8b3c3d",
+          "error": null
+        },
+        {
+          "case": 4,
+          "verified_pass": true,
+          "transport_ok": true,
+          "duration_ms": 48943,
+          "usage": {
+            "input_tokens": 197396,
+            "output_tokens": 18622,
+            "total_tokens": 216018,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 33,
+          "chat_id": "32e4425f-3c2d-4d39-ab41-455d9f2d4220",
+          "execution_id": "40e169b8-53e9-447d-a0cc-0f547defac97",
+          "error": null
+        },
+        {
+          "case": 5,
+          "verified_pass": true,
+          "transport_ok": true,
+          "duration_ms": 14597,
+          "usage": {
+            "input_tokens": 34736,
+            "output_tokens": 1687,
+            "total_tokens": 36423,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 8,
+          "chat_id": "1d5d471c-1d8b-47ba-8350-d9e538e7fd9f",
+          "execution_id": "55994046-8d78-44d1-ba29-c797b2ccdf4a",
+          "error": null
+        },
+        {
+          "case": 6,
+          "verified_pass": false,
+          "transport_ok": true,
+          "duration_ms": 93513,
+          "usage": {
+            "input_tokens": 469451,
+            "output_tokens": 30277,
+            "total_tokens": 499728,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 41,
+          "chat_id": "d18d96d9-c939-4bec-b46c-c1046dea249d",
+          "execution_id": "e1c3c223-464a-4a6e-ae7a-86b41e46d6a0",
+          "error": null
+        }
+      ]
+    },
+    {
+      "run_id": "dev-2026-10-02-deepseek-round3b",
+      "runtime_revision": "7bebb42",
+      "verified_passes": 4,
+      "cases_total": 6,
+      "duration_ms": 350938,
+      "reported_total_tokens": 1623981,
+      "receipts": 290,
+      "cases": [
+        {
+          "case": 1,
+          "verified_pass": true,
+          "transport_ok": true,
+          "duration_ms": 20774,
+          "usage": {
+            "input_tokens": 94859,
+            "output_tokens": 6035,
+            "total_tokens": 100894,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 17,
+          "chat_id": "bf709d7a-5a2d-4c76-95cd-c4716110385c",
+          "execution_id": "e73204c5-04a6-48df-a0cb-206eefa3e3b2",
+          "error": null
+        },
+        {
+          "case": 2,
+          "verified_pass": false,
+          "transport_ok": false,
+          "duration_ms": 189400,
+          "usage": {
+            "input_tokens": 1058629,
+            "output_tokens": 29598,
+            "total_tokens": 1088227,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 219,
+          "chat_id": "757f9208-9bdd-4a26-8657-73c7054834fa",
+          "execution_id": "bb58ed2c-a373-4b47-8738-bbd9c5222e09",
+          "error": "Execution receipts cannot fit safely in the remaining model context."
+        },
+        {
+          "case": 3,
+          "verified_pass": true,
+          "transport_ok": true,
+          "duration_ms": 16952,
+          "usage": {
+            "input_tokens": 53770,
+            "output_tokens": 2222,
+            "total_tokens": 55992,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 14,
+          "chat_id": "1c9ef66e-0fa0-4751-b1e4-ce26f998f016",
+          "execution_id": "f8d9809d-8c67-4602-a86c-16c0015a68f8",
+          "error": null
+        },
+        {
+          "case": 4,
+          "verified_pass": true,
+          "transport_ok": true,
+          "duration_ms": 65023,
+          "usage": {
+            "input_tokens": 251480,
+            "output_tokens": 23612,
+            "total_tokens": 275092,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 24,
+          "chat_id": "5480400e-9e12-431b-9603-7cbf65957f7f",
+          "execution_id": "9aece338-1c65-48ce-8baa-b11114dcd447",
+          "error": null
+        },
+        {
+          "case": 5,
+          "verified_pass": true,
+          "transport_ok": true,
+          "duration_ms": 15529,
+          "usage": {
+            "input_tokens": 39769,
+            "output_tokens": 1572,
+            "total_tokens": 41341,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 9,
+          "chat_id": "1b2da280-4bc1-401f-b028-2a4719b2816d",
+          "execution_id": "3a87cf32-d995-403d-89ac-c30c3f3623c2",
+          "error": null
+        },
+        {
+          "case": 6,
+          "verified_pass": false,
+          "transport_ok": false,
+          "duration_ms": 35623,
+          "usage": {
+            "input_tokens": 43838,
+            "output_tokens": 18597,
+            "total_tokens": 62435,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 7,
+          "chat_id": "627bb644-47ca-4153-a796-42f7b75ba215",
+          "execution_id": "15742681-f626-4c90-a016-31de1ad10d7f",
+          "error": "The model exhausted two output-limit continuations before completing the task. Completed tools and partial files are retained; inspect the saved execution before continuing."
+        }
+      ]
+    },
+    {
+      "run_id": "dev-2026-10-02-deepseek-round3c",
+      "runtime_revision": "8a6ba3c",
+      "verified_passes": 5,
+      "cases_total": 6,
+      "duration_ms": 519884,
+      "reported_total_tokens": 3821486,
+      "receipts": 874,
+      "cases": [
+        {
+          "case": 1,
+          "verified_pass": true,
+          "transport_ok": true,
+          "duration_ms": 29495,
+          "usage": {
+            "input_tokens": 119906,
+            "output_tokens": 8805,
+            "total_tokens": 128711,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 18,
+          "chat_id": "0b5328a2-493c-455d-a8d2-ec2c93b09296",
+          "execution_id": "555e8215-83a6-4b71-aed6-fc507b3dcfcb",
+          "error": null
+        },
+        {
+          "case": 2,
+          "verified_pass": true,
+          "transport_ok": true,
+          "duration_ms": 71399,
+          "usage": {
+            "input_tokens": 656398,
+            "output_tokens": 16569,
+            "total_tokens": 672967,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 80,
+          "chat_id": "4bce2bc6-0905-4c6d-a476-4f3af6e83f07",
+          "execution_id": "06b65937-4320-4b4f-8279-98425ad633bd",
+          "error": null
+        },
+        {
+          "case": 3,
+          "verified_pass": true,
+          "transport_ok": true,
+          "duration_ms": 14101,
+          "usage": {
+            "input_tokens": 89526,
+            "output_tokens": 3250,
+            "total_tokens": 92776,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 16,
+          "chat_id": "c4a7403d-2d97-4f65-b04a-24c997fcc8b3",
+          "execution_id": "e5271017-6446-4baf-8c24-344fad7ad1e1",
+          "error": null
+        },
+        {
+          "case": 4,
+          "verified_pass": true,
+          "transport_ok": true,
+          "duration_ms": 140345,
+          "usage": {
+            "input_tokens": 590357,
+            "output_tokens": 26126,
+            "total_tokens": 616483,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 56,
+          "chat_id": "2976b81b-fe47-4987-a059-f1ad9dd6b19c",
+          "execution_id": "405734c3-1917-4a72-8743-145dcc07bfa5",
+          "error": null
+        },
+        {
+          "case": 5,
+          "verified_pass": true,
+          "transport_ok": true,
+          "duration_ms": 13000,
+          "usage": {
+            "input_tokens": 44070,
+            "output_tokens": 1482,
+            "total_tokens": 45552,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 8,
+          "chat_id": "7e915c5e-9aeb-4b79-ad02-6fbaf6b46e54",
+          "execution_id": "43e1ab24-a509-4562-96bd-b55e32897457",
+          "error": null
+        },
+        {
+          "case": 6,
+          "verified_pass": false,
+          "transport_ok": false,
+          "duration_ms": 244989,
+          "usage": {
+            "input_tokens": 2187831,
+            "output_tokens": 77166,
+            "total_tokens": 2264997,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 696,
+          "chat_id": "ba9d440f-8c9c-4396-9e07-a95a471e5d6d",
+          "execution_id": "3a51e22e-6d29-4cec-a01d-b97fb41de955",
+          "error": "Generation was cancelled."
+        }
+      ]
+    },
+    {
+      "run_id": "dev-2026-10-02-deepseek-round3d",
+      "runtime_revision": "4863bc3",
+      "verified_passes": 4,
+      "cases_total": 6,
+      "duration_ms": 288709,
+      "reported_total_tokens": 1460988,
+      "receipts": 224,
+      "cases": [
+        {
+          "case": 1,
+          "verified_pass": true,
+          "transport_ok": true,
+          "duration_ms": 22984,
+          "usage": {
+            "input_tokens": 108726,
+            "output_tokens": 6910,
+            "total_tokens": 115636,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 15,
+          "chat_id": "7fd1cbff-6015-4b81-847b-766aa9351542",
+          "execution_id": "3eafb0ef-cf70-4199-89d4-7318da74cb2d",
+          "error": null
+        },
+        {
+          "case": 2,
+          "verified_pass": false,
+          "transport_ok": false,
+          "duration_ms": 103006,
+          "usage": {
+            "input_tokens": 529757,
+            "output_tokens": 34923,
+            "total_tokens": 564680,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 87,
+          "chat_id": "1a8fa616-ae59-4f90-94fc-bc155b9b617c",
+          "execution_id": "970097ce-da58-41dd-890e-7d772d932299",
+          "error": "The model exhausted two output-limit continuations before completing the task. Completed tools and partial files are retained; inspect the saved execution before continuing."
+        },
+        {
+          "case": 3,
+          "verified_pass": true,
+          "transport_ok": true,
+          "duration_ms": 14524,
+          "usage": {
+            "input_tokens": 85727,
+            "output_tokens": 2750,
+            "total_tokens": 88477,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 15,
+          "chat_id": "d4bf4a91-5f77-43c0-8d22-c0f96d97345a",
+          "execution_id": "eecdac66-6627-4dd0-93e9-0d55622fbe2f",
+          "error": null
+        },
+        {
+          "case": 4,
+          "verified_pass": false,
+          "transport_ok": false,
+          "duration_ms": 53091,
+          "usage": {
+            "input_tokens": 181227,
+            "output_tokens": 18509,
+            "total_tokens": 199736,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 29,
+          "chat_id": "d4187eb3-d174-46bf-87ab-f794f9c0c5b9",
+          "execution_id": "631f0669-28be-46ec-8224-7749d2c65b4f",
+          "error": "Execution receipts cannot fit safely in the remaining model context."
+        },
+        {
+          "case": 5,
+          "verified_pass": true,
+          "transport_ok": true,
+          "duration_ms": 14458,
+          "usage": {
+            "input_tokens": 27934,
+            "output_tokens": 1346,
+            "total_tokens": 29280,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 7,
+          "chat_id": "092b2a8f-1050-4e07-8ccc-028208c08cd9",
+          "execution_id": "f7f0c3bf-e1d4-4215-b285-dcdfcba19f4f",
+          "error": null
+        },
+        {
+          "case": 6,
+          "verified_pass": true,
+          "transport_ok": true,
+          "duration_ms": 74227,
+          "usage": {
+            "input_tokens": 441396,
+            "output_tokens": 21783,
+            "total_tokens": 463179,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 71,
+          "chat_id": "10ac7957-67f3-44a7-958f-2db4165d1d96",
+          "execution_id": "920b378f-fbe2-461b-9c1a-7d80a4f0c4e3",
+          "error": null
+        }
+      ]
+    },
+    {
+      "run_id": "dev-2026-10-02-deepseek-round3e",
+      "runtime_revision": "b2f73d8",
+      "verified_passes": 4,
+      "cases_total": 6,
+      "duration_ms": 1110065,
+      "reported_total_tokens": 2806121,
+      "receipts": 336,
+      "cases": [
+        {
+          "case": 1,
+          "verified_pass": true,
+          "transport_ok": true,
+          "duration_ms": 28230,
+          "usage": {
+            "input_tokens": 67040,
+            "output_tokens": 7932,
+            "total_tokens": 74972,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 13,
+          "chat_id": "5468328f-dcc0-4155-b006-d30afbecf2d3",
+          "execution_id": "716ca90f-fd6d-4f6e-a30a-168776fce79a",
+          "error": null
+        },
+        {
+          "case": 2,
+          "verified_pass": false,
+          "transport_ok": false,
+          "duration_ms": 797478,
+          "usage": {
+            "input_tokens": 977305,
+            "output_tokens": 33314,
+            "total_tokens": 1010619,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 150,
+          "chat_id": "2f1f3cf0-9979-4b7c-abd4-9f6262338bc0",
+          "execution_id": "e878c302-792a-42b8-a89d-f839565d73d9",
+          "error": "The model ended without a final answer after two continuations. Partial work is retained; inspect the saved execution before continuing."
+        },
+        {
+          "case": 3,
+          "verified_pass": true,
+          "transport_ok": true,
+          "duration_ms": 13246,
+          "usage": {
+            "input_tokens": 65759,
+            "output_tokens": 2655,
+            "total_tokens": 68414,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 14,
+          "chat_id": "d6448697-3729-43d0-bd7d-82959ef617cc",
+          "execution_id": "68ca5ff6-cd25-40fa-b624-514be426b4a6",
+          "error": null
+        },
+        {
+          "case": 4,
+          "verified_pass": false,
+          "transport_ok": false,
+          "duration_ms": 206145,
+          "usage": {
+            "input_tokens": 1313568,
+            "output_tokens": 56024,
+            "total_tokens": 1369592,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 111,
+          "chat_id": "355c9a89-138b-46e4-9a06-75173ac85f06",
+          "execution_id": "411135f2-1f9c-4d58-9d6c-63b417eae179",
+          "error": "Execution receipts cannot fit safely in the remaining model context."
+        },
+        {
+          "case": 5,
+          "verified_pass": true,
+          "transport_ok": true,
+          "duration_ms": 15114,
+          "usage": {
+            "input_tokens": 53083,
+            "output_tokens": 1620,
+            "total_tokens": 54703,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 9,
+          "chat_id": "71e95c09-b6c7-42b9-aea3-cdc91e7684e4",
+          "execution_id": "e764d734-27ad-4577-8653-f0df56db8000",
+          "error": null
+        },
+        {
+          "case": 6,
+          "verified_pass": true,
+          "transport_ok": true,
+          "duration_ms": 43389,
+          "usage": {
+            "input_tokens": 212334,
+            "output_tokens": 15487,
+            "total_tokens": 227821,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "receipts": 39,
+          "chat_id": "bb537e73-e9e6-4fa7-ac3e-cc78dec82ec5",
+          "execution_id": "87c531cf-5de9-4c3f-a961-9a99516856a5",
+          "error": null
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "repository_tests": {
+      "passed": 523,
+      "skipped": 1,
+      "failed": 0
+    },
+    "final_artifacts": {
+      "csv_top_level_go_tests": 8,
+      "discount_node_tests": 5,
+      "api_node_tests_including_parent": 25,
+      "cli_top_level_go_tests": 21,
+      "timeout_receipts": "1000ms partial started; exactly one 10000ms retry exit0 started+finished",
+      "cli_repeated_output_identical": true,
+      "cli_duplicate_groups": 2
+    },
+    "smoke": "health/providers/state/offline chat passed"
+  },
+  "quality_caveats": [
+    "Final CSV accepts NaN/Inf; useful prototype, not production finance code.",
+    "Final prime benchmark remains incomplete and exhausts two output continuations.",
+    "Candidate C read prior candidate source; fresh work directories do not enforce read isolation.",
+    "One live trial per revision is not a causal speed or reliability estimate."
+  ]
+}

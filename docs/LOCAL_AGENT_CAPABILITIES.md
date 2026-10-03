@@ -193,3 +193,10 @@ retain them for resume. Native Ollama continues to use `thinking`. They are neve
 converted into visible answer text. Whole-context bounds still apply. This does
 not claim lossless unbounded history or support for arbitrary provider-specific
 encrypted reasoning formats.
+
+Every page in a newly retrieved batch is retained for the next provider turn.
+Unrelated oversized tool results in that batch can still compact into bounded
+outcomes with journal references; a retrieval call does not exempt sibling shell
+output from the context budget. Repeated unchanged local file reads immediately
+return their bounded content instead of requiring a second call after an empty
+"already read" notice. Read-before-write and stale-write checks still apply.
