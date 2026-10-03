@@ -1145,3 +1145,18 @@ test("deleted built-in profiles stay deleted when startup seeding runs again", (
   assert.deepEqual(runtime.helpers.readState().settings.profiles.map(profile => profile.id), [kept.id]);
  } finally { destroy(); }
 });
+
+
+test("tool compaction delivers every page in a fresh retrieval batch", () => {
+ const {runtime,destroy}=createIsolatedRuntime();
+ try {
+  const page=id=>({role:"tool",tool_name:"tool_result_read",content:JSON.stringify({ok:true,result_ref:id,tool:"local_file_read",offset:0,next_offset:null,content:"x".repeat(4000)})});
+  const messages=[{role:"assistant",tool_calls:[]},page("old"),{role:"assistant",tool_calls:[]},page("a"),page("b")];
+  const expected=messages.slice(-2).map(m=>m.content);
+  runtime.helpers.compactProviderToolContext(messages,1000);
+  assert.deepEqual(messages.slice(-2).map(m=>m.content),expected);
+  const old=JSON.parse(messages[1].content);
+  assert.equal(old.result_ref,"old");assert.equal(old.tool,"local_file_read");assert.equal(old.offset,0);
+  assert.ok(old.outcome);
+ }finally{destroy();}
+});

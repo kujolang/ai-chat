@@ -204,6 +204,8 @@ test("local read dedup consumes hits and overwrite ledger prevents unseen or sta
 		assert.equal(first.complete, true);
 		const dedup = runtime.readFile({ path: "note.md" }, context);
 		assert.equal(dedup.deduplicated, true);
+		assert.equal(dedup.content, first.content);
+		assert.equal(dedup.meta.cache, "bounded_reread");
 		assert.equal(runtime.readFile({ path: "note.md" }, context).deduplicated, undefined);
 		const partialContext = { requestState: {}, enforceReadLedger: true };
 		assert.equal(runtime.readFile({ path: "note.md", limit: 1 }, partialContext).deduplicated, undefined);

@@ -5265,3 +5265,22 @@ for (const field of ['reasoning','reasoning_content']) {
   });
  }
 }
+
+for (const finish of ['length','stop']) {
+ test(`native Ollama recovery preserves thinking for ${finish} endings`,async()=>{
+  let calls=0,second;
+  const {runtime,destroy}=createIsolatedRuntime({envMerge:{ALLOWED_CUSTOM_PROVIDER_HOSTS:"ollama.com"},fetchFn:async(_url,options)=>{
+   calls++;if(calls===2)second=JSON.parse(options.body);
+   return mockChunkedResponse([JSON.stringify(calls===1?{message:{thinking:'fixture native state',content:''},done:true,done_reason:finish}:{message:{content:'Verified native result.'},done:true,done_reason:'stop'})+'\n']);
+  }});
+  try{
+   const profileId=applyProfileMutation(runtime,p=>{p.provider_id='custom';p.base_url='https://ollama.com';p.api_key='fixture';});
+   await withServer(runtime.app,async base=>{
+    const res=await fetch(base+'/api/chat/stream',{method:'POST',headers:withAuthHeaders({'Content-Type':'application/json'}),body:JSON.stringify({profile_id:profileId,messages:[{role:'user',content:'Verify'}],tools:[{type:'function',function:{name:'system_time',parameters:{type:'object'}}}],include_saved_runtime_presets:false})});
+    const events=parseSseEvents(await res.text());assert.equal(events.at(-1).event,'done',JSON.stringify(events.at(-1)));assert.equal(calls,2);
+    assert.equal(second.messages.find(m=>m.role==='assistant').thinking,'fixture native state');
+    assert.equal(events.at(-1).data.output_text,'Verified native result.');
+   });
+  }finally{destroy();}
+ });
+}
