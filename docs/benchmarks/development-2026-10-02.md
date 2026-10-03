@@ -80,3 +80,40 @@ Playwright Chromium was absent. `npm run browser:install` restored the declared
 runtime dependency; rerun npm test passed 495 of 496 tests with one platform skip
 and no failures (`/tmp/ai-chat-dev-full-tests-browser.log`). No assertions were
 weakened. git diff --check passed.
+
+## Quality and attribution follow-up
+
+Reinspection of terminal journal results identifies case 4's finish_reason as
+`length`, not `stop`. The benchmark reserves up to 6000 output tokens per provider
+request. This API task reached an output limit before delivering implementation;
+its aggregate usage across three rounds was 6277 output tokens. Do not characterize
+this as a proven voluntary model refusal or normal early stop. The benchmark runner
+failed to classify truncation and did not continue it. No context compaction was
+recorded in that final request, so context exhaustion is not supported as its cause.
+
+Summing all six saved execution results (each usage_complete=true) yields 780143
+reported input tokens + 34568 reported output tokens = **814711 reported tokens**.
+This is cumulative provider-reported usage across rounds, not unique prompt size,
+billed cost or cache-adjusted consumption. Cache details were unavailable. Case 2
+accounts for 583985 tokens (71.7%) and 135/187 receipts (72.2%), producing no scripts.
+The runner's 214299 total omitted both failed cases (600412 reported tokens).
+
+Quality assessment: CSV and debugging met their explicit small-task requirements;
+timeout recovery met its exact behavioral test. CSV is prototype-quality, not
+production finance code. An independent input probe with NaN, Inf and a quoted
+comma-containing customer returned exit 0, accepted nonfinite amounts, and emitted
+an unescaped customer comma. Its eight self-authored tests do not cover those cases.
+Debugging correctly reproduced the documented percentage bug before a one-line fix;
+five tests passed independently. The fixture is deliberately tiny, not evidence of
+large-repository debugging ability. Timeout recovery confirms one happy recovery
+path, not arbitrary idempotent retry safety. No usable deliverable exists for the
+other three tasks; generated-but-unwritten code is not a completed CLI.
+
+Attribution: case 6 combines a model input omission (missing create_dirs) with an
+AI Chat recovery defect that should have allowed correction. Case 4 combines output
+budget exhaustion with a benchmark completion/continuation defect. Case 2 remains
+unattributed between model behavior and context/evidence handling; final request
+shows compaction but that alone does not establish causality. One model, one trial,
+manual stall cancellation and self-authored tests prevent broad model ranking or
+claims of production readiness. As a user-facing workflow this run is unreliable,
+even though individual successful tasks were useful.
