@@ -738,3 +738,24 @@ test('failed file open before mutation is recoverable; mkdir-assisted retry succ
   assert.equal(fs.readFileSync(path.join(root,'new/main.go'),'utf8'),'package main');
  } finally {fs.rmSync(root,{recursive:true,force:true});}
 });
+
+test('shell argument bounds reject before execution rather than corrupting commands', async () => {
+ const root=fs.mkdtempSync(path.join(os.tmpdir(),'shell-argument-bounds-'));
+ const calls=[];
+ const runtime=createLocalRuntime({projectRoot:root,homeDir:root,
+  env:{AI_CHAT_LOCAL_TOOLS_ENABLED:'1',AI_CHAT_LOCAL_SHELL_ENABLED:'1'},
+  getCommandPermissions:()=>({skip_allowlist:true,allow_destructive:false}),
+  spawnFn:(command,args)=>{calls.push({command,args});return fakeChild(child=>child.emit('close',0,null));}});
+ try {
+  for(const args of [['x'.repeat(1001)],['x\0y'],[42],[null]]) {
+   await assert.rejects(runtime.runCommand({command:'node',args}),e=>e.code==='invalid_tool_arguments' && e.execution_started===false && /authorized file/.test(e.retry_hint));
+  }
+  for(const command of ['x'.repeat(501),'node\0']) {
+   await assert.rejects(runtime.runCommand({command,args:[]}),e=>e.code==='invalid_tool_arguments' && e.execution_started===false);
+  }
+  assert.equal(calls.length,0);
+  const args=['','  preserved  ','x'.repeat(1000),'😀'.repeat(500)];
+  await runtime.runCommand({command:'./program  with spaces',args});
+  assert.deepEqual(calls,[{command:'./program  with spaces',args}]);
+ } finally {fs.rmSync(root,{recursive:true,force:true});}
+});

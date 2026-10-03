@@ -231,3 +231,8 @@ Only use limits verified for the actual serving route. A local model's advertise
 maximum may differ from its allocated context. Do not apply one vendor's window
 to all providers. The byte-based estimator remains conservative; raising a verified
 window can retain more context and increase request cost.
+
+`local_shell.args` contains arguments only, excluding the executable. Each of at
+most 40 arguments is limited to 1,000 UTF-16 code units and cannot contain NUL.
+Oversized arguments fail before execution, with a hint to write a script file.
+Arguments are never silently shortened. Empty arguments and whitespace are valid.

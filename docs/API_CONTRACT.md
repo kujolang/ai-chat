@@ -557,3 +557,11 @@ execution outcomes, preserving actionable failure evidence longer.
 `duration_ms` (monotonic spawn-to-close elapsed milliseconds). Completed-timeout
 results also retain workspace-relative `cwd`. These additive fields survive bounded
 outcome projection. Spawn failures have no completed-process measurement.
+
+Shell argument limits are enforced before spawn: at most 40 strings, each at most
+1,000 UTF-16 code units, with no NUL characters. The schema advertises these bounds.
+Oversized arguments now return `invalid_tool_arguments` with known non-execution;
+they are no longer silently truncated and dispatched. Use a script file for longer
+inline programs. Valid argument whitespace and empty arguments are preserved.
+Executable paths retain internal whitespace and reject overlength rather than
+truncating. This intentionally corrects behavior for previously corrupted inputs.
