@@ -101,3 +101,18 @@ test('consecutive receipt groups share an envelope without losing call identitie
  assert.deepEqual(retained,receipts);
  assert.equal(messages[0].content,'Keep working');
 });
+
+for (const native of [false, true]) {
+ test(`fresh retrieval protects pages without protecting oversized sibling results (${native})`, () => {
+  const names=["tool_result_read","local_shell","tool_result_read"];
+  const calls=names.map((name,index)=>({...(native?{}:{id:`call-${index}`}),function:{name,...(native?{index}:{}),arguments:"{}"}}));
+  const page=JSON.stringify({ok:true,result_ref:"source",content:"required evidence",next_offset:null});
+  const results=names.map((name,index)=>({role:"tool",...(native?{tool_name:name}:{tool_call_id:`call-${index}`}),content:index===1?JSON.stringify({saved_result_ref:"shell",exit_code:0,stdout:"log".repeat(22000)}):page}));
+  const messages=[{role:"system",content:"rules"},{role:"user",content:"task"},{role:"assistant",content:"",tool_calls:calls},...results];
+  const report=budgetContext(messages,[],{window_tokens:8192,output_tokens:4096});
+  assert.ok(report.after_upper_bound<=4096);
+  assert.equal(results[0].content,page);assert.equal(results[2].content,page);
+  assert.equal(messages[2].tool_calls,calls);
+  const shell=JSON.parse(results[1].content);assert.equal(shell.saved_result_ref,"shell");assert.equal(shell.outcome.exit_code,0);assert.equal(shell.compacted,true);
+ });
+}
