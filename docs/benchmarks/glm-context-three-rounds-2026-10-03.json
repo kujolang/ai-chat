@@ -1,0 +1,1855 @@
+{
+  "model": "glm-5.3-flash:cloud",
+  "profile": "Watchdog / Ollama Cloud",
+  "starting_sha": "03753c138b25d19925ab6e2018e83e8d775dfa60",
+  "production_sha": "3a492d8f4d68da0c047328ad12ab0b9e09c76d46",
+  "controls": {
+    "context_window_tokens": 1048576,
+    "requested_output_tokens": 6000,
+    "concurrency": 1,
+    "attempts_per_case": 1,
+    "runner_deadline_ms": 1200000,
+    "extra_kujo_guide": false,
+    "source_or_configuration_changes_during_runs": false,
+    "prompts_match_baseline_except_directories": true
+  },
+  "grading": "Same six original task requirements; final artifacts independently verified. Round 1 CLI fails the recursive Go verification command despite passing targeted tests and functional checks. Extra numeric/API fault probes are separate from original acceptance, as in the baseline. No generated source repaired.",
+  "limitations": [
+    "Three repeats of six tasks, not 18 independent samples of general developer ability.",
+    "Before/after experiment changes context discovery, retention, ingress and final-edit instruction together; not causal isolation of one change.",
+    "Baseline host Go changed from 1.25.3 to 1.27.1; all new version/hash snapshots stable. Shared host, no isolated performance environment.",
+    "Agents choose Kujo 1.7.0 VM in round 1 and 1.5.0 interpreter in rounds 2/3. Generated language timing ratios are not cross-round runtime rankings.",
+    "Receipt and path audits do not provide OS sandbox isolation."
+  ],
+  "rounds": [
+    {
+      "round": 1,
+      "overall_glm_round": 5,
+      "run_id": "dev-2026-10-03-exhaustion-ctxglm1",
+      "started_at": "2026-10-03T22:16:15.233Z",
+      "finished_at": "2026-10-03T22:28:51.515Z",
+      "duration_ms": 756282,
+      "verified_passes": 5,
+      "summary": {
+        "total": 6,
+        "completed": 6,
+        "failed": 0,
+        "retry_count": 0,
+        "tool_calls_executed": 192,
+        "tool_input_repairs": 16,
+        "provider_rounds": 108,
+        "latency_ms_total": 746260,
+        "latency_samples": 6,
+        "token_use": {
+          "input_tokens": 2539394,
+          "output_tokens": 85228,
+          "total_tokens": 2624622
+        },
+        "transport_completion_rate": 1,
+        "task_completion_rate": null,
+        "repair_rate": 0.0833,
+        "average_latency_ms": 124377
+      },
+      "cases": [
+        {
+          "number": 1,
+          "title": "CSV program",
+          "chat_id": "6dedf70e-f018-465e-b8a5-b1454d6d9ed1",
+          "execution_id": "2ffc65f1-5f8a-4ff7-96a7-8c34601fd3fa",
+          "verified_pass": true,
+          "functional_checks_pass": true,
+          "transport_ok": true,
+          "duration_ms": 80856,
+          "attempts": 1,
+          "retry_count": 0,
+          "usage": {
+            "input_tokens": 174233,
+            "output_tokens": 11390,
+            "total_tokens": 185623,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "tool_calls_executed": 19,
+          "provider_rounds": 14,
+          "tool_input_repairs": 0,
+          "finish_reason": "stop",
+          "terminal_error": null,
+          "context_budget": {
+            "system_chars": 7874,
+            "conversation_chars": 2279,
+            "tool_result_chars": 10927,
+            "tool_call_chars": 11839,
+            "tool_schema_bytes": 7558,
+            "tool_schema_count": 13,
+            "before_upper_bound": 73363,
+            "after_upper_bound": 73363,
+            "input_allowance": 1042576,
+            "output_reservation": 6000,
+            "envelope_reservation": 0,
+            "compacted_calls": 0,
+            "recovered_facts": 0,
+            "folded_file_reads": 0,
+            "removed_messages": 0,
+            "estimator": "utf8_bytes_plus_framing_upper_bound",
+            "context_window_tokens": 1048576,
+            "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+            "context_limit_known": true,
+            "context_scope": "provider_request"
+          },
+          "unmatched_claimed_receipt_ids": [],
+          "tool_counts": {
+            "local_workspace_list": 1,
+            "skill_list": 1,
+            "local_shell": 11,
+            "local_file_list": 3,
+            "local_file_write": 3
+          },
+          "verification_issue": null
+        },
+        {
+          "number": 2,
+          "title": "Kujo and Go benchmark",
+          "chat_id": "ff3bc22f-86a2-483f-91f1-923a77540857",
+          "execution_id": "f3543f18-1623-4560-a7f3-7f9b485d9ca0",
+          "verified_pass": true,
+          "functional_checks_pass": true,
+          "transport_ok": true,
+          "duration_ms": 322156,
+          "attempts": 1,
+          "retry_count": 0,
+          "usage": {
+            "input_tokens": 1396335,
+            "output_tokens": 25916,
+            "total_tokens": 1422251,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "tool_calls_executed": 90,
+          "provider_rounds": 37,
+          "tool_input_repairs": 14,
+          "finish_reason": "stop",
+          "terminal_error": null,
+          "context_budget": {
+            "system_chars": 7874,
+            "conversation_chars": 6047,
+            "tool_result_chars": 114626,
+            "tool_call_chars": 29870,
+            "tool_schema_bytes": 7558,
+            "tool_schema_count": 13,
+            "before_upper_bound": 237077,
+            "after_upper_bound": 237077,
+            "input_allowance": 1042576,
+            "output_reservation": 6000,
+            "envelope_reservation": 0,
+            "compacted_calls": 0,
+            "recovered_facts": 0,
+            "folded_file_reads": 0,
+            "removed_messages": 0,
+            "estimator": "utf8_bytes_plus_framing_upper_bound",
+            "context_window_tokens": 1048576,
+            "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+            "context_limit_known": true,
+            "context_scope": "provider_request"
+          },
+          "unmatched_claimed_receipt_ids": [],
+          "tool_counts": {
+            "local_workspace_list": 1,
+            "skill_list": 1,
+            "local_file_list": 7,
+            "local_file_read": 14,
+            "local_shell": 62,
+            "local_file_write": 5
+          },
+          "verification_issue": null
+        },
+        {
+          "number": 3,
+          "title": "Debug unfamiliar code",
+          "chat_id": "56d3f158-357d-47c6-bc2e-8cab119376e5",
+          "execution_id": "c31e8ffe-e3f3-4a75-8588-bce059a84135",
+          "verified_pass": true,
+          "functional_checks_pass": true,
+          "transport_ok": true,
+          "duration_ms": 43566,
+          "attempts": 1,
+          "retry_count": 0,
+          "usage": {
+            "input_tokens": 116483,
+            "output_tokens": 5439,
+            "total_tokens": 121922,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "tool_calls_executed": 16,
+          "provider_rounds": 12,
+          "tool_input_repairs": 0,
+          "finish_reason": "stop",
+          "terminal_error": null,
+          "context_budget": {
+            "system_chars": 7874,
+            "conversation_chars": 2376,
+            "tool_result_chars": 19422,
+            "tool_call_chars": 4079,
+            "tool_schema_bytes": 7558,
+            "tool_schema_count": 13,
+            "before_upper_bound": 60446,
+            "after_upper_bound": 60446,
+            "input_allowance": 1042576,
+            "output_reservation": 6000,
+            "envelope_reservation": 0,
+            "compacted_calls": 0,
+            "recovered_facts": 0,
+            "folded_file_reads": 0,
+            "removed_messages": 0,
+            "estimator": "utf8_bytes_plus_framing_upper_bound",
+            "context_window_tokens": 1048576,
+            "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+            "context_limit_known": true,
+            "context_scope": "provider_request"
+          },
+          "unmatched_claimed_receipt_ids": [],
+          "tool_counts": {
+            "local_workspace_list": 1,
+            "skill_list": 1,
+            "local_file_list": 3,
+            "local_file_read": 5,
+            "local_shell": 4,
+            "local_file_write": 2
+          },
+          "verification_issue": null
+        },
+        {
+          "number": 4,
+          "title": "HTTP API",
+          "chat_id": "9d92c8df-17c0-4510-a34b-3a89fda4433b",
+          "execution_id": "769dd4d9-aab6-45d3-b6ff-9bcb7f417ecd",
+          "verified_pass": true,
+          "functional_checks_pass": true,
+          "transport_ok": true,
+          "duration_ms": 146407,
+          "attempts": 1,
+          "retry_count": 0,
+          "usage": {
+            "input_tokens": 332056,
+            "output_tokens": 18094,
+            "total_tokens": 350150,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "tool_calls_executed": 21,
+          "provider_rounds": 17,
+          "tool_input_repairs": 2,
+          "finish_reason": "stop",
+          "terminal_error": null,
+          "context_budget": {
+            "system_chars": 7874,
+            "conversation_chars": 2516,
+            "tool_result_chars": 91629,
+            "tool_call_chars": 29279,
+            "tool_schema_bytes": 7558,
+            "tool_schema_count": 13,
+            "before_upper_bound": 188310,
+            "after_upper_bound": 188310,
+            "input_allowance": 1042576,
+            "output_reservation": 6000,
+            "envelope_reservation": 0,
+            "compacted_calls": 0,
+            "recovered_facts": 0,
+            "folded_file_reads": 0,
+            "removed_messages": 0,
+            "estimator": "utf8_bytes_plus_framing_upper_bound",
+            "context_window_tokens": 1048576,
+            "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+            "context_limit_known": true,
+            "context_scope": "provider_request"
+          },
+          "unmatched_claimed_receipt_ids": [],
+          "tool_counts": {
+            "local_workspace_list": 1,
+            "skill_list": 1,
+            "local_file_list": 3,
+            "local_shell": 7,
+            "local_file_write": 6,
+            "local_file_read": 3
+          },
+          "verification_issue": null
+        },
+        {
+          "number": 5,
+          "title": "Intentional timeout recovery",
+          "chat_id": "c65ae208-2df0-46ba-9fed-9b106c367ff8",
+          "execution_id": "7cc397eb-c0e9-4d44-b797-8aa4c4399688",
+          "verified_pass": true,
+          "functional_checks_pass": true,
+          "transport_ok": true,
+          "duration_ms": 23454,
+          "attempts": 1,
+          "retry_count": 0,
+          "usage": {
+            "input_tokens": 39599,
+            "output_tokens": 2085,
+            "total_tokens": 41684,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "tool_calls_executed": 8,
+          "provider_rounds": 7,
+          "tool_input_repairs": 0,
+          "finish_reason": "stop",
+          "terminal_error": null,
+          "context_budget": {
+            "system_chars": 7874,
+            "conversation_chars": 1754,
+            "tool_result_chars": 6738,
+            "tool_call_chars": 1535,
+            "tool_schema_bytes": 7558,
+            "tool_schema_count": 13,
+            "before_upper_bound": 33858,
+            "after_upper_bound": 33858,
+            "input_allowance": 1042576,
+            "output_reservation": 6000,
+            "envelope_reservation": 0,
+            "compacted_calls": 0,
+            "recovered_facts": 0,
+            "folded_file_reads": 0,
+            "removed_messages": 0,
+            "estimator": "utf8_bytes_plus_framing_upper_bound",
+            "context_window_tokens": 1048576,
+            "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+            "context_limit_known": true,
+            "context_scope": "provider_request"
+          },
+          "unmatched_claimed_receipt_ids": [],
+          "tool_counts": {
+            "local_workspace_list": 1,
+            "skill_list": 1,
+            "local_file_list": 2,
+            "local_shell": 3,
+            "local_file_write": 1
+          },
+          "verification_issue": null
+        },
+        {
+          "number": 6,
+          "title": "Duplicate-file CLI",
+          "chat_id": "8b476eea-fd79-47cd-8f92-1a0ef61f94c5",
+          "execution_id": "1d8ca5fb-cf86-4cf8-81ad-6d18a9c6e058",
+          "verified_pass": false,
+          "functional_checks_pass": true,
+          "transport_ok": true,
+          "duration_ms": 129821,
+          "attempts": 1,
+          "retry_count": 0,
+          "usage": {
+            "input_tokens": 480688,
+            "output_tokens": 22304,
+            "total_tokens": 502992,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "tool_calls_executed": 38,
+          "provider_rounds": 21,
+          "tool_input_repairs": 0,
+          "finish_reason": "stop",
+          "terminal_error": null,
+          "context_budget": {
+            "system_chars": 7874,
+            "conversation_chars": 3000,
+            "tool_result_chars": 20247,
+            "tool_call_chars": 24541,
+            "tool_schema_bytes": 7558,
+            "tool_schema_count": 13,
+            "before_upper_bound": 125653,
+            "after_upper_bound": 125653,
+            "input_allowance": 1042576,
+            "output_reservation": 6000,
+            "envelope_reservation": 0,
+            "compacted_calls": 0,
+            "recovered_facts": 0,
+            "folded_file_reads": 0,
+            "removed_messages": 0,
+            "estimator": "utf8_bytes_plus_framing_upper_bound",
+            "context_window_tokens": 1048576,
+            "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+            "context_limit_known": true,
+            "context_scope": "provider_request"
+          },
+          "unmatched_claimed_receipt_ids": [],
+          "tool_counts": {
+            "local_workspace_list": 1,
+            "system_time": 1,
+            "local_shell": 20,
+            "local_file_write": 16
+          },
+          "verification_issue": "Final go test ./... exits 1: mode-000 fixtures/lockeddir breaks package discovery. Targeted go test . passes 12 tests; source build and independent CLI behavior pass. No permissions or source repaired."
+        }
+      ],
+      "independent_tests": [
+        {
+          "case": 1,
+          "command": [
+            "go",
+            "test",
+            "-json",
+            "-count=1",
+            "./..."
+          ],
+          "cwd": "data/dev-benchmark-2026-10-03-exhaustion-ctxglm1/01",
+          "exit_code": 0,
+          "log": "data/benchmark-runs/ctxglm1-independent-1.log",
+          "passing_tests": 4
+        },
+        {
+          "case": 3,
+          "command": [
+            "node",
+            "--test"
+          ],
+          "cwd": "data/dev-benchmark-2026-10-03-exhaustion-ctxglm1/03",
+          "exit_code": 0,
+          "log": "data/benchmark-runs/ctxglm1-independent-3.log",
+          "passing_tests": 5
+        },
+        {
+          "case": 4,
+          "command": [
+            "node",
+            "--test"
+          ],
+          "cwd": "data/dev-benchmark-2026-10-03-exhaustion-ctxglm1/04",
+          "exit_code": 0,
+          "log": "data/benchmark-runs/ctxglm1-independent-4.log",
+          "passing_tests": 14
+        },
+        {
+          "case": 6,
+          "command": [
+            "go",
+            "test",
+            "-json",
+            "-count=1",
+            "./..."
+          ],
+          "cwd": "data/dev-benchmark-2026-10-03-exhaustion-ctxglm1/06",
+          "exit_code": 1,
+          "log": "data/benchmark-runs/ctxglm1-independent-6.log",
+          "passing_tests": 12
+        }
+      ],
+      "prime_timing_check": [
+        {
+          "language": "kujo",
+          "n": 1000,
+          "trials": 5,
+          "median_compute_ms": 17.134407999999997,
+          "median_wall_ms": 59.307,
+          "call_ids": [
+            "call_ng7zuhad",
+            "call_xtt47g0b",
+            "call_dij8uj75",
+            "call_7lfnje8q",
+            "call_l2j4g7h0"
+          ]
+        },
+        {
+          "language": "go",
+          "n": 1000,
+          "trials": 5,
+          "median_compute_ms": 0.05,
+          "median_wall_ms": 16.688,
+          "call_ids": [
+            "call_ezr9h5vn",
+            "call_aljdc9j4",
+            "call_q343y1d2",
+            "call_48kh5ac5",
+            "call_e7dhp6wx"
+          ]
+        },
+        {
+          "language": "kujo",
+          "n": 10000,
+          "trials": 5,
+          "median_compute_ms": 290.593381,
+          "median_wall_ms": 334.718,
+          "call_ids": [
+            "call_yvrzvigc",
+            "call_uwdrurzj",
+            "call_v5p26x03",
+            "call_1lg11ol6",
+            "call_f9yi1nfv"
+          ]
+        },
+        {
+          "language": "go",
+          "n": 10000,
+          "trials": 5,
+          "median_compute_ms": 0.685,
+          "median_wall_ms": 12.443,
+          "call_ids": [
+            "call_2nr141xl",
+            "call_aa7jaqt0",
+            "call_zjnp51dd",
+            "call_f6scx3ac",
+            "call_x4sgq8mc"
+          ]
+        },
+        {
+          "language": "kujo",
+          "n": 100000,
+          "trials": 5,
+          "median_compute_ms": 5036.369671,
+          "median_wall_ms": 5062.613,
+          "call_ids": [
+            "call_e98j0ts0",
+            "call_0soww05x",
+            "call_3py4ubud",
+            "call_0d03f9wm",
+            "call_6ty66ye0"
+          ]
+        },
+        {
+          "language": "go",
+          "n": 100000,
+          "trials": 5,
+          "median_compute_ms": 13.976,
+          "median_wall_ms": 37.407,
+          "call_ids": [
+            "call_zh6b3hya",
+            "call_bvoot7pm",
+            "call_86d2cb1t",
+            "call_fmldzqia",
+            "call_62pf5bmj"
+          ]
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "overall_glm_round": 6,
+      "run_id": "dev-2026-10-03-exhaustion-ctxglm2",
+      "started_at": "2026-10-03T22:28:54.598Z",
+      "finished_at": "2026-10-03T22:43:17.322Z",
+      "duration_ms": 862724,
+      "verified_passes": 6,
+      "summary": {
+        "total": 6,
+        "completed": 6,
+        "failed": 0,
+        "retry_count": 0,
+        "tool_calls_executed": 215,
+        "tool_input_repairs": 0,
+        "provider_rounds": 164,
+        "latency_ms_total": 851734,
+        "latency_samples": 6,
+        "token_use": {
+          "input_tokens": 5409094,
+          "output_tokens": 84719,
+          "total_tokens": 5493813
+        },
+        "transport_completion_rate": 1,
+        "task_completion_rate": null,
+        "repair_rate": 0,
+        "average_latency_ms": 141956
+      },
+      "cases": [
+        {
+          "number": 1,
+          "title": "CSV program",
+          "chat_id": "009ede89-021b-4fd5-adad-7405a542f36e",
+          "execution_id": "741861ba-cd03-497f-8bd8-3df14c72a5c7",
+          "verified_pass": true,
+          "functional_checks_pass": true,
+          "transport_ok": true,
+          "duration_ms": 60488,
+          "attempts": 1,
+          "retry_count": 0,
+          "usage": {
+            "input_tokens": 75409,
+            "output_tokens": 8914,
+            "total_tokens": 84323,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "tool_calls_executed": 16,
+          "provider_rounds": 8,
+          "tool_input_repairs": 0,
+          "finish_reason": "stop",
+          "terminal_error": null,
+          "context_budget": {
+            "system_chars": 7874,
+            "conversation_chars": 1836,
+            "tool_result_chars": 8790,
+            "tool_call_chars": 10552,
+            "tool_schema_bytes": 7558,
+            "tool_schema_count": 13,
+            "before_upper_bound": 61462,
+            "after_upper_bound": 61462,
+            "input_allowance": 1042576,
+            "output_reservation": 6000,
+            "envelope_reservation": 0,
+            "compacted_calls": 0,
+            "recovered_facts": 0,
+            "folded_file_reads": 0,
+            "removed_messages": 0,
+            "estimator": "utf8_bytes_plus_framing_upper_bound",
+            "context_window_tokens": 1048576,
+            "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+            "context_limit_known": true,
+            "context_scope": "provider_request"
+          },
+          "unmatched_claimed_receipt_ids": [],
+          "tool_counts": {
+            "local_workspace_list": 1,
+            "skill_list": 1,
+            "local_shell": 8,
+            "local_file_list": 1,
+            "local_file_write": 5
+          },
+          "verification_issue": null
+        },
+        {
+          "number": 2,
+          "title": "Kujo and Go benchmark",
+          "chat_id": "033166f6-3a85-4e9a-b0b5-86bb6e8e53a9",
+          "execution_id": "07535609-e497-489c-ad1c-116ca00af5bd",
+          "verified_pass": true,
+          "functional_checks_pass": true,
+          "transport_ok": true,
+          "duration_ms": 504259,
+          "attempts": 1,
+          "retry_count": 0,
+          "usage": {
+            "input_tokens": 4550117,
+            "output_tokens": 30718,
+            "total_tokens": 4580835,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "tool_calls_executed": 123,
+          "provider_rounds": 104,
+          "tool_input_repairs": 0,
+          "finish_reason": "stop",
+          "terminal_error": null,
+          "context_budget": {
+            "system_chars": 7874,
+            "conversation_chars": 6215,
+            "tool_result_chars": 103806,
+            "tool_call_chars": 43107,
+            "tool_schema_bytes": 7558,
+            "tool_schema_count": 13,
+            "before_upper_bound": 263138,
+            "after_upper_bound": 263138,
+            "input_allowance": 1042576,
+            "output_reservation": 6000,
+            "envelope_reservation": 0,
+            "compacted_calls": 0,
+            "recovered_facts": 0,
+            "folded_file_reads": 0,
+            "removed_messages": 0,
+            "estimator": "utf8_bytes_plus_framing_upper_bound",
+            "context_window_tokens": 1048576,
+            "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+            "context_limit_known": true,
+            "context_scope": "provider_request"
+          },
+          "unmatched_claimed_receipt_ids": [],
+          "tool_counts": {
+            "local_workspace_list": 1,
+            "skill_list": 1,
+            "local_file_list": 8,
+            "local_shell": 75,
+            "local_file_read": 20,
+            "local_file_write": 18
+          },
+          "verification_issue": null
+        },
+        {
+          "number": 3,
+          "title": "Debug unfamiliar code",
+          "chat_id": "197fe871-0929-41ba-94cc-c8a60df6b2b1",
+          "execution_id": "02f298c7-60e5-4e37-86a2-9f84559945b5",
+          "verified_pass": true,
+          "functional_checks_pass": true,
+          "transport_ok": true,
+          "duration_ms": 31525,
+          "attempts": 1,
+          "retry_count": 0,
+          "usage": {
+            "input_tokens": 76422,
+            "output_tokens": 3279,
+            "total_tokens": 79701,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "tool_calls_executed": 14,
+          "provider_rounds": 11,
+          "tool_input_repairs": 0,
+          "finish_reason": "stop",
+          "terminal_error": null,
+          "context_budget": {
+            "system_chars": 7874,
+            "conversation_chars": 2319,
+            "tool_result_chars": 10601,
+            "tool_call_chars": 3502,
+            "tool_schema_bytes": 7558,
+            "tool_schema_count": 13,
+            "before_upper_bound": 43089,
+            "after_upper_bound": 43089,
+            "input_allowance": 1042576,
+            "output_reservation": 6000,
+            "envelope_reservation": 0,
+            "compacted_calls": 0,
+            "recovered_facts": 0,
+            "folded_file_reads": 0,
+            "removed_messages": 0,
+            "estimator": "utf8_bytes_plus_framing_upper_bound",
+            "context_window_tokens": 1048576,
+            "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+            "context_limit_known": true,
+            "context_scope": "provider_request"
+          },
+          "unmatched_claimed_receipt_ids": [],
+          "tool_counts": {
+            "local_workspace_list": 1,
+            "skill_list": 1,
+            "local_file_list": 1,
+            "local_file_read": 4,
+            "local_shell": 5,
+            "local_file_write": 2
+          },
+          "verification_issue": null
+        },
+        {
+          "number": 4,
+          "title": "HTTP API",
+          "chat_id": "d2dd06b8-d0a2-4e79-9a8e-8479f41e0646",
+          "execution_id": "b1f47e10-86c8-420d-a859-110bb6a511f5",
+          "verified_pass": true,
+          "functional_checks_pass": true,
+          "transport_ok": true,
+          "duration_ms": 111052,
+          "attempts": 1,
+          "retry_count": 0,
+          "usage": {
+            "input_tokens": 371343,
+            "output_tokens": 23988,
+            "total_tokens": 395331,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "tool_calls_executed": 20,
+          "provider_rounds": 15,
+          "tool_input_repairs": 0,
+          "finish_reason": "stop",
+          "terminal_error": null,
+          "context_budget": {
+            "system_chars": 7874,
+            "conversation_chars": 2587,
+            "tool_result_chars": 34659,
+            "tool_call_chars": 33274,
+            "tool_schema_bytes": 7558,
+            "tool_schema_count": 13,
+            "before_upper_bound": 150112,
+            "after_upper_bound": 150112,
+            "input_allowance": 1042576,
+            "output_reservation": 6000,
+            "envelope_reservation": 0,
+            "compacted_calls": 0,
+            "recovered_facts": 0,
+            "folded_file_reads": 0,
+            "removed_messages": 0,
+            "estimator": "utf8_bytes_plus_framing_upper_bound",
+            "context_window_tokens": 1048576,
+            "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+            "context_limit_known": true,
+            "context_scope": "provider_request"
+          },
+          "unmatched_claimed_receipt_ids": [],
+          "tool_counts": {
+            "local_workspace_list": 1,
+            "skill_list": 1,
+            "local_shell": 9,
+            "local_file_write": 8,
+            "local_file_read": 1
+          },
+          "verification_issue": null
+        },
+        {
+          "number": 5,
+          "title": "Intentional timeout recovery",
+          "chat_id": "e3e31002-76a0-4440-83e9-3afbd49fd558",
+          "execution_id": "344d7f06-dfbc-4c63-b2d6-e249884482ea",
+          "verified_pass": true,
+          "functional_checks_pass": true,
+          "transport_ok": true,
+          "duration_ms": 25656,
+          "attempts": 1,
+          "retry_count": 0,
+          "usage": {
+            "input_tokens": 37587,
+            "output_tokens": 2412,
+            "total_tokens": 39999,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "tool_calls_executed": 8,
+          "provider_rounds": 7,
+          "tool_input_repairs": 0,
+          "finish_reason": "stop",
+          "terminal_error": null,
+          "context_budget": {
+            "system_chars": 7874,
+            "conversation_chars": 1808,
+            "tool_result_chars": 3876,
+            "tool_call_chars": 1658,
+            "tool_schema_bytes": 7558,
+            "tool_schema_count": 13,
+            "before_upper_bound": 31332,
+            "after_upper_bound": 31332,
+            "input_allowance": 1042576,
+            "output_reservation": 6000,
+            "envelope_reservation": 0,
+            "compacted_calls": 0,
+            "recovered_facts": 0,
+            "folded_file_reads": 0,
+            "removed_messages": 0,
+            "estimator": "utf8_bytes_plus_framing_upper_bound",
+            "context_window_tokens": 1048576,
+            "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+            "context_limit_known": true,
+            "context_scope": "provider_request"
+          },
+          "unmatched_claimed_receipt_ids": [],
+          "tool_counts": {
+            "local_workspace_list": 1,
+            "skill_list": 1,
+            "local_shell": 4,
+            "local_file_list": 1,
+            "local_file_write": 1
+          },
+          "verification_issue": null
+        },
+        {
+          "number": 6,
+          "title": "Duplicate-file CLI",
+          "chat_id": "438cdcae-f930-4954-8e0d-d140b9614d41",
+          "execution_id": "8415354e-571c-43b7-b470-1db354c27cf7",
+          "verified_pass": true,
+          "functional_checks_pass": true,
+          "transport_ok": true,
+          "duration_ms": 118754,
+          "attempts": 1,
+          "retry_count": 0,
+          "usage": {
+            "input_tokens": 298216,
+            "output_tokens": 15408,
+            "total_tokens": 313624,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "tool_calls_executed": 34,
+          "provider_rounds": 19,
+          "tool_input_repairs": 0,
+          "finish_reason": "stop",
+          "terminal_error": null,
+          "context_budget": {
+            "system_chars": 7874,
+            "conversation_chars": 2574,
+            "tool_result_chars": 19763,
+            "tool_call_chars": 19909,
+            "tool_schema_bytes": 7558,
+            "tool_schema_count": 13,
+            "before_upper_bound": 99165,
+            "after_upper_bound": 99165,
+            "input_allowance": 1042576,
+            "output_reservation": 6000,
+            "envelope_reservation": 0,
+            "compacted_calls": 0,
+            "recovered_facts": 0,
+            "folded_file_reads": 0,
+            "removed_messages": 0,
+            "estimator": "utf8_bytes_plus_framing_upper_bound",
+            "context_window_tokens": 1048576,
+            "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+            "context_limit_known": true,
+            "context_scope": "provider_request"
+          },
+          "unmatched_claimed_receipt_ids": [],
+          "tool_counts": {
+            "local_workspace_list": 1,
+            "skill_list": 1,
+            "local_shell": 20,
+            "local_file_list": 1,
+            "local_file_write": 11
+          },
+          "verification_issue": null
+        }
+      ],
+      "independent_tests": [
+        {
+          "case": 1,
+          "command": [
+            "go",
+            "test",
+            "-json",
+            "-count=1",
+            "./..."
+          ],
+          "cwd": "data/dev-benchmark-2026-10-03-exhaustion-ctxglm2/01",
+          "exit_code": 0,
+          "log": "data/benchmark-runs/ctxglm2-independent-1.log",
+          "passing_tests": 6
+        },
+        {
+          "case": 3,
+          "command": [
+            "node",
+            "--test"
+          ],
+          "cwd": "data/dev-benchmark-2026-10-03-exhaustion-ctxglm2/03",
+          "exit_code": 0,
+          "log": "data/benchmark-runs/ctxglm2-independent-3.log",
+          "passing_tests": 4
+        },
+        {
+          "case": 4,
+          "command": [
+            "node",
+            "--test"
+          ],
+          "cwd": "data/dev-benchmark-2026-10-03-exhaustion-ctxglm2/04",
+          "exit_code": 0,
+          "log": "data/benchmark-runs/ctxglm2-independent-4.log",
+          "passing_tests": 27
+        },
+        {
+          "case": 6,
+          "command": [
+            "go",
+            "test",
+            "-json",
+            "-count=1",
+            "./..."
+          ],
+          "cwd": "data/dev-benchmark-2026-10-03-exhaustion-ctxglm2/06",
+          "exit_code": 0,
+          "log": "data/benchmark-runs/ctxglm2-independent-6.log",
+          "passing_tests": 8
+        }
+      ],
+      "prime_timing_check": [
+        {
+          "language": "kujo",
+          "n": 999999,
+          "trials": 5,
+          "median_compute_ms": 15287.908,
+          "median_wall_ms": 15397.163,
+          "trial_compute_ms": [
+            16724.73,
+            15287.908,
+            23154.323,
+            7710.485,
+            6643.345
+          ],
+          "call_ids": [
+            "call_9m29ao0f",
+            "call_7otcm62u",
+            "call_066g3kwv",
+            "call_ggd7ss6b",
+            "call_cnw7y5m3"
+          ]
+        },
+        {
+          "language": "go",
+          "n": 999999,
+          "trials": 5,
+          "median_compute_ms": 49.03,
+          "median_wall_ms": 80.514,
+          "trial_compute_ms": [
+            49.03,
+            48.5,
+            51.359,
+            47.427,
+            71.423
+          ],
+          "call_ids": [
+            "call_ahjcpaum",
+            "call_thj5qamm",
+            "call_bhkn5lvm",
+            "call_9tmaowvs",
+            "call_znbbss6t"
+          ]
+        }
+      ]
+    },
+    {
+      "round": 3,
+      "overall_glm_round": 7,
+      "run_id": "dev-2026-10-03-exhaustion-ctxglm3",
+      "started_at": "2026-10-03T22:43:19.250Z",
+      "finished_at": "2026-10-03T22:56:54.985Z",
+      "duration_ms": 815735,
+      "verified_passes": 6,
+      "summary": {
+        "total": 6,
+        "completed": 6,
+        "failed": 0,
+        "retry_count": 0,
+        "tool_calls_executed": 228,
+        "tool_input_repairs": 16,
+        "provider_rounds": 156,
+        "latency_ms_total": 807721,
+        "latency_samples": 6,
+        "token_use": {
+          "input_tokens": 5674701,
+          "output_tokens": 94360,
+          "total_tokens": 5769061
+        },
+        "transport_completion_rate": 1,
+        "task_completion_rate": null,
+        "repair_rate": 0.0702,
+        "average_latency_ms": 134620
+      },
+      "cases": [
+        {
+          "number": 1,
+          "title": "CSV program",
+          "chat_id": "60328f56-f437-4a54-ac63-788bfe75485b",
+          "execution_id": "ccba796e-1a2a-410f-85c9-7d17ee98c7f8",
+          "verified_pass": true,
+          "functional_checks_pass": true,
+          "transport_ok": true,
+          "duration_ms": 81542,
+          "attempts": 1,
+          "retry_count": 0,
+          "usage": {
+            "input_tokens": 112165,
+            "output_tokens": 13227,
+            "total_tokens": 125392,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "tool_calls_executed": 15,
+          "provider_rounds": 10,
+          "tool_input_repairs": 0,
+          "finish_reason": "stop",
+          "terminal_error": null,
+          "context_budget": {
+            "system_chars": 7874,
+            "conversation_chars": 2210,
+            "tool_result_chars": 11861,
+            "tool_call_chars": 12759,
+            "tool_schema_bytes": 7558,
+            "tool_schema_count": 13,
+            "before_upper_bound": 80049,
+            "after_upper_bound": 80049,
+            "input_allowance": 1042576,
+            "output_reservation": 6000,
+            "envelope_reservation": 0,
+            "compacted_calls": 0,
+            "recovered_facts": 0,
+            "folded_file_reads": 0,
+            "removed_messages": 0,
+            "estimator": "utf8_bytes_plus_framing_upper_bound",
+            "context_window_tokens": 1048576,
+            "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+            "context_limit_known": true,
+            "context_scope": "provider_request"
+          },
+          "unmatched_claimed_receipt_ids": [],
+          "tool_counts": {
+            "local_workspace_list": 1,
+            "local_shell": 7,
+            "local_file_list": 3,
+            "local_file_write": 4
+          },
+          "verification_issue": null
+        },
+        {
+          "number": 2,
+          "title": "Kujo and Go benchmark",
+          "chat_id": "1d8d14a8-7212-4dab-9c70-e977751d5a33",
+          "execution_id": "a0847325-f62e-4b20-88bc-667eb53bafc1",
+          "verified_pass": true,
+          "functional_checks_pass": true,
+          "transport_ok": true,
+          "duration_ms": 369058,
+          "attempts": 1,
+          "retry_count": 0,
+          "usage": {
+            "input_tokens": 4350938,
+            "output_tokens": 26644,
+            "total_tokens": 4377582,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "tool_calls_executed": 107,
+          "provider_rounds": 88,
+          "tool_input_repairs": 12,
+          "finish_reason": "stop",
+          "terminal_error": null,
+          "context_budget": {
+            "system_chars": 7874,
+            "conversation_chars": 5405,
+            "tool_result_chars": 140596,
+            "tool_call_chars": 37057,
+            "tool_schema_bytes": 7558,
+            "tool_schema_count": 13,
+            "before_upper_bound": 285929,
+            "after_upper_bound": 285929,
+            "input_allowance": 1042576,
+            "output_reservation": 6000,
+            "envelope_reservation": 0,
+            "compacted_calls": 0,
+            "recovered_facts": 0,
+            "folded_file_reads": 0,
+            "removed_messages": 0,
+            "estimator": "utf8_bytes_plus_framing_upper_bound",
+            "context_window_tokens": 1048576,
+            "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+            "context_limit_known": true,
+            "context_scope": "provider_request"
+          },
+          "unmatched_claimed_receipt_ids": [],
+          "tool_counts": {
+            "local_workspace_list": 1,
+            "skill_list": 1,
+            "local_file_list": 7,
+            "local_shell": 72,
+            "local_file_read": 16,
+            "local_file_write": 10
+          },
+          "verification_issue": null
+        },
+        {
+          "number": 3,
+          "title": "Debug unfamiliar code",
+          "chat_id": "8dadccae-f809-4e76-b186-73e8f3eaf20d",
+          "execution_id": "538db627-8a90-43a1-bb4c-b5b1cefa19d8",
+          "verified_pass": true,
+          "functional_checks_pass": true,
+          "transport_ok": true,
+          "duration_ms": 32771,
+          "attempts": 1,
+          "retry_count": 0,
+          "usage": {
+            "input_tokens": 86425,
+            "output_tokens": 4475,
+            "total_tokens": 90900,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "tool_calls_executed": 14,
+          "provider_rounds": 10,
+          "tool_input_repairs": 0,
+          "finish_reason": "stop",
+          "terminal_error": null,
+          "context_budget": {
+            "system_chars": 7874,
+            "conversation_chars": 2535,
+            "tool_result_chars": 17892,
+            "tool_call_chars": 3335,
+            "tool_schema_bytes": 7558,
+            "tool_schema_count": 13,
+            "before_upper_bound": 55348,
+            "after_upper_bound": 55348,
+            "input_allowance": 1042576,
+            "output_reservation": 6000,
+            "envelope_reservation": 0,
+            "compacted_calls": 0,
+            "recovered_facts": 0,
+            "folded_file_reads": 0,
+            "removed_messages": 0,
+            "estimator": "utf8_bytes_plus_framing_upper_bound",
+            "context_window_tokens": 1048576,
+            "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+            "context_limit_known": true,
+            "context_scope": "provider_request"
+          },
+          "unmatched_claimed_receipt_ids": [],
+          "tool_counts": {
+            "local_workspace_list": 1,
+            "system_time": 1,
+            "local_file_list": 3,
+            "local_file_read": 4,
+            "local_shell": 3,
+            "local_file_write": 2
+          },
+          "verification_issue": null
+        },
+        {
+          "number": 4,
+          "title": "HTTP API",
+          "chat_id": "3feb4aa1-b4a6-4f26-9124-2c8c185fbf34",
+          "execution_id": "deffe2b4-e880-44e5-995f-fe0b909fd75d",
+          "verified_pass": true,
+          "functional_checks_pass": true,
+          "transport_ok": true,
+          "duration_ms": 92030,
+          "attempts": 1,
+          "retry_count": 0,
+          "usage": {
+            "input_tokens": 118568,
+            "output_tokens": 13245,
+            "total_tokens": 131813,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "tool_calls_executed": 13,
+          "provider_rounds": 10,
+          "tool_input_repairs": 0,
+          "finish_reason": "stop",
+          "terminal_error": null,
+          "context_budget": {
+            "system_chars": 7874,
+            "conversation_chars": 2099,
+            "tool_result_chars": 9357,
+            "tool_call_chars": 21706,
+            "tool_schema_bytes": 7558,
+            "tool_schema_count": 13,
+            "before_upper_bound": 82250,
+            "after_upper_bound": 82250,
+            "input_allowance": 1042576,
+            "output_reservation": 6000,
+            "envelope_reservation": 0,
+            "compacted_calls": 0,
+            "recovered_facts": 0,
+            "folded_file_reads": 0,
+            "removed_messages": 0,
+            "estimator": "utf8_bytes_plus_framing_upper_bound",
+            "context_window_tokens": 1048576,
+            "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+            "context_limit_known": true,
+            "context_scope": "provider_request"
+          },
+          "unmatched_claimed_receipt_ids": [],
+          "tool_counts": {
+            "local_workspace_list": 1,
+            "skill_list": 1,
+            "local_shell": 5,
+            "local_file_list": 3,
+            "local_file_write": 3
+          },
+          "verification_issue": null
+        },
+        {
+          "number": 5,
+          "title": "Intentional timeout recovery",
+          "chat_id": "e75bbee5-eaeb-4f00-9ef4-849f556c299c",
+          "execution_id": "1a2ea9b5-279d-4db4-9641-3fe001084526",
+          "verified_pass": true,
+          "functional_checks_pass": true,
+          "transport_ok": true,
+          "duration_ms": 25692,
+          "attempts": 1,
+          "retry_count": 0,
+          "usage": {
+            "input_tokens": 47741,
+            "output_tokens": 2462,
+            "total_tokens": 50203,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "tool_calls_executed": 9,
+          "provider_rounds": 8,
+          "tool_input_repairs": 0,
+          "finish_reason": "stop",
+          "terminal_error": null,
+          "context_budget": {
+            "system_chars": 7874,
+            "conversation_chars": 1834,
+            "tool_result_chars": 7547,
+            "tool_call_chars": 1704,
+            "tool_schema_bytes": 7558,
+            "tool_schema_count": 13,
+            "before_upper_bound": 35812,
+            "after_upper_bound": 35812,
+            "input_allowance": 1042576,
+            "output_reservation": 6000,
+            "envelope_reservation": 0,
+            "compacted_calls": 0,
+            "recovered_facts": 0,
+            "folded_file_reads": 0,
+            "removed_messages": 0,
+            "estimator": "utf8_bytes_plus_framing_upper_bound",
+            "context_window_tokens": 1048576,
+            "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+            "context_limit_known": true,
+            "context_scope": "provider_request"
+          },
+          "unmatched_claimed_receipt_ids": [],
+          "tool_counts": {
+            "local_workspace_list": 1,
+            "system_time": 1,
+            "local_file_list": 3,
+            "local_shell": 3,
+            "local_file_write": 1
+          },
+          "verification_issue": null
+        },
+        {
+          "number": 6,
+          "title": "Duplicate-file CLI",
+          "chat_id": "3bd1fcdd-8976-439b-8a55-856e4fd1ee3c",
+          "execution_id": "eafa43b8-a8c5-4b32-ac28-f3a298ecc39b",
+          "verified_pass": true,
+          "functional_checks_pass": true,
+          "transport_ok": true,
+          "duration_ms": 206628,
+          "attempts": 1,
+          "retry_count": 0,
+          "usage": {
+            "input_tokens": 958864,
+            "output_tokens": 34307,
+            "total_tokens": 993171,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "tool_calls_executed": 70,
+          "provider_rounds": 30,
+          "tool_input_repairs": 4,
+          "finish_reason": "stop",
+          "terminal_error": null,
+          "context_budget": {
+            "system_chars": 7874,
+            "conversation_chars": 3876,
+            "tool_result_chars": 72063,
+            "tool_call_chars": 70014,
+            "tool_schema_bytes": 7558,
+            "tool_schema_count": 13,
+            "before_upper_bound": 234230,
+            "after_upper_bound": 234230,
+            "input_allowance": 1042576,
+            "output_reservation": 6000,
+            "envelope_reservation": 0,
+            "compacted_calls": 0,
+            "recovered_facts": 0,
+            "folded_file_reads": 0,
+            "removed_messages": 0,
+            "estimator": "utf8_bytes_plus_framing_upper_bound",
+            "context_window_tokens": 1048576,
+            "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+            "context_limit_known": true,
+            "context_scope": "provider_request"
+          },
+          "unmatched_claimed_receipt_ids": [],
+          "tool_counts": {
+            "local_workspace_list": 1,
+            "system_time": 1,
+            "local_shell": 43,
+            "local_file_list": 1,
+            "local_file_write": 20,
+            "local_file_read": 4
+          },
+          "verification_issue": null
+        }
+      ],
+      "independent_tests": [
+        {
+          "case": 1,
+          "command": [
+            "go",
+            "test",
+            "-json",
+            "-count=1",
+            "./..."
+          ],
+          "cwd": "data/dev-benchmark-2026-10-03-exhaustion-ctxglm3/01",
+          "exit_code": 0,
+          "log": "data/benchmark-runs/ctxglm3-independent-1.log",
+          "passing_tests": 11
+        },
+        {
+          "case": 3,
+          "command": [
+            "node",
+            "--test"
+          ],
+          "cwd": "data/dev-benchmark-2026-10-03-exhaustion-ctxglm3/03",
+          "exit_code": 0,
+          "log": "data/benchmark-runs/ctxglm3-independent-3.log",
+          "passing_tests": 3
+        },
+        {
+          "case": 4,
+          "command": [
+            "node",
+            "--test"
+          ],
+          "cwd": "data/dev-benchmark-2026-10-03-exhaustion-ctxglm3/04",
+          "exit_code": 0,
+          "log": "data/benchmark-runs/ctxglm3-independent-4.log",
+          "passing_tests": 2
+        },
+        {
+          "case": 6,
+          "command": [
+            "go",
+            "test",
+            "-json",
+            "-count=1",
+            "./..."
+          ],
+          "cwd": "data/dev-benchmark-2026-10-03-exhaustion-ctxglm3/06",
+          "exit_code": 0,
+          "log": "data/benchmark-runs/ctxglm3-independent-6.log",
+          "passing_tests": 13
+        }
+      ],
+      "prime_timing_check": [
+        {
+          "language": "kujo",
+          "n": 1000000,
+          "trials": 5,
+          "median_compute_ms": 9176.346,
+          "median_wall_ms": 9301.896,
+          "trial_compute_ms": [
+            10140.123,
+            8587.437,
+            9176.346,
+            10654.606,
+            8248.405
+          ],
+          "call_ids": [
+            "call_rxx3838m",
+            "call_50cjzs4x",
+            "call_o9vaqltd",
+            "call_xfa4va5n",
+            "call_bpjov8z5"
+          ]
+        },
+        {
+          "language": "go",
+          "n": 1000000,
+          "trials": 5,
+          "median_compute_ms": 55.012,
+          "median_wall_ms": 86.664,
+          "trial_compute_ms": [
+            162.129,
+            48.093,
+            80.365,
+            47.887,
+            55.012
+          ],
+          "call_ids": [
+            "call_pi43sm6i",
+            "call_ru4s3osu",
+            "call_7tac4ssb",
+            "call_gwq55xfr",
+            "call_ju8ziqfw"
+          ]
+        }
+      ]
+    }
+  ],
+  "totals": {
+    "rounds": 3,
+    "tasks": 18,
+    "verified_passes": 17,
+    "functional_checks_passes": 18,
+    "full_suite_passes": 2,
+    "transport_complete": 18,
+    "duration_ms": 2434741,
+    "tool_calls": 635,
+    "provider_rounds": 428,
+    "reported_tokens": 13887496,
+    "passing_generated_tests": 109,
+    "context_exhaustion_failures": 0,
+    "overall_glm_verified_passes": 36,
+    "overall_glm_tasks": 42
+  },
+  "toolchain_before": {
+    "go": {
+      "path": "/usr/local/Cellar/go/1.27.1/libexec/bin/go",
+      "sha256": "6890cf02fb958fc15a043022d5f29e2a2206ab08a73581eddc3f33c7c681a730",
+      "version": "go version go1.27.1 darwin/amd64"
+    },
+    "kujo": {
+      "path": "/Users/robertdevore/.local/bin/kujo",
+      "sha256": "3e1e475ea165c8b4a714495596fe8661ad970b27119ad44f1db4d9779f7f05d4",
+      "version": "kujo 1.5.0"
+    }
+  },
+  "toolchain_after_each_round_matches": true,
+  "prime_boundary_checks": [
+    {
+      "round": 1,
+      "limit": 0,
+      "inclusive": false,
+      "expected": 0,
+      "observed": [
+        0,
+        0
+      ]
+    },
+    {
+      "round": 1,
+      "limit": 1,
+      "inclusive": false,
+      "expected": 0,
+      "observed": [
+        0,
+        0
+      ]
+    },
+    {
+      "round": 1,
+      "limit": 2,
+      "inclusive": false,
+      "expected": 0,
+      "observed": [
+        0,
+        0
+      ]
+    },
+    {
+      "round": 1,
+      "limit": 3,
+      "inclusive": false,
+      "expected": 1,
+      "observed": [
+        1,
+        1
+      ]
+    },
+    {
+      "round": 1,
+      "limit": 4,
+      "inclusive": false,
+      "expected": 2,
+      "observed": [
+        2,
+        2
+      ]
+    },
+    {
+      "round": 1,
+      "limit": 10,
+      "inclusive": false,
+      "expected": 4,
+      "observed": [
+        4,
+        4
+      ]
+    },
+    {
+      "round": 1,
+      "limit": 49,
+      "inclusive": false,
+      "expected": 15,
+      "observed": [
+        15,
+        15
+      ]
+    },
+    {
+      "round": 1,
+      "limit": 1000,
+      "inclusive": false,
+      "expected": 168,
+      "observed": [
+        168,
+        168
+      ]
+    },
+    {
+      "round": 2,
+      "limit": 0,
+      "inclusive": true,
+      "expected": 0,
+      "observed": [
+        0,
+        0
+      ]
+    },
+    {
+      "round": 2,
+      "limit": 1,
+      "inclusive": true,
+      "expected": 0,
+      "observed": [
+        0,
+        0
+      ]
+    },
+    {
+      "round": 2,
+      "limit": 2,
+      "inclusive": true,
+      "expected": 1,
+      "observed": [
+        1,
+        1
+      ]
+    },
+    {
+      "round": 2,
+      "limit": 3,
+      "inclusive": true,
+      "expected": 2,
+      "observed": [
+        2,
+        2
+      ]
+    },
+    {
+      "round": 2,
+      "limit": 4,
+      "inclusive": true,
+      "expected": 2,
+      "observed": [
+        2,
+        2
+      ]
+    },
+    {
+      "round": 2,
+      "limit": 10,
+      "inclusive": true,
+      "expected": 4,
+      "observed": [
+        4,
+        4
+      ]
+    },
+    {
+      "round": 2,
+      "limit": 49,
+      "inclusive": true,
+      "expected": 15,
+      "observed": [
+        15,
+        15
+      ]
+    },
+    {
+      "round": 2,
+      "limit": 1000,
+      "inclusive": true,
+      "expected": 168,
+      "observed": [
+        168,
+        168
+      ]
+    },
+    {
+      "round": 3,
+      "limit": 0,
+      "inclusive": false,
+      "expected": 0,
+      "observed": [
+        0,
+        0
+      ]
+    },
+    {
+      "round": 3,
+      "limit": 1,
+      "inclusive": false,
+      "expected": 0,
+      "observed": [
+        0,
+        0
+      ]
+    },
+    {
+      "round": 3,
+      "limit": 2,
+      "inclusive": false,
+      "expected": 0,
+      "observed": [
+        0,
+        0
+      ]
+    },
+    {
+      "round": 3,
+      "limit": 3,
+      "inclusive": false,
+      "expected": 1,
+      "observed": [
+        1,
+        1
+      ]
+    },
+    {
+      "round": 3,
+      "limit": 4,
+      "inclusive": false,
+      "expected": 2,
+      "observed": [
+        2,
+        2
+      ]
+    },
+    {
+      "round": 3,
+      "limit": 10,
+      "inclusive": false,
+      "expected": 4,
+      "observed": [
+        4,
+        4
+      ]
+    },
+    {
+      "round": 3,
+      "limit": 49,
+      "inclusive": false,
+      "expected": 15,
+      "observed": [
+        15,
+        15
+      ]
+    },
+    {
+      "round": 3,
+      "limit": 1000,
+      "inclusive": false,
+      "expected": 168,
+      "observed": [
+        168,
+        168
+      ]
+    }
+  ],
+  "cli_independent_checks": [
+    {
+      "round": 1,
+      "source_build": "pass",
+      "repeat_output_identical": true,
+      "hashes_sizes_paths_order": "pass",
+      "files": 5,
+      "duplicate_groups": 2,
+      "duplicate_files": 4,
+      "wasted_bytes": 6
+    },
+    {
+      "round": 2,
+      "source_build": "pass",
+      "repeat_output_identical": true,
+      "hashes_sizes_paths_order": "pass",
+      "files": 5,
+      "duplicate_groups": 2,
+      "duplicate_files": 4,
+      "wasted_bytes": 6
+    },
+    {
+      "round": 3,
+      "source_build": "pass",
+      "repeat_output_identical": true,
+      "hashes_sizes_paths_order": "pass",
+      "files": 5,
+      "duplicate_groups": 2,
+      "duplicate_files": 4,
+      "wasted_bytes": 6
+    }
+  ],
+  "api_quality_probes": [
+    {
+      "round": 1,
+      "null_json": {
+        "status": 400,
+        "body": {
+          "error": "Request body must be a JSON object"
+        }
+      },
+      "forced_persistence_failure": {
+        "status": 500,
+        "body": {
+          "error": "Internal server error"
+        }
+      },
+      "memory_count": 2,
+      "disk_count": 1,
+      "alive_after_failure": true
+    },
+    {
+      "round": 2,
+      "null_json": {
+        "timeout": true
+      },
+      "forced_persistence_failure": {
+        "status": 500,
+        "body": {
+          "error": "internal server error"
+        }
+      },
+      "memory_count": 2,
+      "disk_count": 1,
+      "alive_after_failure": true
+    },
+    {
+      "round": 3,
+      "null_json": {
+        "status": 400,
+        "body": {
+          "error": "Request body must be a JSON object"
+        }
+      },
+      "forced_persistence_failure": {
+        "status": 500,
+        "body": {
+          "error": "Internal server error"
+        }
+      },
+      "memory_count": 2,
+      "disk_count": 1,
+      "alive_after_failure": true
+    }
+  ],
+  "baseline": {
+    "report": "glm-four-rounds-2026-10-03.md",
+    "rounds": 4,
+    "verified_passes": 19,
+    "tasks": 24,
+    "full_suite_passes": 0,
+    "reported_tokens": 7503242,
+    "duration_ms": 3245641
+  },
+  "app_verification": {
+    "first_full": {
+      "pass": 551,
+      "fail": 1,
+      "skip": 1,
+      "duration_ms": 159842.334495
+    },
+    "second_full": {
+      "pass": 549,
+      "fail": 2,
+      "cancelled": 1,
+      "skip": 1,
+      "duration_ms": 164824.279951
+    },
+    "startup_focused": {
+      "pass": 7,
+      "fail": 0
+    },
+    "live_smoke": "pass",
+    "unresolved": "Process-startup/Chromium timeout failures under shared-host load; no deadline changes. Full verification is not green.",
+    "browser_focused": {
+      "pass": 3,
+      "fail": 0,
+      "skip": 1
+    }
+  },
+  "signalbox_capture": "cap_26ed7c87-0d33-4262-a507-6a1af15cc6cc"
+}
