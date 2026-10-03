@@ -4169,10 +4169,11 @@ test("explicit resume continues from completed tool receipts instead of repeatin
 		localRuntime: { canExecute: () => true, status: () => ({ enabled: true }), listWorkspaces: () => { executions++; return { workspaces: [] }; } },
 		fetchFn: async (_url, options) => {
 			providerCalls++;
-			if (providerCalls === 1) return mockSseResponse([{ choices: [{ delta: { tool_calls: [{ index: 0, id: "durable-call", function: { name: "local_workspace_list", arguments: "{}" } }] }, finish_reason: "tool_calls" }] }]);
+			if (providerCalls === 1) return mockSseResponse([{ choices: [{ delta: { reasoning: "fixture resume state", tool_calls: [{ index: 0, id: "durable-call", function: { name: "local_workspace_list", arguments: "{}" } }] }, finish_reason: "tool_calls" }] }]);
 			if (providerCalls === 2) throw new Error("connection lost after tool completion");
 			const body = JSON.parse(options.body);
 			assert.ok(body.messages.some((m) => m.role === "tool" && m.tool_call_id === "durable-call"));
+			assert.equal(body.messages.find(m => m.tool_calls?.[0]?.id === "durable-call").reasoning, "fixture resume state");
 			return mockSseResponse([{ choices: [{ delta: { content: "Continued from saved receipt" }, finish_reason: "stop" }] }]);
 		}
 	});
@@ -5237,4 +5238,30 @@ for (const exhausted of [false, true]) {
    });
   } finally {destroy();}
  });
+}
+
+for (const field of ['reasoning','reasoning_content']) {
+ for (const stop of ['tool_calls','length','stop']) {
+  test(`provider reasoning replay preserves ${field} through ${stop} continuation`,async()=>{
+   let calls=0,second;
+   const {runtime,destroy}=createIsolatedRuntime({fetchFn:async(_url,options)=>{
+    calls++;if(calls===2)second=JSON.parse(options.body);
+    if(calls===1)return mockSseResponse([
+     {choices:[{delta:{[field]:'fixture-'},finish_reason:null}]},
+     {choices:[{delta:{[field]:'state',...(stop==='tool_calls'?{tool_calls:[{index:0,id:'replay-time',type:'function',function:{name:'system_time',arguments:'{}'}}]}:{})},finish_reason:stop}]}
+    ]);
+    return mockSseResponse([{choices:[{delta:{content:'Verified.'},finish_reason:'stop'}]}]);
+   }});
+   try{
+    const profileId=applyProfileMutation(runtime,p=>{p.provider_id='openai';p.api_key='fixture';});
+    await withServer(runtime.app,async base=>{
+     const res=await fetch(base+'/api/chat/stream',{method:'POST',headers:withAuthHeaders({'Content-Type':'application/json'}),body:JSON.stringify({profile_id:profileId,messages:[{role:'user',content:'Verify this'}],tools:[{type:'function',function:{name:'system_time',parameters:{type:'object'}}}],include_saved_runtime_presets:false})});
+     const events=parseSseEvents(await res.text());assert.equal(events.at(-1).event,'done');assert.equal(calls,2);
+     const replay=second.messages.find(m=>m.role==='assistant'&&m[field]);
+     assert.equal(replay[field],'fixture-state');assert.equal(replay.content,'');
+     assert.equal(events.at(-1).data.output_text,'Verified.');
+    });
+   }finally{destroy();}
+  });
+ }
 }

@@ -185,3 +185,11 @@ Identical successful saved-result pages can share an outcome in compacted contex
 `read_call_ids` retains their retrieval IDs. Source, offset and next_offset must
 match. Shell commands, file writes, live reads, failures and different pages are
 never folded together. The journal retains the complete chronological history.
+
+Within an active execution, OpenAI-compatible assistant `reasoning` and
+`reasoning_content` string fields are replayed under their original field names
+for tool, empty-final and output-limit continuation; pending-call checkpoints
+retain them for resume. Native Ollama continues to use `thinking`. They are never
+converted into visible answer text. Whole-context bounds still apply. This does
+not claim lossless unbounded history or support for arbitrary provider-specific
+encrypted reasoning formats.
