@@ -1,0 +1,49 @@
+{
+  "experiment": "kujo-context-ab-2026-10-03",
+  "starting_sha": "d916745845ca6fcca6d2b74d7bfd3c45b8b598c3",
+  "design": "one sequential control/treatment pair; exploratory, not causal proof",
+  "task": "Existing TEST 2 Kujo/Go prime-counting task",
+  "control": "unchanged prompt except fresh assigned directory",
+  "treatment": "same prompt plus kujo-start.md inline",
+  "fixed": [
+    "model",
+    "provider",
+    "tools",
+    "timeouts",
+    "token setting",
+    "one attempt",
+    "application code"
+  ],
+  "grading": [
+    "artifact completion",
+    "first Kujo syntax check success",
+    "failed syntax/builtin shell commands",
+    "documentation retrieval and provenance",
+    "boundary correctness 0/1/2/3/4/49/1000",
+    "five genuine trials each and correct medians",
+    "measurement interpretation: wall vs compute, cache claims, timing resolution",
+    "reported tokens, provider rounds, tool receipts, latency"
+  ],
+  "limits": [
+    "one sample per arm",
+    "model selects workload/algorithm",
+    "order and provider/cache variance uncontrolled",
+    "no native MCP tool added; documentation guidance bundle only",
+    "baseline already instructs reading Kujo docs",
+    "guidance does not contain prime implementation or benchmark interpretation advice"
+  ],
+  "sources": [
+    {
+      "path": "/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/docs/LANGUAGE_SPEC.md",
+      "sha256": "eedcb9782a95957f08ce366b145275659f1c6b4404482f81929c7d5793edf15a"
+    },
+    {
+      "path": "/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/docs/STANDARD_LIBRARY_REFERENCE.md",
+      "sha256": "3324e4c70e11e444ce0e072b03779c0151d69c02a39ffafc4e3b3730bf9e866c"
+    },
+    {
+      "path": "/Users/robertdevore/2026/Kujolang/kujo-repos/mcp/README.md",
+      "sha256": "3deba1d7e71bcdd75224a8bb8098b52267393ee30191bfa45b5025a79544d205"
+    }
+  ]
+}

@@ -1,0 +1,452 @@
+{
+  "experiment": "one paired exploratory Kujo documentation-guidance test",
+  "arms": [
+    {
+      "arm": "contexta",
+      "run_id": "dev-2026-10-03-exhaustion-contexta",
+      "duration_ms": 111126,
+      "summary": {
+        "total": 1,
+        "completed": 1,
+        "failed": 0,
+        "retry_count": 0,
+        "tool_calls_executed": 50,
+        "tool_input_repairs": 0,
+        "provider_rounds": 33,
+        "latency_ms_total": 107494,
+        "latency_samples": 1,
+        "token_use": {
+          "input_tokens": 1291547,
+          "output_tokens": 14529,
+          "total_tokens": 1306076
+        },
+        "transport_completion_rate": 1,
+        "task_completion_rate": null,
+        "repair_rate": 0,
+        "average_latency_ms": 107494
+      },
+      "boundary_checks": [
+        {
+          "command": [
+            "kujo",
+            "run",
+            "primes.kujo",
+            "0"
+          ],
+          "exit_code": 0,
+          "count": 0
+        },
+        {
+          "command": [
+            "./primes",
+            "0"
+          ],
+          "exit_code": 0,
+          "count": 0
+        },
+        {
+          "command": [
+            "kujo",
+            "run",
+            "primes.kujo",
+            "1"
+          ],
+          "exit_code": 0,
+          "count": 0
+        },
+        {
+          "command": [
+            "./primes",
+            "1"
+          ],
+          "exit_code": 0,
+          "count": 0
+        },
+        {
+          "command": [
+            "kujo",
+            "run",
+            "primes.kujo",
+            "2"
+          ],
+          "exit_code": 0,
+          "count": 1
+        },
+        {
+          "command": [
+            "./primes",
+            "2"
+          ],
+          "exit_code": 0,
+          "count": 1
+        },
+        {
+          "command": [
+            "kujo",
+            "run",
+            "primes.kujo",
+            "3"
+          ],
+          "exit_code": 0,
+          "count": 2
+        },
+        {
+          "command": [
+            "./primes",
+            "3"
+          ],
+          "exit_code": 0,
+          "count": 2
+        },
+        {
+          "command": [
+            "kujo",
+            "run",
+            "primes.kujo",
+            "4"
+          ],
+          "exit_code": 0,
+          "count": 2
+        },
+        {
+          "command": [
+            "./primes",
+            "4"
+          ],
+          "exit_code": 0,
+          "count": 2
+        },
+        {
+          "command": [
+            "kujo",
+            "run",
+            "primes.kujo",
+            "49"
+          ],
+          "exit_code": 0,
+          "count": 15
+        },
+        {
+          "command": [
+            "./primes",
+            "49"
+          ],
+          "exit_code": 0,
+          "count": 15
+        },
+        {
+          "command": [
+            "kujo",
+            "run",
+            "primes.kujo",
+            "1000"
+          ],
+          "exit_code": 0,
+          "count": 168
+        },
+        {
+          "command": [
+            "./primes",
+            "1000"
+          ],
+          "exit_code": 0,
+          "count": 168
+        }
+      ],
+      "timings": {
+        "kujo": {
+          "warmup": 1058398,
+          "trials": [
+            1161304,
+            1089493,
+            1069748,
+            1034088,
+            1070994
+          ],
+          "median": 1070994,
+          "unit": "us"
+        },
+        "go": {
+          "warmup": 9355,
+          "trials": [
+            10851,
+            10301,
+            14635,
+            12864,
+            10986
+          ],
+          "median": 10986,
+          "unit": "us"
+        }
+      },
+      "first_syntax_check_pass": true,
+      "failed_receipts": [],
+      "tool_counts": {
+        "local_workspace_list": 1,
+        "system_time": 1,
+        "local_file_list": 11,
+        "local_shell": 27,
+        "local_file_read": 7,
+        "local_file_write": 3
+      },
+      "documentation_reads": [
+        "Kujolang/kujo-repos/kujo/docs/LANGUAGE_SPEC.md",
+        "Kujolang/kujo-repos/kujo/examples/benchmark_fib.kujo",
+        "Kujolang/kujo-repos/kujo/examples/for_loops.kujo",
+        "Kujolang/kujo-repos/kujo/examples/00-hello.kujo",
+        "Kujolang/kujo-repos/kujo/docs/STANDARD_LIBRARY_REFERENCE.md",
+        "Kujolang/kujo-repos/kujo/docs/STANDARD_LIBRARY_REFERENCE.md",
+        "Kujolang/kujo-repos/kujo/docs/STANDARD_LIBRARY_REFERENCE.md"
+      ],
+      "final_context_budget": {
+        "system_chars": 7850,
+        "conversation_chars": 1802,
+        "tool_result_chars": 123021,
+        "tool_call_chars": 14264,
+        "tool_schema_bytes": 7558,
+        "tool_schema_count": 13,
+        "before_upper_bound": 203619,
+        "after_upper_bound": 203619,
+        "input_allowance": 1042576,
+        "output_reservation": 6000,
+        "envelope_reservation": 0,
+        "compacted_calls": 0,
+        "recovered_facts": 0,
+        "folded_file_reads": 0,
+        "removed_messages": 0,
+        "estimator": "utf8_bytes_plus_framing_upper_bound",
+        "context_window_tokens": 1048576,
+        "context_policy_source": "watchdog:deepseek-v4.1-flash:cloud",
+        "context_scope": "provider_request"
+      },
+      "independent_task_pass": true
+    },
+    {
+      "arm": "contextb",
+      "run_id": "dev-2026-10-03-exhaustion-contextb",
+      "duration_ms": 110145,
+      "summary": {
+        "total": 1,
+        "completed": 1,
+        "failed": 0,
+        "retry_count": 0,
+        "tool_calls_executed": 35,
+        "tool_input_repairs": 0,
+        "provider_rounds": 27,
+        "latency_ms_total": 107006,
+        "latency_samples": 1,
+        "token_use": {
+          "input_tokens": 568008,
+          "output_tokens": 10420,
+          "total_tokens": 578428
+        },
+        "transport_completion_rate": 1,
+        "task_completion_rate": null,
+        "repair_rate": 0,
+        "average_latency_ms": 107006
+      },
+      "boundary_checks": [
+        {
+          "command": [
+            "kujo",
+            "run",
+            "primes.kujo",
+            "0"
+          ],
+          "exit_code": 0,
+          "count": 0
+        },
+        {
+          "command": [
+            "./primes_go",
+            "0"
+          ],
+          "exit_code": 0,
+          "count": 0
+        },
+        {
+          "command": [
+            "kujo",
+            "run",
+            "primes.kujo",
+            "1"
+          ],
+          "exit_code": 0,
+          "count": 0
+        },
+        {
+          "command": [
+            "./primes_go",
+            "1"
+          ],
+          "exit_code": 0,
+          "count": 0
+        },
+        {
+          "command": [
+            "kujo",
+            "run",
+            "primes.kujo",
+            "2"
+          ],
+          "exit_code": 0,
+          "count": 1
+        },
+        {
+          "command": [
+            "./primes_go",
+            "2"
+          ],
+          "exit_code": 0,
+          "count": 1
+        },
+        {
+          "command": [
+            "kujo",
+            "run",
+            "primes.kujo",
+            "3"
+          ],
+          "exit_code": 0,
+          "count": 2
+        },
+        {
+          "command": [
+            "./primes_go",
+            "3"
+          ],
+          "exit_code": 0,
+          "count": 2
+        },
+        {
+          "command": [
+            "kujo",
+            "run",
+            "primes.kujo",
+            "4"
+          ],
+          "exit_code": 0,
+          "count": 2
+        },
+        {
+          "command": [
+            "./primes_go",
+            "4"
+          ],
+          "exit_code": 0,
+          "count": 2
+        },
+        {
+          "command": [
+            "kujo",
+            "run",
+            "primes.kujo",
+            "49"
+          ],
+          "exit_code": 0,
+          "count": 15
+        },
+        {
+          "command": [
+            "./primes_go",
+            "49"
+          ],
+          "exit_code": 0,
+          "count": 15
+        },
+        {
+          "command": [
+            "kujo",
+            "run",
+            "primes.kujo",
+            "1000"
+          ],
+          "exit_code": 0,
+          "count": 168
+        },
+        {
+          "command": [
+            "./primes_go",
+            "1000"
+          ],
+          "exit_code": 0,
+          "count": 168
+        }
+      ],
+      "timings": {
+        "kujo": {
+          "warmup": 5057,
+          "trials": [
+            5141,
+            8885,
+            9893,
+            6326,
+            5599
+          ],
+          "median": 6326,
+          "unit": "ms"
+        },
+        "go": {
+          "warmup": 34,
+          "trials": [
+            63,
+            94,
+            83,
+            90,
+            93
+          ],
+          "median": 90,
+          "unit": "ms"
+        }
+      },
+      "first_syntax_check_pass": true,
+      "failed_receipts": [
+        {
+          "tool": "local_shell",
+          "code": "local_shell_failed",
+          "command": "./"
+        }
+      ],
+      "tool_counts": {
+        "local_workspace_list": 1,
+        "system_time": 1,
+        "local_shell": 28,
+        "local_file_read": 2,
+        "local_file_write": 3
+      },
+      "documentation_reads": [
+        "Kujolang/kujo-repos/kujo/docs/LANGUAGE_SPEC.md",
+        "Kujolang/kujo-repos/kujo/docs/STANDARD_LIBRARY_REFERENCE.md"
+      ],
+      "final_context_budget": {
+        "system_chars": 7850,
+        "conversation_chars": 3354,
+        "tool_result_chars": 46745,
+        "tool_call_chars": 11949,
+        "tool_schema_bytes": 7558,
+        "tool_schema_count": 13,
+        "before_upper_bound": 106517,
+        "after_upper_bound": 106517,
+        "input_allowance": 1042576,
+        "output_reservation": 6000,
+        "envelope_reservation": 0,
+        "compacted_calls": 0,
+        "recovered_facts": 0,
+        "folded_file_reads": 0,
+        "removed_messages": 0,
+        "estimator": "utf8_bytes_plus_framing_upper_bound",
+        "context_window_tokens": 1048576,
+        "context_policy_source": "watchdog:deepseek-v4.1-flash:cloud",
+        "context_scope": "provider_request"
+      },
+      "independent_task_pass": true
+    }
+  ],
+  "application_verification": {
+    "command": "npm test",
+    "node": "22.17.0",
+    "passed": 540,
+    "skipped": 1,
+    "failed": 0
+  }
+}
