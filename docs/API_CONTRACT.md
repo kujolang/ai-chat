@@ -653,3 +653,50 @@ Review state is checkpointed for explicit resume. Completed execution replay
 returns the saved result without starting another review. Detailed events remain
 available through the existing execution event API, including if a reviewer is
 cancelled before producing a verdict.
+
+### Engineering verification and task budgets
+
+Generic streaming requests accept optional `task_deadline_ms`, a positive integer
+UTC epoch-millisecond deadline supplied by the caller. It is saved with the
+execution and exposed as remaining-time guidance each provider round. Resuming
+an execution retains its original deadline. This field is advisory: it does not
+extend existing network/tool limits or introduce cancellation for ordinary chat.
+The benchmark runner sends its existing external deadline. Native Codex keeps
+its own harness; these provider-round instructions apply to the generic loop.
+
+Independent review reserves its fourth and final round for
+`engineering_review_submit` only. Invalid verdicts retain bounded field/code
+diagnostics without echoing rejected values. Review packets include a bounded
+inventory of final code-write receipts and recognized verification commands. A
+pass is changed to a repair request when recorded successful verification
+predates a later code write. This is a temporal check, not proof of coverage:
+shell edits and imported dependencies still require inspection. Existing review,
+repair, permission and wall-time limits remain in force.
+
+`local_kujo` is an optional provider-neutral local tool with operations `guide`,
+`check`, `run`, `test` (`test-run`), and `benchmark`. It uses the **PATH `kujo`**,
+not the bridge's `KUJO_BIN`, and the existing local shell opt-in, command allowlist,
+workspace path checks, cancellation and output bounds. It does not sandbox
+scripts or grant additional permissions. `path` is relative to `cwd`; source
+must be a bounded non-sensitive `.kujo` file in the configured workspace.
+
+The guide probes the executable version and returns one small reference topic
+(`core`, `arguments`, `collections`, `timing`). Examples are verified only on
+listed runtime versions; other versions receive no claimed verified example.
+Execution results include the actual version, source SHA-256 before/after, exit
+status and output. Source changes make verification unsuccessful. Hashes cover
+the selected file, not imported dependencies. `check` is syntax/compiler
+validation; behavioral checks belong in the script/tests and independent oracles.
+
+Benchmark requires `pure:true`, an explicit `budget_ms` (1,000–600,000), and
+1–7 trials (default 5). It calibrates once, estimates whether trials fit while
+reserving time, and refuses repetition if they do not. It never automatically
+scales a workload or retries a failed trial. Timings are process wall times,
+including startup; output equivalence must be verified separately. Script
+side effects remain the caller's responsibility even with `pure:true`.
+
+Benchmark result panes now retain `execution_id`, `usage_complete`, and
+`usage_source`. Failed streams inspect their saved journal once with a bounded
+request, without resuming work. Missing/running/incomplete usage remains marked
+incomplete. Recovery of usage never changes failure into acceptance. Older
+servers without `local_kujo` retain the original local-dev tool preset.

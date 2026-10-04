@@ -10,14 +10,8 @@ This guide documents how to make the Kujo programming language tooling ecosystem
 
 ## Prerequisites
 
-- A compiled Kujo binary. Two copies exist on this machine:
-
-  | Path | Version | Built |
-  | --- | --- | --- |
-  | `/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo` | 1.0.2 | 2026-08-12 (from `Cargo.toml` `version = "1.0.2"`) |
-  | `/Users/robertdevore/.local/bin/kujo` | 1.0.0 | 2026-08-08 (initial public release; stale) |
-
-  Prefer the `target/release/kujo` binary (1.0.2). The `~/.local/bin/kujo` copy is the older 1.0.0 release.
+- A compiled Kujo binary. Verify the executable used by the running server's PATH with `kujo --version`; do not infer its version from a checkout's manifest. On October 4, 2026, the installed PATH binary reported 1.5.0 and the checkout release binary reported 1.7.0. These are machine-specific observations, not installation requirements.
+- `KUJO_BIN` selects the chat bridge executable. Agent commands (`local_shell` and `local_kujo`) resolve `kujo` through PATH; setting `KUJO_BIN` does not switch those commands.
 
 - The AI SDK source directory containing both `ai_sdk.kujo` and `providers.kujo`:
 
@@ -40,7 +34,7 @@ Resulting binary:
 /Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo
 ```
 
-A compiled binary already exists at that path (19,982,172 bytes, executable), so a rebuild is not required.
+Check the executable and its version before deciding whether a rebuild is required.
 
 ## Environment variables
 
@@ -108,3 +102,23 @@ run from `AI_SDK_PATH`.
 - The shell allowlist is intentionally narrow. Add `kujo` only for a trusted workspace; do not add it to the default allowlist in `lib/local-runtime.js`.
 - `local_shell` runs commands with a sanitized environment (only `PATH`, `HOME`, `LANG`, `LC_ALL`, `TERM`, `CI`), no shell interpolation, an args array, and timeout/output bounds. `KUJO_BIN` and `AI_SDK_PATH` are read by the server runtime, not forwarded into the shell environment.
 - `.env.example` is protected by the sensitive-name denylist and cannot be edited by local tools; the server owner must set these variables directly.
+
+## Structured development tool
+
+When local runtime tools are available, `local_kujo` provides `guide`, `check`,
+`run`, `test` (`kujo test-run`), and an explicitly authorized pure-script
+`benchmark`. It uses the same workspace and shell permissions as `local_shell`.
+The guide selects examples verified against the actual runtime version; unknown
+versions receive no claimed verified example. Verification fingerprints cover
+only the selected source file, not its imports.
+
+Run the trusted reference checks with:
+
+```sh
+node scripts/verify-kujo-reference.js
+```
+
+See [the API contract](API_CONTRACT.md) for arguments and limits, and
+[the evaluation protocol](benchmarks/development-verification-intervention-2026-10-04.md)
+for independent quality checks. The helper is not a sandbox and does not make an
+arbitrary script safe to repeat.
