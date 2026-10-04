@@ -5610,3 +5610,43 @@ test('stream exposes caller deadline to every provider round and preserves it in
   });
  }finally{destroy();}
 });
+
+for(const providerId of ['openai','ollama']) {
+ test(`engineering contract survives protocol rounds and validates executable references (${providerId})`,async()=>{
+  let calls=0,writes=0,runs=0;
+  const {runtime,destroy}=createIsolatedRuntime({envMerge:{ENGINEERING_REVIEW_ENABLED:'1',ENGINEERING_CONTRACT_ENABLED:'1'},
+   localRuntime:{canExecute:()=>true,status:()=>({enabled:true}),writeFile:()=>{writes++;return{ok:true};},runCommand:()=>{runs++;return{ok:true,exit_code:0,stdout:'checks passed'};},readFile:()=>({ok:true,content:'final source'})},
+   fetchFn:async(_url,options)=>{
+    calls++;const body=JSON.parse(options.body);let name,args;
+    const receipt=providerId==='ollama'?'tool_call_2_0':'check';
+    const read=providerId==='ollama'?'tool_call_6_0':'read';
+    if(calls===1){name='engineering_contract';args={action:'plan',invariants:[{id:'reject',invariant:'Bad input leaves state unchanged',check:'Run invalid input and compare state'}]};}
+    if(calls===2){name='local_file_write';args={path:'main.js',content:'source'};}
+    if(calls===3){name='local_shell';args={command:'node',args:['--test']};}
+    if(calls===4||calls===5){name='engineering_contract';args={action:'evidence',evidence:[{id:'reject',result_ref:calls===4?'fabricated':receipt}]};}
+    if(calls===5)assert.match(JSON.stringify(body.messages),/real completed executable receipt/);
+    if(calls===7){name='local_file_read';args={path:'main.js'};assert.match(JSON.stringify(body.messages),/task_contract/);assert.ok(!body.tools.some(t=>t.function.name==='engineering_contract'));}
+    if(calls===8){name='engineering_review_submit';args={verdict:'pass',findings:[],checks:[{result_ref:read,claim:'final source inspected'}]};}
+    assert.ok(calls<=9);
+    const call=name?{id:calls===3?'check':calls===7?'read':`call-${calls}`,function:{name,arguments:args}}:null;
+    if(providerId==='ollama')return mockChunkedResponse([JSON.stringify({message:call?{tool_calls:[{function:call.function}]}:{content:'Finished with checks.'},done:true,done_reason:'stop',prompt_eval_count:10,eval_count:5})+'\n']);
+    return mockSseResponse([{usage:{prompt_tokens:10,completion_tokens:5,total_tokens:15},choices:[{delta:call?{tool_calls:[{...call,index:0,function:{...call.function,arguments:JSON.stringify(args)}}]}:{content:'Finished with checks.'},finish_reason:call?'tool_calls':'stop'}]}]);
+   }});
+  try{const profileId=applyProfileMutation(runtime,p=>{p.provider_id=providerId;p.api_key='fixture';});await withServer(runtime.app,async base=>{
+   const response=await fetch(base+'/api/chat/stream',{method:'POST',headers:withAuthHeaders({'Content-Type':'application/json'}),body:JSON.stringify({request_id:`contract-${providerId}`,profile_id:profileId,messages:[{role:'user',content:'Implement main.js'}],tools:['local_file_write','local_file_read','local_shell'].map(name=>({type:'function',function:{name}})),include_saved_runtime_presets:false})});
+   const last=parseSseEvents(await response.text()).at(-1);assert.equal(last.event,'done',JSON.stringify(last));assert.equal(last.data.engineering_review.outcome,'pass');assert.equal(writes,1);assert.equal(runs,1);assert.equal(calls,9);assert.equal(last.data.usage.total_tokens,135);
+   const saved=await fetchJson(base,`/api/executions/contract-${providerId}`);assert.equal(saved.json.execution.checkpoint.engineering_review.contract.plan[0].id,'reject');assert.equal(saved.json.execution.checkpoint.engineering_review.contract.evidence.length,1);
+  });}finally{destroy();}
+ });
+}
+
+test('mixed engineering contract batch executes no write',async()=>{
+ let calls=0,writes=0;const {runtime,destroy}=createIsolatedRuntime({envMerge:{ENGINEERING_REVIEW_ENABLED:'1',ENGINEERING_CONTRACT_ENABLED:'1'},localRuntime:{canExecute:()=>true,status:()=>({enabled:true}),writeFile:()=>{writes++;return{ok:true};}},fetchFn:async()=>{
+  calls++;const tool_calls=[{index:0,id:'plan',function:{name:'engineering_contract',arguments:JSON.stringify({action:'plan',invariants:[{id:'x',invariant:'x',check:'x'}]})}},{index:1,id:'write',function:{name:'local_file_write',arguments:'{"path":"x","content":"x"}'}}];
+  return mockSseResponse([{choices:[{delta:calls===1?{tool_calls}:{content:'No work performed.'},finish_reason:calls===1?'tool_calls':'stop'}]}]);
+ }});
+ try{const profileId=applyProfileMutation(runtime,p=>{p.provider_id='openai';p.api_key='fixture';});await withServer(runtime.app,async base=>{
+  const r=await fetch(base+'/api/chat/stream',{method:'POST',headers:withAuthHeaders({'Content-Type':'application/json'}),body:JSON.stringify({profile_id:profileId,messages:[{role:'user',content:'Explain'}],tools:[{type:'function',function:{name:'local_file_write'}}],include_saved_runtime_presets:false})});
+  assert.equal(parseSseEvents(await r.text()).at(-1).event,'done');assert.equal(writes,0);assert.equal(calls,2);
+ });}finally{destroy();}
+});

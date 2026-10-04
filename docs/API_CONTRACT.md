@@ -714,3 +714,34 @@ Benchmark result panes now retain `execution_id`, `usage_complete`, and
 request, without resuming work. Missing/running/incomplete usage remains marked
 incomplete. Recovery of usage never changes failure into acceptance. Older
 servers without `local_kujo` retain the original local-dev tool preset.
+
+### Engineering task contracts
+
+`ENGINEERING_CONTRACT_ENABLED=1`, together with engineering review enabled, adds
+a protocol-only `engineering_contract` tool to generic development turns with
+authorized local write/shell/Kujo tools. This does not grant executable tools.
+The worker records 1–8 failure invariants and executable check plans before
+implementation, then links each invariant to real successful execution receipts.
+The plan is immutable; a late plan is disclosed. Syntax-only Kujo checks, reads,
+failed/truncated results and invented references cannot satisfy it. Later file
+writes invalidate earlier evidence links. Missing evidence converts a reviewer
+pass to a bounded repair request. This proves receipt completeness, not semantic
+coverage: shell edits and dependencies still require inspection, and model-written
+tests are not independent oracles. Reviewer instructions require inspecting what
+the checks actually assert. Explanation-only turns need no contract.
+
+Contract calls must be submitted alone. Mixed batches execute nothing. They use
+the existing provider-round budget and persist in the execution checkpoint; they
+do not increment executable-tool counters. Reviewer/final phases cannot mutate
+the contract. Old checkpoints never gain the requirement retroactively.
+
+With contracts enabled, two recent executable failures trigger at most three
+category-specific diagnostic reminders per execution, persisted across resume.
+They advise saved-evidence recovery and a minimal pure reproduction rather than
+blind retries. They never execute a probe, change a runtime, replay consequential
+work or increase a timeout.
+
+Kujo guide topics now also include `json`, `errors`, and `persistence`, with
+expected output. The persistence example requires a fresh owned directory and
+checks failed-write disk/visible-state consistency before a successful commit.
+These examples are independently executed by the reference/qualification scripts.

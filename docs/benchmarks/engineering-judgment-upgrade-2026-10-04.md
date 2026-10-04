@@ -10,12 +10,12 @@ The requested scope is the complete follow-up to the GLM verification assessment
 | Requirement | Evidence required | Current state |
 |---|---|---|
 | Qualify and pin the agent runtime/backend independently of the bridge | Real runtime probes, explicit configuration, permission tests, live tool receipt | Qualified stable local 1.7.0 executable pinned; permission tests, configured tool receipt and restarted server verified |
-| Define task failure invariants before implementation | Structured task-scoped contract consumed by worker/reviewer | Pending |
-| Turn invariants into executable independent checks | Trusted checks, deliberate defective controls, final-source evidence | Pending |
-| Supply focused runtime-verified examples | JSON, errors, files/persistence examples checked on selected runtime | Pending |
-| Escape repeated debugging loops with minimal reproduction/runtime comparison | Bounded diagnostic behavior with no automatic replay of consequential work | Pending |
-| Require concrete completion evidence | Final artifacts, checks and unresolved gaps linked to the task contract | Pending |
-| Make review feedback actionable with bounded repair | Validation diagnostics, inspected references, checkpoint and provider integration tests | Implemented bounded submission correction; semantic repair improvements pending |
+| Define task failure invariants before implementation | Structured task-scoped contract consumed by worker/reviewer | Implemented optional immutable engineering_contract; protocol and checkpoint tests pass |
+| Turn invariants into executable independent checks | Trusted checks, deliberate defective controls, final-source evidence | Fresh transfer oracle calibrated against reference behavior and arithmetic/memory mutants; model evaluation pending |
+| Supply focused runtime-verified examples | JSON, errors, files/persistence examples checked on selected runtime | Added json/errors/persistence topics; all eight qualification probes pass on selected 1.7.0 runtime |
+| Escape repeated debugging loops with minimal reproduction/runtime comparison | Bounded diagnostic behavior with no automatic replay of consequential work | Two failures trigger at most three typed reminders; no tool execution or runtime switch; checkpoint tests pass |
+| Require concrete completion evidence | Final artifacts, checks and unresolved gaps linked to the task contract | Receipt links required per invariant; stale/missing/failed evidence blocks advisory pass |
+| Make review feedback actionable with bounded repair | Validation diagnostics, inspected references, checkpoint and provider integration tests | Implemented bounded submission correction, invariant gap repair, and explicit semantic test inspection guidance |
 | Evaluate on fresh tasks | Frozen tasks/oracles, fresh directories, controls, quality and completion comparison | Pending; no new model benchmark run yet |
 
 ## Review submission correction
@@ -93,3 +93,30 @@ corrected to verify the seven actual profile IDs, not claim model-field coverage
   and no calls after terminal replay. No assertion was disabled.
 
 No model-quality increase is claimed from fixture tests or runtime probes.
+
+## Contract, diagnostics and fresh evaluation preparation
+
+`ENGINEERING_CONTRACT_ENABLED=1` adds immutable task invariants and real executable
+evidence links to the opt-in generic engineering review loop. Receipt completeness
+is enforced, not semantic correctness: the reviewer still inspects code and test
+assertions. Plan/evidence protocol grants no execution rights; mixed batches run
+nothing. Late plans are disclosed. Checkpoints preserve plans and diagnostic
+notification limits. Old checkpoints retain their previous behavior.
+
+`benchmarks/judgment-transfer-tasks.md` freezes three new transfer tasks: exact
+decimal batch totals, atomic score batches, and a persistent HTTP entry service.
+`scripts/verify-judgment-transfer.js` independently tests process output, strict
+rejections, boundaries, disk preservation, visible-state preservation after failed
+writes, recovery, concurrent updates, restart and corrupt-state refusal. Reference
+fixtures are test-only and never supplied as model context. Negative controls
+prove arithmetic errors and memory-before-commit mutations are detected; process
+crashes/timeouts cannot count as proper validation.
+
+Verification: contract/review/diagnostics module tests passed; three OpenAI/Ollama
+protocol tests passed; fresh verifier calibration tests 3/3 passed. Full serial
+application suite 622 passed, 0 failed, 1 skipped before adding the standalone
+verifier tests (which passed separately). Expanded real reference examples passed
+on 1.5.0 default, 1.5.0 interpreter and pinned 1.7.0 default. The full 1.5.0 VM
+qualification still intentionally fails the nested-arithmetic regression.
+
+Fresh evaluation is pending. No quality or performance improvement is yet claimed.
