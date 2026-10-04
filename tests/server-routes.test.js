@@ -5551,3 +5551,19 @@ for (const mode of ['worker-submit', 'mixed-review-batch']) {
   } finally { destroy(); }
  });
 }
+
+test('stream exposes caller deadline to every provider round and preserves it in journal', async () => {
+ const deadline=Date.now()+60000;let requests=0;
+ const {runtime,destroy}=createIsolatedRuntime({fetchFn:async(_url,options)=>{
+  requests++;const body=JSON.parse(options.body);assert.match(JSON.stringify(body.messages),/Caller task deadline/);
+  return mockSseResponse([{choices:[{delta:{content:'Complete.'},finish_reason:'stop'}]}]);
+ }});
+ try{
+  const profileId=applyProfileMutation(runtime,p=>{p.provider_id='openai';p.api_key='fixture';});
+  await withServer(runtime.app,async base=>{
+   const response=await fetch(base+'/api/chat/stream',{method:'POST',headers:withAuthHeaders({'Content-Type':'application/json'}),body:JSON.stringify({request_id:'deadline-fixture',profile_id:profileId,task_deadline_ms:deadline,messages:[{role:'user',content:'Complete this task.'}],tools:[],include_saved_runtime_presets:false})});
+   assert.equal(parseSseEvents(await response.text()).at(-1).event,'done');
+   const saved=await fetchJson(base,'/api/executions/deadline-fixture');assert.equal(saved.json.execution.request.task_deadline_ms,deadline);assert.equal(requests,1);
+  });
+ }finally{destroy();}
+});

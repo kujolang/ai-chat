@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+const { reconcileBenchmarkEvidence } = require('../lib/benchmark-evidence');
 
 const crypto = require("node:crypto");
 const fs = require("node:fs/promises");
@@ -285,6 +286,9 @@ async function runPane({ chat, pane, benchmark, maxTokens, temperature }) {
 		retry_count: Math.max(0, attempts - 1),
 		duration_ms: duration,
 		usage: result.usage || null,
+		usage_complete: result.usage_complete ?? null,
+		execution_id: result.execution_id || null,
+		usage_source: result.usage_source || "stream",
 		tool_calls_executed: Number(result.tool_calls_executed || 0),
 		tool_input_repairs: Number(result.tool_input_repairs || 0),
 		provider_rounds: Number(result.provider_rounds || 0),
@@ -323,12 +327,12 @@ function delay(milliseconds) {
 async function streamChat(payload) {
 	const controller = new AbortController();
 	const timeout = setTimeout(() => controller.abort(new Error(`Stream timed out after ${streamTimeoutMs}ms.`)), streamTimeoutMs);
-	const result = { ok: true, terminal_seen: false, content: "", thinking: "", usage: null, provider: null, model: null, error: null, tool_calls_executed: 0, tool_input_repairs: 0, provider_rounds: 0, trace_id: null };
+	const result = { execution_id: payload.request_id, ok: true, terminal_seen: false, content: "", thinking: "", usage: null, provider: null, model: null, error: null, tool_calls_executed: 0, tool_input_repairs: 0, provider_rounds: 0, trace_id: null };
 	try {
 		const response = await fetch(`${baseUrl}/api/chat/stream`, {
 			method: "POST",
 			headers: { "Content-Type": "application/json", "X-API-Token": apiToken },
-			body: JSON.stringify(payload),
+			body: JSON.stringify({ ...payload, task_deadline_ms: Date.now() + streamTimeoutMs }),
 			signal: controller.signal
 		});
 		if (!response.ok || !response.body) throw new Error(`HTTP ${response.status}: ${await response.text()}`);
@@ -365,7 +369,12 @@ async function streamChat(payload) {
 			} catch { result.cancellation_requested = false; }
 			error = controller.signal.reason instanceof Error ? controller.signal.reason : new Error(`Stream timed out after ${streamTimeoutMs}ms.`);
 		}
-		throw Object.assign(error, { benchmarkResult: error.benchmarkResult || result });
+		await reconcileBenchmarkEvidence(result, payload.request_id, async id => {
+			const response = await fetch(`${baseUrl}/api/executions/${encodeURIComponent(id)}`, { headers: { "X-API-Token": apiToken }, signal: AbortSignal.timeout(5000) });
+			if (!response.ok) throw new Error('Execution inspection failed.');
+			return response.json();
+		});
+		throw Object.assign(error, { benchmarkResult: result });
 	} finally {
 		clearTimeout(timeout);
 	}
@@ -417,6 +426,7 @@ function applyEvent(event, raw, result) {
 		result.provider_rounds = Number(payload.provider_rounds || 0);
 		result.trace_id = payload.trace_id || null;
 		result.finish_reason = payload.finish_reason || null;
+		result.usage_complete = payload.usage_complete ?? null;
 		if (event === "done" && ["length", "max_tokens"].includes(result.finish_reason)) {
 			result.ok = false; result.error = "Output limit reached before completion.";
 		}
@@ -426,7 +436,7 @@ function applyEvent(event, raw, result) {
 function resolveBenchmarkTools(health, preset) {
 	if (!preset || preset === "none") return [];
 	const presets = {
-		"local-dev": ["local_workspace_list", "local_file_list", "local_file_read", "local_file_write", "local_shell", "documentation_query"],
+		"local-dev": ["local_workspace_list", "local_file_list", "local_file_read", "local_file_write", "local_shell", "local_kujo", "documentation_query"],
 		"local-read": ["local_workspace_list", "local_file_list", "local_file_read"],
 		"tool-repair": ["local_workspace_list", "local_file_list", "local_file_read"]
 	};
@@ -436,9 +446,9 @@ function resolveBenchmarkTools(health, preset) {
 		? health.tool_runtime.schemas
 		: [];
 	const byName = new Map(schemas.map((schema) => [String(schema && schema.function && schema.function.name || ""), schema]));
-	const missing = names.filter((name) => !byName.has(name));
+	const missing = names.filter((name) => name !== "local_kujo" && !byName.has(name));
 	if (missing.length) fail(`Benchmark tool preset ${preset} is unavailable on the target server: ${missing.join(", ")}.`);
-	return names.map((name) => byName.get(name));
+	return names.filter(name => byName.has(name)).map((name) => byName.get(name));
 }
 
 async function requestJson(endpoint, options = {}) {

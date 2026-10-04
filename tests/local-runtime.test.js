@@ -782,3 +782,20 @@ for (const deniedSignal of ['SIGTERM', 'SIGKILL']) {
   assert.deepEqual(sent,deniedSignal==='SIGTERM'?['SIGTERM']:['SIGTERM','SIGKILL']);
  });
 }
+
+test('structured Kujo operations retain shell policy and workspace containment', async () => {
+ const root=fs.mkdtempSync(path.join(os.tmpdir(),'ai-chat-kujo-tool-')); let spawns=0;
+ const base={AI_CHAT_LOCAL_TOOLS_ENABLED:'1',AI_CHAT_LOCAL_SHELL_ENABLED:'1',AI_CHAT_LOCAL_WORKSPACE_ROOTS:root,AI_CHAT_LOCAL_SHELL_ALLOWLIST:'kujo'};
+ const spawnFn=(_command,args)=>{spawns++;return fakeChild(c=>{c.stdout.end(args[0]==='--version'?'kujo 1.5.0\n':'3\n');c.emit('close',0);});};
+ try {
+  fs.writeFileSync(path.join(root,'a.kujo'),'print(3)');
+  const local=createLocalRuntime({env:base,spawnFn});const id=local.listWorkspaces().workspaces[0].id;
+  const r=await local.runKujo({root_id:id,path:'a.kujo',operation:'check'});
+  assert.equal(r.ok,true);assert.match(r.source.sha256,/^[a-f0-9]{64}$/);assert.equal(spawns,2);
+  await assert.rejects(local.runKujo({root_id:id,path:'../outside.kujo',operation:'run'}));assert.equal(spawns,2);
+  const blocked=createLocalRuntime({env:{...base,AI_CHAT_LOCAL_SHELL_ALLOWLIST:'git'},spawnFn});
+  await assert.rejects(blocked.runKujo({root_id:id,path:'a.kujo',operation:'run'}),e=>e.code==='local_shell_command_blocked');assert.equal(spawns,2);
+  const disabled=createLocalRuntime({env:{...base,AI_CHAT_LOCAL_SHELL_ENABLED:'0'},spawnFn});
+  await assert.rejects(disabled.runKujo({root_id:id,operation:'guide'}),e=>e.code==='local_shell_disabled');assert.equal(spawns,2);
+ } finally { fs.rmSync(root,{recursive:true,force:true}); }
+});

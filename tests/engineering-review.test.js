@@ -108,3 +108,29 @@ test('truncated request context cannot receive a pass even with a valid evidence
  r.onStop(m, verdict('pass'), receipts);
  assert.equal(r.state.outcome, 'inconclusive'); assert.match(r.completionNotice(), /complete scope/);
 });
+
+test('last review round reserves verdict-only schema including after resume', () => {
+ let r = createEngineeringReview({ enabled: true, originalMessages });
+ const m = r.onStop([...originalMessages], 'candidate', receipts);
+ for (let i=0;i<3;i++) { r.beforeRound(m); assert.ok(r.schemas(tools).some(t=>t.function.name==='local_file_read')); }
+ r = createEngineeringReview({ enabled: true, originalMessages, checkpoint: { engineering_review: r.state } });
+ r.beforeRound(m);
+ assert.deepEqual(r.schemas(tools).map(t=>t.function.name), ['engineering_review_submit']);
+ assert.match(r.budgetMessage().content, /verdict-only/);
+ r.noteResults([{ id:'read1', function:{name:'local_file_read'} }], [{content:'source'}]);
+ r.onStop(m, verdict('pass'), receipts); assert.equal(r.state.outcome,'pass');
+});
+test('invalid verdict diagnoses fields without echoing untrusted values', () => {
+ const v=parseVerdict(JSON.stringify({ verdict:'pass',findings:[],checks:[{result_ref:'private value',claim:'ok'}]}),[]);
+ assert.deepEqual(v.diagnostic,{code:'uninspected_reference',field:'checks[0].result_ref'});
+ assert.ok(!JSON.stringify(v).includes('private value'));
+ assert.equal(parseVerdict('{').diagnostic.code,'invalid_json');
+ assert.equal(parseVerdict(JSON.stringify({verdict:'pass',findings:[],checks:Array(13).fill({})})).diagnostic.field,'checks');
+});
+test('passing advisory review cannot certify code edited after successful tests', () => {
+ const r=createEngineeringReview({enabled:true,originalMessages});
+ const rs=[{call_id:'test',tool_name:'local_shell',status:'completed',input:{command:'go',args:['test','./...']},result:{exit_code:0}}, {call_id:'write',tool_name:'local_file_write',status:'completed',input:{path:'main.go'},result:{ok:true}}];
+ const m=r.onStop([...originalMessages],'candidate',rs);
+ r.noteResults([{id:'read1',function:{name:'local_file_read'}}],[{content:'source'}]);
+ r.onStop(m,verdict('pass'),rs);assert.equal(r.state.phase,'repair');assert.match(r.state.lastVerdict.findings[0],/Source changed/);
+});

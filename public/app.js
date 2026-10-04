@@ -7939,6 +7939,8 @@ function createLocalToolDefinitions() {
 			additionalProperties: false
 		}]
 	];
+	const kujoSchema = runtimeCapabilities.schemas.find(schema => schema.function.name === "local_kujo");
+	if (kujoSchema) definitions.push([kujoSchema.function.name, kujoSchema.function.description, kujoSchema.function.parameters]);
 	return definitions.map(([name, description, parameters]) => createToolDefinition({ name, description, parameters_json: JSON.stringify(parameters, null, 2), kind: "preset" }));
 }
 
@@ -8009,7 +8011,7 @@ function isRuntimePresetTool(name) {
 		"documentation_query",
 		"browser_open", "browser_snapshot", "browser_act", "browser_close", "browser_use",
 		"skill_list", "skill_read", "skill_file_read",
-		"local_workspace_list", "local_file_list", "local_file_read", "local_file_write", "local_shell",
+		"local_workspace_list", "local_file_list", "local_file_read", "local_file_write", "local_shell", "local_kujo",
 		"action_adapter_list", "action_adapter_call"
 	].includes(String(name || ""));
 }
