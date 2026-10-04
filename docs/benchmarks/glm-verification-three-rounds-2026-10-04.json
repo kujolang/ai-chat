@@ -1,0 +1,4454 @@
+{
+  "model": "glm-5.3-flash:cloud",
+  "provider_profile": "Watchdog / Ollama Cloud",
+  "starting_sha": "7d5ca82efaf2970a8cf1be5d7853ac52e6e75a9e",
+  "controls": {
+    "starting_sha": "7d5ca82efaf2970a8cf1be5d7853ac52e6e75a9e",
+    "toolchain": {
+      "kujo": {
+        "path": "/Users/robertdevore/.local/bin/kujo",
+        "sha256": "3e1e475ea165c8b4a714495596fe8661ad970b27119ad44f1db4d9779f7f05d4",
+        "version": "kujo 1.5.0"
+      },
+      "go": {
+        "path": "/usr/local/Cellar/go/1.27.1/libexec/bin/go",
+        "sha256": "6890cf02fb958fc15a043022d5f29e2a2206ab08a73581eddc3f33c7c681a730",
+        "version": "go version go1.27.1 darwin/amd64"
+      }
+    },
+    "health": {
+      "engineering_review": {
+        "enabled": true,
+        "reviews": 3,
+        "repairs": 2,
+        "reviewRounds": 4,
+        "repairRounds": 12,
+        "durationMs": 300000
+      },
+      "context_management": {
+        "max_json_body_bytes": 8388608,
+        "max_messages_per_request": 2000,
+        "max_message_chars": 1000000,
+        "max_total_message_chars": 4000000,
+        "compaction": {
+          "enabled": true,
+          "strategy": "structured_excerpt_v1",
+          "target_chars": 262144,
+          "summary_chars": 24576,
+          "preserve_recent_messages": 24
+        },
+        "tool_budget": {
+          "max_rounds": 2048,
+          "max_calls_per_request": 16384,
+          "max_calls_per_round": 6,
+          "max_tool_context_chars": 262144
+        }
+      },
+      "instance": {
+        "role": "interactive",
+        "label": "interactive:127.0.0.1:4174"
+      }
+    },
+    "model": "glm-5.3-flash:cloud",
+    "profile_id": "profile_watchdog_81f3c1a6-2942-489a-b7b0-206e02b490bc"
+  },
+  "method": {
+    "attempts": 1,
+    "concurrency": 1,
+    "max_output_tokens": 6000,
+    "deadline_ms": 1200000,
+    "model_retries": 0,
+    "source_edits_during_runs": false,
+    "manual_artifact_repairs": false,
+    "paid_frontier_control": false,
+    "review_off_control": false,
+    "verification_after_timed_runs": true,
+    "new_tasks_separate_from_historical_score": true
+  },
+  "rounds": [
+    {
+      "round": 1,
+      "standard": {
+        "run_id": "verifyglm1-standard",
+        "started_at": "2026-10-04T14:39:05.322Z",
+        "finished_at": "2026-10-04T14:54:32.286Z",
+        "duration_ms": 926964,
+        "tasks": 6,
+        "transport_completed": 6,
+        "strict_accepted": 6,
+        "tokens_reported": 1989381,
+        "usage_complete": true,
+        "provider_rounds": 113,
+        "tool_receipts": 200,
+        "cases": [
+          {
+            "artifact": "verifyglm1-standard-case-1-execution.json",
+            "execution_id": "4b0520a2-8d69-49ae-87fd-b0abd4e4aec7",
+            "status": "completed",
+            "model": "glm-5.3-flash:cloud",
+            "deadline": 1791125948657,
+            "receipts": 34,
+            "tools": {
+              "local_workspace_list": 1,
+              "local_kujo": 1,
+              "local_shell": 13,
+              "skill_list": 1,
+              "local_file_write": 4,
+              "local_file_read": 5,
+              "tool_result_read": 9
+            },
+            "review": {
+              "phase": "final",
+              "reviews": 1,
+              "repairs": 0,
+              "outcome": "pass",
+              "evidence_checks": 8,
+              "diagnostic": null,
+              "findings": []
+            },
+            "usage": {
+              "input_tokens": 338187,
+              "output_tokens": 21658,
+              "total_tokens": 359845,
+              "cached_input_tokens": null,
+              "cache_write_input_tokens": null,
+              "cache_details_reported": false
+            },
+            "usage_complete": true,
+            "usage_reported_rounds": 20,
+            "provider_rounds": 20,
+            "tool_calls_executed": 34,
+            "context_budget": {
+              "system_chars": 10667,
+              "conversation_chars": 6707,
+              "tool_result_chars": 14502,
+              "tool_call_chars": 18110,
+              "tool_schema_bytes": 2,
+              "tool_schema_count": 0,
+              "before_upper_bound": 103229,
+              "after_upper_bound": 103229,
+              "input_allowance": 1042576,
+              "output_reservation": 6000,
+              "envelope_reservation": 0,
+              "compacted_calls": 0,
+              "recovered_facts": 0,
+              "folded_file_reads": 0,
+              "removed_messages": 0,
+              "estimator": "utf8_bytes_plus_framing_upper_bound",
+              "context_window_tokens": 1048576,
+              "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+              "context_limit_known": true,
+              "context_scope": "provider_request"
+            },
+            "code": null,
+            "message": null,
+            "strict_acceptance": true,
+            "acceptance_note": "Completed and independently verified against task requirements."
+          },
+          {
+            "artifact": "verifyglm1-standard-case-2-execution.json",
+            "execution_id": "46cfc107-1032-49cd-afca-a8db777d2800",
+            "status": "completed",
+            "model": "glm-5.3-flash:cloud",
+            "deadline": 1791126182946,
+            "receipts": 67,
+            "tools": {
+              "local_workspace_list": 1,
+              "system_time": 1,
+              "skill_list": 1,
+              "local_file_list": 2,
+              "local_shell": 14,
+              "local_kujo": 15,
+              "local_file_read": 8,
+              "local_file_write": 6,
+              "tool_result_read": 19
+            },
+            "review": {
+              "phase": "final",
+              "reviews": 2,
+              "repairs": 1,
+              "outcome": "pass",
+              "evidence_checks": 9,
+              "diagnostic": null,
+              "findings": []
+            },
+            "usage": {
+              "input_tokens": 715878,
+              "output_tokens": 35543,
+              "total_tokens": 751421,
+              "cached_input_tokens": null,
+              "cache_write_input_tokens": null,
+              "cache_details_reported": false
+            },
+            "usage_complete": true,
+            "usage_reported_rounds": 37,
+            "provider_rounds": 37,
+            "tool_calls_executed": 67,
+            "context_budget": {
+              "system_chars": 10667,
+              "conversation_chars": 11722,
+              "tool_result_chars": 37798,
+              "tool_call_chars": 14594,
+              "tool_schema_bytes": 2,
+              "tool_schema_count": 0,
+              "before_upper_bound": 125995,
+              "after_upper_bound": 125995,
+              "input_allowance": 1042576,
+              "output_reservation": 6000,
+              "envelope_reservation": 0,
+              "compacted_calls": 0,
+              "recovered_facts": 0,
+              "folded_file_reads": 0,
+              "removed_messages": 0,
+              "estimator": "utf8_bytes_plus_framing_upper_bound",
+              "context_window_tokens": 1048576,
+              "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+              "context_limit_known": true,
+              "context_scope": "provider_request"
+            },
+            "code": null,
+            "message": null,
+            "strict_acceptance": true,
+            "acceptance_note": "Completed and independently verified against task requirements."
+          },
+          {
+            "artifact": "verifyglm1-standard-case-3-execution.json",
+            "execution_id": "d1271b6f-e17e-4c6a-b82a-ac04fb2442df",
+            "status": "completed",
+            "model": "glm-5.3-flash:cloud",
+            "deadline": 1791126502785,
+            "receipts": 18,
+            "tools": {
+              "local_workspace_list": 1,
+              "skill_list": 1,
+              "local_file_list": 1,
+              "local_file_read": 8,
+              "local_shell": 3,
+              "local_file_write": 2,
+              "tool_result_read": 2
+            },
+            "review": {
+              "phase": "final",
+              "reviews": 1,
+              "repairs": 0,
+              "outcome": "inconclusive",
+              "evidence_checks": 0,
+              "diagnostic": {
+                "code": "expected_array_max_12",
+                "field": "findings"
+              },
+              "findings": [
+                "Review submission rejected: expected_array_max_12 at findings."
+              ]
+            },
+            "usage": {
+              "input_tokens": 184984,
+              "output_tokens": 22559,
+              "total_tokens": 207543,
+              "cached_input_tokens": null,
+              "cache_write_input_tokens": null,
+              "cache_details_reported": false
+            },
+            "usage_complete": true,
+            "usage_reported_rounds": 14,
+            "provider_rounds": 14,
+            "tool_calls_executed": 18,
+            "context_budget": {
+              "system_chars": 10668,
+              "conversation_chars": 4330,
+              "tool_result_chars": 10697,
+              "tool_call_chars": 3226,
+              "tool_schema_bytes": 2,
+              "tool_schema_count": 0,
+              "before_upper_bound": 68798,
+              "after_upper_bound": 68798,
+              "input_allowance": 1042576,
+              "output_reservation": 6000,
+              "envelope_reservation": 0,
+              "compacted_calls": 0,
+              "recovered_facts": 0,
+              "folded_file_reads": 0,
+              "removed_messages": 0,
+              "estimator": "utf8_bytes_plus_framing_upper_bound",
+              "context_window_tokens": 1048576,
+              "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+              "context_limit_known": true,
+              "context_scope": "provider_request"
+            },
+            "code": null,
+            "message": null,
+            "strict_acceptance": true,
+            "acceptance_note": "Completed and independently verified against task requirements."
+          },
+          {
+            "artifact": "verifyglm1-standard-case-4-execution.json",
+            "execution_id": "c02a5d5d-b689-4c8f-be23-0e7f1455cf3b",
+            "status": "completed",
+            "model": "glm-5.3-flash:cloud",
+            "deadline": 1791126596969,
+            "receipts": 22,
+            "tools": {
+              "local_workspace_list": 1,
+              "system_time": 1,
+              "local_kujo": 1,
+              "local_file_list": 3,
+              "local_shell": 5,
+              "local_file_write": 4,
+              "local_file_read": 4,
+              "tool_result_read": 3
+            },
+            "review": {
+              "phase": "final",
+              "reviews": 1,
+              "repairs": 0,
+              "outcome": "pass",
+              "evidence_checks": 6,
+              "diagnostic": null,
+              "findings": []
+            },
+            "usage": {
+              "input_tokens": 292877,
+              "output_tokens": 23085,
+              "total_tokens": 315962,
+              "cached_input_tokens": null,
+              "cache_write_input_tokens": null,
+              "cache_details_reported": false
+            },
+            "usage_complete": true,
+            "usage_reported_rounds": 15,
+            "provider_rounds": 15,
+            "tool_calls_executed": 22,
+            "context_budget": {
+              "system_chars": 10668,
+              "conversation_chars": 7435,
+              "tool_result_chars": 76459,
+              "tool_call_chars": 25979,
+              "tool_schema_bytes": 2,
+              "tool_schema_count": 0,
+              "before_upper_bound": 170123,
+              "after_upper_bound": 170123,
+              "input_allowance": 1042576,
+              "output_reservation": 6000,
+              "envelope_reservation": 0,
+              "compacted_calls": 0,
+              "recovered_facts": 0,
+              "folded_file_reads": 0,
+              "removed_messages": 0,
+              "estimator": "utf8_bytes_plus_framing_upper_bound",
+              "context_window_tokens": 1048576,
+              "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+              "context_limit_known": true,
+              "context_scope": "provider_request"
+            },
+            "code": null,
+            "message": null,
+            "strict_acceptance": true,
+            "acceptance_note": "Completed and independently verified against task requirements."
+          },
+          {
+            "artifact": "verifyglm1-standard-case-5-execution.json",
+            "execution_id": "e588ae99-4183-4fc8-8db4-1b437f0c4030",
+            "status": "completed",
+            "model": "glm-5.3-flash:cloud",
+            "deadline": 1791126703510,
+            "receipts": 13,
+            "tools": {
+              "local_workspace_list": 1,
+              "skill_list": 1,
+              "local_file_list": 2,
+              "local_shell": 3,
+              "local_file_write": 1,
+              "local_file_read": 1,
+              "tool_result_read": 4
+            },
+            "review": {
+              "phase": "final",
+              "reviews": 1,
+              "repairs": 0,
+              "outcome": "inconclusive",
+              "evidence_checks": 0,
+              "diagnostic": {
+                "code": "uninspected_reference",
+                "field": "checks[2].result_ref"
+              },
+              "findings": [
+                "Review submission rejected: uninspected_reference at checks[2].result_ref."
+              ]
+            },
+            "usage": {
+              "input_tokens": 67172,
+              "output_tokens": 9527,
+              "total_tokens": 76699,
+              "cached_input_tokens": null,
+              "cache_write_input_tokens": null,
+              "cache_details_reported": false
+            },
+            "usage_complete": true,
+            "usage_reported_rounds": 9,
+            "provider_rounds": 9,
+            "tool_calls_executed": 13,
+            "context_budget": {
+              "system_chars": 10668,
+              "conversation_chars": 3952,
+              "tool_result_chars": 6577,
+              "tool_call_chars": 1461,
+              "tool_schema_bytes": 2,
+              "tool_schema_count": 0,
+              "before_upper_bound": 43132,
+              "after_upper_bound": 43132,
+              "input_allowance": 1042576,
+              "output_reservation": 6000,
+              "envelope_reservation": 0,
+              "compacted_calls": 0,
+              "recovered_facts": 0,
+              "folded_file_reads": 0,
+              "removed_messages": 0,
+              "estimator": "utf8_bytes_plus_framing_upper_bound",
+              "context_window_tokens": 1048576,
+              "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+              "context_limit_known": true,
+              "context_scope": "provider_request"
+            },
+            "code": null,
+            "message": null,
+            "strict_acceptance": true,
+            "acceptance_note": "Completed and independently verified against task requirements."
+          },
+          {
+            "artifact": "verifyglm1-standard-case-6-execution.json",
+            "execution_id": "85ae7dbb-f665-40a3-bbfa-145a64615a97",
+            "status": "completed",
+            "model": "glm-5.3-flash:cloud",
+            "deadline": 1791126758521,
+            "receipts": 46,
+            "tools": {
+              "local_workspace_list": 2,
+              "system_time": 1,
+              "local_shell": 16,
+              "local_file_list": 2,
+              "skill_list": 1,
+              "local_file_write": 11,
+              "tool_result_read": 10,
+              "local_file_read": 3
+            },
+            "review": {
+              "phase": "final",
+              "reviews": 1,
+              "repairs": 0,
+              "outcome": "pass",
+              "evidence_checks": 9,
+              "diagnostic": null,
+              "findings": []
+            },
+            "usage": {
+              "input_tokens": 254123,
+              "output_tokens": 23788,
+              "total_tokens": 277911,
+              "cached_input_tokens": null,
+              "cache_write_input_tokens": null,
+              "cache_details_reported": false
+            },
+            "usage_complete": true,
+            "usage_reported_rounds": 18,
+            "provider_rounds": 18,
+            "tool_calls_executed": 46,
+            "context_budget": {
+              "system_chars": 10668,
+              "conversation_chars": 6892,
+              "tool_result_chars": 10685,
+              "tool_call_chars": 20396,
+              "tool_schema_bytes": 2,
+              "tool_schema_count": 0,
+              "before_upper_bound": 93611,
+              "after_upper_bound": 93611,
+              "input_allowance": 1042576,
+              "output_reservation": 6000,
+              "envelope_reservation": 0,
+              "compacted_calls": 0,
+              "recovered_facts": 0,
+              "folded_file_reads": 0,
+              "removed_messages": 0,
+              "estimator": "utf8_bytes_plus_framing_upper_bound",
+              "context_window_tokens": 1048576,
+              "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+              "context_limit_known": true,
+              "context_scope": "provider_request"
+            },
+            "code": null,
+            "message": null,
+            "strict_acceptance": true,
+            "acceptance_note": "Completed and independently verified against task requirements."
+          }
+        ]
+      },
+      "quality": {
+        "run_id": "verifyglm1-quality",
+        "started_at": "2026-10-04T14:54:34.426Z",
+        "finished_at": "2026-10-04T15:04:30.340Z",
+        "duration_ms": 595914,
+        "tasks": 3,
+        "transport_completed": 2,
+        "strict_accepted": 2,
+        "tokens_reported": 1877520,
+        "usage_complete": true,
+        "provider_rounds": 92,
+        "tool_receipts": 204,
+        "cases": [
+          {
+            "artifact": "verifyglm1-quality-case-1-execution.json",
+            "execution_id": "b9e99445-ae6a-409d-a638-50e6c895c7e2",
+            "status": "completed",
+            "model": "glm-5.3-flash:cloud",
+            "deadline": 1791126884690,
+            "receipts": 42,
+            "tools": {
+              "local_workspace_list": 1,
+              "skill_list": 1,
+              "local_kujo": 3,
+              "local_file_list": 3,
+              "documentation_query": 3,
+              "local_file_write": 9,
+              "local_shell": 15,
+              "local_file_read": 3,
+              "tool_result_read": 4
+            },
+            "review": {
+              "phase": "final",
+              "reviews": 1,
+              "repairs": 0,
+              "outcome": "pass",
+              "evidence_checks": 6,
+              "diagnostic": null,
+              "findings": []
+            },
+            "usage": {
+              "input_tokens": 526822,
+              "output_tokens": 29895,
+              "total_tokens": 556717,
+              "cached_input_tokens": null,
+              "cache_write_input_tokens": null,
+              "cache_details_reported": false
+            },
+            "usage_complete": true,
+            "usage_reported_rounds": 32,
+            "provider_rounds": 32,
+            "tool_calls_executed": 42,
+            "context_budget": {
+              "system_chars": 10668,
+              "conversation_chars": 7681,
+              "tool_result_chars": 30689,
+              "tool_call_chars": 17920,
+              "tool_schema_bytes": 2,
+              "tool_schema_count": 0,
+              "before_upper_bound": 133400,
+              "after_upper_bound": 133400,
+              "input_allowance": 1042576,
+              "output_reservation": 6000,
+              "envelope_reservation": 0,
+              "compacted_calls": 0,
+              "recovered_facts": 0,
+              "folded_file_reads": 0,
+              "removed_messages": 0,
+              "estimator": "utf8_bytes_plus_framing_upper_bound",
+              "context_window_tokens": 1048576,
+              "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+              "context_limit_known": true,
+              "context_scope": "provider_request"
+            },
+            "code": null,
+            "message": null,
+            "strict_acceptance": true,
+            "acceptance_note": "Completed and independently verified against task requirements."
+          },
+          {
+            "artifact": "verifyglm1-quality-case-2-execution.json",
+            "execution_id": "7854396b-acf4-47b8-a2ec-0c15cfefb31e",
+            "status": "completed",
+            "model": "glm-5.3-flash:cloud",
+            "deadline": 1791127085586,
+            "receipts": 110,
+            "tools": {
+              "local_workspace_list": 1,
+              "system_time": 1,
+              "local_file_list": 2,
+              "local_kujo": 60,
+              "documentation_query": 2,
+              "local_shell": 2,
+              "local_file_write": 26,
+              "local_file_read": 4,
+              "tool_result_read": 12
+            },
+            "review": {
+              "phase": "final",
+              "reviews": 1,
+              "repairs": 0,
+              "outcome": "pass",
+              "evidence_checks": 12,
+              "diagnostic": null,
+              "findings": []
+            },
+            "usage": {
+              "input_tokens": 900223,
+              "output_tokens": 28465,
+              "total_tokens": 928688,
+              "cached_input_tokens": null,
+              "cache_write_input_tokens": null,
+              "cache_details_reported": false
+            },
+            "usage_complete": true,
+            "usage_reported_rounds": 42,
+            "provider_rounds": 42,
+            "tool_calls_executed": 110,
+            "context_budget": {
+              "system_chars": 10668,
+              "conversation_chars": 8671,
+              "tool_result_chars": 83837,
+              "tool_call_chars": 32615,
+              "tool_schema_bytes": 2,
+              "tool_schema_count": 0,
+              "before_upper_bound": 208305,
+              "after_upper_bound": 208305,
+              "input_allowance": 1042576,
+              "output_reservation": 6000,
+              "envelope_reservation": 0,
+              "compacted_calls": 0,
+              "recovered_facts": 0,
+              "folded_file_reads": 0,
+              "removed_messages": 0,
+              "estimator": "utf8_bytes_plus_framing_upper_bound",
+              "context_window_tokens": 1048576,
+              "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+              "context_limit_known": true,
+              "context_scope": "provider_request"
+            },
+            "code": null,
+            "message": null,
+            "strict_acceptance": true,
+            "acceptance_note": "Completed and independently verified against task requirements."
+          },
+          {
+            "artifact": "verifyglm1-quality-case-3-execution.json",
+            "execution_id": "c095548e-9b55-4be4-a231-503aa61320a6",
+            "status": "interrupted",
+            "model": "glm-5.3-flash:cloud",
+            "deadline": 1791127270667,
+            "receipts": 52,
+            "tools": {
+              "local_workspace_list": 1,
+              "skill_list": 1,
+              "local_file_list": 7,
+              "local_kujo": 1,
+              "local_shell": 20,
+              "documentation_query": 3,
+              "local_file_read": 1,
+              "local_file_write": 18
+            },
+            "review": {
+              "phase": "work",
+              "reviews": 0,
+              "repairs": 0,
+              "outcome": "not_requested",
+              "evidence_checks": 0,
+              "diagnostic": null,
+              "findings": []
+            },
+            "usage": {
+              "input_tokens": 360190,
+              "output_tokens": 31925,
+              "total_tokens": 392115,
+              "cached_input_tokens": null,
+              "cache_write_input_tokens": null,
+              "cache_details_reported": false
+            },
+            "usage_complete": true,
+            "usage_reported_rounds": 18,
+            "provider_rounds": 18,
+            "tool_calls_executed": 52,
+            "context_budget": {
+              "system_chars": 10668,
+              "conversation_chars": 2804,
+              "tool_result_chars": 48527,
+              "tool_call_chars": 13547,
+              "tool_schema_bytes": 8661,
+              "tool_schema_count": 14,
+              "before_upper_bound": 188425,
+              "after_upper_bound": 188425,
+              "input_allowance": 1042576,
+              "output_reservation": 6000,
+              "envelope_reservation": 0,
+              "compacted_calls": 0,
+              "recovered_facts": 0,
+              "folded_file_reads": 0,
+              "removed_messages": 0,
+              "estimator": "utf8_bytes_plus_framing_upper_bound",
+              "context_window_tokens": 1048576,
+              "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+              "context_limit_known": true,
+              "context_scope": "provider_request"
+            },
+            "code": "output_continuation_limit",
+            "message": "The model exhausted two output-limit continuations before completing the task. Completed tools and partial files are retained; inspect the saved execution before continuing.",
+            "strict_acceptance": false,
+            "acceptance_note": "Unfinished delivery; later artifact checks do not rescue the attempt."
+          }
+        ],
+        "independent_checks": {
+          "checks": 31,
+          "passed": 27,
+          "results": [
+            {
+              "task": 1,
+              "name": "0ms",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "001s",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "12ms",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "2s",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "3m",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "1440m",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "86400000ms",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "reject \"\"",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "reject \"-1s\"",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "reject \"+1s\"",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "reject \"1.5s\"",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "reject \"1e3ms\"",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "reject \" 2s\"",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "reject \"2s \"",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "reject \"86400001ms\"",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "reject \"999999999999999999999999m\"",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "empty moves",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "ordered transfers preserve total",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "[{\"from\":\"a\",\"to\":\"b\",\"amount\":9}]",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "[{\"from\":\"a\",\"to\":\"missing\",\"amount\":1}]",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "[{\"from\":\"a\",\"to\":\"a\",\"amount\":1}]",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "[{\"from\":\"a\",\"to\":\"b\",\"amount\":1.5}]",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "[{\"from\":\"a\",\"to\":\"b\",\"amount\":5},{\"from\":\"a\",\"to\":\"b\",\"amount\":4}]",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "reject null",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "reject []",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "reject {\"stock\":null,\"moves\":[]}",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "reject {\"stock\":{\"a\":-1},\"moves\":[]}",
+              "passed": true
+            },
+            {
+              "task": 3,
+              "name": "persist then restart",
+              "passed": false,
+              "error": "Missing artifact: /Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/data/dev-benchmark-2026-10-04-verifyglm1-quality/03/main.kujo"
+            },
+            {
+              "task": 3,
+              "name": "reject range without mutation",
+              "passed": false,
+              "error": "Missing artifact: /Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/data/dev-benchmark-2026-10-04-verifyglm1-quality/03/main.kujo"
+            },
+            {
+              "task": 3,
+              "name": "preserve corrupt state",
+              "passed": false,
+              "error": "Missing artifact: /Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/data/dev-benchmark-2026-10-04-verifyglm1-quality/03/main.kujo"
+            },
+            {
+              "task": 3,
+              "name": "failed write preserves disk and reports failure",
+              "passed": false,
+              "error": "Missing artifact: /Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/data/dev-benchmark-2026-10-04-verifyglm1-quality/03/main.kujo"
+            }
+          ]
+        },
+        "supplemental_kujo17": {
+          "checks": 31,
+          "passed": 27,
+          "results": [
+            {
+              "task": 1,
+              "name": "0ms",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "001s",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "12ms",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "2s",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "3m",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "1440m",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "86400000ms",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "reject \"\"",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "reject \"-1s\"",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "reject \"+1s\"",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "reject \"1.5s\"",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "reject \"1e3ms\"",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "reject \" 2s\"",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "reject \"2s \"",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "reject \"86400001ms\"",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "reject \"999999999999999999999999m\"",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "empty moves",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "ordered transfers preserve total",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "[{\"from\":\"a\",\"to\":\"b\",\"amount\":9}]",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "[{\"from\":\"a\",\"to\":\"missing\",\"amount\":1}]",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "[{\"from\":\"a\",\"to\":\"a\",\"amount\":1}]",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "[{\"from\":\"a\",\"to\":\"b\",\"amount\":1.5}]",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "[{\"from\":\"a\",\"to\":\"b\",\"amount\":5},{\"from\":\"a\",\"to\":\"b\",\"amount\":4}]",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "reject null",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "reject []",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "reject {\"stock\":null,\"moves\":[]}",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "reject {\"stock\":{\"a\":-1},\"moves\":[]}",
+              "passed": true
+            },
+            {
+              "task": 3,
+              "name": "persist then restart",
+              "passed": false,
+              "error": "Missing artifact: /Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/data/dev-benchmark-2026-10-04-verifyglm1-quality/03/main.kujo"
+            },
+            {
+              "task": 3,
+              "name": "reject range without mutation",
+              "passed": false,
+              "error": "Missing artifact: /Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/data/dev-benchmark-2026-10-04-verifyglm1-quality/03/main.kujo"
+            },
+            {
+              "task": 3,
+              "name": "preserve corrupt state",
+              "passed": false,
+              "error": "Missing artifact: /Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/data/dev-benchmark-2026-10-04-verifyglm1-quality/03/main.kujo"
+            },
+            {
+              "task": 3,
+              "name": "failed write preserves disk and reports failure",
+              "passed": false,
+              "error": "Missing artifact: /Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/data/dev-benchmark-2026-10-04-verifyglm1-quality/03/main.kujo"
+            }
+          ]
+        }
+      },
+      "generated_tests": [
+        {
+          "case": 1,
+          "command": [
+            "go",
+            "test",
+            "-json",
+            "-count=1",
+            "./..."
+          ],
+          "cwd": "data/dev-benchmark-2026-10-04-verifyglm1-standard/01",
+          "exit_code": 0,
+          "log": "data/benchmark-runs/verifyglm1-independent-1.log",
+          "passing_tests": 7
+        },
+        {
+          "case": 3,
+          "command": [
+            "node",
+            "--test"
+          ],
+          "cwd": "data/dev-benchmark-2026-10-04-verifyglm1-standard/03",
+          "exit_code": 0,
+          "log": "data/benchmark-runs/verifyglm1-independent-3.log",
+          "passing_tests": 5
+        },
+        {
+          "case": 4,
+          "command": [
+            "node",
+            "--test"
+          ],
+          "cwd": "data/dev-benchmark-2026-10-04-verifyglm1-standard/04",
+          "exit_code": 0,
+          "log": "data/benchmark-runs/verifyglm1-independent-4.log",
+          "passing_tests": 1
+        },
+        {
+          "case": 6,
+          "command": [
+            "go",
+            "test",
+            "-json",
+            "-count=1",
+            "./..."
+          ],
+          "cwd": "data/dev-benchmark-2026-10-04-verifyglm1-standard/06",
+          "exit_code": 0,
+          "log": "data/benchmark-runs/verifyglm1-independent-6.log",
+          "passing_tests": 11
+        }
+      ],
+      "csv_probes": [
+        {
+          "probe": "normal",
+          "exit_code": 0,
+          "stdout": "Alice 3.00\nBob 1.00\n",
+          "stderr": "",
+          "stderr_chars": 0
+        },
+        {
+          "probe": "nonfinite",
+          "exit_code": 1,
+          "stdout": "",
+          "stderr": "/var/folders/wb/0cck3lgd08n55g_8ly9qmf_00000gn/T/verifyglm1-csv-yr89qy2z/nonfinite.csv: line 2: malformed amount \"NaN\"\n/var/folders/wb/0cck3lgd08n55g_8ly9qmf_00000gn/T/verifyglm1-csv-yr89qy2z/nonfinite.csv: line 3: malformed amount \"Inf\"\n",
+          "stderr_chars": 238
+        },
+        {
+          "probe": "out_of_range",
+          "exit_code": 1,
+          "stdout": "",
+          "stderr": "/var/folders/wb/0cck3lgd08n55g_8ly9qmf_00000gn/T/verifyglm1-csv-yr89qy2z/out_of_range.csv: line 2: amount out of range \"1e20\"\n",
+          "stderr_chars": 126
+        },
+        {
+          "probe": "integer_overflow",
+          "exit_code": 1,
+          "stdout": "",
+          "stderr": "/var/folders/wb/0cck3lgd08n55g_8ly9qmf_00000gn/T/verifyglm1-csv-yr89qy2z/integer_overflow.csv: line 2: amount out of range \"92233720368547758.08\"\n",
+          "stderr_chars": 146
+        },
+        {
+          "probe": "quoted_customer",
+          "exit_code": 0,
+          "stdout": "A,B 1.00\n",
+          "stderr": "",
+          "stderr_chars": 0
+        },
+        {
+          "probe": "aggregate_overflow",
+          "exit_code": 0,
+          "stdout": "A -89467440737095611.16\n",
+          "stderr": "",
+          "stderr_chars": 0
+        },
+        {
+          "probe": "wrong_header",
+          "exit_code": 1,
+          "stdout": "",
+          "stderr": "error: missing \"customer,amount\" header\n",
+          "stderr_chars": 40
+        }
+      ],
+      "api_probes": {
+        "label": "verifyglm1",
+        "null_json": {
+          "status": 400,
+          "body": {
+            "error": "request body must be a JSON object"
+          }
+        },
+        "real_process_restart": "pass",
+        "forced_persistence_failure": {
+          "status": 500,
+          "body": {
+            "error": "internal server error"
+          }
+        },
+        "write_failed": true,
+        "memory_count": 2,
+        "disk_unchanged": true,
+        "visible_state_unchanged": false,
+        "alive_after_failure": true,
+        "children_cleaned": true
+      }
+    },
+    {
+      "round": 2,
+      "standard": {
+        "run_id": "verifyglm2-standard",
+        "started_at": "2026-10-04T15:04:31.502Z",
+        "finished_at": "2026-10-04T15:18:58.746Z",
+        "duration_ms": 867244,
+        "tasks": 6,
+        "transport_completed": 6,
+        "strict_accepted": 5,
+        "tokens_reported": 2419610,
+        "usage_complete": true,
+        "provider_rounds": 121,
+        "tool_receipts": 222,
+        "cases": [
+          {
+            "artifact": "verifyglm2-standard-case-1-execution.json",
+            "execution_id": "114cbb3b-8155-4e06-8e3b-ff7b044e0683",
+            "status": "completed",
+            "model": "glm-5.3-flash:cloud",
+            "deadline": 1791127477879,
+            "receipts": 37,
+            "tools": {
+              "local_workspace_list": 1,
+              "skill_list": 1,
+              "system_time": 1,
+              "local_shell": 13,
+              "local_file_list": 2,
+              "local_file_write": 5,
+              "local_file_read": 5,
+              "tool_result_read": 9
+            },
+            "review": {
+              "phase": "final",
+              "reviews": 1,
+              "repairs": 0,
+              "outcome": "pass",
+              "evidence_checks": 7,
+              "diagnostic": null,
+              "findings": []
+            },
+            "usage": {
+              "input_tokens": 315002,
+              "output_tokens": 27220,
+              "total_tokens": 342222,
+              "cached_input_tokens": null,
+              "cache_write_input_tokens": null,
+              "cache_details_reported": false
+            },
+            "usage_complete": true,
+            "usage_reported_rounds": 19,
+            "provider_rounds": 19,
+            "tool_calls_executed": 37,
+            "context_budget": {
+              "system_chars": 10668,
+              "conversation_chars": 6585,
+              "tool_result_chars": 16669,
+              "tool_call_chars": 18440,
+              "tool_schema_bytes": 2,
+              "tool_schema_count": 0,
+              "before_upper_bound": 99710,
+              "after_upper_bound": 99710,
+              "input_allowance": 1042576,
+              "output_reservation": 6000,
+              "envelope_reservation": 0,
+              "compacted_calls": 0,
+              "recovered_facts": 0,
+              "folded_file_reads": 0,
+              "removed_messages": 0,
+              "estimator": "utf8_bytes_plus_framing_upper_bound",
+              "context_window_tokens": 1048576,
+              "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+              "context_limit_known": true,
+              "context_scope": "provider_request"
+            },
+            "code": null,
+            "message": null,
+            "strict_acceptance": true,
+            "acceptance_note": "Completed and independently verified against task requirements."
+          },
+          {
+            "artifact": "verifyglm2-standard-case-2-execution.json",
+            "execution_id": "d0515b26-b3f7-40a4-82d2-e7b1383237c3",
+            "status": "completed",
+            "model": "glm-5.3-flash:cloud",
+            "deadline": 1791127615209,
+            "receipts": 44,
+            "tools": {
+              "local_workspace_list": 1,
+              "system_time": 1,
+              "local_kujo": 9,
+              "local_file_list": 2,
+              "local_file_read": 4,
+              "local_file_write": 7,
+              "documentation_query": 1,
+              "local_shell": 19
+            },
+            "review": {
+              "phase": "final",
+              "reviews": 1,
+              "repairs": 0,
+              "outcome": "inconclusive",
+              "evidence_checks": 0,
+              "diagnostic": {
+                "code": "invalid_json",
+                "field": "$"
+              },
+              "findings": [
+                "Review submission rejected: invalid_json at $."
+              ]
+            },
+            "usage": {
+              "input_tokens": 820340,
+              "output_tokens": 28892,
+              "total_tokens": 849232,
+              "cached_input_tokens": null,
+              "cache_write_input_tokens": null,
+              "cache_details_reported": false
+            },
+            "usage_complete": true,
+            "usage_reported_rounds": 33,
+            "provider_rounds": 33,
+            "tool_calls_executed": 44,
+            "context_budget": {
+              "system_chars": 10667,
+              "conversation_chars": 6598,
+              "tool_result_chars": 33346,
+              "tool_call_chars": 16139,
+              "tool_schema_bytes": 2,
+              "tool_schema_count": 0,
+              "before_upper_bound": 136336,
+              "after_upper_bound": 136336,
+              "input_allowance": 1042576,
+              "output_reservation": 6000,
+              "envelope_reservation": 0,
+              "compacted_calls": 0,
+              "recovered_facts": 0,
+              "folded_file_reads": 0,
+              "removed_messages": 0,
+              "estimator": "utf8_bytes_plus_framing_upper_bound",
+              "context_window_tokens": 1048576,
+              "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+              "context_limit_known": true,
+              "context_scope": "provider_request"
+            },
+            "code": null,
+            "message": null,
+            "strict_acceptance": false,
+            "acceptance_note": "Go silently substitutes 1000 for limits 0/1, unlike Kujo; explicit equivalence requirement fails."
+          },
+          {
+            "artifact": "verifyglm2-standard-case-3-execution.json",
+            "execution_id": "8df13925-3103-4125-bb8b-9f682e2909eb",
+            "status": "completed",
+            "model": "glm-5.3-flash:cloud",
+            "deadline": 1791127875294,
+            "receipts": 25,
+            "tools": {
+              "local_workspace_list": 1,
+              "system_time": 1,
+              "local_file_list": 3,
+              "local_file_read": 8,
+              "local_shell": 6,
+              "local_file_write": 2,
+              "tool_result_read": 4
+            },
+            "review": {
+              "phase": "final",
+              "reviews": 1,
+              "repairs": 0,
+              "outcome": "inconclusive",
+              "evidence_checks": 0,
+              "diagnostic": {
+                "code": "uninspected_reference",
+                "field": "checks[5].result_ref"
+              },
+              "findings": [
+                "Review submission rejected: uninspected_reference at checks[5].result_ref."
+              ]
+            },
+            "usage": {
+              "input_tokens": 225242,
+              "output_tokens": 21430,
+              "total_tokens": 246672,
+              "cached_input_tokens": null,
+              "cache_write_input_tokens": null,
+              "cache_details_reported": false
+            },
+            "usage_complete": true,
+            "usage_reported_rounds": 16,
+            "provider_rounds": 16,
+            "tool_calls_executed": 25,
+            "context_budget": {
+              "system_chars": 10668,
+              "conversation_chars": 4613,
+              "tool_result_chars": 20018,
+              "tool_call_chars": 4892,
+              "tool_schema_bytes": 2,
+              "tool_schema_count": 0,
+              "before_upper_bound": 85457,
+              "after_upper_bound": 85457,
+              "input_allowance": 1042576,
+              "output_reservation": 6000,
+              "envelope_reservation": 0,
+              "compacted_calls": 0,
+              "recovered_facts": 0,
+              "folded_file_reads": 0,
+              "removed_messages": 0,
+              "estimator": "utf8_bytes_plus_framing_upper_bound",
+              "context_window_tokens": 1048576,
+              "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+              "context_limit_known": true,
+              "context_scope": "provider_request"
+            },
+            "code": null,
+            "message": null,
+            "strict_acceptance": true,
+            "acceptance_note": "Completed and independently verified against task requirements."
+          },
+          {
+            "artifact": "verifyglm2-standard-case-4-execution.json",
+            "execution_id": "3c5f98e9-df97-48f6-b50a-590907dc050e",
+            "status": "completed",
+            "model": "glm-5.3-flash:cloud",
+            "deadline": 1791127983364,
+            "receipts": 32,
+            "tools": {
+              "local_workspace_list": 1,
+              "skill_list": 1,
+              "local_shell": 9,
+              "local_file_write": 5,
+              "local_file_read": 5,
+              "local_file_list": 1,
+              "tool_result_read": 10
+            },
+            "review": {
+              "phase": "final",
+              "reviews": 1,
+              "repairs": 0,
+              "outcome": "pass",
+              "evidence_checks": 5,
+              "diagnostic": null,
+              "findings": []
+            },
+            "usage": {
+              "input_tokens": 288943,
+              "output_tokens": 24174,
+              "total_tokens": 313117,
+              "cached_input_tokens": null,
+              "cache_write_input_tokens": null,
+              "cache_details_reported": false
+            },
+            "usage_complete": true,
+            "usage_reported_rounds": 17,
+            "provider_rounds": 17,
+            "tool_calls_executed": 32,
+            "context_budget": {
+              "system_chars": 10668,
+              "conversation_chars": 5988,
+              "tool_result_chars": 14587,
+              "tool_call_chars": 23659,
+              "tool_schema_bytes": 2,
+              "tool_schema_count": 0,
+              "before_upper_bound": 112810,
+              "after_upper_bound": 112810,
+              "input_allowance": 1042576,
+              "output_reservation": 6000,
+              "envelope_reservation": 0,
+              "compacted_calls": 0,
+              "recovered_facts": 0,
+              "folded_file_reads": 0,
+              "removed_messages": 0,
+              "estimator": "utf8_bytes_plus_framing_upper_bound",
+              "context_window_tokens": 1048576,
+              "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+              "context_limit_known": true,
+              "context_scope": "provider_request"
+            },
+            "code": null,
+            "message": null,
+            "strict_acceptance": true,
+            "acceptance_note": "Completed and independently verified against task requirements."
+          },
+          {
+            "artifact": "verifyglm2-standard-case-5-execution.json",
+            "execution_id": "3550dbf6-3beb-4d33-bf47-b4704f09a76e",
+            "status": "completed",
+            "model": "glm-5.3-flash:cloud",
+            "deadline": 1791128108099,
+            "receipts": 14,
+            "tools": {
+              "local_workspace_list": 1,
+              "skill_list": 1,
+              "local_shell": 4,
+              "local_file_list": 1,
+              "local_file_write": 1,
+              "local_file_read": 1,
+              "tool_result_read": 5
+            },
+            "review": {
+              "phase": "final",
+              "reviews": 1,
+              "repairs": 0,
+              "outcome": "pass",
+              "evidence_checks": 6,
+              "diagnostic": null,
+              "findings": []
+            },
+            "usage": {
+              "input_tokens": 67230,
+              "output_tokens": 9762,
+              "total_tokens": 76992,
+              "cached_input_tokens": null,
+              "cache_write_input_tokens": null,
+              "cache_details_reported": false
+            },
+            "usage_complete": true,
+            "usage_reported_rounds": 10,
+            "provider_rounds": 10,
+            "tool_calls_executed": 14,
+            "context_budget": {
+              "system_chars": 10668,
+              "conversation_chars": 4724,
+              "tool_result_chars": 6840,
+              "tool_call_chars": 1664,
+              "tool_schema_bytes": 2,
+              "tool_schema_count": 0,
+              "before_upper_bound": 36519,
+              "after_upper_bound": 36519,
+              "input_allowance": 1042576,
+              "output_reservation": 6000,
+              "envelope_reservation": 0,
+              "compacted_calls": 0,
+              "recovered_facts": 0,
+              "folded_file_reads": 0,
+              "removed_messages": 0,
+              "estimator": "utf8_bytes_plus_framing_upper_bound",
+              "context_window_tokens": 1048576,
+              "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+              "context_limit_known": true,
+              "context_scope": "provider_request"
+            },
+            "code": null,
+            "message": null,
+            "strict_acceptance": true,
+            "acceptance_note": "Completed and independently verified against task requirements."
+          },
+          {
+            "artifact": "verifyglm2-standard-case-6-execution.json",
+            "execution_id": "560afe41-33ae-46ee-9bdf-c65a52adb8fc",
+            "status": "completed",
+            "model": "glm-5.3-flash:cloud",
+            "deadline": 1791128161100,
+            "receipts": 70,
+            "tools": {
+              "local_workspace_list": 1,
+              "skill_list": 1,
+              "local_shell": 36,
+              "local_file_list": 2,
+              "local_file_write": 13,
+              "local_file_read": 5,
+              "tool_result_read": 12
+            },
+            "review": {
+              "phase": "final",
+              "reviews": 1,
+              "repairs": 0,
+              "outcome": "pass",
+              "evidence_checks": 6,
+              "diagnostic": null,
+              "findings": []
+            },
+            "usage": {
+              "input_tokens": 558592,
+              "output_tokens": 32783,
+              "total_tokens": 591375,
+              "cached_input_tokens": null,
+              "cache_write_input_tokens": null,
+              "cache_details_reported": false
+            },
+            "usage_complete": true,
+            "usage_reported_rounds": 26,
+            "provider_rounds": 26,
+            "tool_calls_executed": 70,
+            "context_budget": {
+              "system_chars": 10668,
+              "conversation_chars": 7763,
+              "tool_result_chars": 29144,
+              "tool_call_chars": 30483,
+              "tool_schema_bytes": 2,
+              "tool_schema_count": 0,
+              "before_upper_bound": 145636,
+              "after_upper_bound": 145636,
+              "input_allowance": 1042576,
+              "output_reservation": 6000,
+              "envelope_reservation": 0,
+              "compacted_calls": 0,
+              "recovered_facts": 0,
+              "folded_file_reads": 0,
+              "removed_messages": 0,
+              "estimator": "utf8_bytes_plus_framing_upper_bound",
+              "context_window_tokens": 1048576,
+              "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+              "context_limit_known": true,
+              "context_scope": "provider_request"
+            },
+            "code": null,
+            "message": null,
+            "strict_acceptance": true,
+            "acceptance_note": "Completed and independently verified against task requirements."
+          }
+        ]
+      },
+      "quality": {
+        "run_id": "verifyglm2-quality",
+        "started_at": "2026-10-04T15:19:00.198Z",
+        "finished_at": "2026-10-04T15:33:23.401Z",
+        "duration_ms": 863203,
+        "tasks": 3,
+        "transport_completed": 2,
+        "strict_accepted": 2,
+        "tokens_reported": 5582492,
+        "usage_complete": false,
+        "provider_rounds": 151,
+        "tool_receipts": 308,
+        "cases": [
+          {
+            "artifact": "verifyglm2-quality-case-1-execution.json",
+            "execution_id": "02ddff84-f0be-4632-a72c-0cde146dc55b",
+            "status": "completed",
+            "model": "glm-5.3-flash:cloud",
+            "deadline": 1791128347056,
+            "receipts": 101,
+            "tools": {
+              "local_workspace_list": 1,
+              "skill_list": 1,
+              "local_kujo": 59,
+              "local_file_list": 4,
+              "documentation_query": 3,
+              "local_shell": 4,
+              "local_file_write": 18,
+              "local_file_read": 4,
+              "tool_result_read": 7
+            },
+            "review": {
+              "phase": "final",
+              "reviews": 1,
+              "repairs": 0,
+              "outcome": "inconclusive",
+              "evidence_checks": 0,
+              "diagnostic": {
+                "code": "uninspected_reference",
+                "field": "checks[9].result_ref"
+              },
+              "findings": [
+                "Review submission rejected: uninspected_reference at checks[9].result_ref."
+              ]
+            },
+            "usage": {
+              "input_tokens": 1736551,
+              "output_tokens": 61424,
+              "total_tokens": 1797975,
+              "cached_input_tokens": null,
+              "cache_write_input_tokens": null,
+              "cache_details_reported": false
+            },
+            "usage_complete": true,
+            "usage_reported_rounds": 44,
+            "provider_rounds": 44,
+            "tool_calls_executed": 101,
+            "context_budget": {
+              "system_chars": 10667,
+              "conversation_chars": 9855,
+              "tool_result_chars": 92147,
+              "tool_call_chars": 35070,
+              "tool_schema_bytes": 2,
+              "tool_schema_count": 0,
+              "before_upper_bound": 301340,
+              "after_upper_bound": 301340,
+              "input_allowance": 1042576,
+              "output_reservation": 6000,
+              "envelope_reservation": 0,
+              "compacted_calls": 0,
+              "recovered_facts": 0,
+              "folded_file_reads": 0,
+              "removed_messages": 0,
+              "estimator": "utf8_bytes_plus_framing_upper_bound",
+              "context_window_tokens": 1048576,
+              "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+              "context_limit_known": true,
+              "context_scope": "provider_request"
+            },
+            "code": null,
+            "message": null,
+            "strict_acceptance": true,
+            "acceptance_note": "Completed and independently verified against task requirements."
+          },
+          {
+            "artifact": "verifyglm2-quality-case-2-execution.json",
+            "execution_id": "1fe4ebd5-a116-4c8b-bce7-12776e103545",
+            "status": "interrupted",
+            "model": "glm-5.3-flash:cloud",
+            "deadline": 1791128680192,
+            "receipts": 67,
+            "tools": {
+              "local_workspace_list": 1,
+              "system_time": 1,
+              "local_file_list": 5,
+              "local_kujo": 5,
+              "local_file_read": 5,
+              "skill_list": 1,
+              "local_shell": 45,
+              "local_file_write": 4
+            },
+            "review": {
+              "phase": "work",
+              "reviews": 0,
+              "repairs": 0,
+              "outcome": "not_requested",
+              "evidence_checks": 0,
+              "diagnostic": null,
+              "findings": []
+            },
+            "usage": {
+              "input_tokens": 739764,
+              "output_tokens": 13020,
+              "total_tokens": 752784,
+              "cached_input_tokens": null,
+              "cache_write_input_tokens": null,
+              "cache_details_reported": false
+            },
+            "usage_complete": false,
+            "usage_reported_rounds": 33,
+            "provider_rounds": 34,
+            "tool_calls_executed": 67,
+            "context_budget": {
+              "system_chars": 10668,
+              "conversation_chars": 3125,
+              "tool_result_chars": 72346,
+              "tool_call_chars": 23827,
+              "tool_schema_bytes": 8661,
+              "tool_schema_count": 14,
+              "before_upper_bound": 163091,
+              "after_upper_bound": 163091,
+              "input_allowance": 1042576,
+              "output_reservation": 6000,
+              "envelope_reservation": 0,
+              "compacted_calls": 0,
+              "recovered_facts": 0,
+              "folded_file_reads": 0,
+              "removed_messages": 0,
+              "estimator": "utf8_bytes_plus_framing_upper_bound",
+              "context_window_tokens": 1048576,
+              "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+              "context_limit_known": true,
+              "context_scope": "provider_request"
+            },
+            "code": "tool_continuation_timeout",
+            "message": "The provider did not continue after a tool result within the configured timeout. Retry the request.",
+            "strict_acceptance": false,
+            "acceptance_note": "Unfinished delivery; later artifact checks do not rescue the attempt."
+          },
+          {
+            "artifact": "verifyglm2-quality-case-3-execution.json",
+            "execution_id": "67ebbaa4-662e-4a25-a35d-2b9a6fb02396",
+            "status": "completed",
+            "model": "glm-5.3-flash:cloud",
+            "deadline": 1791128887100,
+            "receipts": 140,
+            "tools": {
+              "local_workspace_list": 1,
+              "system_time": 1,
+              "local_file_list": 9,
+              "local_kujo": 4,
+              "documentation_query": 3,
+              "local_shell": 71,
+              "local_file_write": 33,
+              "local_file_read": 8,
+              "tool_result_read": 10
+            },
+            "review": {
+              "phase": "final",
+              "reviews": 1,
+              "repairs": 0,
+              "outcome": "inconclusive",
+              "evidence_checks": 0,
+              "diagnostic": {
+                "code": "uninspected_reference",
+                "field": "checks[1].result_ref"
+              },
+              "findings": [
+                "Review submission rejected: uninspected_reference at checks[1].result_ref."
+              ]
+            },
+            "usage": {
+              "input_tokens": 2986177,
+              "output_tokens": 45556,
+              "total_tokens": 3031733,
+              "cached_input_tokens": null,
+              "cache_write_input_tokens": null,
+              "cache_details_reported": false
+            },
+            "usage_complete": true,
+            "usage_reported_rounds": 73,
+            "provider_rounds": 73,
+            "tool_calls_executed": 140,
+            "context_budget": {
+              "system_chars": 10667,
+              "conversation_chars": 7970,
+              "tool_result_chars": 136372,
+              "tool_call_chars": 44392,
+              "tool_schema_bytes": 2,
+              "tool_schema_count": 0,
+              "before_upper_bound": 324622,
+              "after_upper_bound": 324622,
+              "input_allowance": 1042576,
+              "output_reservation": 6000,
+              "envelope_reservation": 0,
+              "compacted_calls": 0,
+              "recovered_facts": 0,
+              "folded_file_reads": 0,
+              "removed_messages": 0,
+              "estimator": "utf8_bytes_plus_framing_upper_bound",
+              "context_window_tokens": 1048576,
+              "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+              "context_limit_known": true,
+              "context_scope": "provider_request"
+            },
+            "code": null,
+            "message": null,
+            "strict_acceptance": true,
+            "acceptance_note": "Completed and independently verified against task requirements."
+          }
+        ],
+        "independent_checks": {
+          "checks": 31,
+          "passed": 31,
+          "results": [
+            {
+              "task": 1,
+              "name": "0ms",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "001s",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "12ms",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "2s",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "3m",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "1440m",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "86400000ms",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "reject \"\"",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "reject \"-1s\"",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "reject \"+1s\"",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "reject \"1.5s\"",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "reject \"1e3ms\"",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "reject \" 2s\"",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "reject \"2s \"",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "reject \"86400001ms\"",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "reject \"999999999999999999999999m\"",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "empty moves",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "ordered transfers preserve total",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "[{\"from\":\"a\",\"to\":\"b\",\"amount\":9}]",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "[{\"from\":\"a\",\"to\":\"missing\",\"amount\":1}]",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "[{\"from\":\"a\",\"to\":\"a\",\"amount\":1}]",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "[{\"from\":\"a\",\"to\":\"b\",\"amount\":1.5}]",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "[{\"from\":\"a\",\"to\":\"b\",\"amount\":5},{\"from\":\"a\",\"to\":\"b\",\"amount\":4}]",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "reject null",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "reject []",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "reject {\"stock\":null,\"moves\":[]}",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "reject {\"stock\":{\"a\":-1},\"moves\":[]}",
+              "passed": true
+            },
+            {
+              "task": 3,
+              "name": "persist then restart",
+              "passed": true
+            },
+            {
+              "task": 3,
+              "name": "reject range without mutation",
+              "passed": true
+            },
+            {
+              "task": 3,
+              "name": "preserve corrupt state",
+              "passed": true
+            },
+            {
+              "task": 3,
+              "name": "failed write preserves disk and reports failure",
+              "passed": true
+            }
+          ]
+        },
+        "supplemental_kujo17": {
+          "checks": 31,
+          "passed": 31,
+          "results": [
+            {
+              "task": 1,
+              "name": "0ms",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "001s",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "12ms",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "2s",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "3m",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "1440m",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "86400000ms",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "reject \"\"",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "reject \"-1s\"",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "reject \"+1s\"",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "reject \"1.5s\"",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "reject \"1e3ms\"",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "reject \" 2s\"",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "reject \"2s \"",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "reject \"86400001ms\"",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "reject \"999999999999999999999999m\"",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "empty moves",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "ordered transfers preserve total",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "[{\"from\":\"a\",\"to\":\"b\",\"amount\":9}]",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "[{\"from\":\"a\",\"to\":\"missing\",\"amount\":1}]",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "[{\"from\":\"a\",\"to\":\"a\",\"amount\":1}]",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "[{\"from\":\"a\",\"to\":\"b\",\"amount\":1.5}]",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "[{\"from\":\"a\",\"to\":\"b\",\"amount\":5},{\"from\":\"a\",\"to\":\"b\",\"amount\":4}]",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "reject null",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "reject []",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "reject {\"stock\":null,\"moves\":[]}",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "reject {\"stock\":{\"a\":-1},\"moves\":[]}",
+              "passed": true
+            },
+            {
+              "task": 3,
+              "name": "persist then restart",
+              "passed": true
+            },
+            {
+              "task": 3,
+              "name": "reject range without mutation",
+              "passed": true
+            },
+            {
+              "task": 3,
+              "name": "preserve corrupt state",
+              "passed": true
+            },
+            {
+              "task": 3,
+              "name": "failed write preserves disk and reports failure",
+              "passed": true
+            }
+          ]
+        }
+      },
+      "generated_tests": [
+        {
+          "case": 1,
+          "command": [
+            "go",
+            "test",
+            "-json",
+            "-count=1",
+            "./..."
+          ],
+          "cwd": "data/dev-benchmark-2026-10-04-verifyglm2-standard/01",
+          "exit_code": 0,
+          "log": "data/benchmark-runs/verifyglm2-independent-1.log",
+          "passing_tests": 7
+        },
+        {
+          "case": 3,
+          "command": [
+            "node",
+            "--test"
+          ],
+          "cwd": "data/dev-benchmark-2026-10-04-verifyglm2-standard/03",
+          "exit_code": 0,
+          "log": "data/benchmark-runs/verifyglm2-independent-3.log",
+          "passing_tests": 5
+        },
+        {
+          "case": 4,
+          "command": [
+            "node",
+            "--test"
+          ],
+          "cwd": "data/dev-benchmark-2026-10-04-verifyglm2-standard/04",
+          "exit_code": 0,
+          "log": "data/benchmark-runs/verifyglm2-independent-4.log",
+          "passing_tests": 13
+        },
+        {
+          "case": 6,
+          "command": [
+            "go",
+            "test",
+            "-json",
+            "-count=1",
+            "./..."
+          ],
+          "cwd": "data/dev-benchmark-2026-10-04-verifyglm2-standard/06",
+          "exit_code": 0,
+          "log": "data/benchmark-runs/verifyglm2-independent-6.log",
+          "passing_tests": 11
+        }
+      ],
+      "csv_probes": [
+        {
+          "probe": "normal",
+          "exit_code": 0,
+          "stdout": "Alice\t$3.00\nBob\t$1.00\n",
+          "stderr": "",
+          "stderr_chars": 0
+        },
+        {
+          "probe": "nonfinite",
+          "exit_code": 0,
+          "stdout": "",
+          "stderr": "orders: skipped line 2: malformed amount \"NaN\"\norders: skipped line 3: malformed amount \"Inf\"\n",
+          "stderr_chars": 94
+        },
+        {
+          "probe": "out_of_range",
+          "exit_code": 0,
+          "stdout": "",
+          "stderr": "orders: skipped line 2: malformed amount \"1e20\"\n",
+          "stderr_chars": 48
+        },
+        {
+          "probe": "integer_overflow",
+          "exit_code": 0,
+          "stdout": "A\t-$-92233720368547758.-8\n",
+          "stderr": "",
+          "stderr_chars": 0
+        },
+        {
+          "probe": "quoted_customer",
+          "exit_code": 0,
+          "stdout": "A,B\t$1.00\n",
+          "stderr": "",
+          "stderr_chars": 0
+        },
+        {
+          "probe": "aggregate_overflow",
+          "exit_code": 0,
+          "stdout": "A\t-$89467440737095611.16\n",
+          "stderr": "",
+          "stderr_chars": 0
+        },
+        {
+          "probe": "wrong_header",
+          "exit_code": 0,
+          "stdout": "A\t$1.00\n",
+          "stderr": "",
+          "stderr_chars": 0
+        }
+      ],
+      "api_probes": {
+        "label": "verifyglm2",
+        "null_json": {
+          "status": 400,
+          "body": {
+            "error": "Request body must be a JSON object"
+          }
+        },
+        "real_process_restart": "pass",
+        "forced_persistence_failure": {
+          "status": 500,
+          "body": {
+            "error": "Internal server error"
+          }
+        },
+        "write_failed": true,
+        "memory_count": 2,
+        "disk_unchanged": true,
+        "visible_state_unchanged": false,
+        "alive_after_failure": true,
+        "children_cleaned": true
+      }
+    },
+    {
+      "round": 3,
+      "standard": {
+        "run_id": "verifyglm3-standard",
+        "started_at": "2026-10-04T15:33:24.513Z",
+        "finished_at": "2026-10-04T15:47:05.977Z",
+        "duration_ms": 821464,
+        "tasks": 6,
+        "transport_completed": 6,
+        "strict_accepted": 6,
+        "tokens_reported": 2125672,
+        "usage_complete": true,
+        "provider_rounds": 112,
+        "tool_receipts": 193,
+        "cases": [
+          {
+            "artifact": "verifyglm3-standard-case-1-execution.json",
+            "execution_id": "ac8bcd14-f518-44a9-84d8-bb60616e31c2",
+            "status": "completed",
+            "model": "glm-5.3-flash:cloud",
+            "deadline": 1791129210502,
+            "receipts": 27,
+            "tools": {
+              "local_workspace_list": 1,
+              "local_file_list": 4,
+              "local_shell": 6,
+              "local_file_write": 6,
+              "local_file_read": 5,
+              "tool_result_read": 5
+            },
+            "review": {
+              "phase": "final",
+              "reviews": 1,
+              "repairs": 0,
+              "outcome": "pass",
+              "evidence_checks": 6,
+              "diagnostic": null,
+              "findings": []
+            },
+            "usage": {
+              "input_tokens": 170129,
+              "output_tokens": 17879,
+              "total_tokens": 188008,
+              "cached_input_tokens": null,
+              "cache_write_input_tokens": null,
+              "cache_details_reported": false
+            },
+            "usage_complete": true,
+            "usage_reported_rounds": 13,
+            "provider_rounds": 13,
+            "tool_calls_executed": 27,
+            "context_budget": {
+              "system_chars": 10668,
+              "conversation_chars": 5027,
+              "tool_result_chars": 5241,
+              "tool_call_chars": 9218,
+              "tool_schema_bytes": 2,
+              "tool_schema_count": 0,
+              "before_upper_bound": 81329,
+              "after_upper_bound": 81329,
+              "input_allowance": 1042576,
+              "output_reservation": 6000,
+              "envelope_reservation": 0,
+              "compacted_calls": 0,
+              "recovered_facts": 0,
+              "folded_file_reads": 0,
+              "removed_messages": 0,
+              "estimator": "utf8_bytes_plus_framing_upper_bound",
+              "context_window_tokens": 1048576,
+              "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+              "context_limit_known": true,
+              "context_scope": "provider_request"
+            },
+            "code": null,
+            "message": null,
+            "strict_acceptance": true,
+            "acceptance_note": "Completed and independently verified against task requirements."
+          },
+          {
+            "artifact": "verifyglm3-standard-case-2-execution.json",
+            "execution_id": "00e8f507-6f46-423e-aff9-8f1ed4085408",
+            "status": "completed",
+            "model": "glm-5.3-flash:cloud",
+            "deadline": 1791129298201,
+            "receipts": 33,
+            "tools": {
+              "local_workspace_list": 1,
+              "system_time": 1,
+              "local_kujo": 14,
+              "local_file_list": 1,
+              "documentation_query": 2,
+              "local_file_write": 4,
+              "local_shell": 9,
+              "local_file_read": 1
+            },
+            "review": {
+              "phase": "final",
+              "reviews": 1,
+              "repairs": 0,
+              "outcome": "inconclusive",
+              "evidence_checks": 0,
+              "diagnostic": {
+                "code": "invalid_json",
+                "field": "$"
+              },
+              "findings": [
+                "Review submission rejected: invalid_json at $."
+              ]
+            },
+            "usage": {
+              "input_tokens": 525513,
+              "output_tokens": 22698,
+              "total_tokens": 548211,
+              "cached_input_tokens": null,
+              "cache_write_input_tokens": null,
+              "cache_details_reported": false
+            },
+            "usage_complete": true,
+            "usage_reported_rounds": 27,
+            "provider_rounds": 27,
+            "tool_calls_executed": 33,
+            "context_budget": {
+              "system_chars": 10668,
+              "conversation_chars": 6994,
+              "tool_result_chars": 35188,
+              "tool_call_chars": 11166,
+              "tool_schema_bytes": 2,
+              "tool_schema_count": 0,
+              "before_upper_bound": 114092,
+              "after_upper_bound": 114092,
+              "input_allowance": 1042576,
+              "output_reservation": 6000,
+              "envelope_reservation": 0,
+              "compacted_calls": 0,
+              "recovered_facts": 0,
+              "folded_file_reads": 0,
+              "removed_messages": 0,
+              "estimator": "utf8_bytes_plus_framing_upper_bound",
+              "context_window_tokens": 1048576,
+              "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+              "context_limit_known": true,
+              "context_scope": "provider_request"
+            },
+            "code": null,
+            "message": null,
+            "strict_acceptance": true,
+            "acceptance_note": "Completed and independently verified against task requirements."
+          },
+          {
+            "artifact": "verifyglm3-standard-case-3-execution.json",
+            "execution_id": "d26465fa-0341-4bd3-a861-e2c6538f4831",
+            "status": "completed",
+            "model": "glm-5.3-flash:cloud",
+            "deadline": 1791129460509,
+            "receipts": 21,
+            "tools": {
+              "local_workspace_list": 1,
+              "skill_list": 1,
+              "local_file_list": 1,
+              "local_file_read": 6,
+              "local_file_write": 2,
+              "local_shell": 4,
+              "tool_result_read": 6
+            },
+            "review": {
+              "phase": "final",
+              "reviews": 1,
+              "repairs": 0,
+              "outcome": "pass",
+              "evidence_checks": 7,
+              "diagnostic": null,
+              "findings": []
+            },
+            "usage": {
+              "input_tokens": 169974,
+              "output_tokens": 13576,
+              "total_tokens": 183550,
+              "cached_input_tokens": null,
+              "cache_write_input_tokens": null,
+              "cache_details_reported": false
+            },
+            "usage_complete": true,
+            "usage_reported_rounds": 16,
+            "provider_rounds": 16,
+            "tool_calls_executed": 21,
+            "context_budget": {
+              "system_chars": 10668,
+              "conversation_chars": 5250,
+              "tool_result_chars": 13332,
+              "tool_call_chars": 3507,
+              "tool_schema_bytes": 2,
+              "tool_schema_count": 0,
+              "before_upper_bound": 60938,
+              "after_upper_bound": 60938,
+              "input_allowance": 1042576,
+              "output_reservation": 6000,
+              "envelope_reservation": 0,
+              "compacted_calls": 0,
+              "recovered_facts": 0,
+              "folded_file_reads": 0,
+              "removed_messages": 0,
+              "estimator": "utf8_bytes_plus_framing_upper_bound",
+              "context_window_tokens": 1048576,
+              "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+              "context_limit_known": true,
+              "context_scope": "provider_request"
+            },
+            "code": null,
+            "message": null,
+            "strict_acceptance": true,
+            "acceptance_note": "Completed and independently verified against task requirements."
+          },
+          {
+            "artifact": "verifyglm3-standard-case-4-execution.json",
+            "execution_id": "b12aa860-126a-4038-ae46-3ee043b70934",
+            "status": "completed",
+            "model": "glm-5.3-flash:cloud",
+            "deadline": 1791129525758,
+            "receipts": 41,
+            "tools": {
+              "local_workspace_list": 1,
+              "skill_list": 1,
+              "local_file_list": 2,
+              "local_shell": 12,
+              "local_file_write": 10,
+              "local_file_read": 9,
+              "tool_result_read": 6
+            },
+            "review": {
+              "phase": "final",
+              "reviews": 1,
+              "repairs": 0,
+              "outcome": "pass",
+              "evidence_checks": 8,
+              "diagnostic": null,
+              "findings": []
+            },
+            "usage": {
+              "input_tokens": 725942,
+              "output_tokens": 30639,
+              "total_tokens": 756581,
+              "cached_input_tokens": null,
+              "cache_write_input_tokens": null,
+              "cache_details_reported": false
+            },
+            "usage_complete": true,
+            "usage_reported_rounds": 28,
+            "provider_rounds": 28,
+            "tool_calls_executed": 41,
+            "context_budget": {
+              "system_chars": 10667,
+              "conversation_chars": 8877,
+              "tool_result_chars": 50780,
+              "tool_call_chars": 46965,
+              "tool_schema_bytes": 2,
+              "tool_schema_count": 0,
+              "before_upper_bound": 181186,
+              "after_upper_bound": 181186,
+              "input_allowance": 1042576,
+              "output_reservation": 6000,
+              "envelope_reservation": 0,
+              "compacted_calls": 0,
+              "recovered_facts": 0,
+              "folded_file_reads": 0,
+              "removed_messages": 0,
+              "estimator": "utf8_bytes_plus_framing_upper_bound",
+              "context_window_tokens": 1048576,
+              "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+              "context_limit_known": true,
+              "context_scope": "provider_request"
+            },
+            "code": null,
+            "message": null,
+            "strict_acceptance": true,
+            "acceptance_note": "Completed and independently verified against task requirements."
+          },
+          {
+            "artifact": "verifyglm3-standard-case-5-execution.json",
+            "execution_id": "25bc2960-0172-4165-8c21-68affe966d09",
+            "status": "completed",
+            "model": "glm-5.3-flash:cloud",
+            "deadline": 1791129852500,
+            "receipts": 11,
+            "tools": {
+              "local_workspace_list": 1,
+              "local_file_list": 1,
+              "local_shell": 3,
+              "local_file_write": 1,
+              "local_file_read": 1,
+              "tool_result_read": 4
+            },
+            "review": {
+              "phase": "final",
+              "reviews": 1,
+              "repairs": 0,
+              "outcome": "pass",
+              "evidence_checks": 5,
+              "diagnostic": null,
+              "findings": []
+            },
+            "usage": {
+              "input_tokens": 55647,
+              "output_tokens": 5992,
+              "total_tokens": 61639,
+              "cached_input_tokens": null,
+              "cache_write_input_tokens": null,
+              "cache_details_reported": false
+            },
+            "usage_complete": true,
+            "usage_reported_rounds": 9,
+            "provider_rounds": 9,
+            "tool_calls_executed": 11,
+            "context_budget": {
+              "system_chars": 10668,
+              "conversation_chars": 4617,
+              "tool_result_chars": 6208,
+              "tool_call_chars": 1303,
+              "tool_schema_bytes": 2,
+              "tool_schema_count": 0,
+              "before_upper_bound": 34657,
+              "after_upper_bound": 34657,
+              "input_allowance": 1042576,
+              "output_reservation": 6000,
+              "envelope_reservation": 0,
+              "compacted_calls": 0,
+              "recovered_facts": 0,
+              "folded_file_reads": 0,
+              "removed_messages": 0,
+              "estimator": "utf8_bytes_plus_framing_upper_bound",
+              "context_window_tokens": 1048576,
+              "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+              "context_limit_known": true,
+              "context_scope": "provider_request"
+            },
+            "code": null,
+            "message": null,
+            "strict_acceptance": true,
+            "acceptance_note": "Completed and independently verified against task requirements."
+          },
+          {
+            "artifact": "verifyglm3-standard-case-6-execution.json",
+            "execution_id": "1710d03e-5a88-48f8-95cb-cd85c806dd51",
+            "status": "completed",
+            "model": "glm-5.3-flash:cloud",
+            "deadline": 1791129887454,
+            "receipts": 60,
+            "tools": {
+              "local_workspace_list": 1,
+              "system_time": 1,
+              "local_shell": 26,
+              "local_file_list": 2,
+              "local_file_write": 15,
+              "local_file_read": 3,
+              "tool_result_read": 12
+            },
+            "review": {
+              "phase": "final",
+              "reviews": 1,
+              "repairs": 0,
+              "outcome": "pass",
+              "evidence_checks": 6,
+              "diagnostic": null,
+              "findings": []
+            },
+            "usage": {
+              "input_tokens": 356818,
+              "output_tokens": 30865,
+              "total_tokens": 387683,
+              "cached_input_tokens": null,
+              "cache_write_input_tokens": null,
+              "cache_details_reported": false
+            },
+            "usage_complete": true,
+            "usage_reported_rounds": 19,
+            "provider_rounds": 19,
+            "tool_calls_executed": 60,
+            "context_budget": {
+              "system_chars": 10668,
+              "conversation_chars": 6822,
+              "tool_result_chars": 20232,
+              "tool_call_chars": 27594,
+              "tool_schema_bytes": 2,
+              "tool_schema_count": 0,
+              "before_upper_bound": 130469,
+              "after_upper_bound": 130469,
+              "input_allowance": 1042576,
+              "output_reservation": 6000,
+              "envelope_reservation": 0,
+              "compacted_calls": 0,
+              "recovered_facts": 0,
+              "folded_file_reads": 0,
+              "removed_messages": 0,
+              "estimator": "utf8_bytes_plus_framing_upper_bound",
+              "context_window_tokens": 1048576,
+              "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+              "context_limit_known": true,
+              "context_scope": "provider_request"
+            },
+            "code": null,
+            "message": null,
+            "strict_acceptance": true,
+            "acceptance_note": "Completed and independently verified against task requirements."
+          }
+        ]
+      },
+      "quality": {
+        "run_id": "verifyglm3-quality",
+        "started_at": "2026-10-04T15:47:07.146Z",
+        "finished_at": "2026-10-04T16:07:50.043Z",
+        "duration_ms": 1242897,
+        "tasks": 3,
+        "transport_completed": 1,
+        "strict_accepted": 1,
+        "tokens_reported": 7442629,
+        "usage_complete": true,
+        "provider_rounds": 178,
+        "tool_receipts": 260,
+        "cases": [
+          {
+            "artifact": "verifyglm3-quality-case-1-execution.json",
+            "execution_id": "e6274a86-eb71-40bc-9d65-8865187f1546",
+            "status": "interrupted",
+            "model": "glm-5.3-flash:cloud",
+            "deadline": 1791130033006,
+            "receipts": 57,
+            "tools": {
+              "local_workspace_list": 1,
+              "local_kujo": 14,
+              "local_file_list": 6,
+              "local_file_read": 7,
+              "documentation_query": 3,
+              "local_shell": 13,
+              "local_file_write": 13
+            },
+            "review": {
+              "phase": "work",
+              "reviews": 0,
+              "repairs": 0,
+              "outcome": "not_requested",
+              "evidence_checks": 0,
+              "diagnostic": null,
+              "findings": []
+            },
+            "usage": {
+              "input_tokens": 1942238,
+              "output_tokens": 68521,
+              "total_tokens": 2010759,
+              "cached_input_tokens": null,
+              "cache_write_input_tokens": null,
+              "cache_details_reported": false
+            },
+            "usage_complete": true,
+            "usage_reported_rounds": 49,
+            "provider_rounds": 49,
+            "tool_calls_executed": 57,
+            "context_budget": {
+              "system_chars": 10667,
+              "conversation_chars": 5134,
+              "tool_result_chars": 68526,
+              "tool_call_chars": 31221,
+              "tool_schema_bytes": 8661,
+              "tool_schema_count": 14,
+              "before_upper_bound": 331466,
+              "after_upper_bound": 331466,
+              "input_allowance": 1042576,
+              "output_reservation": 6000,
+              "envelope_reservation": 0,
+              "compacted_calls": 0,
+              "recovered_facts": 0,
+              "folded_file_reads": 0,
+              "removed_messages": 0,
+              "estimator": "utf8_bytes_plus_framing_upper_bound",
+              "context_window_tokens": 1048576,
+              "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+              "context_limit_known": true,
+              "context_scope": "provider_request"
+            },
+            "code": "output_continuation_limit",
+            "message": "The model exhausted two output-limit continuations before completing the task. Completed tools and partial files are retained; inspect the saved execution before continuing.",
+            "strict_acceptance": false,
+            "acceptance_note": "Unfinished delivery; later artifact checks do not rescue the attempt."
+          },
+          {
+            "artifact": "verifyglm3-quality-case-2-execution.json",
+            "execution_id": "ceb76d82-2600-48f4-92ca-bb87bdef5200",
+            "status": "completed",
+            "model": "glm-5.3-flash:cloud",
+            "deadline": 1791130530243,
+            "receipts": 111,
+            "tools": {
+              "local_workspace_list": 1,
+              "system_time": 1,
+              "local_file_list": 2,
+              "local_kujo": 5,
+              "local_shell": 61,
+              "documentation_query": 1,
+              "local_file_write": 30,
+              "local_file_read": 2,
+              "tool_result_read": 8
+            },
+            "review": {
+              "phase": "final",
+              "reviews": 1,
+              "repairs": 0,
+              "outcome": "pass",
+              "evidence_checks": 8,
+              "diagnostic": null,
+              "findings": []
+            },
+            "usage": {
+              "input_tokens": 723785,
+              "output_tokens": 28516,
+              "total_tokens": 752301,
+              "cached_input_tokens": null,
+              "cache_write_input_tokens": null,
+              "cache_details_reported": false
+            },
+            "usage_complete": true,
+            "usage_reported_rounds": 43,
+            "provider_rounds": 43,
+            "tool_calls_executed": 111,
+            "context_budget": {
+              "system_chars": 10668,
+              "conversation_chars": 7016,
+              "tool_result_chars": 41237,
+              "tool_call_chars": 29287,
+              "tool_schema_bytes": 2,
+              "tool_schema_count": 0,
+              "before_upper_bound": 165932,
+              "after_upper_bound": 165932,
+              "input_allowance": 1042576,
+              "output_reservation": 6000,
+              "envelope_reservation": 0,
+              "compacted_calls": 0,
+              "recovered_facts": 0,
+              "folded_file_reads": 0,
+              "removed_messages": 0,
+              "estimator": "utf8_bytes_plus_framing_upper_bound",
+              "context_window_tokens": 1048576,
+              "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+              "context_limit_known": true,
+              "context_scope": "provider_request"
+            },
+            "code": null,
+            "message": null,
+            "strict_acceptance": true,
+            "acceptance_note": "Completed and independently verified against task requirements."
+          },
+          {
+            "artifact": "verifyglm3-quality-case-3-execution.json",
+            "execution_id": "5e5b29d5-4890-435f-b77e-f6a2f48d6a48",
+            "status": "interrupted",
+            "model": "glm-5.3-flash:cloud",
+            "deadline": 1791130707404,
+            "receipts": 92,
+            "tools": {
+              "local_workspace_list": 1,
+              "system_time": 1,
+              "local_file_list": 3,
+              "local_kujo": 1,
+              "documentation_query": 3,
+              "local_shell": 31,
+              "local_file_write": 30,
+              "local_file_read": 22
+            },
+            "review": {
+              "phase": "work",
+              "reviews": 0,
+              "repairs": 0,
+              "outcome": "not_requested",
+              "evidence_checks": 0,
+              "diagnostic": null,
+              "findings": []
+            },
+            "usage": {
+              "input_tokens": 4589414,
+              "output_tokens": 90155,
+              "total_tokens": 4679569,
+              "cached_input_tokens": null,
+              "cache_write_input_tokens": null,
+              "cache_details_reported": false
+            },
+            "usage_complete": true,
+            "usage_reported_rounds": 86,
+            "provider_rounds": 86,
+            "tool_calls_executed": 92,
+            "context_budget": {
+              "system_chars": 10667,
+              "conversation_chars": 6188,
+              "tool_result_chars": 142881,
+              "tool_call_chars": 81839,
+              "tool_schema_bytes": 8661,
+              "tool_schema_count": 14,
+              "before_upper_bound": 520813,
+              "after_upper_bound": 520813,
+              "input_allowance": 1042576,
+              "output_reservation": 6000,
+              "envelope_reservation": 0,
+              "compacted_calls": 0,
+              "recovered_facts": 0,
+              "folded_file_reads": 0,
+              "removed_messages": 0,
+              "estimator": "utf8_bytes_plus_framing_upper_bound",
+              "context_window_tokens": 1048576,
+              "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+              "context_limit_known": true,
+              "context_scope": "provider_request"
+            },
+            "code": "output_continuation_limit",
+            "message": "The model exhausted two output-limit continuations before completing the task. Completed tools and partial files are retained; inspect the saved execution before continuing.",
+            "strict_acceptance": false,
+            "acceptance_note": "Unfinished delivery; later artifact checks do not rescue the attempt."
+          }
+        ],
+        "independent_checks": {
+          "checks": 31,
+          "passed": 24,
+          "results": [
+            {
+              "task": 1,
+              "name": "0ms",
+              "passed": false,
+              "error": "[KUJOVM001] [vm] Runtime Error: Invalid binary operation: bool > int\n  --> 0:0\n   = help: Use operands whose types support this operator, or convert values before applying it.\n\nCall stack:\n  0 at parse_digits\n  1 at parse_ms\n\n\n\n4 !== 0\n"
+            },
+            {
+              "task": 1,
+              "name": "001s",
+              "passed": false,
+              "error": "[KUJOVM001] [vm] Runtime Error: Invalid binary operation: bool > int\n  --> 0:0\n   = help: Use operands whose types support this operator, or convert values before applying it.\n\nCall stack:\n  0 at parse_digits\n  1 at parse_ms\n\n\n\n4 !== 0\n"
+            },
+            {
+              "task": 1,
+              "name": "12ms",
+              "passed": false,
+              "error": "[KUJOVM001] [vm] Runtime Error: Invalid binary operation: bool > int\n  --> 0:0\n   = help: Use operands whose types support this operator, or convert values before applying it.\n\nCall stack:\n  0 at parse_digits\n  1 at parse_ms\n\n\n\n4 !== 0\n"
+            },
+            {
+              "task": 1,
+              "name": "2s",
+              "passed": false,
+              "error": "[KUJOVM001] [vm] Runtime Error: Invalid binary operation: bool > int\n  --> 0:0\n   = help: Use operands whose types support this operator, or convert values before applying it.\n\nCall stack:\n  0 at parse_digits\n  1 at parse_ms\n\n\n\n4 !== 0\n"
+            },
+            {
+              "task": 1,
+              "name": "3m",
+              "passed": false,
+              "error": "[KUJOVM001] [vm] Runtime Error: Invalid binary operation: bool > int\n  --> 0:0\n   = help: Use operands whose types support this operator, or convert values before applying it.\n\nCall stack:\n  0 at parse_digits\n  1 at parse_ms\n\n\n\n4 !== 0\n"
+            },
+            {
+              "task": 1,
+              "name": "1440m",
+              "passed": false,
+              "error": "[KUJOVM001] [vm] Runtime Error: Invalid binary operation: bool > int\n  --> 0:0\n   = help: Use operands whose types support this operator, or convert values before applying it.\n\nCall stack:\n  0 at parse_digits\n  1 at parse_ms\n\n\n\n4 !== 0\n"
+            },
+            {
+              "task": 1,
+              "name": "86400000ms",
+              "passed": false,
+              "error": "[KUJOVM001] [vm] Runtime Error: Invalid binary operation: bool > int\n  --> 0:0\n   = help: Use operands whose types support this operator, or convert values before applying it.\n\nCall stack:\n  0 at parse_digits\n  1 at parse_ms\n\n\n\n4 !== 0\n"
+            },
+            {
+              "task": 1,
+              "name": "reject \"\"",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "reject \"-1s\"",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "reject \"+1s\"",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "reject \"1.5s\"",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "reject \"1e3ms\"",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "reject \" 2s\"",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "reject \"2s \"",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "reject \"86400001ms\"",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "reject \"999999999999999999999999m\"",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "empty moves",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "ordered transfers preserve total",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "[{\"from\":\"a\",\"to\":\"b\",\"amount\":9}]",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "[{\"from\":\"a\",\"to\":\"missing\",\"amount\":1}]",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "[{\"from\":\"a\",\"to\":\"a\",\"amount\":1}]",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "[{\"from\":\"a\",\"to\":\"b\",\"amount\":1.5}]",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "[{\"from\":\"a\",\"to\":\"b\",\"amount\":5},{\"from\":\"a\",\"to\":\"b\",\"amount\":4}]",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "reject null",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "reject []",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "reject {\"stock\":null,\"moves\":[]}",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "reject {\"stock\":{\"a\":-1},\"moves\":[]}",
+              "passed": true
+            },
+            {
+              "task": 3,
+              "name": "persist then restart",
+              "passed": true
+            },
+            {
+              "task": 3,
+              "name": "reject range without mutation",
+              "passed": true
+            },
+            {
+              "task": 3,
+              "name": "preserve corrupt state",
+              "passed": true
+            },
+            {
+              "task": 3,
+              "name": "failed write preserves disk and reports failure",
+              "passed": true
+            }
+          ]
+        },
+        "supplemental_kujo17": {
+          "checks": 31,
+          "passed": 31,
+          "results": [
+            {
+              "task": 1,
+              "name": "0ms",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "001s",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "12ms",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "2s",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "3m",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "1440m",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "86400000ms",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "reject \"\"",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "reject \"-1s\"",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "reject \"+1s\"",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "reject \"1.5s\"",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "reject \"1e3ms\"",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "reject \" 2s\"",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "reject \"2s \"",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "reject \"86400001ms\"",
+              "passed": true
+            },
+            {
+              "task": 1,
+              "name": "reject \"999999999999999999999999m\"",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "empty moves",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "ordered transfers preserve total",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "[{\"from\":\"a\",\"to\":\"b\",\"amount\":9}]",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "[{\"from\":\"a\",\"to\":\"missing\",\"amount\":1}]",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "[{\"from\":\"a\",\"to\":\"a\",\"amount\":1}]",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "[{\"from\":\"a\",\"to\":\"b\",\"amount\":1.5}]",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "[{\"from\":\"a\",\"to\":\"b\",\"amount\":5},{\"from\":\"a\",\"to\":\"b\",\"amount\":4}]",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "reject null",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "reject []",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "reject {\"stock\":null,\"moves\":[]}",
+              "passed": true
+            },
+            {
+              "task": 2,
+              "name": "reject {\"stock\":{\"a\":-1},\"moves\":[]}",
+              "passed": true
+            },
+            {
+              "task": 3,
+              "name": "persist then restart",
+              "passed": true
+            },
+            {
+              "task": 3,
+              "name": "reject range without mutation",
+              "passed": true
+            },
+            {
+              "task": 3,
+              "name": "preserve corrupt state",
+              "passed": true
+            },
+            {
+              "task": 3,
+              "name": "failed write preserves disk and reports failure",
+              "passed": true
+            }
+          ]
+        }
+      },
+      "generated_tests": [
+        {
+          "case": 1,
+          "command": [
+            "go",
+            "test",
+            "-json",
+            "-count=1",
+            "./..."
+          ],
+          "cwd": "data/dev-benchmark-2026-10-04-verifyglm3-standard/01",
+          "exit_code": 0,
+          "log": "data/benchmark-runs/verifyglm3-independent-1.log",
+          "passing_tests": 5
+        },
+        {
+          "case": 3,
+          "command": [
+            "node",
+            "--test"
+          ],
+          "cwd": "data/dev-benchmark-2026-10-04-verifyglm3-standard/03",
+          "exit_code": 0,
+          "log": "data/benchmark-runs/verifyglm3-independent-3.log",
+          "passing_tests": 6
+        },
+        {
+          "case": 4,
+          "command": [
+            "node",
+            "--test"
+          ],
+          "cwd": "data/dev-benchmark-2026-10-04-verifyglm3-standard/04",
+          "exit_code": 0,
+          "log": "data/benchmark-runs/verifyglm3-independent-4.log",
+          "passing_tests": 12
+        },
+        {
+          "case": 6,
+          "command": [
+            "go",
+            "test",
+            "-json",
+            "-count=1",
+            "./..."
+          ],
+          "cwd": "data/dev-benchmark-2026-10-04-verifyglm3-standard/06",
+          "exit_code": 0,
+          "log": "data/benchmark-runs/verifyglm3-independent-6.log",
+          "passing_tests": 8
+        }
+      ],
+      "csv_probes": [
+        {
+          "probe": "normal",
+          "exit_code": 0,
+          "stdout": "Alice,3.00\nBob,1.00\n",
+          "stderr": "",
+          "stderr_chars": 0
+        },
+        {
+          "probe": "nonfinite",
+          "exit_code": 0,
+          "stdout": "A,NaN\nB,+Inf\n",
+          "stderr": "",
+          "stderr_chars": 0
+        },
+        {
+          "probe": "out_of_range",
+          "exit_code": 0,
+          "stdout": "A,100000000000000000000.00\n",
+          "stderr": "",
+          "stderr_chars": 0
+        },
+        {
+          "probe": "integer_overflow",
+          "exit_code": 0,
+          "stdout": "A,92233720368547760.00\n",
+          "stderr": "",
+          "stderr_chars": 0
+        },
+        {
+          "probe": "quoted_customer",
+          "exit_code": 0,
+          "stdout": "A,B,1.00\n",
+          "stderr": "",
+          "stderr_chars": 0
+        },
+        {
+          "probe": "aggregate_overflow",
+          "exit_code": 0,
+          "stdout": "A,94999999999999984.00\n",
+          "stderr": "",
+          "stderr_chars": 0
+        },
+        {
+          "probe": "wrong_header",
+          "exit_code": 1,
+          "stdout": "",
+          "stderr": "orders: bad header \"order_id,name,cost\", want \"order_id,customer,amount\"\n",
+          "stderr_chars": 73
+        }
+      ],
+      "api_probes": {
+        "label": "verifyglm3",
+        "null_json": {
+          "status": 400,
+          "body": {
+            "error": "request body must be a JSON object"
+          }
+        },
+        "real_process_restart": "pass",
+        "forced_persistence_failure": {
+          "status": 500,
+          "body": {
+            "error": "internal server error"
+          }
+        },
+        "write_failed": true,
+        "memory_count": 2,
+        "disk_unchanged": true,
+        "visible_state_unchanged": false,
+        "alive_after_failure": true,
+        "children_cleaned": true
+      }
+    }
+  ],
+  "prime_checks": [
+    {
+      "round": 1,
+      "language": "kujo",
+      "limit": 0,
+      "inclusive": false,
+      "expected": 0,
+      "actual": 0,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "round": 1,
+      "language": "go",
+      "limit": 0,
+      "inclusive": false,
+      "expected": 0,
+      "actual": 0,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "round": 1,
+      "language": "kujo",
+      "limit": 1,
+      "inclusive": false,
+      "expected": 0,
+      "actual": 0,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "round": 1,
+      "language": "go",
+      "limit": 1,
+      "inclusive": false,
+      "expected": 0,
+      "actual": 0,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "round": 1,
+      "language": "kujo",
+      "limit": 2,
+      "inclusive": false,
+      "expected": 0,
+      "actual": 0,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "round": 1,
+      "language": "go",
+      "limit": 2,
+      "inclusive": false,
+      "expected": 0,
+      "actual": 0,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "round": 1,
+      "language": "kujo",
+      "limit": 3,
+      "inclusive": false,
+      "expected": 1,
+      "actual": 1,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "round": 1,
+      "language": "go",
+      "limit": 3,
+      "inclusive": false,
+      "expected": 1,
+      "actual": 1,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "round": 1,
+      "language": "kujo",
+      "limit": 4,
+      "inclusive": false,
+      "expected": 2,
+      "actual": 2,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "round": 1,
+      "language": "go",
+      "limit": 4,
+      "inclusive": false,
+      "expected": 2,
+      "actual": 2,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "round": 1,
+      "language": "kujo",
+      "limit": 10,
+      "inclusive": false,
+      "expected": 4,
+      "actual": 4,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "round": 1,
+      "language": "go",
+      "limit": 10,
+      "inclusive": false,
+      "expected": 4,
+      "actual": 4,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "round": 1,
+      "language": "kujo",
+      "limit": 49,
+      "inclusive": false,
+      "expected": 15,
+      "actual": 15,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "round": 1,
+      "language": "go",
+      "limit": 49,
+      "inclusive": false,
+      "expected": 15,
+      "actual": 15,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "round": 1,
+      "language": "kujo",
+      "limit": 1000,
+      "inclusive": false,
+      "expected": 168,
+      "actual": 168,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "round": 1,
+      "language": "go",
+      "limit": 1000,
+      "inclusive": false,
+      "expected": 168,
+      "actual": 168,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "round": 2,
+      "language": "kujo",
+      "limit": 0,
+      "inclusive": false,
+      "expected": 0,
+      "actual": 0,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "round": 2,
+      "language": "go",
+      "limit": 0,
+      "inclusive": false,
+      "expected": 0,
+      "actual": 168,
+      "exit_code": 0,
+      "passed": false
+    },
+    {
+      "round": 2,
+      "language": "kujo",
+      "limit": 1,
+      "inclusive": false,
+      "expected": 0,
+      "actual": 0,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "round": 2,
+      "language": "go",
+      "limit": 1,
+      "inclusive": false,
+      "expected": 0,
+      "actual": 168,
+      "exit_code": 0,
+      "passed": false
+    },
+    {
+      "round": 2,
+      "language": "kujo",
+      "limit": 2,
+      "inclusive": false,
+      "expected": 0,
+      "actual": 0,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "round": 2,
+      "language": "go",
+      "limit": 2,
+      "inclusive": false,
+      "expected": 0,
+      "actual": 0,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "round": 2,
+      "language": "kujo",
+      "limit": 3,
+      "inclusive": false,
+      "expected": 1,
+      "actual": 1,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "round": 2,
+      "language": "go",
+      "limit": 3,
+      "inclusive": false,
+      "expected": 1,
+      "actual": 1,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "round": 2,
+      "language": "kujo",
+      "limit": 4,
+      "inclusive": false,
+      "expected": 2,
+      "actual": 2,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "round": 2,
+      "language": "go",
+      "limit": 4,
+      "inclusive": false,
+      "expected": 2,
+      "actual": 2,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "round": 2,
+      "language": "kujo",
+      "limit": 10,
+      "inclusive": false,
+      "expected": 4,
+      "actual": 4,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "round": 2,
+      "language": "go",
+      "limit": 10,
+      "inclusive": false,
+      "expected": 4,
+      "actual": 4,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "round": 2,
+      "language": "kujo",
+      "limit": 49,
+      "inclusive": false,
+      "expected": 15,
+      "actual": 15,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "round": 2,
+      "language": "go",
+      "limit": 49,
+      "inclusive": false,
+      "expected": 15,
+      "actual": 15,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "round": 2,
+      "language": "kujo",
+      "limit": 1000,
+      "inclusive": false,
+      "expected": 168,
+      "actual": 168,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "round": 2,
+      "language": "go",
+      "limit": 1000,
+      "inclusive": false,
+      "expected": 168,
+      "actual": 168,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "round": 3,
+      "language": "kujo",
+      "limit": 0,
+      "inclusive": true,
+      "expected": 0,
+      "actual": 0,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "round": 3,
+      "language": "go",
+      "limit": 0,
+      "inclusive": true,
+      "expected": 0,
+      "actual": 0,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "round": 3,
+      "language": "kujo",
+      "limit": 1,
+      "inclusive": true,
+      "expected": 0,
+      "actual": 0,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "round": 3,
+      "language": "go",
+      "limit": 1,
+      "inclusive": true,
+      "expected": 0,
+      "actual": 0,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "round": 3,
+      "language": "kujo",
+      "limit": 2,
+      "inclusive": true,
+      "expected": 1,
+      "actual": 1,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "round": 3,
+      "language": "go",
+      "limit": 2,
+      "inclusive": true,
+      "expected": 1,
+      "actual": 1,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "round": 3,
+      "language": "kujo",
+      "limit": 3,
+      "inclusive": true,
+      "expected": 2,
+      "actual": 2,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "round": 3,
+      "language": "go",
+      "limit": 3,
+      "inclusive": true,
+      "expected": 2,
+      "actual": 2,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "round": 3,
+      "language": "kujo",
+      "limit": 4,
+      "inclusive": true,
+      "expected": 2,
+      "actual": 2,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "round": 3,
+      "language": "go",
+      "limit": 4,
+      "inclusive": true,
+      "expected": 2,
+      "actual": 2,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "round": 3,
+      "language": "kujo",
+      "limit": 10,
+      "inclusive": true,
+      "expected": 4,
+      "actual": 4,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "round": 3,
+      "language": "go",
+      "limit": 10,
+      "inclusive": true,
+      "expected": 4,
+      "actual": 4,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "round": 3,
+      "language": "kujo",
+      "limit": 49,
+      "inclusive": true,
+      "expected": 15,
+      "actual": 15,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "round": 3,
+      "language": "go",
+      "limit": 49,
+      "inclusive": true,
+      "expected": 15,
+      "actual": 15,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "round": 3,
+      "language": "kujo",
+      "limit": 1000,
+      "inclusive": true,
+      "expected": 168,
+      "actual": 168,
+      "exit_code": 0,
+      "passed": true
+    },
+    {
+      "round": 3,
+      "language": "go",
+      "limit": 1000,
+      "inclusive": true,
+      "expected": 168,
+      "actual": 168,
+      "exit_code": 0,
+      "passed": true
+    }
+  ],
+  "cli_checks": [
+    {
+      "round": 1,
+      "build": true,
+      "exit_code": 0,
+      "repeat_identical": true,
+      "hash_size_path_order": true,
+      "missing_path_error": true,
+      "files": 5,
+      "groups": 2
+    },
+    {
+      "round": 2,
+      "build": true,
+      "exit_code": 0,
+      "repeat_identical": true,
+      "hash_size_path_order": true,
+      "missing_path_error": true,
+      "files": 5,
+      "groups": 2
+    },
+    {
+      "round": 3,
+      "build": true,
+      "exit_code": 0,
+      "repeat_identical": true,
+      "hash_size_path_order": true,
+      "missing_path_error": true,
+      "files": 5,
+      "groups": 2
+    }
+  ],
+  "discount_checks": [
+    {
+      "round": 1,
+      "checks": 101101,
+      "mismatches": 0
+    },
+    {
+      "round": 2,
+      "checks": 101101,
+      "mismatches": 0
+    },
+    {
+      "round": 3,
+      "checks": 101101,
+      "mismatches": 314
+    }
+  ],
+  "timing": [
+    {
+      "round": 1,
+      "limit": 500000,
+      "languages": {
+        "kujo": {
+          "successful_runs": 5,
+          "last_five": [
+            {
+              "receipt": "call_g1vso94t",
+              "compute_ns": 40641804248,
+              "wall_ms": 40683.297,
+              "count": 41538
+            },
+            {
+              "receipt": "call_5buhi5ps",
+              "compute_ns": 33941031165,
+              "wall_ms": 33995.274,
+              "count": 41538
+            },
+            {
+              "receipt": "call_yug83d01",
+              "compute_ns": 22593534867,
+              "wall_ms": 22630.415,
+              "count": 41538
+            },
+            {
+              "receipt": "call_f0c47g2h",
+              "compute_ns": 20907200171,
+              "wall_ms": 20943.72,
+              "count": 41538
+            },
+            {
+              "receipt": "call_45iwuwro",
+              "compute_ns": 20872615088,
+              "wall_ms": 20909.655,
+              "count": 41538
+            }
+          ],
+          "median_compute_ns": 22593534867,
+          "median_wall_ms": 22630.415
+        },
+        "go": {
+          "successful_runs": 5,
+          "last_five": [
+            {
+              "receipt": "call_b4i8e7yc",
+              "compute_ns": 156840748,
+              "wall_ms": 169.112,
+              "count": 41538
+            },
+            {
+              "receipt": "call_dx595j32",
+              "compute_ns": 170580402,
+              "wall_ms": 177.483,
+              "count": 41538
+            },
+            {
+              "receipt": "call_l3v1hwok",
+              "compute_ns": 148449829,
+              "wall_ms": 154.524,
+              "count": 41538
+            },
+            {
+              "receipt": "call_jacb3c68",
+              "compute_ns": 152373118,
+              "wall_ms": 175.175,
+              "count": 41538
+            },
+            {
+              "receipt": "call_8hhmtifa",
+              "compute_ns": 187189510,
+              "wall_ms": 193.207,
+              "count": 41538
+            }
+          ],
+          "median_compute_ns": 156840748,
+          "median_wall_ms": 175.175
+        }
+      }
+    },
+    {
+      "round": 2,
+      "limit": 100000,
+      "languages": {
+        "kujo": {
+          "successful_runs": 5,
+          "last_five": [
+            {
+              "receipt": "call_8le110us",
+              "compute_ns": 14635265816,
+              "wall_ms": 14713.339,
+              "count": 9592
+            },
+            {
+              "receipt": "call_it5ko8zo",
+              "compute_ns": 14455149881,
+              "wall_ms": 14571.593,
+              "count": 9592
+            },
+            {
+              "receipt": "call_vndzlvw7",
+              "compute_ns": 15085076305,
+              "wall_ms": 15348.349,
+              "count": 9592
+            },
+            {
+              "receipt": "call_rxkzdxp2",
+              "compute_ns": 14892225900,
+              "wall_ms": 14990.445,
+              "count": 9592
+            },
+            {
+              "receipt": "call_qkxaa39c",
+              "compute_ns": 13384275704,
+              "wall_ms": 13483.688,
+              "count": 9592
+            }
+          ],
+          "median_compute_ns": 14635265816,
+          "median_wall_ms": 14713.339
+        },
+        "go": {
+          "successful_runs": 6,
+          "last_five": [
+            {
+              "receipt": "call_lgwn3e55",
+              "compute_ns": 50036654,
+              "wall_ms": 88.007,
+              "count": 9592
+            },
+            {
+              "receipt": "call_0jggpe91",
+              "compute_ns": 49899753,
+              "wall_ms": 86.225,
+              "count": 9592
+            },
+            {
+              "receipt": "call_b5ht9xkg",
+              "compute_ns": 69896266,
+              "wall_ms": 90.122,
+              "count": 9592
+            },
+            {
+              "receipt": "call_bfbgxvjk",
+              "compute_ns": 50945628,
+              "wall_ms": 88.66,
+              "count": 9592
+            },
+            {
+              "receipt": "call_cljmqk9r",
+              "compute_ns": 50721564,
+              "wall_ms": 87.714,
+              "count": 9592
+            }
+          ],
+          "median_compute_ns": 50721564,
+          "median_wall_ms": 88.007
+        }
+      }
+    },
+    {
+      "round": 3,
+      "limit": 100000,
+      "languages": {
+        "kujo": {
+          "successful_runs": 6,
+          "last_five": [
+            {
+              "receipt": "call_9fjyk0tb",
+              "compute_ns": 4550133138,
+              "wall_ms": 4598.508,
+              "count": 9592
+            },
+            {
+              "receipt": "call_goyan2nl",
+              "compute_ns": 4553182035,
+              "wall_ms": 4616.992,
+              "count": 9592
+            },
+            {
+              "receipt": "call_5bferdi2",
+              "compute_ns": 4562138231,
+              "wall_ms": 4613.463,
+              "count": 9592
+            },
+            {
+              "receipt": "call_5wn7j6gt",
+              "compute_ns": 4518098648,
+              "wall_ms": 4567.977,
+              "count": 9592
+            },
+            {
+              "receipt": "call_kquze7od",
+              "compute_ns": 4532557998,
+              "wall_ms": 4581.319,
+              "count": 9592
+            }
+          ],
+          "median_compute_ns": 4550133138,
+          "median_wall_ms": 4598.508
+        },
+        "go": {
+          "successful_runs": 6,
+          "last_five": [
+            {
+              "receipt": "call_05np23tk",
+              "compute_ns": 35431104,
+              "wall_ms": 46.334,
+              "count": 9592
+            },
+            {
+              "receipt": "call_yeghlnon",
+              "compute_ns": 18857699,
+              "wall_ms": 27.953,
+              "count": 9592
+            },
+            {
+              "receipt": "call_epnddgux",
+              "compute_ns": 18816097,
+              "wall_ms": 45.392,
+              "count": 9592
+            },
+            {
+              "receipt": "call_lkun6iz4",
+              "compute_ns": 38647228,
+              "wall_ms": 53.607,
+              "count": 9592
+            },
+            {
+              "receipt": "call_zgqw3a71",
+              "compute_ns": 35353452,
+              "wall_ms": 46.821,
+              "count": 9592
+            }
+          ],
+          "median_compute_ns": 35353452,
+          "median_wall_ms": 46.334
+        }
+      }
+    }
+  ],
+  "runtime_comparison": [
+    {
+      "version": "kujo 1.5.0",
+      "mode": "default",
+      "exit_code": 4,
+      "stdout": "",
+      "stderr": "[KUJOVM001] [vm] Runtime Error: Invalid binary operation: bool > int\n  --> 0:0\n   = help: Use operands whose types support this operator, or convert values before applying it.\n\nCall stack:\n  0 at parse_digits\n  1 at parse_ms\n\n"
+    },
+    {
+      "version": "kujo 1.5.0",
+      "mode": "interpreter",
+      "exit_code": 0,
+      "stdout": "{\"milliseconds\":12}\n",
+      "stderr": ""
+    },
+    {
+      "version": "kujo 1.7.0",
+      "mode": "default",
+      "exit_code": 0,
+      "stdout": "{\"milliseconds\":12}\n",
+      "stderr": ""
+    },
+    {
+      "version": "kujo 1.7.0",
+      "mode": "interpreter",
+      "exit_code": 0,
+      "stdout": "{\"milliseconds\":12}\n",
+      "stderr": ""
+    }
+  ],
+  "round3_interpreter_quality": {
+    "checks": 31,
+    "passed": 31,
+    "results": [
+      {
+        "task": 1,
+        "name": "0ms",
+        "passed": true
+      },
+      {
+        "task": 1,
+        "name": "001s",
+        "passed": true
+      },
+      {
+        "task": 1,
+        "name": "12ms",
+        "passed": true
+      },
+      {
+        "task": 1,
+        "name": "2s",
+        "passed": true
+      },
+      {
+        "task": 1,
+        "name": "3m",
+        "passed": true
+      },
+      {
+        "task": 1,
+        "name": "1440m",
+        "passed": true
+      },
+      {
+        "task": 1,
+        "name": "86400000ms",
+        "passed": true
+      },
+      {
+        "task": 1,
+        "name": "reject \"\"",
+        "passed": true
+      },
+      {
+        "task": 1,
+        "name": "reject \"-1s\"",
+        "passed": true
+      },
+      {
+        "task": 1,
+        "name": "reject \"+1s\"",
+        "passed": true
+      },
+      {
+        "task": 1,
+        "name": "reject \"1.5s\"",
+        "passed": true
+      },
+      {
+        "task": 1,
+        "name": "reject \"1e3ms\"",
+        "passed": true
+      },
+      {
+        "task": 1,
+        "name": "reject \" 2s\"",
+        "passed": true
+      },
+      {
+        "task": 1,
+        "name": "reject \"2s \"",
+        "passed": true
+      },
+      {
+        "task": 1,
+        "name": "reject \"86400001ms\"",
+        "passed": true
+      },
+      {
+        "task": 1,
+        "name": "reject \"999999999999999999999999m\"",
+        "passed": true
+      },
+      {
+        "task": 2,
+        "name": "empty moves",
+        "passed": true
+      },
+      {
+        "task": 2,
+        "name": "ordered transfers preserve total",
+        "passed": true
+      },
+      {
+        "task": 2,
+        "name": "[{\"from\":\"a\",\"to\":\"b\",\"amount\":9}]",
+        "passed": true
+      },
+      {
+        "task": 2,
+        "name": "[{\"from\":\"a\",\"to\":\"missing\",\"amount\":1}]",
+        "passed": true
+      },
+      {
+        "task": 2,
+        "name": "[{\"from\":\"a\",\"to\":\"a\",\"amount\":1}]",
+        "passed": true
+      },
+      {
+        "task": 2,
+        "name": "[{\"from\":\"a\",\"to\":\"b\",\"amount\":1.5}]",
+        "passed": true
+      },
+      {
+        "task": 2,
+        "name": "[{\"from\":\"a\",\"to\":\"b\",\"amount\":5},{\"from\":\"a\",\"to\":\"b\",\"amount\":4}]",
+        "passed": true
+      },
+      {
+        "task": 2,
+        "name": "reject null",
+        "passed": true
+      },
+      {
+        "task": 2,
+        "name": "reject []",
+        "passed": true
+      },
+      {
+        "task": 2,
+        "name": "reject {\"stock\":null,\"moves\":[]}",
+        "passed": true
+      },
+      {
+        "task": 2,
+        "name": "reject {\"stock\":{\"a\":-1},\"moves\":[]}",
+        "passed": true
+      },
+      {
+        "task": 3,
+        "name": "persist then restart",
+        "passed": true
+      },
+      {
+        "task": 3,
+        "name": "reject range without mutation",
+        "passed": true
+      },
+      {
+        "task": 3,
+        "name": "preserve corrupt state",
+        "passed": true
+      },
+      {
+        "task": 3,
+        "name": "failed write preserves disk and reports failure",
+        "passed": true
+      }
+    ]
+  },
+  "scope": {
+    "file_write_scope_violations": [],
+    "shell_commands": {
+      "node": 26,
+      "go": 62,
+      "gofmt": 15,
+      "mkdir": 2,
+      "touch": 4,
+      "dd": 1,
+      "cp": 4,
+      "chmod": 14,
+      "./dupescan": 9,
+      "ls": 13,
+      "./primes_go": 7,
+      "npm": 14,
+      "kujo": 229,
+      "pgrep": 2,
+      "./dupscan": 15,
+      "./primes": 7,
+      "pwd": 2,
+      "./prime_go": 8,
+      "rg": 23,
+      "rm": 2,
+      "ps": 2,
+      "sh": 1,
+      "env": 1
+    },
+    "artifact_changes": []
+  },
+  "verification_commands": [
+    {
+      "command": [
+        "python3",
+        "data/benchmark-runs/verification-scripts/tests.py",
+        "verifyglm1"
+      ],
+      "exit_code": 0,
+      "log": "data/benchmark-runs/verifyglm-check-00.log"
+    },
+    {
+      "command": [
+        "python3",
+        "data/benchmark-runs/verification-scripts/csv.py",
+        "verifyglm1"
+      ],
+      "exit_code": 0,
+      "log": "data/benchmark-runs/verifyglm-check-01.log"
+    },
+    {
+      "command": [
+        "node",
+        "scripts/verify-kujo-quality.js",
+        "data/dev-benchmark-2026-10-04-verifyglm1-quality"
+      ],
+      "exit_code": 1,
+      "log": "data/benchmark-runs/verifyglm-check-02.log"
+    },
+    {
+      "command": [
+        "python3",
+        "data/benchmark-runs/verification-scripts/tests.py",
+        "verifyglm2"
+      ],
+      "exit_code": 0,
+      "log": "data/benchmark-runs/verifyglm-check-03.log"
+    },
+    {
+      "command": [
+        "python3",
+        "data/benchmark-runs/verification-scripts/csv.py",
+        "verifyglm2"
+      ],
+      "exit_code": 1,
+      "log": "data/benchmark-runs/verifyglm-check-04.log"
+    },
+    {
+      "command": [
+        "node",
+        "scripts/verify-kujo-quality.js",
+        "data/dev-benchmark-2026-10-04-verifyglm2-quality"
+      ],
+      "exit_code": 0,
+      "log": "data/benchmark-runs/verifyglm-check-05.log"
+    },
+    {
+      "command": [
+        "python3",
+        "data/benchmark-runs/verification-scripts/tests.py",
+        "verifyglm3"
+      ],
+      "exit_code": 0,
+      "log": "data/benchmark-runs/verifyglm-check-06.log"
+    },
+    {
+      "command": [
+        "python3",
+        "data/benchmark-runs/verification-scripts/csv.py",
+        "verifyglm3"
+      ],
+      "exit_code": 1,
+      "log": "data/benchmark-runs/verifyglm-check-07.log"
+    },
+    {
+      "command": [
+        "node",
+        "scripts/verify-kujo-quality.js",
+        "data/dev-benchmark-2026-10-04-verifyglm3-quality"
+      ],
+      "exit_code": 1,
+      "log": "data/benchmark-runs/verifyglm-check-08.log"
+    },
+    {
+      "command": [
+        "python3",
+        "data/benchmark-runs/verification-scripts/api.py",
+        "verifyglm1",
+        "verifyglm2",
+        "verifyglm3"
+      ],
+      "exit_code": 1,
+      "log": "data/benchmark-runs/verifyglm-check-09.log"
+    },
+    {
+      "command": [
+        "python3",
+        "data/benchmark-runs/verification-scripts/primes.py"
+      ],
+      "exit_code": 0,
+      "log": "data/benchmark-runs/verifyglm-check-10.log"
+    },
+    {
+      "command": [
+        "python3",
+        "data/benchmark-runs/verification-scripts/cli.py"
+      ],
+      "exit_code": 0,
+      "log": "data/benchmark-runs/verifyglm-check-11.log"
+    }
+  ],
+  "historical_standard": {
+    "rounds": 16,
+    "tasks": 96,
+    "accepted": 86,
+    "full_suites": 8
+  },
+  "professional_assessment": {
+    "overall_capability": 7,
+    "delivered_code_quality": 6.5,
+    "supervised_usefulness": 8,
+    "independent_production_judgment": 4,
+    "scale": 10,
+    "note": "Professional judgment, not a mathematical conversion of pass rate. No broad quality upgrade established; runtime defect separately verified."
+  },
+  "totals": {
+    "standard": {
+      "tasks": 18,
+      "accepted": 17,
+      "duration_ms": 2615672,
+      "tokens_reported": 6534663,
+      "all_usage_complete": true,
+      "provider_rounds": 346,
+      "tool_receipts": 615
+    },
+    "quality": {
+      "tasks": 9,
+      "accepted": 5,
+      "duration_ms": 2702014,
+      "tokens_reported": 14902641,
+      "all_usage_complete": false,
+      "provider_rounds": 421,
+      "tool_receipts": 772
+    },
+    "review_outcomes": {
+      "pass": 16,
+      "not_requested": 4,
+      "inconclusive": 7
+    },
+    "repair_cycles": 1
+  },
+  "verification_followups": [
+    "Renamed local csv.py to csv_probe.py to avoid shadowing Python stdlib csv; reran CSV probes for rounds2/3.",
+    "API round2 supports PATCH for updates; corrected evaluator PUT assumption and reran rounds2/3. Generated artifacts unchanged.",
+    "Supplemental Kujo1.7 all3 quality artifact sets and Kujo1.5 interpreter round3; no model retry and no runtime reconfiguration."
+  ]
+}
