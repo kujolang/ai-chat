@@ -1,0 +1,39 @@
+#!/usr/bin/env node
+// Independent black-box task oracles. No model-authored test assertions are reused.
+const fs=require('node:fs');const os=require('node:os');const path=require('node:path');
+const {spawnSync,spawn}=require('node:child_process');const assert=require('node:assert/strict');const readline=require('node:readline');
+async function verify(root,binary='kujo',runKujo=spawnSync) {
+ const rows=[];const dir=fs.mkdtempSync(path.join(os.tmpdir(),'ai-chat-judgment-oracle-'));
+ const check=async(task,name,fn)=>{try{await fn();rows.push({task,name,passed:true});}catch(e){rows.push({task,name,passed:false,error:String(e.message).slice(0,1200)});}};
+ const invoke=(task,args)=>{const r=runKujo(binary,['run',path.resolve(root,String(task).padStart(2,'0'),'main.kujo'),'--',...args],{encoding:'utf8',timeout:10000,maxBuffer:128*1024});assert.ifError(r.error);assert.equal(r.signal,null);return r;};
+ const success=(task,args,expected)=>{const r=invoke(task,args);assert.equal(r.status,0,r.stderr);assert.deepEqual(JSON.parse(r.stdout),expected);};
+ const reject=(task,args)=>{const r=invoke(task,args);assert.equal(r.status,1,r.stderr);assert.equal(r.stdout.trim(),'');const e=JSON.parse(r.stderr);assert.equal(typeof e.error,'string');assert.ok(e.error.trim());};
+ try {
+  for(const [name,input,cents] of [['empty',[],0],['fraction',['0.01','0.02'],3],['leading zero',['0001.00'],100],['single upper bound',['9999999999999.99'],999999999999999],['aggregate exact bound',[...Array(9).fill('9999999999999.99'),'0.09'],9000000000000000]])await check(1,name,()=>success(1,[JSON.stringify(input)],{cents}));
+  for(const input of ['null','{}','[1]','["1.0"]','["-0.01"]','["1e2"]','["NaN"]','[" 1.00"]','["10000000000000.00"]',JSON.stringify([...Array(9).fill('9999999999999.99'),'0.10'])])await check(1,`reject ${input.slice(0,80)}`,()=>reject(1,[input]));
+  const score=path.join(dir,'scores.json');
+  await check(2,'ordered batches and restart',()=>{success(2,[score,'[{"name":"ada","delta":5},{"name":"ada","delta":-2}]'],{scores:{ada:3}});success(2,[score,'[{"name":"lin","delta":2}]'],{scores:{ada:3,lin:2}});assert.deepEqual(JSON.parse(fs.readFileSync(score,'utf8')),{scores:{ada:3,lin:2}});});
+  for(const batch of ['[{"name":"ada","delta":2},{"name":"ada","delta":-1000}]','[{"name":"bad-name","delta":1}]','[{"name":"ada","delta":1.5}]','[{"name":"ada","delta":true}]','null'])await check(2,'rejected batch preserves bytes '+batch,()=>{fs.writeFileSync(score,'{"scores":{"ada":3}}');reject(2,[score,batch]);assert.equal(fs.readFileSync(score,'utf8'),'{"scores":{"ada":3}}');});
+  for(const content of ['broken','{"scores":{"ada":-1}}','{"scores":null}','{"scores":{"ada":1},"extra":1}'])await check(2,'corrupt state '+content,()=>{fs.writeFileSync(score,content);reject(2,[score,'[]']);assert.equal(fs.readFileSync(score,'utf8'),content);});
+  await check(2,'forced write failure preserves state',()=>{fs.writeFileSync(score,'{"scores":{"ada":3}}');fs.chmodSync(score,0o400);fs.chmodSync(dir,0o500);try{reject(2,[score,'[{"name":"ada","delta":1}]']);assert.equal(fs.readFileSync(score,'utf8'),'{"scores":{"ada":3}}');}finally{fs.chmodSync(dir,0o700);fs.chmodSync(score,0o600);}});
+  const stateFile=path.join(dir,'entries.json');
+  let child,lines;
+  const stop=async()=>{if(!child)return;const p=child;child=null;lines?.close();if(p.exitCode!==null||p.signalCode)return;await new Promise(resolve=>{const timer=setTimeout(()=>p.kill('SIGKILL'),2000);p.once('exit',()=>{clearTimeout(timer);resolve();});p.kill('SIGTERM');});};
+  const start=async()=>{child=spawn(process.execPath,[path.resolve(root,'03/server.js'),'--file',stateFile,'--port','0'],{stdio:['ignore','pipe','pipe']});let stderr='';child.stderr.on('data',d=>{stderr=(stderr+d).slice(-2000);});lines=readline.createInterface({input:child.stdout});return await new Promise((resolve,reject)=>{const timer=setTimeout(()=>finish(Error('startup timeout')),5000);const finish=(err,port)=>{clearTimeout(timer);child.removeListener('error',onError);child.removeListener('exit',onExit);lines.removeListener('line',onLine);err?reject(err):resolve(port);};const onError=e=>finish(e);const onExit=()=>finish(Error('startup exited: '+stderr));const onLine=line=>{try{const {port}=JSON.parse(line);assert.ok(Number.isInteger(port)&&port>0&&port<=65535);finish(null,port);}catch(e){finish(e);}};child.once('error',onError);child.once('exit',onExit);lines.once('line',onLine);});};
+  try {
+   let port;await check(3,'startup',async()=>{port=await start();});
+   const request=async(method,body,route='/entries')=>{assert.ok(port,'service did not start');const r=await fetch(`http://127.0.0.1:${port}${route}`,{method,body:body===undefined?undefined:typeof body==='string'?body:JSON.stringify(body),headers:{'Content-Type':'application/json'},signal:AbortSignal.timeout(4000)});return{status:r.status,body:await r.json()};};
+   await check(3,'normal write and read',async()=>{const r=await request('POST',{key:'ada',value:'one'});assert.equal(r.status,200);assert.deepEqual((await request('GET')).body,{entries:{ada:'one'}});});
+   for(const body of [JSON.stringify({key:'a'.repeat(33),value:'x'}),JSON.stringify({key:'long',value:'x'.repeat(129)}),'[]','broken','null','{"key":"ada","value":3}','{"key":"__proto__","value":"bad"}','{"key":"ada","value":"x","extra":1}'])await check(3,'reject '+body,async()=>{assert.equal((await request('POST',body)).status,400);});
+   await check(3,'key/value boundaries and unknown route',async()=>{assert.equal((await request('POST',{key:'a'.repeat(32),value:'x'.repeat(128)})).status,200);assert.equal((await request('GET',undefined,'/missing')).status,404);});
+   await check(3,'failed write preserves disk AND visible state',async()=>{const before=(await request('GET')).body;const bytes=fs.readFileSync(stateFile,'utf8');fs.chmodSync(stateFile,0o400);fs.chmodSync(dir,0o500);try{assert.equal((await request('POST',{key:'fail',value:'must not appear'})).status,500);assert.deepEqual((await request('GET')).body,before);assert.equal(fs.readFileSync(stateFile,'utf8'),bytes);}finally{fs.chmodSync(dir,0o700);fs.chmodSync(stateFile,0o600);}});
+   await check(3,'recovery and concurrent writes',async()=>{const rs=await Promise.all(Array.from({length:8},(_,i)=>request('POST',{key:'key'+i,value:String(i)})));assert.ok(rs.every(r=>r.status===200));const saved=(await request('GET')).body.entries;for(let i=0;i<8;i++)assert.equal(saved['key'+i],String(i));assert.deepEqual(JSON.parse(fs.readFileSync(stateFile,'utf8')),{entries:saved});});
+   await check(3,'restart retains exact state',async()=>{const before=(await request('GET')).body;await stop();port=await start();assert.deepEqual((await request('GET')).body,before);});
+   await stop();
+   for(const corrupt of ['broken','{"entries":null}','{"entries":[]}','{"entries":{"a":3}}','{"entries":{},"extra":1}'])await check(3,'corrupt state cannot start or be overwritten '+corrupt,async()=>{fs.writeFileSync(stateFile,corrupt);const r=spawnSync(process.execPath,[path.resolve(root,'03/server.js'),'--file',stateFile,'--port','0'],{encoding:'utf8',timeout:4000,maxBuffer:128*1024});assert.ifError(r.error);assert.ok(Number.isInteger(r.status)&&r.status!==0);assert.equal(fs.readFileSync(stateFile,'utf8'),corrupt);});
+  } finally {await stop();}
+ } finally {fs.chmodSync(dir,0o700);fs.rmSync(dir,{recursive:true,force:true});}
+ return {checks:rows.length,passed:rows.filter(r=>r.passed).length,results:rows};
+}
+if(require.main===module){if(!process.argv[2])throw Error('Usage: node scripts/verify-judgment-transfer.js RUN_ROOT [KUJO_BINARY]');verify(process.argv[2],process.argv[3]||'kujo').then(r=>{console.log(JSON.stringify(r,null,2));process.exitCode=r.passed===r.checks?0:1;}).catch(e=>{console.error(e.message);process.exitCode=1;});}
+module.exports={verify};
