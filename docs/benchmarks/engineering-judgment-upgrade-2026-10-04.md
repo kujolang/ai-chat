@@ -120,3 +120,27 @@ on 1.5.0 default, 1.5.0 interpreter and pinned 1.7.0 default. The full 1.5.0 VM
 qualification still intentionally fails the nested-arithmetic regression.
 
 Fresh evaluation is pending. No quality or performance improvement is yet claimed.
+
+## Failed live preflight and transport correction
+
+The first fresh live attempt at `cfa8d50` exposed an application regression before
+meaningful implementation: contract tool replies were constructed in OpenAI wire
+format even for Ollama-native requests. The next provider request returned HTTP
+400. Three first-round responses and two second-round responses failed; the
+remaining second-round request was cancelled, and the orchestrator was stopped.
+Artifacts remain under `data/benchmark-runs/judgmentglm*`. These are infrastructure
+failures, not model reasoning grades; no generated artifact was repaired.
+
+The handler now calls the existing providerToolCallMessage/providerToolResultMessage
+helpers, preserving native argument objects, tool_name and reasoning fields.
+Regression coverage now configures an actual custom Ollama-native endpoint and
+asserts request message shapes. The earlier fixture returned Ollama responses
+while using an OpenAI request configuration, which failed to catch the defect.
+The corrected native/OpenAI protocol tests pass. Invariant IDs now accept
+uppercase labels and publish the same pattern the validator enforces.
+
+The replacement evaluation will use fresh IDs/directories, one attempt per task,
+and 12,000 output tokens versus the historical 6,000. This and the new tasks/
+runtime prevent attributing score changes solely to improved reasoning guidance.
+
+Transport correction verification: full serial suite 626 passed, 0 failed, 1 skipped (`/tmp/ai-chat-contract-wire-full.log`). The replacement task text explicitly states no extra top-level persisted service fields, matching the prewritten oracle; this clarification precedes the replacement run.

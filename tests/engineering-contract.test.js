@@ -41,3 +41,10 @@ test('old checkpoints cannot gain contract requirements retroactively',()=>{
  const r=createEngineeringReview({enabled:true,contractEnabled:true,originalMessages:[],checkpoint:{engineering_review:{enabled:true,phase:'work'}}});
  assert.equal(r.state.contract,undefined);assert.equal(r.contractMessage(),null);
 });
+
+test('schema-compatible uppercase invariant labels are accepted and retained exactly',()=>{
+ const state={};const row={...plan.invariants[0],id:'INV-FAILURE'};
+ assert.equal(applyContract(state,{action:'plan',invariants:[row]},[]).ok,true);
+ assert.equal(state.plan[0].id,'INV-FAILURE');
+ assert.equal(applyContract(state,{action:'evidence',evidence:[{id:'INV-FAILURE',result_ref:'check'}]},[run]).ok,true);
+});

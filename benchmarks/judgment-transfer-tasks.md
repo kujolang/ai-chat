@@ -36,7 +36,7 @@ state, and a forced write failure only on owned fixtures. Restore permissions.
 
 In RUN_ROOT/03 create server.js using Node standard library only. Invoke
 node server.js --file PATH --port 0; bind 127.0.0.1 and emit one startup JSON line
-{"port":NUMBER}. Store {"entries":OBJECT}, initially empty when absent. Each value
+{"port":NUMBER}. Store exactly {"entries":OBJECT}, with no extra top-level fields, initially empty when absent. Each value
 is a string of at most 128 characters. Keys match [a-z][a-z0-9_]{0,31}.
 GET /entries returns the current {"entries":OBJECT}. POST /entries accepts exactly
 {"key":STRING,"value":STRING}, inserts/replaces it durably, returns the same

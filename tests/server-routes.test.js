@@ -5614,10 +5614,14 @@ test('stream exposes caller deadline to every provider round and preserves it in
 for(const providerId of ['openai','ollama']) {
  test(`engineering contract survives protocol rounds and validates executable references (${providerId})`,async()=>{
   let calls=0,writes=0,runs=0;
-  const {runtime,destroy}=createIsolatedRuntime({envMerge:{ENGINEERING_REVIEW_ENABLED:'1',ENGINEERING_CONTRACT_ENABLED:'1'},
+  const {runtime,destroy}=createIsolatedRuntime({envMerge:{ENGINEERING_REVIEW_ENABLED:'1',ENGINEERING_CONTRACT_ENABLED:'1',ALLOWED_CUSTOM_PROVIDER_HOSTS:'ollama.com'},
    localRuntime:{canExecute:()=>true,status:()=>({enabled:true}),writeFile:()=>{writes++;return{ok:true};},runCommand:()=>{runs++;return{ok:true,exit_code:0,stdout:'checks passed'};},readFile:()=>({ok:true,content:'final source'})},
    fetchFn:async(_url,options)=>{
     calls++;const body=JSON.parse(options.body);let name,args;
+    for(const message of body.messages){
+     if(message.tool_calls)for(const c of message.tool_calls)assert.equal(typeof c.function.arguments,providerId==='ollama'?'object':'string');
+     if(message.role==='tool')assert.ok(providerId==='ollama'?message.tool_name:message.tool_call_id);
+    }
     const receipt=providerId==='ollama'?'tool_call_2_0':'check';
     const read=providerId==='ollama'?'tool_call_6_0':'read';
     if(calls===1){name='engineering_contract';args={action:'plan',invariants:[{id:'reject',invariant:'Bad input leaves state unchanged',check:'Run invalid input and compare state'}]};}
@@ -5632,7 +5636,7 @@ for(const providerId of ['openai','ollama']) {
     if(providerId==='ollama')return mockChunkedResponse([JSON.stringify({message:call?{tool_calls:[{function:call.function}]}:{content:'Finished with checks.'},done:true,done_reason:'stop',prompt_eval_count:10,eval_count:5})+'\n']);
     return mockSseResponse([{usage:{prompt_tokens:10,completion_tokens:5,total_tokens:15},choices:[{delta:call?{tool_calls:[{...call,index:0,function:{...call.function,arguments:JSON.stringify(args)}}]}:{content:'Finished with checks.'},finish_reason:call?'tool_calls':'stop'}]}]);
    }});
-  try{const profileId=applyProfileMutation(runtime,p=>{p.provider_id=providerId;p.api_key='fixture';});await withServer(runtime.app,async base=>{
+  try{const profileId=applyProfileMutation(runtime,p=>{p.provider_id=providerId==='ollama'?'custom':providerId;p.base_url=providerId==='ollama'?'https://ollama.com':'';p.api_key='fixture';});await withServer(runtime.app,async base=>{
    const response=await fetch(base+'/api/chat/stream',{method:'POST',headers:withAuthHeaders({'Content-Type':'application/json'}),body:JSON.stringify({request_id:`contract-${providerId}`,profile_id:profileId,messages:[{role:'user',content:'Implement main.js'}],tools:['local_file_write','local_file_read','local_shell'].map(name=>({type:'function',function:{name}})),include_saved_runtime_presets:false})});
    const last=parseSseEvents(await response.text()).at(-1);assert.equal(last.event,'done',JSON.stringify(last));assert.equal(last.data.engineering_review.outcome,'pass');assert.equal(writes,1);assert.equal(runs,1);assert.equal(calls,9);assert.equal(last.data.usage.total_tokens,135);
    const saved=await fetchJson(base,`/api/executions/contract-${providerId}`);assert.equal(saved.json.execution.checkpoint.engineering_review.contract.plan[0].id,'reject');assert.equal(saved.json.execution.checkpoint.engineering_review.contract.evidence.length,1);
