@@ -5,7 +5,7 @@ const path = require('node:path');
 const os = require('node:os');
 const crypto = require('node:crypto');
 const { spawnSync } = require('node:child_process');
-const { reference } = require('../lib/kujo-development');
+const { reference, referenceExpected } = require('../lib/kujo-development');
 
 function resolveBinary(binary) {
  const candidates = binary.includes(path.sep) ? [path.resolve(binary)] : (process.env.PATH || '').split(path.delimiter).map(dir => path.resolve(dir, binary));
@@ -31,8 +31,8 @@ function qualify(binary = 'kujo', backend = 'default', run = spawnSync) {
   for (const [name, source] of Object.entries(sources)) {
    const file = path.join(dir, `${name}.kujo`); fs.writeFileSync(file, source);
    const checked = invoke(['check', file]);
-   const executed = invoke(['run', file, ...(backend === 'interpreter' ? ['--interpreter'] : []), '--', ...(name === 'arguments' ? ['41'] : [])]);
-   const expected = { core: '0\n1\n4', arguments: '42', collections: '3\n3', nested_arithmetic: '12' }[name];
+   const executed = invoke(['run', file, ...(backend === 'interpreter' ? ['--interpreter'] : []), '--', ...(name === 'arguments' ? ['41'] : name === 'persistence' ? [dir] : [])]);
+   const expected = { ...referenceExpected, nested_arithmetic: '12' }[name];
    const ok = [checked, executed].every(r => r.exit_code === 0 && !r.error && !r.signal) && (expected === undefined ? /^100\n\d+$/.test(executed.stdout) : executed.stdout === expected);
    results.push({ name, ok, checked, executed });
   }

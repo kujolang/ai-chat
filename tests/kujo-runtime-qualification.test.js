@@ -2,6 +2,7 @@ const { test, after } = require('node:test');
 const assert = require('node:assert/strict');
 const { qualify } = require('../scripts/qualify-kujo-runtime');
 const path = require('node:path');
+const {referenceExpected,reference}=require('../lib/kujo-development');
 const fs = require('node:fs');
 const os = require('node:os');
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ai-chat-qualification-test-'));
@@ -11,7 +12,7 @@ after(() => fs.rmSync(dir, { recursive: true, force: true }));
 function runner(transform = r => r) {
  return (_binary, args) => {
   const name = path.basename(args[1] || '', '.kujo');
-  const out = { core: '0\n1\n4', arguments: '42', collections: '3\n3', timing: '100\n123', nested_arithmetic: '12' }[name];
+  const out = { ...referenceExpected, timing: '100\n123', nested_arithmetic: '12' }[name];
   return transform({ status: 0, stdout: args[0] === '--version' ? 'kujo fixture' : args[0] === 'run' ? out : '', stderr: '' }, args);
  };
 }
@@ -21,7 +22,7 @@ test('qualification identifies exact binary/backend and requires all probe outpu
   return r;
  }));
  assert.equal(result.ok, true);
- assert.equal(result.results.length, 5);
+ assert.equal(result.results.length, Object.keys(reference.topics).length+1);
  assert.match(result.sha256, /^[a-f0-9]{64}$/);
  assert.equal(result.executable_unchanged, true);
 });
