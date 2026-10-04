@@ -13,7 +13,7 @@ test('review starts only after executable engineering work and excludes worker r
  assert.ok(!JSON.stringify(review).includes('secret reasoning'));
  assert.ok(!JSON.stringify(review).includes('private draft'));
  assert.match(JSON.stringify(review), /write1/);
- assert.deepEqual(r.schemas(tools).map(t => t.function.name), ['local_file_read', 'tool_result_read']);
+ assert.deepEqual(r.schemas(tools).map(t => t.function.name), ['local_file_read', 'tool_result_read', 'engineering_review_submit']);
 });
 test('two repairs and three reviews are the absolute maximum; restore worker context', () => {
  const r = createEngineeringReview({ enabled: true, originalMessages });

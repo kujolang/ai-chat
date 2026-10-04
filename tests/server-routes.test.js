@@ -5413,7 +5413,7 @@ for (const providerId of ['openai', 'ollama']) {
      assert.ok(!JSON.stringify(body.messages).includes('worker private reasoning'));
      assert.match(body.messages.at(-1).content, /Engineering review budget/);
      call = { id: `read-${calls}`, function: { name: 'local_file_read', arguments: { root_id: 'repo', path: 'result.txt' } } };
-    } else if ([4, 8].includes(calls)) content = JSON.stringify({ verdict: calls === 4 ? 'revise' : 'pass', findings: calls === 4 ? ['result.txt contains a bug; fix and test it.'] : [], checks: [{ result_ref: providerId === 'ollama' ? `tool_call_${calls - 2}_0` : `read-${calls - 1}`, claim: 'inspected final source' }] });
+    } else if ([4, 8].includes(calls)) call = { id: `verdict-${calls}`, function: { name: 'engineering_review_submit', arguments: { verdict: calls === 4 ? 'revise' : 'pass', findings: calls === 4 ? ['result.txt contains a bug; fix and test it.'] : [], checks: [{ result_ref: providerId === 'ollama' ? `tool_call_${calls - 2}_0` : `read-${calls - 1}`, claim: 'inspected final source' }] } } };
     else { assert.equal(calls, 9); assert.deepEqual(names, []); content = 'Fixed and checked. Review is advisory.'; }
     const evidenceCall = [3, 7].includes(calls) ? { id: `evidence-${calls}`, function: { name: 'tool_result_read', arguments: { result_ref: providerId === 'ollama' ? `tool_call_${calls === 3 ? 0 : 4}_0` : `write-${calls === 3 ? 1 : 5}` } } } : null;
     const toolCalls = [call, evidenceCall].filter(Boolean);
@@ -5435,6 +5435,7 @@ for (const providerId of ['openai', 'ollama']) {
     assert.ok(!last.data.output_text.includes('"verdict"'));
     const journal = await fetchJson(base, `/api/executions/quality-${providerId}`);
     assert.equal(journal.json.execution.checkpoint.engineering_review.repairs, 1);
+    assert.equal(events.filter(e => e.event === 'review' && e.data.kind === 'verdict').length, 2);
     assert.equal(journal.json.receipts.length, 6);
     assert.equal(journal.json.receipts.filter(r => r.tool_name === 'tool_result_read').length, 2);
     assert.ok(journal.json.receipts.filter(r => r.tool_name === 'tool_result_read').every(r => r.result.ok === true));
@@ -5525,3 +5526,28 @@ test('cancelling a reviewer aborts inference and retains completed work', { time
   });
  } finally { destroy(); }
 });
+
+for (const mode of ['worker-submit', 'mixed-review-batch']) {
+ test(`review verdict control cannot authorize executable work (${mode})`, async () => {
+  let rounds = 0, writes = 0;
+  const { runtime, destroy } = createIsolatedRuntime({ envMerge: { ENGINEERING_REVIEW_ENABLED: '1' },
+   localRuntime: { canExecute: () => true, status: () => ({ enabled: true }), writeFile: () => { writes++; return { ok: true }; } },
+   fetchFn: async () => {
+    rounds++;
+    const write = { id: `write-${rounds}`, function: { name: 'local_file_write', arguments: '{"path":"a.txt","content":"data"}' } };
+    const submit = { id: `submit-${rounds}`, function: { name: 'engineering_review_submit', arguments: '{"verdict":"pass","findings":[],"checks":[]}' } };
+    const calls = mode === 'worker-submit' ? [submit] : rounds === 1 ? [write] : rounds === 3 ? [submit, write] : [];
+    return mockSseResponse([{ choices: [{ delta: calls.length ? { tool_calls: calls.map((c, index) => ({ ...c, index })) } : { content: 'Finished' }, finish_reason: calls.length ? 'tool_calls' : 'stop' }] }]);
+   }
+  });
+  try {
+   const profileId = applyProfileMutation(runtime, p => { p.provider_id = 'openai'; p.api_key = 'fixture'; });
+   await withServer(runtime.app, async base => {
+    const response = await fetch(base + '/api/chat/stream', { method: 'POST', headers: withAuthHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify({ profile_id: profileId, messages: [{ role: 'user', content: 'Create a.txt' }], tools: [{ type: 'function', function: { name: 'local_file_write' } }], include_saved_runtime_presets: false }) });
+    const last = parseSseEvents(await response.text()).at(-1);
+    if (mode === 'worker-submit') { assert.equal(last.event, 'error'); assert.equal(last.data.code, 'tool_execution_unavailable'); assert.equal(writes, 0); }
+    else { assert.equal(last.event, 'done'); assert.equal(writes, 1); assert.equal(last.data.engineering_review.outcome, 'inconclusive'); assert.match(last.data.output_text, /Review remains inconclusive/); }
+   });
+  } finally { destroy(); }
+ });
+}

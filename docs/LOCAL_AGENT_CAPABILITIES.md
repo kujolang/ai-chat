@@ -279,8 +279,12 @@ cannot discover tools, execute commands, write, browse, or call action adapters.
 Authorization enforces this restriction even if the model asks otherwise.
 
 The reviewer checks source and evidence against the task's requirements and
-relevant failure invariants. It returns `pass`, `revise`, or `inconclusive`.
-A malformed verdict or a pass without an evidence read/checks is inconclusive.
+relevant failure invariants. Its review-only `engineering_review_submit` control
+returns `pass`, `revise`, or `inconclusive`.
+A malformed verdict, a mixed submission/tool batch, or a pass without valid
+references to evidence actually read is inconclusive. The verdict control cannot
+execute work and is unavailable to the worker. A bare JSON verdict is accepted
+for compatibility; arbitrary prose is never heuristically parsed as a pass.
 A pass is advisory; it does not certify production readiness or prove test coverage.
 The model may still miss defects. A review has at most four provider rounds,
 including tool reads. Findings can return to the original worker for at most two

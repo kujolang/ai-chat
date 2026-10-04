@@ -634,7 +634,10 @@ chat are unchanged.
 
 An additive `review` SSE event reports phase changes with
 `{enabled, phase, reviews, repairs, outcome}`. During reviewer inference it carries
-`{phase:"review", kind:"token"|"thinking", delta}` instead. Clients must preserve
+`{phase:"review", kind:"token"|"thinking", delta}` instead. The review-only
+`engineering_review_submit` protocol control produces a
+`{phase:"review", kind:"verdict", verdict, findings, checks}` event; it does not
+execute a runtime tool or create an executable-call receipt. Clients must preserve
 these deltas if they archive the complete multi-phase output; ordinary `token` and
 `thinking` continue to contain the worker's answer/reasoning. The built-in UI shows
 review/repair status and leaves detailed review content in the execution journal.
