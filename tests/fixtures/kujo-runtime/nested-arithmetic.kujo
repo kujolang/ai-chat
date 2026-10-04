@@ -1,0 +1,23 @@
+let LIMIT := 100
+func accumulate(text, count, factor) {
+ mut value := 0
+ mut i := 0
+ while i < count {
+  let digit := index_of("0123456789", substring(text, i, i + 1))
+  if digit < 0 { return -1 }
+  if value > 10 { return -1 }
+  value = value * 10 + digit
+  if value > LIMIT { return -1 }
+  i += 1
+ }
+ let result := value * factor
+ if result > LIMIT { return -1 }
+ return result
+}
+func parse(text) {
+ let n := len(text)
+ if n < 2 { return -1 }
+ if ends_with(text, "x") { return accumulate(text, n - 1, 1) }
+ return -1
+}
+print(parse("12x"))
