@@ -8,3 +8,10 @@ test('incomplete, still-running and unavailable executions remain lower bounds',
  for(const status of ['running','interrupted']){const r={};await reconcileBenchmarkEvidence(r,'id',async()=>({execution:{id:'id',status,checkpoint:{usage:{total_tokens:3}}}}));assert.equal(r.usage_complete,false);}
  const r={usage:{total_tokens:2}};await reconcileBenchmarkEvidence(r,'id',async()=>{throw Error('offline');});assert.equal(r.usage.total_tokens,2);assert.equal(r.usage_complete,false);
 });
+test('completed server work remains distinguishable from failed stream delivery',async()=>{
+ const result={ok:false,error:'terminated'};
+ await reconcileBenchmarkEvidence(result,'done',async()=>({execution:{id:'done',status:'completed',result:{ok:true,usage_complete:true,usage:{total_tokens:42},tool_input_repairs:3}}}));
+ assert.equal(result.ok,false);assert.equal(result.error,'terminated');
+ assert.equal(result.execution_status,'completed');assert.equal(result.usage_complete,true);
+ assert.equal(result.tool_input_repairs,3);
+});

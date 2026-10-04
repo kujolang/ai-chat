@@ -773,3 +773,13 @@ check commands. Each check includes bounded 500-character stdout/stderr tails
 and the executor's truncation flag; these excerpts remain untrusted evidence.
 The reviewer must still inspect the test's assertions and source coverage.
 A later file write invalidates the temporal evidence as before.
+
+Large `done` events retain their complete fields and SSE framing. The server
+writes terminal frames in bounded byte chunks with backpressure; a large result
+alone is not evidence of a slow consumer. Heartbeats stop once terminal delivery
+begins. The 256 KiB pending-output limit still applies to ordinary queued events;
+the already-materialized terminal result is separate from that socket queue.
+Disconnects still permit journal inspection/replay without rerunning tools.
+Benchmark receipts retain `ok: false` for failed delivery even when the journal
+reports `execution_status: "completed"`; artifact acceptance requires separate
+verification.

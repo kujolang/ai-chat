@@ -5654,3 +5654,25 @@ test('mixed engineering contract batch executes no write',async()=>{
   assert.equal(parseSseEvents(await r.text()).at(-1).event,'done');assert.equal(writes,0);assert.equal(calls,2);
  });}finally{destroy();}
 });
+
+test('large completed execution replay streams intact without running the provider or overflowing', async () => {
+ let providerCalls = 0;
+ const {runtime,destroy}=createIsolatedRuntime({fetchFn:async()=>{providerCalls++;throw Error('must not generate again');}});
+ try {
+  const result={ok:true,output_text:'Verified output 🧪',thinking_text:'évidence '.repeat(40000),review_thinking_text:'review '.repeat(30000),usage:{total_tokens:42}};
+  const journal=require('../lib/execution-journal').createExecutionJournal(runtime.db,{masterKey:require('crypto').scryptSync('route-test-secret','kujo-ai-chat-salt-v1',32)});
+  journal.begin('large-terminal','large-terminal',{});
+  journal.finish('large-terminal',result);
+  await withServer(runtime.app,async base=>{
+   const response=await fetch(base+'/api/executions/large-terminal/resume',{method:'POST',headers:withAuthHeaders({'Content-Type':'application/json'}),body:'{}'});
+   const events=parseSseEvents(await response.text());
+   assert.equal(events.length,1);assert.equal(events[0].event,'done');
+   assert.deepEqual(events[0].data,{...result,replayed:true,request_id:'large-terminal'});
+   const {json:health}=await fetchJson(base,'/api/health');
+   assert.equal(health.streaming.output.overflows,0);
+   assert.ok(health.streaming.output.buffered_peak_bytes <= 256*1024);
+   assert.equal(health.streaming.active,0);
+   assert.equal(providerCalls,0);
+  });
+ } finally {destroy();}
+});

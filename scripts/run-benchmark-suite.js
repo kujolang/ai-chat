@@ -288,6 +288,7 @@ async function runPane({ chat, pane, benchmark, maxTokens, temperature }) {
 		usage: result.usage || null,
 		usage_complete: result.usage_complete ?? null,
 		execution_id: result.execution_id || null,
+		execution_status: result.execution_status || null,
 		usage_source: result.usage_source || "stream",
 		tool_calls_executed: Number(result.tool_calls_executed || 0),
 		tool_input_repairs: Number(result.tool_input_repairs || 0),

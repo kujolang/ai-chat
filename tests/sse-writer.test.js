@@ -31,3 +31,45 @@ test("SSE bounds queued bytes and disconnects a stalled consumer for cursor repl
 	assert.equal(writer.metrics().queued_bytes, 0);
 	assert.equal(writer.write("late"), false);
 });
+
+test("large terminal events preserve every UTF-8 byte with bounded writes and no heartbeat interleaving", async () => {
+	const res = response();
+	res.writableLength = 0;
+	let peak = 0;
+	res.write = frame => {
+		res.frames.push(Buffer.from(frame));
+		res.writableLength += Buffer.byteLength(frame);
+		peak = Math.max(peak, res.writableLength);
+		setImmediate(() => { res.writableLength = 0; res.emit("drain"); });
+		return false;
+	};
+	const writer = createSseWriter(res, { maxBytes: 64 });
+	writer.write("event: token\ndata: {}\n\n");
+	const frame = `event: done\ndata: ${JSON.stringify({ text: "🧪é".repeat(1000) })}\n\n`;
+	const delivery = writer.writeTerminal(frame);
+	assert.equal(writer.write(": heartbeat\n\n"), false);
+	writer.end();
+	assert.notEqual(res.writableEnded, true);
+	assert.equal(await delivery, true);
+	assert.equal(res.writableEnded, true);
+	assert.equal(Buffer.concat(res.frames).toString(), "event: token\ndata: {}\n\n" + frame);
+	assert.ok(peak <= 64);
+	assert.ok(writer.metrics().buffered_peak_bytes <= 64);
+	assert.equal(res.destroyed, undefined);
+});
+
+test("terminal delivery stops on disconnect or cancellation and removes wait listeners", async () => {
+	for (const cancel of [false, true]) {
+		const res = response();
+		const writer = createSseWriter(res, { maxBytes: 16 });
+		const controller = new AbortController();
+		const delivery = writer.writeTerminal("x".repeat(1000), { signal: controller.signal });
+		await new Promise(setImmediate);
+		assert.equal(res.frames.length, 1);
+		if (cancel) controller.abort(); else res.destroy();
+		assert.equal(await delivery, false);
+		assert.equal(res.frames.length, 1);
+		assert.equal(res.listenerCount("drain"), 0);
+		assert.equal(res.listenerCount("close"), 0);
+	}
+});
