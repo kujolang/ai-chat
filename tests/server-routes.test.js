@@ -5472,6 +5472,7 @@ test('interrupted independent review resumes without repeating writes or resetti
    calls++; const body = JSON.parse(options.body);
    if (calls === 3) throw new Error('fixture connection interrupted');
    if (calls === 4) { assert.match(body.messages.at(-1).content, /review budget: round 2\/4/); assert.ok(!body.tools.some(t => t.function.name === 'local_file_write')); }
+   if (calls === 5) { assert.match(JSON.stringify(body.messages), /invalid_json/); assert.match(body.messages.at(-1).content, /review budget: round 3\/4/); assert.ok(!body.tools.some(t => t.function.name === 'local_file_write')); }
    const content = calls === 2 ? 'Candidate' : calls === 4 ? 'malformed review' : 'Final result';
    return mockSseResponse([{ choices: [{ delta: calls === 1 ? { tool_calls: [{ index: 0, id: 'one-write', function: { name: 'local_file_write', arguments: '{"path":"result.txt","content":"result"}' } }] } : { content }, finish_reason: calls === 1 ? 'tool_calls' : 'stop' }] }]);
   }
@@ -5485,11 +5486,11 @@ test('interrupted independent review resumes without repeating writes or resetti
    const saved = await fetchJson(base, '/api/executions/review-resume');
    assert.equal(saved.json.execution.checkpoint.engineering_review.phase, 'review');
    const last = (await run({ ...body, resume: true })).at(-1);
-   assert.equal(last.event, 'done', JSON.stringify(last)); assert.equal(writes, 1); assert.equal(calls, 5);
+   assert.equal(last.event, 'done', JSON.stringify(last)); assert.equal(writes, 1); assert.equal(calls, 6);
    assert.equal(last.data.engineering_review.outcome, 'inconclusive');
    assert.match(last.data.output_text, /Review remains inconclusive/);
    const replay = (await run({ ...body, resume: true })).at(-1);
-   assert.equal(replay.data.replayed, true); assert.equal(calls, 5);
+   assert.equal(replay.data.replayed, true); assert.equal(calls, 6);
   });
  } finally { destroy(); }
 });
@@ -5526,6 +5527,48 @@ test('cancelling a reviewer aborts inference and retains completed work', { time
   });
  } finally { destroy(); }
 });
+
+for (const providerId of ['openai', 'ollama']) {
+ test(`review corrects invalid evidence reference within existing rounds (${providerId})`, async () => {
+  let calls = 0, writes = 0;
+  const { runtime, destroy } = createIsolatedRuntime({ envMerge: { ENGINEERING_REVIEW_ENABLED: '1' },
+   localRuntime: { canExecute: () => true, status: () => ({ enabled: true }), writeFile: () => { writes++; return { ok: true }; }, readFile: () => ({ ok: true, content: 'source' }) },
+   fetchFn: async (_url, options) => {
+    calls++; const body = JSON.parse(options.body); let name, args;
+    const ref = providerId === 'ollama' ? 'tool_call_2_0' : 'read';
+    if (calls === 1) { name = 'local_file_write'; args = { path: 'a.txt', content: 'source' }; }
+    if (calls === 3) { name = 'local_file_read'; args = { path: 'a.txt' }; }
+    if (calls === 4 || calls === 5) {
+     name = 'engineering_review_submit';
+     args = { verdict: 'pass', findings: [], checks: [{ result_ref: calls === 4 ? 'invented' : ref, claim: 'source inspected' }] };
+    }
+    if (calls === 5) {
+     assert.match(JSON.stringify(body.messages), /uninspected_reference/);
+     assert.ok(JSON.stringify(body.messages).includes(ref));
+     assert.ok(!body.tools.some(t => t.function.name === 'local_file_write'));
+    }
+    if (calls === 6) assert.deepEqual(body.tools || [], []);
+    assert.ok(calls <= 6);
+    const call = name ? { id: calls === 3 ? 'read' : `call-${calls}`, function: { name, arguments: args } } : null;
+    if (providerId === 'ollama') return mockChunkedResponse([JSON.stringify({ message: call ? { tool_calls: [{ function: call.function }] } : { content: 'Complete.' }, done: true, done_reason: 'stop', prompt_eval_count: 10, eval_count: 5 }) + '\n']);
+    return mockSseResponse([{ usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 }, choices: [{ delta: call ? { tool_calls: [{ ...call, index: 0, function: { ...call.function, arguments: JSON.stringify(args) } }] } : { content: 'Complete.' }, finish_reason: call ? 'tool_calls' : 'stop' }] }]);
+   }
+  });
+  try {
+   const profileId = applyProfileMutation(runtime, p => { p.provider_id = providerId; p.api_key = 'fixture'; });
+   await withServer(runtime.app, async base => {
+    const response = await fetch(base + '/api/chat/stream', { method: 'POST', headers: withAuthHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify({ profile_id: profileId, messages: [{ role: 'user', content: 'Create a.txt' }], tools: ['local_file_read', 'local_file_write'].map(name => ({ type: 'function', function: { name } })), include_saved_runtime_presets: false }) });
+    const last = parseSseEvents(await response.text()).at(-1);
+    assert.equal(last.event, 'done', JSON.stringify(last));
+    assert.equal(last.data.engineering_review.outcome, 'pass');
+    assert.equal(last.data.engineering_review.repairs, 0);
+    assert.equal(last.data.provider_rounds, 6);
+    assert.equal(last.data.usage.total_tokens, 90);
+    assert.equal(writes, 1);
+   });
+  } finally { destroy(); }
+ });
+}
 
 for (const mode of ['worker-submit', 'mixed-review-batch']) {
  test(`review verdict control cannot authorize executable work (${mode})`, async () => {

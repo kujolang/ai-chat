@@ -91,6 +91,8 @@ test('failed reads cannot support a passing review', () => {
  const m = r.onStop([...originalMessages], 'candidate', receipts);
  r.noteResults([{ id: 'read1', function: { name: 'local_file_read' } }], [{ error: { code: 'not_found' } }]);
  r.onStop(m, verdict('pass'), receipts);
+ assert.equal(r.state.phase, 'review');
+ r.onStop(m, verdict('pass'), receipts);
  assert.equal(r.state.outcome, 'inconclusive');
  assert.match(r.completionNotice(), /inconclusive/);
 });
@@ -133,4 +135,41 @@ test('passing advisory review cannot certify code edited after successful tests'
  const m=r.onStop([...originalMessages],'candidate',rs);
  r.noteResults([{id:'read1',function:{name:'local_file_read'}}],[{content:'source'}]);
  r.onStop(m,verdict('pass'),rs);assert.equal(r.state.phase,'repair');assert.match(r.state.lastVerdict.findings[0],/Source changed/);
+});
+
+test('invalid submission gets one bounded correction with only inspected reference choices', () => {
+ let r = createEngineeringReview({ enabled: true, originalMessages });
+ let m = r.onStop([...originalMessages], 'candidate', receipts);
+ r.beforeRound(m);
+ r.noteResults([{ id: 'read1', function: { name: 'local_file_read' } }], [{ content: 'source' }]);
+ m = r.onStop(m, '{private invalid payload', receipts);
+ assert.equal(r.state.phase, 'review');
+ assert.match(m.at(-1).content, /invalid_json/);
+ assert.match(m.at(-1).content, /read1/);
+ assert.ok(!m.at(-1).content.includes('private invalid payload'));
+ assert.equal(r.state.rounds, 1);
+ r = createEngineeringReview({ enabled: true, originalMessages, checkpoint: { engineering_review: r.state } });
+ r.beforeRound(m);
+ r.onStop(m, verdict('pass'), receipts);
+ assert.equal(r.state.outcome, 'pass');
+ assert.equal(r.state.repairs, 0);
+});
+
+test('correction cannot extend time, rounds, or repeat after resume', () => {
+ for (const bound of ['rounds', 'time', 'retry']) {
+  let now = 100;
+  let r = createEngineeringReview({ enabled: true, originalMessages, now: () => now });
+  let m = r.onStop([...originalMessages], 'candidate', receipts);
+  if (bound === 'rounds') for (let i = 0; i < LIMITS.reviewRounds; i++) r.beforeRound(m);
+  if (bound === 'time') now += LIMITS.durationMs;
+  if (bound === 'retry') {
+   r.beforeRound(m);
+   m = r.onStop(m, '{}', receipts);
+   r = createEngineeringReview({ enabled: true, originalMessages, checkpoint: { engineering_review: r.state }, now: () => now });
+  }
+  r.onStop(m, '{}', receipts);
+  assert.equal(r.state.phase, 'final');
+  assert.equal(r.state.outcome, 'inconclusive');
+  assert.equal(r.state.repairs, 0);
+ }
 });

@@ -666,7 +666,11 @@ its own harness; these provider-round instructions apply to the generic loop.
 
 Independent review reserves its fourth and final round for
 `engineering_review_submit` only. Invalid verdicts retain bounded field/code
-diagnostics without echoing rejected values. Review packets include a bounded
+diagnostics without echoing rejected values. One rejected submission per review may
+be corrected using the remaining rounds and time, with exact inspected reference
+choices in the feedback. A second rejection, exhausted budget or invalid final-round
+submission remains inconclusive; validation and permissions are unchanged. The
+correction count survives checkpoints. Review packets include a bounded
 inventory of final code-write receipts and recognized verification commands. A
 pass is changed to a repair request when recorded successful verification
 predates a later code write. This is a temporal check, not proof of coverage:
