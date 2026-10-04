@@ -1,7 +1,8 @@
 # Engineering judgment upgrade
 
-Starting point: `b4f6270`, `main`, 2026-10-04. This is an ongoing implementation
-record, not a completed quality-improvement claim.
+Starting point: `b4f6270`, `main`, 2026-10-04. Implementation and bounded evaluation are complete. See the
+[final comparison](glm-engineering-judgment-three-rounds-2026-10-04.md) for results
+and limitations; this record preserves the implementation history.
 
 ## Objective and completion evidence
 
@@ -11,12 +12,12 @@ The requested scope is the complete follow-up to the GLM verification assessment
 |---|---|---|
 | Qualify and pin the agent runtime/backend independently of the bridge | Real runtime probes, explicit configuration, permission tests, live tool receipt | Qualified stable local 1.7.0 executable pinned; permission tests, configured tool receipt and restarted server verified |
 | Define task failure invariants before implementation | Structured task-scoped contract consumed by worker/reviewer | Implemented optional immutable engineering_contract; protocol and checkpoint tests pass |
-| Turn invariants into executable independent checks | Trusted checks, deliberate defective controls, final-source evidence | Fresh transfer oracle calibrated against reference behavior and arithmetic/memory mutants; model evaluation pending |
+| Turn invariants into executable independent checks | Trusted checks, deliberate defective controls, final-source evidence | Fresh transfer oracle calibrated against reference behavior and arithmetic/memory mutants; three rounds finished at frozen 690a028; 135/135 frozen checks; supplemental defect exposed |
 | Supply focused runtime-verified examples | JSON, errors, files/persistence examples checked on selected runtime | Added json/errors/persistence topics; all eight qualification probes pass on selected 1.7.0 runtime |
 | Escape repeated debugging loops with minimal reproduction/runtime comparison | Bounded diagnostic behavior with no automatic replay of consequential work | Two failures trigger at most three typed reminders; no tool execution or runtime switch; checkpoint tests pass |
 | Require concrete completion evidence | Final artifacts, checks and unresolved gaps linked to the task contract | Receipt links required per invariant; stale/missing/failed evidence blocks advisory pass |
 | Make review feedback actionable with bounded repair | Validation diagnostics, inspected references, checkpoint and provider integration tests | Implemented bounded submission correction, invariant gap repair, and explicit semantic test inspection guidance |
-| Evaluate on fresh tasks | Frozen tasks/oracles, fresh directories, controls, quality and completion comparison | Pending; no new model benchmark run yet |
+| Evaluate on fresh tasks | Frozen tasks/oracles, fresh directories, controls, quality and completion comparison | Complete: 9/9 frozen task passes; 8/9 after supplemental partial-write probe; comparison and confounds recorded |
 
 ## Review submission correction
 
@@ -62,7 +63,7 @@ applies to structured run/benchmark; shell arguments stay literal.
 The configured local tool ran the regression source and returned `12` on 1.7.0,
 with pinned executable metadata (`/tmp/ai-chat-pinned-tool-receipt.json`). Server
 restart health passed; all seven profile IDs remain, streams/queue idle
-(`/tmp/ai-chat-runtime-pin-live.json`). No model benchmark has run on this change.
+(`/tmp/ai-chat-runtime-pin-live.json`). At this checkpoint no model benchmark had yet run on this change.
 The qualification report is `/tmp/ai-chat-pinned-qualification.json`.
 
 Runtime integration checks: 52/52 focused local/tool tests; full serial suite
@@ -119,7 +120,7 @@ verifier tests (which passed separately). Expanded real reference examples passe
 on 1.5.0 default, 1.5.0 interpreter and pinned 1.7.0 default. The full 1.5.0 VM
 qualification still intentionally fails the nested-arithmetic regression.
 
-Fresh evaluation is pending. No quality or performance improvement is yet claimed.
+At this checkpoint fresh evaluation was pending. Final measured results are in the comparison report.
 
 ## Failed live preflight and transport correction
 
@@ -139,8 +140,63 @@ while using an OpenAI request configuration, which failed to catch the defect.
 The corrected native/OpenAI protocol tests pass. Invariant IDs now accept
 uppercase labels and publish the same pattern the validator enforces.
 
-The replacement evaluation will use fresh IDs/directories, one attempt per task,
+The replacement evaluation used fresh IDs/directories, one attempt per task,
 and 12,000 output tokens versus the historical 6,000. This and the new tasks/
 runtime prevent attributing score changes solely to improved reasoning guidance.
 
 Transport correction verification: full serial suite 626 passed, 0 failed, 1 skipped (`/tmp/ai-chat-contract-wire-full.log`). The replacement task text explicitly states no extra top-level persisted service fields, matching the prewritten oracle; this clarification precedes the replacement run.
+
+## Follow-up fixes isolated during the frozen evaluation
+
+The evaluation source stays at `690a028`. The following fixes were prepared in an
+isolated worktree and were not part of that batch's model results, and were merged after generation finished:
+
+- `fc06a80`: direct Kujo calls used the qualified pin, but Node/Go child processes
+  still found 1.5.0 through sanitized PATH. Local commands now inherit a private
+  `kujo` alias and KUJO_BIN for the qualified executable. Hash/alias validation
+  occurs after permission checks; missing/replaced pins fail closed. Runtime
+  close and process exit clean the alias. Real before/after probes demonstrated
+  direct/nested versions 1.7/1.5 becoming 1.7/1.7. The bridge stays independent.
+- `fc9cc68`: review freshness previously recognized `node --test` but missed a
+  contract-linked `node test.js`. Inventory now includes declared executable
+  receipts, order, bounded stdout/stderr tails and truncation flags. Later writes
+  still invalidate freshness; exit zero is still not semantic coverage proof.
+- `90471c8`: round 2 task 1 and round 3 task 2 completed on the server, but large terminal
+  events exceeded the 262,144-byte pending-output cap (306,018 and 313,046
+  attempted buffered bytes). Audit logged a slow
+  consumer detach even though a single large result caused it. Terminal delivery
+  now writes bounded chunks with backpressure and no heartbeat interleaving;
+  fields, UTF-8 bytes, journal persistence and ordinary queue limits remain.
+  Failed benchmark delivery remains failed; journal status is recorded separately.
+- `a0a34cd`: reviewers sometimes invented citation IDs or exceeded verdict arrays.
+  The review schema now lists only successfully inspected reference choices and
+  the prompt repeats its existing 12-item bound. Validation and correction/repair
+  budgets remain unchanged; this does not guarantee model compliance.
+
+Candidate checks: 633 passed, 0 failed, 1 skipped before the final citation-schema
+change; the latter passed 21 focused module tests and seven protocol tests.
+The initial isolated run lacked a worktree-local node_modules path, breaking two
+browser/static-asset tests. Restoring the dependency link resolved both without
+changing their assertions/timeouts. Tests overlapped live generation, so host load
+is uncontrolled and latency is descriptive rather than a causal speed claim.
+
+Benchmark artifacts and later full verification are recorded in the final
+comparison report; no generated benchmark source is repaired by the evaluator.
+
+## Final verification and handoff
+
+The complete application suite passed **636 tests, 0 failed, 1 skipped** using
+Node 22.17.0 (`node --test --test-concurrency=1 tests/*.test.js`, log
+`/tmp/ai-chat-judgment-complete-full.log`). Server restart, seven unchanged provider
+configurations, and intact replay of both previously failed results passed;
+zero tools were repeated and peak buffered output was 65,560 bytes.
+
+The frozen independent oracle passed 135/135 checks, but a calibrated supplemental
+partial-write probe demonstrated one generated service falsely acknowledging a
+corrupt disk write. Broader acceptance is therefore 8/9. The probe and two
+calibration controls are committed; generated benchmark artifacts remain unchanged.
+
+Remaining work is model/workflow qualification, not a hidden test regression:
+measure matched-task token efficiency and reviewer reliability after the follow-up
+fixes. No frontier comparison or production-readiness claim is established.
+The pre-existing Kujo 1.5 VM root cause remains outside this repository's scope.

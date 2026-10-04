@@ -1,0 +1,1722 @@
+{
+  "model": "glm-5.3-flash:cloud",
+  "provider_profile": "Watchdog / Ollama Cloud",
+  "evaluation_sha": "690a0285227c419df9e18e584ca5a52be3c6a462",
+  "controls": {
+    "starting_sha": "690a0285227c419df9e18e584ca5a52be3c6a462",
+    "model": "glm-5.3-flash:cloud",
+    "profile_id": "profile_watchdog_81f3c1a6-2942-489a-b7b0-206e02b490bc",
+    "runtime": {
+      "binary": "/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/data/toolchains/kujo-2f9242613c497736f77c20fdb669a18b7c815e489e8a2e8cf5047ee75fd2e3e0",
+      "sha256": "2f9242613c497736f77c20fdb669a18b7c815e489e8a2e8cf5047ee75fd2e3e0",
+      "backend": "default"
+    },
+    "health": {
+      "engineering_review": {
+        "enabled": true,
+        "contract_enabled": true,
+        "reviews": 3,
+        "repairs": 2,
+        "reviewRounds": 4,
+        "repairRounds": 12,
+        "durationMs": 300000
+      },
+      "benchmark": {
+        "output_dir_label": "benchmark-runs",
+        "default_max_response_tokens": 12000,
+        "recommended_concurrency": 1,
+        "max_concurrency": 2,
+        "stream_max_inflight": 1,
+        "stream_queue_limit": 2,
+        "stream_queue_timeout_ms": 30000,
+        "queue": {
+          "active": 0,
+          "queued": 0,
+          "max_inflight": 1,
+          "max_queue": 2,
+          "queue_timeout_ms": 30000
+        }
+      },
+      "context_management": {
+        "max_json_body_bytes": 8388608,
+        "max_messages_per_request": 2000,
+        "max_message_chars": 1000000,
+        "max_total_message_chars": 4000000,
+        "compaction": {
+          "enabled": true,
+          "strategy": "structured_excerpt_v1",
+          "target_chars": 262144,
+          "summary_chars": 24576,
+          "preserve_recent_messages": 24
+        },
+        "tool_budget": {
+          "max_rounds": 2048,
+          "max_calls_per_request": 16384,
+          "max_calls_per_round": 6,
+          "max_tool_context_chars": 262144
+        }
+      }
+    },
+    "max_tokens": 12000,
+    "attempts": 1,
+    "rounds": 3,
+    "suite_sha256": "b74228b8da2daeb58914f943bf2ecb38e7f16d93be5523cd8e2f0bed8db86642",
+    "verifier_sha256": "2f768fca30387c3a8820e99c6e1b56f376b70db16c274f6fb60f7ad470b1f4db"
+  },
+  "method": {
+    "rounds": 3,
+    "tasks_per_round": 3,
+    "attempts": 1,
+    "concurrency": 1,
+    "max_output_tokens": 12000,
+    "deadline_ms": 1200000,
+    "manual_artifact_repairs": false,
+    "source_frozen_during_generation": true,
+    "oracle_after_all_generation": true,
+    "review_off_control": false,
+    "frontier_control": false,
+    "nested_runtime_qualified": false,
+    "host_load_controlled": false
+  },
+  "rounds": [
+    {
+      "round": 1,
+      "run_id": "judgmentfinalglm1",
+      "started_at": "2026-10-04T17:34:32.612Z",
+      "finished_at": "2026-10-04T17:51:25.200Z",
+      "runner_summary": {
+        "total": 3,
+        "completed": 3,
+        "failed": 0,
+        "retry_count": 0,
+        "tool_calls_executed": 150,
+        "tool_input_repairs": 10,
+        "provider_rounds": 102,
+        "latency_ms_total": 1006831,
+        "latency_samples": 3,
+        "token_use": {
+          "input_tokens": 4198724,
+          "output_tokens": 184493,
+          "total_tokens": 4383217
+        },
+        "transport_completion_rate": 1,
+        "task_completion_rate": null,
+        "repair_rate": 0.0667,
+        "average_latency_ms": 335610
+      },
+      "oracle": {
+        "checks": 45,
+        "passed": 45,
+        "results": [
+          {
+            "task": 1,
+            "name": "empty",
+            "passed": true
+          },
+          {
+            "task": 1,
+            "name": "fraction",
+            "passed": true
+          },
+          {
+            "task": 1,
+            "name": "leading zero",
+            "passed": true
+          },
+          {
+            "task": 1,
+            "name": "single upper bound",
+            "passed": true
+          },
+          {
+            "task": 1,
+            "name": "aggregate exact bound",
+            "passed": true
+          },
+          {
+            "task": 1,
+            "name": "reject null",
+            "passed": true
+          },
+          {
+            "task": 1,
+            "name": "reject {}",
+            "passed": true
+          },
+          {
+            "task": 1,
+            "name": "reject [1]",
+            "passed": true
+          },
+          {
+            "task": 1,
+            "name": "reject [\"1.0\"]",
+            "passed": true
+          },
+          {
+            "task": 1,
+            "name": "reject [\"-0.01\"]",
+            "passed": true
+          },
+          {
+            "task": 1,
+            "name": "reject [\"1e2\"]",
+            "passed": true
+          },
+          {
+            "task": 1,
+            "name": "reject [\"NaN\"]",
+            "passed": true
+          },
+          {
+            "task": 1,
+            "name": "reject [\" 1.00\"]",
+            "passed": true
+          },
+          {
+            "task": 1,
+            "name": "reject [\"10000000000000.00\"]",
+            "passed": true
+          },
+          {
+            "task": 1,
+            "name": "reject [\"9999999999999.99\",\"9999999999999.99\",\"9999999999999.99\",\"9999999999999.99\",\"99",
+            "passed": true
+          },
+          {
+            "task": 2,
+            "name": "ordered batches and restart",
+            "passed": true
+          },
+          {
+            "task": 2,
+            "name": "rejected batch preserves bytes [{\"name\":\"ada\",\"delta\":2},{\"name\":\"ada\",\"delta\":-1000}]",
+            "passed": true
+          },
+          {
+            "task": 2,
+            "name": "rejected batch preserves bytes [{\"name\":\"bad-name\",\"delta\":1}]",
+            "passed": true
+          },
+          {
+            "task": 2,
+            "name": "rejected batch preserves bytes [{\"name\":\"ada\",\"delta\":1.5}]",
+            "passed": true
+          },
+          {
+            "task": 2,
+            "name": "rejected batch preserves bytes [{\"name\":\"ada\",\"delta\":true}]",
+            "passed": true
+          },
+          {
+            "task": 2,
+            "name": "rejected batch preserves bytes null",
+            "passed": true
+          },
+          {
+            "task": 2,
+            "name": "corrupt state broken",
+            "passed": true
+          },
+          {
+            "task": 2,
+            "name": "corrupt state {\"scores\":{\"ada\":-1}}",
+            "passed": true
+          },
+          {
+            "task": 2,
+            "name": "corrupt state {\"scores\":null}",
+            "passed": true
+          },
+          {
+            "task": 2,
+            "name": "corrupt state {\"scores\":{\"ada\":1},\"extra\":1}",
+            "passed": true
+          },
+          {
+            "task": 2,
+            "name": "forced write failure preserves state",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "startup",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "normal write and read",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "reject {\"key\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"value\":\"x\"}",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "reject {\"key\":\"long\",\"value\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"}",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "reject []",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "reject broken",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "reject null",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "reject {\"key\":\"ada\",\"value\":3}",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "reject {\"key\":\"__proto__\",\"value\":\"bad\"}",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "reject {\"key\":\"ada\",\"value\":\"x\",\"extra\":1}",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "key/value boundaries and unknown route",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "failed write preserves disk AND visible state",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "recovery and concurrent writes",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "restart retains exact state",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "corrupt state cannot start or be overwritten broken",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "corrupt state cannot start or be overwritten {\"entries\":null}",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "corrupt state cannot start or be overwritten {\"entries\":[]}",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "corrupt state cannot start or be overwritten {\"entries\":{\"a\":3}}",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "corrupt state cannot start or be overwritten {\"entries\":{},\"extra\":1}",
+            "passed": true
+          }
+        ]
+      },
+      "tasks": [
+        {
+          "task": 1,
+          "title": "Exact decimal batch total",
+          "execution_id": "168e1bd7-280d-422f-8ca8-e1121ac969db",
+          "stream_ok": true,
+          "stream_error": null,
+          "server_status": "completed",
+          "server_ok": true,
+          "duration_ms": 450305,
+          "checks_passed": 15,
+          "checks_total": 15,
+          "artifact_accepted": true,
+          "usage": {
+            "input_tokens": 2679699,
+            "output_tokens": 80314,
+            "total_tokens": 2760013,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "usage_complete": true,
+          "provider_rounds": 52,
+          "tool_calls_executed": 100,
+          "tool_input_repairs": 5,
+          "review": {
+            "enabled": true,
+            "phase": "final",
+            "reviews": 2,
+            "repairs": 1,
+            "outcome": "pass"
+          },
+          "contract_late": false,
+          "review_findings": [],
+          "outside_task_file_operations": [],
+          "artifacts": [
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm1/01/harness.js",
+              "sha256": "4a05e88c5d28367a6ff04d8694fd3d3f894d60232be524a68bbbe3949b984e37",
+              "bytes": 5527
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm1/01/main.kujo",
+              "sha256": "89157af9e6c51d2696d7ac7bb9dcd8313948f9c29597df99c0eddc54d290a325",
+              "bytes": 2878
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm1/01/probe1.kujo",
+              "sha256": "a48e284d012bbb253e9fb5e8eaa19a70e0e1ad4f0c06afdf7d1964f9414c6c49",
+              "bytes": 227
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm1/01/probe2.kujo",
+              "sha256": "7a89e21d65f0a59d98ff8597f5bc5790a3d9388d3beb04b2282db91e383d9074",
+              "bytes": 66
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm1/01/probe3.kujo",
+              "sha256": "3935b21f0b87e6f2e4d7f34a78ab13b2d5e0489d28eaa651d68fff6382bfae33",
+              "bytes": 830
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm1/01/probe4.kujo",
+              "sha256": "24b44b6affd8513abf133870cc6f9b8cb46bc96fb2b439d7b1a16cf4a06feb57",
+              "bytes": 381
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm1/01/probe5.kujo",
+              "sha256": "bcbb5c928d0e21433afb7a3e5b30c64972b0fe62642ba61b18741e8f79d5a3f1",
+              "bytes": 274
+            }
+          ]
+        },
+        {
+          "task": 2,
+          "title": "Atomic batch score store",
+          "execution_id": "dd46f51d-2e14-450b-a4e6-97b0512563c1",
+          "stream_ok": true,
+          "stream_error": null,
+          "server_status": "completed",
+          "server_ok": true,
+          "duration_ms": 243976,
+          "checks_passed": 11,
+          "checks_total": 11,
+          "artifact_accepted": true,
+          "usage": {
+            "input_tokens": 732081,
+            "output_tokens": 46263,
+            "total_tokens": 778344,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "usage_complete": true,
+          "provider_rounds": 27,
+          "tool_calls_executed": 31,
+          "tool_input_repairs": 3,
+          "review": {
+            "enabled": true,
+            "phase": "final",
+            "reviews": 1,
+            "repairs": 0,
+            "outcome": "inconclusive"
+          },
+          "contract_late": false,
+          "review_findings": [
+            "Review submission rejected: uninspected_reference at checks[4].result_ref."
+          ],
+          "outside_task_file_operations": [],
+          "artifacts": [
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm1/02/harness.go",
+              "sha256": "e5e8cab35fd9ae2a8c31ae10e22ae32ef50a19fbe9db3f0db7681a6cd3f01249",
+              "bytes": 8964
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm1/02/main.kujo",
+              "sha256": "03c82ab178fe71496744a85739b35a2a1918d27cf7d60ae26634c3781e131efb",
+              "bytes": 3846
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm1/02/probe.kujo",
+              "sha256": "965e3dfbfd6002e53ec804c16d5544f31f20c93304717ac2792ba8b56798a14b",
+              "bytes": 1906
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm1/02/probe2.kujo",
+              "sha256": "fca831e7ddd6b8241f08f9628e80bf429f6f33063a69111f55813938d222e984",
+              "bytes": 564
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm1/02/probe3.kujo",
+              "sha256": "b40f7881aa671e7c12853279a6c86c7a3bc6f9b79614a8d668c69095be4645c4",
+              "bytes": 340
+            }
+          ]
+        },
+        {
+          "task": 3,
+          "title": "Persistent entry service with failed-write consistency",
+          "execution_id": "431b5367-d003-4b86-a77b-5d24bb515b0a",
+          "stream_ok": true,
+          "stream_error": null,
+          "server_status": "completed",
+          "server_ok": true,
+          "duration_ms": 312550,
+          "checks_passed": 19,
+          "checks_total": 19,
+          "artifact_accepted": true,
+          "usage": {
+            "input_tokens": 786944,
+            "output_tokens": 57916,
+            "total_tokens": 844860,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "usage_complete": true,
+          "provider_rounds": 23,
+          "tool_calls_executed": 19,
+          "tool_input_repairs": 2,
+          "review": {
+            "enabled": true,
+            "phase": "final",
+            "reviews": 1,
+            "repairs": 0,
+            "outcome": "inconclusive"
+          },
+          "contract_late": false,
+          "review_findings": [
+            "Unresolved stale-check risk: the verification inventory lists both server.js and test.js as writes_after_last_successful_check, and server.js mtime (1791136204141) postdates test.js mtime (1791136193200). Receipt call_nsr90byq (node test.js, exit 0) is truncated before its stdout tail and timestamp, so it is unconfirmed whether the 148/148 run executed against the final server.js. Consequence: the completion claim may describe stale source. Suggested verification: re-run `node test.js` on the final source and link an untruncated receipt showing the `passed=148 failed=0` summary line with a timestamp after the last file write.",
+            "Receipt call_wowogcw7 (ls -la) is truncated before the directory listing, so the claim that fixtures were removed and only the two files remain is unconfirmed from evidence; verify with a full directory listing receipt after the final test run.",
+            "Non-blocking observation from source review: value length is enforced in UTF-16 code units (String.length), so a value of 128 astral-plane characters (256 code units) would be rejected; this is a defensible reading of 'at most 128 characters' and the test uses BMP characters, but the interpretation should be stated if strict code-point semantics are required."
+          ],
+          "outside_task_file_operations": [],
+          "artifacts": [
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm1/03/server.js",
+              "sha256": "848391916c4ec6441edec4a2570a76752962c377b8e7a5002c1d1396c2d28e1a",
+              "bytes": 8396
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm1/03/test.js",
+              "sha256": "37f650c78098ed7ffb200b61eb695218af97cb3b7db19d23004bf75c538ada00",
+              "bytes": 13648
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "run_id": "judgmentfinalglm2",
+      "started_at": "2026-10-04T17:51:25.659Z",
+      "finished_at": "2026-10-04T18:09:11.906Z",
+      "runner_summary": {
+        "total": 3,
+        "completed": 2,
+        "failed": 1,
+        "retry_count": 0,
+        "tool_calls_executed": 204,
+        "tool_input_repairs": 4,
+        "provider_rounds": 107,
+        "latency_ms_total": 1061533,
+        "latency_samples": 3,
+        "token_use": {
+          "input_tokens": 4219342,
+          "output_tokens": 200957,
+          "total_tokens": 4420299
+        },
+        "transport_completion_rate": 0.6667,
+        "task_completion_rate": null,
+        "repair_rate": 0.0196,
+        "average_latency_ms": 353844
+      },
+      "oracle": {
+        "checks": 45,
+        "passed": 45,
+        "results": [
+          {
+            "task": 1,
+            "name": "empty",
+            "passed": true
+          },
+          {
+            "task": 1,
+            "name": "fraction",
+            "passed": true
+          },
+          {
+            "task": 1,
+            "name": "leading zero",
+            "passed": true
+          },
+          {
+            "task": 1,
+            "name": "single upper bound",
+            "passed": true
+          },
+          {
+            "task": 1,
+            "name": "aggregate exact bound",
+            "passed": true
+          },
+          {
+            "task": 1,
+            "name": "reject null",
+            "passed": true
+          },
+          {
+            "task": 1,
+            "name": "reject {}",
+            "passed": true
+          },
+          {
+            "task": 1,
+            "name": "reject [1]",
+            "passed": true
+          },
+          {
+            "task": 1,
+            "name": "reject [\"1.0\"]",
+            "passed": true
+          },
+          {
+            "task": 1,
+            "name": "reject [\"-0.01\"]",
+            "passed": true
+          },
+          {
+            "task": 1,
+            "name": "reject [\"1e2\"]",
+            "passed": true
+          },
+          {
+            "task": 1,
+            "name": "reject [\"NaN\"]",
+            "passed": true
+          },
+          {
+            "task": 1,
+            "name": "reject [\" 1.00\"]",
+            "passed": true
+          },
+          {
+            "task": 1,
+            "name": "reject [\"10000000000000.00\"]",
+            "passed": true
+          },
+          {
+            "task": 1,
+            "name": "reject [\"9999999999999.99\",\"9999999999999.99\",\"9999999999999.99\",\"9999999999999.99\",\"99",
+            "passed": true
+          },
+          {
+            "task": 2,
+            "name": "ordered batches and restart",
+            "passed": true
+          },
+          {
+            "task": 2,
+            "name": "rejected batch preserves bytes [{\"name\":\"ada\",\"delta\":2},{\"name\":\"ada\",\"delta\":-1000}]",
+            "passed": true
+          },
+          {
+            "task": 2,
+            "name": "rejected batch preserves bytes [{\"name\":\"bad-name\",\"delta\":1}]",
+            "passed": true
+          },
+          {
+            "task": 2,
+            "name": "rejected batch preserves bytes [{\"name\":\"ada\",\"delta\":1.5}]",
+            "passed": true
+          },
+          {
+            "task": 2,
+            "name": "rejected batch preserves bytes [{\"name\":\"ada\",\"delta\":true}]",
+            "passed": true
+          },
+          {
+            "task": 2,
+            "name": "rejected batch preserves bytes null",
+            "passed": true
+          },
+          {
+            "task": 2,
+            "name": "corrupt state broken",
+            "passed": true
+          },
+          {
+            "task": 2,
+            "name": "corrupt state {\"scores\":{\"ada\":-1}}",
+            "passed": true
+          },
+          {
+            "task": 2,
+            "name": "corrupt state {\"scores\":null}",
+            "passed": true
+          },
+          {
+            "task": 2,
+            "name": "corrupt state {\"scores\":{\"ada\":1},\"extra\":1}",
+            "passed": true
+          },
+          {
+            "task": 2,
+            "name": "forced write failure preserves state",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "startup",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "normal write and read",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "reject {\"key\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"value\":\"x\"}",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "reject {\"key\":\"long\",\"value\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"}",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "reject []",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "reject broken",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "reject null",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "reject {\"key\":\"ada\",\"value\":3}",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "reject {\"key\":\"__proto__\",\"value\":\"bad\"}",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "reject {\"key\":\"ada\",\"value\":\"x\",\"extra\":1}",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "key/value boundaries and unknown route",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "failed write preserves disk AND visible state",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "recovery and concurrent writes",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "restart retains exact state",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "corrupt state cannot start or be overwritten broken",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "corrupt state cannot start or be overwritten {\"entries\":null}",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "corrupt state cannot start or be overwritten {\"entries\":[]}",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "corrupt state cannot start or be overwritten {\"entries\":{\"a\":3}}",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "corrupt state cannot start or be overwritten {\"entries\":{},\"extra\":1}",
+            "passed": true
+          }
+        ]
+      },
+      "tasks": [
+        {
+          "task": 1,
+          "title": "Exact decimal batch total",
+          "execution_id": "8a9dbb76-84e3-4b79-953b-99c8d7e3c4a2",
+          "stream_ok": false,
+          "stream_error": "terminated",
+          "server_status": "completed",
+          "server_ok": true,
+          "duration_ms": 535479,
+          "checks_passed": 15,
+          "checks_total": 15,
+          "artifact_accepted": true,
+          "usage": {
+            "input_tokens": 1650864,
+            "output_tokens": 96545,
+            "total_tokens": 1747409,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "usage_complete": true,
+          "provider_rounds": 39,
+          "tool_calls_executed": 89,
+          "tool_input_repairs": 4,
+          "review": {
+            "enabled": true,
+            "phase": "final",
+            "reviews": 3,
+            "repairs": 2,
+            "outcome": "inconclusive"
+          },
+          "contract_late": false,
+          "review_findings": [
+            "Review submission rejected: expected_array_max_12 at findings."
+          ],
+          "outside_task_file_operations": [],
+          "artifacts": [
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm2/01/TESTS.md",
+              "sha256": "eee22a36482ab8821ffac7664461c775bf688edca8b0d2c31fe3e875555a09bc",
+              "bytes": 3012
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm2/01/harness.go",
+              "sha256": "b3f171acfd17b304b9a169486432c7f09551e21f5e455002b04f1bb458a858f9",
+              "bytes": 4546
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm2/01/main.kujo",
+              "sha256": "a735d49fee057e486365b5d832788d01a9c1d796e768bb9a0b08d99e73956a9e",
+              "bytes": 1639
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm2/01/probes/p1.kujo",
+              "sha256": "4793bc33a962a0dd7718413a7a0296ecd8fcbe293d21003b3f1cbdd02ed176b8",
+              "bytes": 36
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm2/01/probes/p2.kujo",
+              "sha256": "156118bbfbd3be6dc8f987372d96cc95ff6a6687b178e26d32e69af8af3c9c5a",
+              "bytes": 35
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm2/01/probes/p3.kujo",
+              "sha256": "735c385f3cba9b83812148dd23adef881d593602871f9116b5ae9f8174946a83",
+              "bytes": 14
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm2/01/probes/p4.kujo",
+              "sha256": "c5458d980dcc361d6b27552ed3a5e7a81999d9aba83b91254aa954a85b763cdf",
+              "bytes": 50
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm2/01/probes/p5.kujo",
+              "sha256": "7df2909068019728d24242cf3747c1d0e770b2f7b18c2db2d60822c84051c76e",
+              "bytes": 135
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm2/01/probes/p6.kujo",
+              "sha256": "8ae891761b57586e9989e726aaa50bcd4d870967e32ca915084925164bec95bd",
+              "bytes": 72
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm2/01/probes/p7.kujo",
+              "sha256": "8959ea4131524af75c4f191b96344643e23fbbfc122e505d7ef1e42341bd6e80",
+              "bytes": 84
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm2/01/probes/p8.kujo",
+              "sha256": "81e3524ae2329f92e56cf3564abd856beed0fbf1dac95e55f1383699d33eba2e",
+              "bytes": 18
+            }
+          ]
+        },
+        {
+          "task": 2,
+          "title": "Atomic batch score store",
+          "execution_id": "e766ae01-a4de-4159-83d5-2e42bda3414e",
+          "stream_ok": true,
+          "stream_error": null,
+          "server_status": "completed",
+          "server_ok": true,
+          "duration_ms": 328370,
+          "checks_passed": 11,
+          "checks_total": 11,
+          "artifact_accepted": true,
+          "usage": {
+            "input_tokens": 1972815,
+            "output_tokens": 58697,
+            "total_tokens": 2031512,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "usage_complete": true,
+          "provider_rounds": 47,
+          "tool_calls_executed": 93,
+          "tool_input_repairs": 2,
+          "review": {
+            "enabled": true,
+            "phase": "final",
+            "reviews": 1,
+            "repairs": 0,
+            "outcome": "pass"
+          },
+          "contract_late": false,
+          "review_findings": [],
+          "outside_task_file_operations": [],
+          "artifacts": [
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm2/02/main.kujo",
+              "sha256": "28cfcba3679ccf246c52b1974fe37d5bd746036618995f0c806197203656d3a5",
+              "bytes": 6042
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm2/02/tests/probe1.kujo",
+              "sha256": "060d1d0ada6cb741442ba18406c0628fb600e6b13ffe487ea5666f00b50ff5ae",
+              "bytes": 1019
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm2/02/tests/probe1b.kujo",
+              "sha256": "3f7394737804c4a5907fb7905368bdcdb270206967f3cc3b93b91c3fcd0ea067",
+              "bytes": 486
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm2/02/tests/probe2.kujo",
+              "sha256": "fcea9176ac964356cc5bf2694e08429f0641e4ddf941c848307a95bd9c5e9751",
+              "bytes": 441
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm2/02/tests/probe3.kujo",
+              "sha256": "b1953dc4a4d67fa22670aed96b50f09f83689dfa74649e609ff516446ace101d",
+              "bytes": 726
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm2/02/tests/probe4.kujo",
+              "sha256": "d4a3dae862e4ea6ffa191bac4914b328a7e1c62206bc9d0c38f782bb6b5a7438",
+              "bytes": 630
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm2/02/tests/run_tests.go",
+              "sha256": "4ca754af7f31518b900920bc222bfccf195ffcad687c6c53d6bfef9b99a00682",
+              "bytes": 6845
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm2/02/tests/run_tests.sh",
+              "sha256": "53994d5ae727d56e0b2ffd06da60d02289cd725f7c4a798358b9bf46388f8312",
+              "bytes": 6252
+            }
+          ]
+        },
+        {
+          "task": 3,
+          "title": "Persistent entry service with failed-write consistency",
+          "execution_id": "c98dc9cf-5ed1-4a90-91d5-9d12b1031204",
+          "stream_ok": true,
+          "stream_error": null,
+          "server_status": "completed",
+          "server_ok": true,
+          "duration_ms": 197684,
+          "checks_passed": 19,
+          "checks_total": 19,
+          "artifact_accepted": true,
+          "usage": {
+            "input_tokens": 595663,
+            "output_tokens": 45715,
+            "total_tokens": 641378,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "usage_complete": true,
+          "provider_rounds": 21,
+          "tool_calls_executed": 22,
+          "tool_input_repairs": 2,
+          "review": {
+            "enabled": true,
+            "phase": "final",
+            "reviews": 1,
+            "repairs": 0,
+            "outcome": "pass"
+          },
+          "contract_late": false,
+          "review_findings": [],
+          "outside_task_file_operations": [],
+          "artifacts": [
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm2/03/server.js",
+              "sha256": "caf26ce082c9d2e17eac7bc8ffc906753f5e754e27ce8cb28d052f4b3492b851",
+              "bytes": 8381
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm2/03/test.js",
+              "sha256": "e000cb0074f938ee6e08ad9222ec61c68f6472af82595370992c146d60e35132",
+              "bytes": 16282
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "round": 3,
+      "run_id": "judgmentfinalglm3",
+      "started_at": "2026-10-04T18:09:12.355Z",
+      "finished_at": "2026-10-04T18:30:09.176Z",
+      "runner_summary": {
+        "total": 3,
+        "completed": 2,
+        "failed": 1,
+        "retry_count": 0,
+        "tool_calls_executed": 243,
+        "tool_input_repairs": 8,
+        "provider_rounds": 125,
+        "latency_ms_total": 1252056,
+        "latency_samples": 3,
+        "token_use": {
+          "input_tokens": 8634383,
+          "output_tokens": 218948,
+          "total_tokens": 8853331
+        },
+        "transport_completion_rate": 0.6667,
+        "task_completion_rate": null,
+        "repair_rate": 0.0329,
+        "average_latency_ms": 417352
+      },
+      "oracle": {
+        "checks": 45,
+        "passed": 45,
+        "results": [
+          {
+            "task": 1,
+            "name": "empty",
+            "passed": true
+          },
+          {
+            "task": 1,
+            "name": "fraction",
+            "passed": true
+          },
+          {
+            "task": 1,
+            "name": "leading zero",
+            "passed": true
+          },
+          {
+            "task": 1,
+            "name": "single upper bound",
+            "passed": true
+          },
+          {
+            "task": 1,
+            "name": "aggregate exact bound",
+            "passed": true
+          },
+          {
+            "task": 1,
+            "name": "reject null",
+            "passed": true
+          },
+          {
+            "task": 1,
+            "name": "reject {}",
+            "passed": true
+          },
+          {
+            "task": 1,
+            "name": "reject [1]",
+            "passed": true
+          },
+          {
+            "task": 1,
+            "name": "reject [\"1.0\"]",
+            "passed": true
+          },
+          {
+            "task": 1,
+            "name": "reject [\"-0.01\"]",
+            "passed": true
+          },
+          {
+            "task": 1,
+            "name": "reject [\"1e2\"]",
+            "passed": true
+          },
+          {
+            "task": 1,
+            "name": "reject [\"NaN\"]",
+            "passed": true
+          },
+          {
+            "task": 1,
+            "name": "reject [\" 1.00\"]",
+            "passed": true
+          },
+          {
+            "task": 1,
+            "name": "reject [\"10000000000000.00\"]",
+            "passed": true
+          },
+          {
+            "task": 1,
+            "name": "reject [\"9999999999999.99\",\"9999999999999.99\",\"9999999999999.99\",\"9999999999999.99\",\"99",
+            "passed": true
+          },
+          {
+            "task": 2,
+            "name": "ordered batches and restart",
+            "passed": true
+          },
+          {
+            "task": 2,
+            "name": "rejected batch preserves bytes [{\"name\":\"ada\",\"delta\":2},{\"name\":\"ada\",\"delta\":-1000}]",
+            "passed": true
+          },
+          {
+            "task": 2,
+            "name": "rejected batch preserves bytes [{\"name\":\"bad-name\",\"delta\":1}]",
+            "passed": true
+          },
+          {
+            "task": 2,
+            "name": "rejected batch preserves bytes [{\"name\":\"ada\",\"delta\":1.5}]",
+            "passed": true
+          },
+          {
+            "task": 2,
+            "name": "rejected batch preserves bytes [{\"name\":\"ada\",\"delta\":true}]",
+            "passed": true
+          },
+          {
+            "task": 2,
+            "name": "rejected batch preserves bytes null",
+            "passed": true
+          },
+          {
+            "task": 2,
+            "name": "corrupt state broken",
+            "passed": true
+          },
+          {
+            "task": 2,
+            "name": "corrupt state {\"scores\":{\"ada\":-1}}",
+            "passed": true
+          },
+          {
+            "task": 2,
+            "name": "corrupt state {\"scores\":null}",
+            "passed": true
+          },
+          {
+            "task": 2,
+            "name": "corrupt state {\"scores\":{\"ada\":1},\"extra\":1}",
+            "passed": true
+          },
+          {
+            "task": 2,
+            "name": "forced write failure preserves state",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "startup",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "normal write and read",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "reject {\"key\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"value\":\"x\"}",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "reject {\"key\":\"long\",\"value\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"}",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "reject []",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "reject broken",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "reject null",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "reject {\"key\":\"ada\",\"value\":3}",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "reject {\"key\":\"__proto__\",\"value\":\"bad\"}",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "reject {\"key\":\"ada\",\"value\":\"x\",\"extra\":1}",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "key/value boundaries and unknown route",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "failed write preserves disk AND visible state",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "recovery and concurrent writes",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "restart retains exact state",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "corrupt state cannot start or be overwritten broken",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "corrupt state cannot start or be overwritten {\"entries\":null}",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "corrupt state cannot start or be overwritten {\"entries\":[]}",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "corrupt state cannot start or be overwritten {\"entries\":{\"a\":3}}",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "corrupt state cannot start or be overwritten {\"entries\":{},\"extra\":1}",
+            "passed": true
+          }
+        ]
+      },
+      "tasks": [
+        {
+          "task": 1,
+          "title": "Exact decimal batch total",
+          "execution_id": "bb2ba777-6dd5-49ca-b7ce-806ab75c8ea9",
+          "stream_ok": true,
+          "stream_error": null,
+          "server_status": "completed",
+          "server_ok": true,
+          "duration_ms": 412066,
+          "checks_passed": 15,
+          "checks_total": 15,
+          "artifact_accepted": true,
+          "usage": {
+            "input_tokens": 1789713,
+            "output_tokens": 74304,
+            "total_tokens": 1864017,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "usage_complete": true,
+          "provider_rounds": 34,
+          "tool_calls_executed": 67,
+          "tool_input_repairs": 5,
+          "review": {
+            "enabled": true,
+            "phase": "final",
+            "reviews": 1,
+            "repairs": 0,
+            "outcome": "pass"
+          },
+          "contract_late": false,
+          "review_findings": [],
+          "outside_task_file_operations": [],
+          "artifacts": [
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm3/01/harness.go",
+              "sha256": "fe9b6957291c944c8f7dba45df7254b1638fd67b9d91d62a7f104e88963d9772",
+              "bytes": 4939
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm3/01/main.kujo",
+              "sha256": "4c500718f068a20f8ae6d8f03f40e853cd69949b7d88b80d5e257dcac509e6da",
+              "bytes": 2193
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm3/01/probes/p10_str.kujo",
+              "sha256": "9a0df5fca8361f33f821b7822cd4d1ee3972b248118150fab855167e304338ea",
+              "bytes": 14
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm3/01/probes/p11_tojson_int.kujo",
+              "sha256": "87083b8e37771cd7b1bcf01d90e888a1c30f91104cc4fb14b3e47c6324762c80",
+              "bytes": 18
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm3/01/probes/p12_concat_int.kujo",
+              "sha256": "651d3c512c8711b05800cd73ffa2d955ef38632d09a11ebb53edc12301af4908",
+              "bytes": 15
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm3/01/probes/p14_cmp.kujo",
+              "sha256": "c8cbd3daf76ec1a7e666969aa260176fc2bfbb3567b142ab0ee26e03ba283397",
+              "bytes": 287
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm3/01/probes/p1_int.kujo",
+              "sha256": "5632b7a6333ad9bb9881bf2abc39e0f7b02a4caeb55d144f74e17dd2da2f5002",
+              "bytes": 122
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm3/01/probes/p2_str.kujo",
+              "sha256": "e768d7a88ae03902fbe0105b7d2d4c4513a781dcce31ed1c0433db7c43ef4ef7",
+              "bytes": 119
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm3/01/probes/p3_islist.kujo",
+              "sha256": "815d7d6ac15b2c854c4ec38a1e3cd2e5605220a8d15b2f44122b013b1e9202b4",
+              "bytes": 32
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm3/01/probes/p4_isarray.kujo",
+              "sha256": "0aa19ad91a0ca989b9bc02e83210af05318c2d1961558ad478fc7fa5ebb345cc",
+              "bytes": 33
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm3/01/probes/p5_isstring.kujo",
+              "sha256": "4591fdea3d0c6e5a80660343109008a38f325d3c043104d31aa25cd2d8384d6d",
+              "bytes": 41
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm3/01/probes/p6_dict.kujo",
+              "sha256": "adc5b540eeb6029dcb465e8a2a967dda2564481d15a60f7992e6648d1308fa92",
+              "bytes": 63
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm3/01/probes/p7_eprintln.kujo",
+              "sha256": "8d25c4f93add82478f07d36fb5577902cae597d00ab33bafbb1c6e1fab487a5f",
+              "bytes": 24
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm3/01/probes/p8_eprint.kujo",
+              "sha256": "64e867dc7b76f7502b42224e6c09019602b0e2a7dd0ec84702a51b3f19ce04a8",
+              "bytes": 24
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm3/01/probes/p9_ord.kujo",
+              "sha256": "45cbb1dd74c4b200d05c7c721de139dd72ad55ebe76deb11d09a02ef817a4629",
+              "bytes": 47
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm3/01/test_main.sh",
+              "sha256": "24911a9b5eaf96ff39a87aa09438be14a92ef2033979d4a9032cfb95332d448a",
+              "bytes": 4495
+            }
+          ]
+        },
+        {
+          "task": 2,
+          "title": "Atomic batch score store",
+          "execution_id": "83538f69-ed41-4aaf-9499-1b02de7a8f1b",
+          "stream_ok": false,
+          "stream_error": "terminated",
+          "server_status": "completed",
+          "server_ok": true,
+          "duration_ms": 660843,
+          "checks_passed": 11,
+          "checks_total": 11,
+          "artifact_accepted": true,
+          "usage": {
+            "input_tokens": 6405589,
+            "output_tokens": 104920,
+            "total_tokens": 6510509,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "usage_complete": true,
+          "provider_rounds": 71,
+          "tool_calls_executed": 158,
+          "tool_input_repairs": 3,
+          "review": {
+            "enabled": true,
+            "phase": "final",
+            "reviews": 1,
+            "repairs": 0,
+            "outcome": "inconclusive"
+          },
+          "contract_late": false,
+          "review_findings": [
+            "Review submission rejected: invalid_json at $."
+          ],
+          "outside_task_file_operations": [],
+          "artifacts": [
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm3/02/main.kujo",
+              "sha256": "d4e62d2f1fa4f61188eec5660bab0f0aaee18c0393ce46c713454741fb246562",
+              "bytes": 5530
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm3/02/probe/p_eprint.kujo",
+              "sha256": "be56c28c832fc87e5206334430b2beaf4052e913266fad7bdd370692073808d7",
+              "bytes": 32
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm3/02/probe/p_fexists.kujo",
+              "sha256": "034c1afe82a8919c1d33b4c0b50875b5dbbd3d2029d0589568e57efff59efa4a",
+              "bytes": 99
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm3/02/probe/p_get.kujo",
+              "sha256": "00d0a258ac37e8e29d020ac1eec45554a8f40392261ca1198dce5e0e30093810",
+              "bytes": 73
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm3/02/probe/p_haskey.kujo",
+              "sha256": "31dea051d5e03943e68936d6a0cafd24d598170d15b4127230db5f34e345526a",
+              "bytes": 75
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm3/02/probe/p_in.kujo",
+              "sha256": "37ce3a6078ddabda6b2ae59988a055fa3967e62b6c7632b02d2324b516c645c4",
+              "bytes": 61
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm3/02/probe/p_isint.kujo",
+              "sha256": "c96e069ceee79b9cbfd2d7016d449d96ca31b02b6eb18893e3f0f62df9419cd0",
+              "bytes": 194
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm3/02/probe/p_islist.kujo",
+              "sha256": "bce4e30b03e322f12361ae6dc707dcca8ba7771c7d5e4615b7fe27f82315f68f",
+              "bytes": 61
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm3/02/probe/p_isstr.kujo",
+              "sha256": "2259fe350410323602eb88dfeaf3ad5515230dcb6340962b63a542fd2715aae8",
+              "bytes": 59
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm3/02/probe/p_jsonfmt.kujo",
+              "sha256": "8b2cb7ecfce2dd530d8332e16171cc56b0949c5154227b5fa2dd7208b88af225",
+              "bytes": 118
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm3/02/probe/p_keys.kujo",
+              "sha256": "784747d6dbdfff0a076874dfcc06b230f7e59441444bf80fd0898528979ce797",
+              "bytes": 35
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm3/02/probe/p_more.kujo",
+              "sha256": "e4794cc25d13bd10d26b71a517e433d2b26e698d4e6f72177ce4b7da91a9f326",
+              "bytes": 236
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm3/02/probe/p_ord.kujo",
+              "sha256": "c0542de16cecb8c8e18255c711d75cf1424510e9c3c59dbcaa7516607ccb845f",
+              "bytes": 99
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm3/02/probe/p_printerr.kujo",
+              "sha256": "d81f923e26e2d495d7d9598bdff5590086732d7825bdae7134f4704af625d8d2",
+              "bytes": 35
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm3/02/probe/p_readmiss.kujo",
+              "sha256": "b823c42fdab816710a8fd470d243af05ba83d80e5d45c9297c359add6af77116",
+              "bytes": 113
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm3/02/probe/p_rt.kujo",
+              "sha256": "315f09bbb5ed8524eadc32955204bf27a25c3da1e6d309ed6f519678e53b838e",
+              "bytes": 375
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm3/02/probe/p_sidx.kujo",
+              "sha256": "da08c31d5efca16e1200ab551785ff12ab5237bdaf68fb8693c469cae75f8b20",
+              "bytes": 56
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm3/02/probe/p_strcmp.kujo",
+              "sha256": "2bed4679fd5b443fc2939afdafcd0eca4c102da6b74d2edfeb9fcfaa12b2a285",
+              "bytes": 79
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm3/02/tests/run_tests.sh",
+              "sha256": "f44f5becb43130720124ef831efd4d3459a58947198b267297ff2941a691eee6",
+              "bytes": 5025
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm3/02/tests/verify_artifacts.kujo",
+              "sha256": "0f705a4168348457d5d90193e9b93fad1cc066dc54de87c67e8235f0bcb9a922",
+              "bytes": 1990
+            }
+          ]
+        },
+        {
+          "task": 3,
+          "title": "Persistent entry service with failed-write consistency",
+          "execution_id": "6857a626-f447-4da9-8f00-7773835e66a1",
+          "stream_ok": true,
+          "stream_error": null,
+          "server_status": "completed",
+          "server_ok": true,
+          "duration_ms": 179147,
+          "checks_passed": 19,
+          "checks_total": 19,
+          "artifact_accepted": true,
+          "usage": {
+            "input_tokens": 439081,
+            "output_tokens": 39724,
+            "total_tokens": 478805,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "usage_complete": true,
+          "provider_rounds": 20,
+          "tool_calls_executed": 18,
+          "tool_input_repairs": 3,
+          "review": {
+            "enabled": true,
+            "phase": "final",
+            "reviews": 1,
+            "repairs": 0,
+            "outcome": "pass"
+          },
+          "contract_late": false,
+          "review_findings": [],
+          "outside_task_file_operations": [
+            {
+              "tool": "local_file_list",
+              "path": "Kujolang/kujo-repos/ai-chat/data/dev-benchmark-2026-10-04-judgmentfinalglm3"
+            }
+          ],
+          "artifacts": [
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm3/03/server.js",
+              "sha256": "59165490c611a41ba9a7fe88ec7b24be5ba090d4922817b013aad605cc865938",
+              "bytes": 8121
+            },
+            {
+              "path": "data/dev-benchmark-2026-10-04-judgmentfinalglm3/03/test.js",
+              "sha256": "280794d4da8e1b5d1a4d889b8d9f1e8fd87fc9af7ed4f12c1699219483b08532",
+              "bytes": 16756
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "totals": {
+    "tasks": 9,
+    "stream_completed": 7,
+    "server_completed": 9,
+    "artifacts_accepted": 9,
+    "checks": 135,
+    "checks_passed": 135,
+    "duration_ms": 3320420,
+    "tokens": 17656847,
+    "all_usage_complete": true,
+    "provider_rounds": 334,
+    "tool_calls_executed": 597,
+    "tool_input_repairs": 29,
+    "review_outcomes": {
+      "pass": 5,
+      "inconclusive": 4
+    },
+    "repair_cycles": 3,
+    "timely_contracts": 9,
+    "accepted_after_supplemental_probe": 8
+  },
+  "supplemental_probe": {
+    "method": "Post-hoc, after frozen-oracle results; owned fixtures and per-child preload; no generated source edits. One legal short FileHandle.write(string) injection. Not a universal filesystem-fault oracle.",
+    "round": 3,
+    "task": 3,
+    "control": {
+      "probe": "post-hoc partial FileHandle.write(string)",
+      "control": true,
+      "injections": 0,
+      "applicable": true,
+      "http_status": 200,
+      "post": {
+        "entries": {
+          "ada": "one"
+        }
+      },
+      "visible": {
+        "entries": {
+          "ada": "one"
+        }
+      },
+      "disk": "{\"entries\":{\"ada\":\"one\"}}",
+      "disk_valid_json": true,
+      "passed": true,
+      "artifact_modified": false
+    },
+    "fault": {
+      "probe": "post-hoc partial FileHandle.write(string)",
+      "control": false,
+      "injections": 1,
+      "applicable": true,
+      "http_status": 200,
+      "post": {
+        "entries": {
+          "ada": "one"
+        }
+      },
+      "visible": {
+        "entries": {
+          "ada": "one"
+        }
+      },
+      "disk": "{\"entries\":{",
+      "disk_valid_json": false,
+      "passed": false,
+      "artifact_modified": false
+    },
+    "calibration": "tests/entry-short-write-probe.test.js: defective writer rejected; retrying writer accepted; unmodified ordinary control accepted."
+  },
+  "professional_assessment": {
+    "scale": 10,
+    "overall": 7.5,
+    "delivered_code_quality": 7.5,
+    "supervised_usefulness": 8.5,
+    "independent_production_judgment": 5,
+    "note": "Subjective engineering assessment, not a conversion of pass rate. Different tasks, explicit failure requirements, runtime and output cap prevent causal attribution. Three rounds of three narrow tasks do not establish frontier parity."
+  },
+  "preflight": {
+    "sha": "cfa8d50",
+    "http_400_failures": 5,
+    "operator_cancelled": 1,
+    "model_quality_eligible": false,
+    "root_cause": "Application emitted OpenAI tool-reply wire format on native Ollama route. Fixed in 690a028; original runs judgmentglm1/2 retained."
+  },
+  "historical_comparison": {
+    "standard_latest": {
+      "tasks": 18,
+      "accepted": 17,
+      "reported_tokens": 6534663,
+      "duration_ms": 2615672
+    },
+    "previous_transfer": {
+      "tasks": 9,
+      "accepted": 5,
+      "checks": 93,
+      "passed_on_15_vm": 82,
+      "passed_on_17_unchanged_artifacts": 89,
+      "reported_tokens_lower_bound": 14902641
+    },
+    "standard_history": {
+      "rounds": 16,
+      "tasks": 96,
+      "accepted": 86,
+      "full_suites": 8
+    },
+    "source": "docs/benchmarks/glm-verification-three-rounds-2026-10-04.json",
+    "pooled_score": null
+  },
+  "artifact_changes_after_probes": [],
+  "live_verification": {
+    "health_ok": true,
+    "profiles_preserved": 7,
+    "replays": [
+      {
+        "id": "8a9dbb76-84e3-4b79-953b-99c8d7e3c4a2",
+        "bytes": 305932,
+        "intact": true,
+        "tools_replayed": 0
+      },
+      {
+        "id": "83538f69-ed41-4aaf-9499-1b02de7a8f1b",
+        "bytes": 312976,
+        "intact": true,
+        "tools_replayed": 0
+      }
+    ],
+    "streaming": {
+      "active": 0,
+      "max_active": 32,
+      "heartbeat_ms": 15000,
+      "output": {
+        "closed": 2,
+        "overflows": 0,
+        "buffered_peak_bytes": 65560,
+        "connections": 0,
+        "pending_bytes": 0,
+        "blocked": 0,
+        "per_connection_limit_bytes": 262144
+      }
+    }
+  },
+  "application_verification": {
+    "command": "node --test --test-concurrency=1 tests/*.test.js",
+    "node": "22.17.0",
+    "passed": 636,
+    "failed": 0,
+    "skipped": 1,
+    "log": "/tmp/ai-chat-judgment-complete-full.log"
+  }
+}
