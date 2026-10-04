@@ -764,3 +764,12 @@ environments retain their prior behavior. Permissions are checked before creatin
 any alias. One private directory is reused per local runtime and cleaned up when
 it closes (with process-exit cleanup as a fallback). This is runtime consistency,
 not a sandbox or protection against concurrent same-user filesystem mutation.
+
+The review verification inventory also includes executable receipts explicitly
+linked by the task contract, so a custom harness such as `node test.js` can
+establish temporal freshness without relying on a command-name heuristic.
+These entries are labeled `contract_linked_execution`, distinct from recognized
+check commands. Each check includes bounded 500-character stdout/stderr tails
+and the executor's truncation flag; these excerpts remain untrusted evidence.
+The reviewer must still inspect the test's assertions and source coverage.
+A later file write invalidates the temporal evidence as before.

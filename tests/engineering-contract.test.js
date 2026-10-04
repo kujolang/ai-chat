@@ -48,3 +48,12 @@ test('schema-compatible uppercase invariant labels are accepted and retained exa
  assert.equal(state.plan[0].id,'INV-FAILURE');
  assert.equal(applyContract(state,{action:'evidence',evidence:[{id:'INV-FAILURE',result_ref:'check'}]},[run]).ok,true);
 });
+
+test('a final declared custom harness supersedes an earlier static check in the review packet',()=>{
+ const {evidencePacket}=require('../lib/engineering-review');const state={};applyContract(state,plan,[]);
+ const staticCheck={...run,call_id:'static',input:{command:'node',args:['--test']}};
+ const custom={...run,call_id:'custom',input:{command:'node',args:['test.js']},result:{exit_code:0,stdout:'passed=148 failed=0'}};
+ const rows=[staticCheck,write,custom];applyContract(state,{action:'evidence',evidence:[{id:'failure',result_ref:'custom'}]},rows);
+ const packet=JSON.parse(evidencePacket('Implement API',rows,'Done',state));
+ assert.equal(packet.task_contract.assessment.complete,true);assert.deepEqual(packet.verification.writes_after_last_successful_check,[]);assert.match(packet.verification.checks.at(-1).stdout_tail,/passed=148/);
+});
