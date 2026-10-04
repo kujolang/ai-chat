@@ -623,3 +623,30 @@ Process-group termination errors return `local_shell_termination_failed` with
 `execution_completed: false`, `retryable: false`, and retained partial output.
 They never claim rollback or confirmed process termination. Inspect the process
 before retrying. Successful force-kill is not repeated after the child closes.
+
+### Experimental engineering review metadata
+
+With server opt-in `ENGINEERING_REVIEW_ENABLED=1`, new provider-neutral streaming
+executions that perform local write/shell work can enter independent review and
+bounded repair. See [workflow and limits](LOCAL_AGENT_CAPABILITIES.md#independent-engineering-review-experimental).
+No request tools or permissions are added to the worker, and native Codex/JSON
+chat are unchanged.
+
+An additive `review` SSE event reports phase changes with
+`{enabled, phase, reviews, repairs, outcome}`. During reviewer inference it carries
+`{phase:"review", kind:"token"|"thinking", delta}` instead. Clients must preserve
+these deltas if they archive the complete multi-phase output; ordinary `token` and
+`thinking` continue to contain the worker's answer/reasoning. The built-in UI shows
+review/repair status and leaves detailed review content in the execution journal.
+`done.engineering_review` reports the final advisory status;
+`done.review_text` and `done.review_thinking_text` contain complete review deltas.
+Usage and provider-round counters include reviewer and repair requests. Older
+clients can ignore the additive event and metadata. Worker output is never
+retroactively deleted or replaced. Unresolved/inconclusive review status is also
+appended to ordinary answer text. This status is distinct from transport success:
+`done.ok=true` does not assert that engineering review passed.
+
+Review state is checkpointed for explicit resume. Completed execution replay
+returns the saved result without starting another review. Detailed events remain
+available through the existing execution event API, including if a reviewer is
+cancelled before producing a verdict.

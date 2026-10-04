@@ -5397,3 +5397,131 @@ for (const providerId of ['openai', 'ollama']) {
   });
  }
 }
+
+for (const providerId of ['openai', 'ollama']) {
+ test(`independent engineering review repairs once and accounts all rounds (${providerId})`, async () => {
+  let calls = 0, writes = 0, reads = 0;
+  const { runtime, destroy } = createIsolatedRuntime({ envMerge: { ENGINEERING_REVIEW_ENABLED: '1' },
+   localRuntime: { canExecute: () => true, status: () => ({ enabled: true }), writeFile: () => { writes++; return { ok: true, path: 'result.txt' }; }, readFile: () => { reads++; return { ok: true, content: writes === 1 ? 'bug' : 'fixed' }; } },
+   fetchFn: async (_url, options) => {
+    calls++; const body = JSON.parse(options.body); let call, content = '';
+    const names = (body.tools || []).map(t => t.function.name);
+    if ([1, 5].includes(calls)) call = { id: `write-${calls}`, function: { name: 'local_file_write', arguments: { root_id: 'repo', path: 'result.txt', content: calls === 1 ? 'bug' : 'fixed' } } };
+    else if ([2, 6].includes(calls)) content = 'Candidate ready.';
+    else if ([3, 7].includes(calls)) {
+     assert.ok(!names.includes('local_file_write')); assert.ok(!names.includes('local_shell')); assert.ok(!names.includes('tool_discover'));
+     assert.ok(!JSON.stringify(body.messages).includes('worker private reasoning'));
+     assert.match(body.messages.at(-1).content, /Engineering review budget/);
+     call = { id: `read-${calls}`, function: { name: 'local_file_read', arguments: { root_id: 'repo', path: 'result.txt' } } };
+    } else if ([4, 8].includes(calls)) content = JSON.stringify({ verdict: calls === 4 ? 'revise' : 'pass', findings: calls === 4 ? ['result.txt contains a bug; fix and test it.'] : [], checks: [{ result_ref: providerId === 'ollama' ? `tool_call_${calls - 2}_0` : `read-${calls - 1}`, claim: 'inspected final source' }] });
+    else { assert.equal(calls, 9); assert.deepEqual(names, []); content = 'Fixed and checked. Review is advisory.'; }
+    const evidenceCall = [3, 7].includes(calls) ? { id: `evidence-${calls}`, function: { name: 'tool_result_read', arguments: { result_ref: providerId === 'ollama' ? `tool_call_${calls === 3 ? 0 : 4}_0` : `write-${calls === 3 ? 1 : 5}` } } } : null;
+    const toolCalls = [call, evidenceCall].filter(Boolean);
+    const usage = { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 };
+    if (providerId === 'ollama') return mockChunkedResponse([JSON.stringify({ message: call ? { content, tool_calls: toolCalls.map(c => ({ function: c.function })) } : { content }, done: true, done_reason: 'stop', prompt_eval_count: 10, eval_count: 5 }) + '\n']);
+    return mockSseResponse([{ usage, choices: [{ delta: call ? { reasoning_content: calls === 1 ? 'worker private reasoning' : '', tool_calls: toolCalls.map((c, index) => ({ ...c, index, function: { ...c.function, arguments: JSON.stringify(c.function.arguments) } })) } : { content }, finish_reason: call ? 'tool_calls' : 'stop' }] }]);
+   }
+  });
+  try {
+   const profileId = applyProfileMutation(runtime, p => { p.provider_id = providerId; p.api_key = 'fixture'; });
+   await withServer(runtime.app, async base => {
+    const response = await fetch(base + '/api/chat/stream', { method: 'POST', headers: withAuthHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify({ request_id: `quality-${providerId}`, profile_id: profileId, messages: [{ role: 'user', content: 'Implement result.txt' }], tools: ['local_file_read', 'local_file_write', 'local_shell'].map(name => ({ type: 'function', function: { name, parameters: { type: 'object' } } })), include_saved_runtime_presets: false }) });
+    const events = parseSseEvents(await response.text()); const last = events.at(-1);
+    assert.equal(last.event, 'done', JSON.stringify(last)); assert.equal(calls, 9); assert.equal(writes, 2); assert.equal(reads, 2);
+    assert.equal(last.data.engineering_review.outcome, 'pass'); assert.equal(last.data.engineering_review.repairs, 1);
+    assert.equal(last.data.provider_rounds, 9); assert.equal(last.data.usage.total_tokens, 135); assert.equal(last.data.usage_complete, true);
+    assert.equal(events.filter(e => e.event === 'token').map(e => e.data.delta).join(''), last.data.output_text);
+    assert.equal(events.filter(e => e.event === 'review' && e.data.kind === 'token').map(e => e.data.delta).join(''), last.data.review_text);
+    assert.ok(!last.data.output_text.includes('"verdict"'));
+    const journal = await fetchJson(base, `/api/executions/quality-${providerId}`);
+    assert.equal(journal.json.execution.checkpoint.engineering_review.repairs, 1);
+    assert.equal(journal.json.receipts.length, 6);
+    assert.equal(journal.json.receipts.filter(r => r.tool_name === 'tool_result_read').length, 2);
+    assert.ok(journal.json.receipts.filter(r => r.tool_name === 'tool_result_read').every(r => r.result.ok === true));
+   });
+  } finally { destroy(); }
+ });
+}
+for (const denied of ['local_file_write', 'local_shell', 'tool_discover', 'browser_act']) {
+ test(`review cannot bypass read-only authorization with ${denied}`, async () => {
+  let calls = 0, writes = 0;
+  const { runtime, destroy } = createIsolatedRuntime({ envMerge: { ENGINEERING_REVIEW_ENABLED: '1' },
+   localRuntime: { canExecute: () => true, status: () => ({ enabled: true }), writeFile: () => { writes++; return { ok: true }; } },
+   fetchFn: async () => {
+    calls++; const call = calls === 1 || calls === 2 ? { id: `call-${calls}`, function: { name: calls === 2 ? 'local_file_write' : 'tool_discover', arguments: calls === 2 ? '{"path":"a","content":"b"}' : '{"query":"local_file_write"}' } } : calls === 4 ? { id: 'denied', function: { name: denied, arguments: '{}' } } : null;
+    return mockSseResponse([{ choices: [{ delta: call ? { tool_calls: [{ ...call, index: 0 }] } : { content: 'Candidate' }, finish_reason: call ? 'tool_calls' : 'stop' }] }]);
+   }
+  });
+  try {
+   const profileId = applyProfileMutation(runtime, p => { p.provider_id = 'openai'; p.api_key = 'fixture'; });
+   await withServer(runtime.app, async base => {
+    const response = await fetch(base + '/api/chat/stream', { method: 'POST', headers: withAuthHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify({ profile_id: profileId, tool_discovery: true, messages: [{ role: 'user', content: 'Implement a file' }], tools: ['local_file_read', 'local_file_write', 'local_shell', 'browser_act'].map(name => ({ type: 'function', function: { name, parameters: { type: 'object' } } })), include_saved_runtime_presets: false }) });
+    const last = parseSseEvents(await response.text()).at(-1);
+    assert.equal(last.event, 'error'); assert.equal(last.data.code, 'tool_execution_unavailable'); assert.equal(writes, 1); assert.equal(calls, 4);
+   });
+  } finally { destroy(); }
+ });
+}
+
+test('interrupted independent review resumes without repeating writes or resetting its phase', async () => {
+ let calls = 0, writes = 0;
+ const { runtime, destroy } = createIsolatedRuntime({ envMerge: { ENGINEERING_REVIEW_ENABLED: '1' },
+  localRuntime: { canExecute: () => true, status: () => ({ enabled: true }), writeFile: () => { writes++; return { ok: true }; } },
+  fetchFn: async (_url, options) => {
+   calls++; const body = JSON.parse(options.body);
+   if (calls === 3) throw new Error('fixture connection interrupted');
+   if (calls === 4) { assert.match(body.messages.at(-1).content, /review budget: round 2\/4/); assert.ok(!body.tools.some(t => t.function.name === 'local_file_write')); }
+   const content = calls === 2 ? 'Candidate' : calls === 4 ? 'malformed review' : 'Final result';
+   return mockSseResponse([{ choices: [{ delta: calls === 1 ? { tool_calls: [{ index: 0, id: 'one-write', function: { name: 'local_file_write', arguments: '{"path":"result.txt","content":"result"}' } }] } : { content }, finish_reason: calls === 1 ? 'tool_calls' : 'stop' }] }]);
+  }
+ });
+ try {
+  const profileId = applyProfileMutation(runtime, p => { p.provider_id = 'openai'; p.api_key = 'fixture'; });
+  await withServer(runtime.app, async base => {
+   const body = { request_id: 'review-resume', profile_id: profileId, messages: [{ role: 'user', content: 'Create result.txt' }], tools: ['local_file_write', 'local_file_read'].map(name => ({ type: 'function', function: { name, parameters: { type: 'object' } } })), include_saved_runtime_presets: false };
+   const run = async payload => parseSseEvents(await (await fetch(base + '/api/chat/stream', { method: 'POST', headers: withAuthHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify(payload) })).text());
+   assert.equal((await run(body)).at(-1).event, 'error');
+   const saved = await fetchJson(base, '/api/executions/review-resume');
+   assert.equal(saved.json.execution.checkpoint.engineering_review.phase, 'review');
+   const last = (await run({ ...body, resume: true })).at(-1);
+   assert.equal(last.event, 'done', JSON.stringify(last)); assert.equal(writes, 1); assert.equal(calls, 5);
+   assert.equal(last.data.engineering_review.outcome, 'inconclusive');
+   assert.match(last.data.output_text, /Review remains inconclusive/);
+   const replay = (await run({ ...body, resume: true })).at(-1);
+   assert.equal(replay.data.replayed, true); assert.equal(calls, 5);
+  });
+ } finally { destroy(); }
+});
+
+test('cancelling a reviewer aborts inference and retains completed work', { timeout: 10000 }, async () => {
+ let calls = 0, writes = 0, reviewerStarted;
+ const reviewing = new Promise(resolve => { reviewerStarted = resolve; });
+ const { runtime, destroy } = createIsolatedRuntime({ envMerge: { ENGINEERING_REVIEW_ENABLED: '1' },
+  localRuntime: { canExecute: () => true, status: () => ({ enabled: true }), writeFile: () => { writes++; return { ok: true }; } },
+  fetchFn: async (_url, options) => {
+   calls++;
+   if (calls === 3) {
+    reviewerStarted();
+    await new Promise((resolve, reject) => {
+     options.signal.addEventListener('abort', () => reject(Object.assign(new Error('cancelled'), { name: 'AbortError' })), { once: true });
+    });
+   }
+   return mockSseResponse([{ choices: [{ delta: calls === 1 ? { tool_calls: [{ index: 0, id: 'write-before-cancel', function: { name: 'local_file_write', arguments: '{"path":"a.txt","content":"saved"}' } }] } : { content: 'Candidate' }, finish_reason: calls === 1 ? 'tool_calls' : 'stop' }] }]);
+  }
+ });
+ try {
+  const profileId = applyProfileMutation(runtime, p => { p.provider_id = 'openai'; p.api_key = 'fixture'; });
+  await withServer(runtime.app, async base => {
+   const pending = fetch(base + '/api/chat/stream', { method: 'POST', headers: withAuthHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify({ request_id: 'cancel-review', profile_id: profileId, messages: [{ role: 'user', content: 'Create a.txt' }], tools: [{ type: 'function', function: { name: 'local_file_write' } }], include_saved_runtime_presets: false }) }).then(async r => parseSseEvents(await r.text()));
+   await reviewing;
+   await fetchJson(base, '/api/chat/stream/cancel', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ request_id: 'cancel-review' }) });
+   const last = (await pending).at(-1);
+   assert.equal(last.event, 'error'); assert.equal(last.data.code, 'stream_cancelled');
+   assert.equal(writes, 1); assert.equal(calls, 3);
+   const saved = await fetchJson(base, '/api/executions/cancel-review');
+   assert.equal(saved.json.execution.status, 'cancelled');
+   assert.equal(saved.json.receipts[0].status, 'completed');
+   assert.equal(saved.json.execution.checkpoint.engineering_review.phase, 'review');
+  });
+ } finally { destroy(); }
+});

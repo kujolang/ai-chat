@@ -259,3 +259,54 @@ permissions are granted. Read-only and research catalogs omit this workflow.
 The guidance adds no provider calls, retries, or timeouts. Native Codex's separate
 harness and the non-tool JSON route are unchanged. Existing durable executions
 resume their saved instructions; start a new execution to evaluate this change.
+
+## Independent engineering review (experimental)
+
+Set `ENGINEERING_REVIEW_ENABLED=1` and restart AI Chat to enable an additional
+quality check for new provider-neutral streaming executions. It is off by default
+so enabling it is an explicit latency/usage choice. The local deployment may opt in
+without changing any provider profiles. `/api/health` reports the flag and limits.
+Native Codex and the non-streaming JSON route retain their existing workflows.
+
+After an execution has actually written a local file or run a shell command and
+produces a completion candidate, AI Chat starts a fresh review context on the same
+selected model/provider. Merely advertising engineering tools, loading a deferred
+schema, or asking a read-only question does not start a review. The reviewer gets
+the original request context, system constraints, candidate summary, file paths,
+and references to saved execution receipts. It does not get the worker's current
+reasoning history. It can inspect authorized local files and saved results, but
+cannot discover tools, execute commands, write, browse, or call action adapters.
+Authorization enforces this restriction even if the model asks otherwise.
+
+The reviewer checks source and evidence against the task's requirements and
+relevant failure invariants. It returns `pass`, `revise`, or `inconclusive`.
+A malformed verdict or a pass without an evidence read/checks is inconclusive.
+A pass is advisory; it does not certify production readiness or prove test coverage.
+The model may still miss defects. A review has at most four provider rounds,
+including tool reads. Findings can return to the original worker for at most two
+repair passes, each limited to twelve provider rounds, followed by another review
+(at most three reviews total). Repairs retain the original scope and tool
+permissions. Instructions require focused regression checks, final-source
+verification and fixture cleanup; the harness does not invent or automatically
+execute a test command.
+
+A five-minute shared review/repair budget starts at the first review. Remaining
+seconds and rounds are shown to the model. The deadline is checked **between**
+rounds; it does not forcibly terminate an in-flight tool/provider operation.
+Existing operation timeouts, user cancellation and global call/round limits still
+apply. Budget exhaustion returns to a tools-free final summary and is explicitly
+reported as incomplete. The review budget does not communicate an external
+benchmark runner's deadline to the initial implementation phase.
+
+Review phase, budgets and original worker context are encrypted in the execution
+checkpoint. Explicit resume retains them and uses existing tool receipts instead
+of replaying writes. Existing checkpoints created before the feature keep their
+original workflow. Every review and repair model call uses the normal usage,
+context, trace and cancellation path. Review streaming text/thinking is preserved
+in separate `review` events and terminal fields, not mixed into the answer. The UI
+shows phase changes and retains the detailed journal for inspection. The final
+answer always discloses an inconclusive/unresolved review, even if the worker omits
+that limitation.
+
+This is a quality intervention awaiting fresh live comparative benchmarks. It does
+not change the grades or acceptance results in earlier benchmark reports.

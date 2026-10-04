@@ -6218,6 +6218,20 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 					return;
 				}
 
+				if (eventName === "review") {
+					// Detailed review deltas remain in the execution journal. Show only
+					// phase changes here, not the reviewer's structured verdict JSON.
+					if (!payloadObj.kind) {
+						captureToolNarration();
+						const label = payloadObj.phase === "review" ? "Reviewing implementation…"
+							: payloadObj.phase === "repair" ? "Addressing review findings…" : "Preparing results and limitations…";
+						assistantMessage.tool_activity = [...normalizeToolActivityEntries(assistantMessage.tool_activity), { label, phase: "started", tool_name: "engineering_review", command: "" }].slice(-32);
+						scheduleStreamingMessagePatch(chat.id, pane.id, assistantMessage.id);
+						scheduleStreamingPersist(chat.id, pane.id, assistantMessage.id);
+					}
+					return;
+				}
+
 				if (eventName === "tool") {
 					if (payloadObj.phase === "started") {
 						streamUsedTools = true;

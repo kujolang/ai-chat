@@ -579,3 +579,12 @@ model contexts. They bound uploads independently of model token budgets. Explici
 tool-history caps also remain in effect. The estimator is a conservative UTF-8
 byte upper bound, not a provider tokenizer; reported capacity does not imply that
 the application can fill every token in that window with arbitrary text.
+
+### Optional engineering review
+
+Set `ENGINEERING_REVIEW_ENABLED=1` in the server environment or local `.env`, then
+restart. New streaming tasks that write files or run commands receive a read-only
+second look from the same model, with at most two repair passes. This adds model
+usage and latency; it is experimental and off by default. Existing provider
+profiles, permissions and native Codex behavior stay intact. See the
+[review workflow and limits](docs/LOCAL_AGENT_CAPABILITIES.md#independent-engineering-review-experimental).
