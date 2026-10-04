@@ -1,0 +1,2084 @@
+{
+  "model": "glm-5.3-flash:cloud",
+  "profile": "Watchdog / Ollama Cloud",
+  "starting_sha": "9f3f9432bdac4b88d033cd2b5758dec8e3d5fec8",
+  "controls": {
+    "engineering_review_enabled": true,
+    "prompts_match_previous_except_directories": true,
+    "requested_output_tokens": 6000,
+    "context_window_tokens": 1048576,
+    "concurrency": 1,
+    "attempts_per_case": 1,
+    "runner_deadline_ms": 1200000,
+    "manual_artifact_repairs": false,
+    "source_or_configuration_changes_during_runs": false,
+    "independent_probes_after_timed_suites": true
+  },
+  "toolchain": {
+    "starting_sha": "9f3f9432bdac4b88d033cd2b5758dec8e3d5fec8",
+    "toolchain": {
+      "go": {
+        "path": "/usr/local/Cellar/go/1.27.1/libexec/bin/go",
+        "sha256": "6890cf02fb958fc15a043022d5f29e2a2206ab08a73581eddc3f33c7c681a730",
+        "version": "go version go1.27.1 darwin/amd64"
+      },
+      "kujo": {
+        "path": "/Users/robertdevore/.local/bin/kujo",
+        "sha256": "3e1e475ea165c8b4a714495596fe8661ad970b27119ad44f1db4d9779f7f05d4",
+        "version": "kujo 1.5.0"
+      }
+    },
+    "prior_prompt_sha256": "d1c1d159821d40f2bbb1953996dd6609b5388bae0f80972bf5ab6b4eb3999dd2"
+  },
+  "rounds": [
+    {
+      "round": 1,
+      "overall_glm_round": 11,
+      "run_id": "dev-2026-10-04-review-reviewglm1",
+      "started_at": "2026-10-04T12:02:30.873Z",
+      "finished_at": "2026-10-04T12:29:40.572Z",
+      "duration_ms": 1629699,
+      "accepted": 4,
+      "transport_completed": 4,
+      "reported_tokens_lower_bound": 5626962,
+      "all_usage_complete": false,
+      "provider_rounds": 149,
+      "recorded_tool_receipts": 222,
+      "raw_runner_summary": {
+        "total": 6,
+        "completed": 4,
+        "failed": 2,
+        "retry_count": 0,
+        "tool_calls_executed": 129,
+        "tool_input_repairs": 11,
+        "provider_rounds": 80,
+        "latency_ms_total": 1618260,
+        "latency_samples": 6,
+        "token_use": {
+          "input_tokens": 1011900,
+          "output_tokens": 81697,
+          "total_tokens": 1093597
+        },
+        "transport_completion_rate": 0.6667,
+        "task_completion_rate": null,
+        "repair_rate": 0.0853,
+        "average_latency_ms": 269710
+      },
+      "cases": [
+        {
+          "number": 1,
+          "title": "CSV",
+          "chat_id": "692371b3-b13f-416b-bee9-4c278cecbd42",
+          "execution_id": "83476b2c-c173-4838-abdc-f9665f4ad065",
+          "strict_acceptance": true,
+          "transport_ok": true,
+          "duration_ms": 123566,
+          "attempts": 1,
+          "status": "completed",
+          "usage": {
+            "input_tokens": 220961,
+            "output_tokens": 17054,
+            "total_tokens": 238015,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "usage_complete": true,
+          "provider_rounds": 17,
+          "recorded_tool_receipts": 35,
+          "completed_tool_calls": 35,
+          "terminal_error": null,
+          "review": {
+            "reviews": 1,
+            "repairs": 0,
+            "outcome": "inconclusive",
+            "findings": [
+              "The bounded review/repair budget was exhausted; final verification remains incomplete."
+            ],
+            "evidence_checks": 0
+          },
+          "context_budget": {
+            "system_chars": 9780,
+            "conversation_chars": 5006,
+            "tool_result_chars": 17631,
+            "tool_call_chars": 20346,
+            "tool_schema_bytes": 2,
+            "tool_schema_count": 0,
+            "before_upper_bound": 91623,
+            "after_upper_bound": 91623,
+            "input_allowance": 1042576,
+            "output_reservation": 6000,
+            "envelope_reservation": 0,
+            "compacted_calls": 0,
+            "recovered_facts": 0,
+            "folded_file_reads": 0,
+            "removed_messages": 0,
+            "estimator": "utf8_bytes_plus_framing_upper_bound",
+            "context_window_tokens": 1048576,
+            "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+            "context_limit_known": true,
+            "context_scope": "provider_request"
+          }
+        },
+        {
+          "number": 2,
+          "title": "Kujo/Go timing",
+          "chat_id": "13d85019-254d-4dd8-9af8-fad97325c5a2",
+          "execution_id": "a44c02db-cc16-4b71-a5c6-34888fbec54e",
+          "strict_acceptance": false,
+          "transport_ok": false,
+          "duration_ms": 1200139,
+          "attempts": 1,
+          "status": "cancelled",
+          "usage": {
+            "input_tokens": 4507130,
+            "output_tokens": 26235,
+            "total_tokens": 4533365,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "usage_complete": true,
+          "provider_rounds": 69,
+          "recorded_tool_receipts": 93,
+          "completed_tool_calls": 93,
+          "terminal_error": "stream_cancelled",
+          "review": {
+            "reviews": 0,
+            "repairs": 0,
+            "outcome": "not_requested",
+            "findings": [],
+            "evidence_checks": 0
+          },
+          "context_budget": {
+            "system_chars": 9780,
+            "conversation_chars": 5677,
+            "tool_result_chars": 168493,
+            "tool_call_chars": 25183,
+            "tool_schema_bytes": 7558,
+            "tool_schema_count": 13,
+            "before_upper_bound": 311468,
+            "after_upper_bound": 311468,
+            "input_allowance": 1042576,
+            "output_reservation": 6000,
+            "envelope_reservation": 0,
+            "compacted_calls": 0,
+            "recovered_facts": 0,
+            "folded_file_reads": 0,
+            "removed_messages": 0,
+            "estimator": "utf8_bytes_plus_framing_upper_bound",
+            "context_window_tokens": 1048576,
+            "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+            "context_limit_known": true,
+            "context_scope": "provider_request"
+          }
+        },
+        {
+          "number": 3,
+          "title": "Discount fix",
+          "chat_id": "a2e7c54a-fb9c-44a6-a749-f1baa12c2bb1",
+          "execution_id": "ba8570ed-b5c7-439f-887c-9e625c38e700",
+          "strict_acceptance": true,
+          "transport_ok": true,
+          "duration_ms": 84307,
+          "attempts": 1,
+          "status": "completed",
+          "usage": {
+            "input_tokens": 218660,
+            "output_tokens": 18119,
+            "total_tokens": 236779,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "usage_complete": true,
+          "provider_rounds": 18,
+          "recorded_tool_receipts": 33,
+          "completed_tool_calls": 33,
+          "terminal_error": null,
+          "review": {
+            "reviews": 1,
+            "repairs": 0,
+            "outcome": "pass",
+            "findings": [],
+            "evidence_checks": 11
+          },
+          "context_budget": {
+            "system_chars": 9780,
+            "conversation_chars": 6477,
+            "tool_result_chars": 14150,
+            "tool_call_chars": 5100,
+            "tool_schema_bytes": 2,
+            "tool_schema_count": 0,
+            "before_upper_bound": 73268,
+            "after_upper_bound": 73268,
+            "input_allowance": 1042576,
+            "output_reservation": 6000,
+            "envelope_reservation": 0,
+            "compacted_calls": 0,
+            "recovered_facts": 0,
+            "folded_file_reads": 0,
+            "removed_messages": 0,
+            "estimator": "utf8_bytes_plus_framing_upper_bound",
+            "context_window_tokens": 1048576,
+            "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+            "context_limit_known": true,
+            "context_scope": "provider_request"
+          }
+        },
+        {
+          "number": 4,
+          "title": "Persistent HTTP API",
+          "chat_id": "5e692b70-eb81-4eeb-848f-684f2b2d7327",
+          "execution_id": "0f308aa2-4ad0-4b27-b1b4-ecd76197c7eb",
+          "strict_acceptance": true,
+          "transport_ok": true,
+          "duration_ms": 106880,
+          "attempts": 1,
+          "status": "completed",
+          "usage": {
+            "input_tokens": 388578,
+            "output_tokens": 21855,
+            "total_tokens": 410433,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "usage_complete": true,
+          "provider_rounds": 24,
+          "recorded_tool_receipts": 31,
+          "completed_tool_calls": 31,
+          "terminal_error": null,
+          "review": {
+            "reviews": 1,
+            "repairs": 0,
+            "outcome": "inconclusive",
+            "findings": [
+              "The bounded review/repair budget was exhausted; final verification remains incomplete."
+            ],
+            "evidence_checks": 0
+          },
+          "context_budget": {
+            "system_chars": 9780,
+            "conversation_chars": 5604,
+            "tool_result_chars": 28196,
+            "tool_call_chars": 34034,
+            "tool_schema_bytes": 2,
+            "tool_schema_count": 0,
+            "before_upper_bound": 128816,
+            "after_upper_bound": 128816,
+            "input_allowance": 1042576,
+            "output_reservation": 6000,
+            "envelope_reservation": 0,
+            "compacted_calls": 0,
+            "recovered_facts": 0,
+            "folded_file_reads": 0,
+            "removed_messages": 0,
+            "estimator": "utf8_bytes_plus_framing_upper_bound",
+            "context_window_tokens": 1048576,
+            "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+            "context_limit_known": true,
+            "context_scope": "provider_request"
+          }
+        },
+        {
+          "number": 5,
+          "title": "Timeout recovery",
+          "chat_id": "89b9ddbc-81b1-49cc-8b75-a3cbd8148e7f",
+          "execution_id": "6e2f9688-2466-445e-b991-223e5af7fc0f",
+          "strict_acceptance": true,
+          "transport_ok": true,
+          "duration_ms": 37034,
+          "attempts": 1,
+          "status": "completed",
+          "usage": {
+            "input_tokens": 60857,
+            "output_tokens": 5532,
+            "total_tokens": 66389,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "usage_complete": true,
+          "provider_rounds": 11,
+          "recorded_tool_receipts": 15,
+          "completed_tool_calls": 15,
+          "terminal_error": null,
+          "review": {
+            "reviews": 1,
+            "repairs": 0,
+            "outcome": "inconclusive",
+            "findings": [
+              "Review did not provide a valid evidence-backed verdict."
+            ],
+            "evidence_checks": 0
+          },
+          "context_budget": {
+            "system_chars": 9780,
+            "conversation_chars": 3645,
+            "tool_result_chars": 7009,
+            "tool_call_chars": 1545,
+            "tool_schema_bytes": 2,
+            "tool_schema_count": 0,
+            "before_upper_bound": 29427,
+            "after_upper_bound": 29427,
+            "input_allowance": 1042576,
+            "output_reservation": 6000,
+            "envelope_reservation": 0,
+            "compacted_calls": 0,
+            "recovered_facts": 0,
+            "folded_file_reads": 0,
+            "removed_messages": 0,
+            "estimator": "utf8_bytes_plus_framing_upper_bound",
+            "context_window_tokens": 1048576,
+            "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+            "context_limit_known": true,
+            "context_scope": "provider_request"
+          }
+        },
+        {
+          "number": 6,
+          "title": "Go duplicate CLI",
+          "chat_id": "3d5e7683-46e6-4283-a7c7-acdc90cc77c8",
+          "execution_id": "798f6e17-fa87-4a43-80da-533d85a71aee",
+          "strict_acceptance": false,
+          "transport_ok": false,
+          "duration_ms": 66334,
+          "attempts": 1,
+          "status": "interrupted",
+          "usage": {
+            "input_tokens": 122844,
+            "output_tokens": 19137,
+            "total_tokens": 141981,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "usage_complete": false,
+          "provider_rounds": 10,
+          "recorded_tool_receipts": 15,
+          "completed_tool_calls": 15,
+          "terminal_error": "provider_error",
+          "review": {
+            "reviews": 0,
+            "repairs": 0,
+            "outcome": "not_requested",
+            "findings": [],
+            "evidence_checks": 0
+          },
+          "context_budget": {
+            "system_chars": 9780,
+            "conversation_chars": 1967,
+            "tool_result_chars": 12724,
+            "tool_call_chars": 32817,
+            "tool_schema_bytes": 7558,
+            "tool_schema_count": 13,
+            "before_upper_bound": 112308,
+            "after_upper_bound": 112308,
+            "input_allowance": 1042576,
+            "output_reservation": 6000,
+            "envelope_reservation": 0,
+            "compacted_calls": 0,
+            "recovered_facts": 0,
+            "folded_file_reads": 0,
+            "removed_messages": 0,
+            "estimator": "utf8_bytes_plus_framing_upper_bound",
+            "context_window_tokens": 1048576,
+            "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+            "context_limit_known": true,
+            "context_scope": "provider_request"
+          }
+        }
+      ],
+      "independent_tests": [
+        {
+          "case": 1,
+          "command": [
+            "go",
+            "test",
+            "-json",
+            "-count=1",
+            "main.go",
+            "main_test.go"
+          ],
+          "cwd": "data/dev-benchmark-2026-10-04-review-reviewglm1/01",
+          "exit_code": 0,
+          "log": "data/benchmark-runs/reviewglm1-independent-1.log",
+          "passing_tests": 12
+        },
+        {
+          "case": 3,
+          "command": [
+            "node",
+            "--test"
+          ],
+          "cwd": "data/dev-benchmark-2026-10-04-review-reviewglm1/03",
+          "exit_code": 0,
+          "log": "data/benchmark-runs/reviewglm1-independent-3.log",
+          "passing_tests": 4
+        },
+        {
+          "case": 4,
+          "command": [
+            "node",
+            "--test"
+          ],
+          "cwd": "data/dev-benchmark-2026-10-04-review-reviewglm1/04",
+          "exit_code": 0,
+          "log": "data/benchmark-runs/reviewglm1-independent-4.log",
+          "passing_tests": 12
+        },
+        {
+          "case": 6,
+          "command": [
+            "go",
+            "test",
+            "-json",
+            "-count=1",
+            "./..."
+          ],
+          "cwd": "data/dev-benchmark-2026-10-04-review-reviewglm1/06",
+          "exit_code": 1,
+          "log": "data/benchmark-runs/reviewglm1-independent-6.log",
+          "passing_tests": 11
+        }
+      ],
+      "csv_probes": [
+        {
+          "probe": "normal",
+          "exit_code": 0,
+          "stdout": "Alice: 3.00\nBob: 1.00\n",
+          "stderr": "",
+          "stderr_chars": 0
+        },
+        {
+          "probe": "nonfinite",
+          "exit_code": 1,
+          "stdout": "",
+          "stderr": "error: line 2: malformed amount \"NaN\"\n",
+          "stderr_chars": 38
+        },
+        {
+          "probe": "out_of_range",
+          "exit_code": 1,
+          "stdout": "",
+          "stderr": "error: line 2: malformed amount \"1e20\"\n",
+          "stderr_chars": 39
+        },
+        {
+          "probe": "integer_overflow",
+          "exit_code": 1,
+          "stdout": "",
+          "stderr": "error: line 2: amount out of range \"92233720368547758.08\"\n",
+          "stderr_chars": 58
+        },
+        {
+          "probe": "quoted_customer",
+          "exit_code": 0,
+          "stdout": "A,B: 1.00\n",
+          "stderr": "",
+          "stderr_chars": 0
+        },
+        {
+          "probe": "aggregate_overflow",
+          "exit_code": 0,
+          "stdout": "A: -89467440737095611.16\n",
+          "stderr": "",
+          "stderr_chars": 0
+        },
+        {
+          "probe": "wrong_header",
+          "exit_code": 1,
+          "stdout": "",
+          "stderr": "error: bad header \"name,cost\": want \"customer,amount\"\n",
+          "stderr_chars": 54
+        }
+      ],
+      "api_probes": {
+        "label": "reviewglm1",
+        "null_json": {
+          "status": 400,
+          "body": {
+            "error": "request body must be a JSON object"
+          }
+        },
+        "real_process_restart": "pass",
+        "forced_persistence_failure": {
+          "status": 500,
+          "error_detail_exposed": false
+        },
+        "write_failed": true,
+        "memory_count": 2,
+        "disk_unchanged": true,
+        "visible_state_unchanged": false,
+        "alive_after_failure": true,
+        "children_cleaned": true
+      }
+    },
+    {
+      "round": 2,
+      "overall_glm_round": 12,
+      "run_id": "dev-2026-10-04-review-reviewglm2",
+      "started_at": "2026-10-04T12:29:44.433Z",
+      "finished_at": "2026-10-04T12:47:59.012Z",
+      "duration_ms": 1094579,
+      "accepted": 6,
+      "transport_completed": 6,
+      "reported_tokens_lower_bound": 3254538,
+      "all_usage_complete": true,
+      "provider_rounds": 146,
+      "recorded_tool_receipts": 256,
+      "raw_runner_summary": {
+        "total": 6,
+        "completed": 6,
+        "failed": 0,
+        "retry_count": 0,
+        "tool_calls_executed": 256,
+        "tool_input_repairs": 13,
+        "provider_rounds": 146,
+        "latency_ms_total": 1087615,
+        "latency_samples": 6,
+        "token_use": {
+          "input_tokens": 3117249,
+          "output_tokens": 137289,
+          "total_tokens": 3254538
+        },
+        "transport_completion_rate": 1,
+        "task_completion_rate": null,
+        "repair_rate": 0.0508,
+        "average_latency_ms": 181269
+      },
+      "cases": [
+        {
+          "number": 1,
+          "title": "CSV",
+          "chat_id": "182d4bea-452f-4960-bc1c-ac387adef502",
+          "execution_id": "6fb700ba-f000-433d-b045-1b5022ee48c8",
+          "strict_acceptance": true,
+          "transport_ok": true,
+          "duration_ms": 116135,
+          "attempts": 1,
+          "status": "completed",
+          "usage": {
+            "input_tokens": 210107,
+            "output_tokens": 22876,
+            "total_tokens": 232983,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "usage_complete": true,
+          "provider_rounds": 16,
+          "recorded_tool_receipts": 38,
+          "completed_tool_calls": 38,
+          "terminal_error": null,
+          "review": {
+            "reviews": 1,
+            "repairs": 0,
+            "outcome": "pass",
+            "findings": [],
+            "evidence_checks": 11
+          },
+          "context_budget": {
+            "system_chars": 9780,
+            "conversation_chars": 6764,
+            "tool_result_chars": 13505,
+            "tool_call_chars": 13852,
+            "tool_schema_bytes": 2,
+            "tool_schema_count": 0,
+            "before_upper_bound": 79480,
+            "after_upper_bound": 79480,
+            "input_allowance": 1042576,
+            "output_reservation": 6000,
+            "envelope_reservation": 0,
+            "compacted_calls": 0,
+            "recovered_facts": 0,
+            "folded_file_reads": 0,
+            "removed_messages": 0,
+            "estimator": "utf8_bytes_plus_framing_upper_bound",
+            "context_window_tokens": 1048576,
+            "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+            "context_limit_known": true,
+            "context_scope": "provider_request"
+          }
+        },
+        {
+          "number": 2,
+          "title": "Kujo/Go timing",
+          "chat_id": "6329d38a-c79d-4f58-ba49-348c17e8f9a1",
+          "execution_id": "021a462a-7490-4162-b36c-e1d013716f45",
+          "strict_acceptance": true,
+          "transport_ok": true,
+          "duration_ms": 554677,
+          "attempts": 1,
+          "status": "completed",
+          "usage": {
+            "input_tokens": 1061865,
+            "output_tokens": 29734,
+            "total_tokens": 1091599,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "usage_complete": true,
+          "provider_rounds": 37,
+          "recorded_tool_receipts": 62,
+          "completed_tool_calls": 62,
+          "terminal_error": null,
+          "review": {
+            "reviews": 1,
+            "repairs": 0,
+            "outcome": "inconclusive",
+            "findings": [
+              "Review did not provide a valid evidence-backed verdict."
+            ],
+            "evidence_checks": 0
+          },
+          "context_budget": {
+            "system_chars": 9780,
+            "conversation_chars": 7033,
+            "tool_result_chars": 86699,
+            "tool_call_chars": 15266,
+            "tool_schema_bytes": 2,
+            "tool_schema_count": 0,
+            "before_upper_bound": 176249,
+            "after_upper_bound": 176249,
+            "input_allowance": 1042576,
+            "output_reservation": 6000,
+            "envelope_reservation": 0,
+            "compacted_calls": 0,
+            "recovered_facts": 0,
+            "folded_file_reads": 0,
+            "removed_messages": 0,
+            "estimator": "utf8_bytes_plus_framing_upper_bound",
+            "context_window_tokens": 1048576,
+            "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+            "context_limit_known": true,
+            "context_scope": "provider_request"
+          }
+        },
+        {
+          "number": 3,
+          "title": "Discount fix",
+          "chat_id": "54982ef2-a30f-42ae-8828-5e6589813cf6",
+          "execution_id": "4fe26398-7af6-4eea-9409-7a7bfa3492dc",
+          "strict_acceptance": true,
+          "transport_ok": true,
+          "duration_ms": 64994,
+          "attempts": 1,
+          "status": "completed",
+          "usage": {
+            "input_tokens": 120716,
+            "output_tokens": 11133,
+            "total_tokens": 131849,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "usage_complete": true,
+          "provider_rounds": 15,
+          "recorded_tool_receipts": 31,
+          "completed_tool_calls": 31,
+          "terminal_error": null,
+          "review": {
+            "reviews": 1,
+            "repairs": 0,
+            "outcome": "pass",
+            "findings": [],
+            "evidence_checks": 11
+          },
+          "context_budget": {
+            "system_chars": 9780,
+            "conversation_chars": 6773,
+            "tool_result_chars": 11658,
+            "tool_call_chars": 3772,
+            "tool_schema_bytes": 2,
+            "tool_schema_count": 0,
+            "before_upper_bound": 50133,
+            "after_upper_bound": 50133,
+            "input_allowance": 1042576,
+            "output_reservation": 6000,
+            "envelope_reservation": 0,
+            "compacted_calls": 0,
+            "recovered_facts": 0,
+            "folded_file_reads": 0,
+            "removed_messages": 0,
+            "estimator": "utf8_bytes_plus_framing_upper_bound",
+            "context_window_tokens": 1048576,
+            "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+            "context_limit_known": true,
+            "context_scope": "provider_request"
+          }
+        },
+        {
+          "number": 4,
+          "title": "Persistent HTTP API",
+          "chat_id": "fb44e7e2-6e92-4328-bb64-e1aba8b4fa47",
+          "execution_id": "d60c52c0-d971-4a5c-922a-b2d5e472bc6a",
+          "strict_acceptance": true,
+          "transport_ok": true,
+          "duration_ms": 142795,
+          "attempts": 1,
+          "status": "completed",
+          "usage": {
+            "input_tokens": 663136,
+            "output_tokens": 33380,
+            "total_tokens": 696516,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "usage_complete": true,
+          "provider_rounds": 27,
+          "recorded_tool_receipts": 46,
+          "completed_tool_calls": 46,
+          "terminal_error": null,
+          "review": {
+            "reviews": 1,
+            "repairs": 0,
+            "outcome": "inconclusive",
+            "findings": [
+              "The bounded review/repair budget was exhausted; final verification remains incomplete."
+            ],
+            "evidence_checks": 0
+          },
+          "context_budget": {
+            "system_chars": 9780,
+            "conversation_chars": 7210,
+            "tool_result_chars": 49188,
+            "tool_call_chars": 53660,
+            "tool_schema_bytes": 2,
+            "tool_schema_count": 0,
+            "before_upper_bound": 193330,
+            "after_upper_bound": 193330,
+            "input_allowance": 1042576,
+            "output_reservation": 6000,
+            "envelope_reservation": 0,
+            "compacted_calls": 0,
+            "recovered_facts": 0,
+            "folded_file_reads": 0,
+            "removed_messages": 0,
+            "estimator": "utf8_bytes_plus_framing_upper_bound",
+            "context_window_tokens": 1048576,
+            "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+            "context_limit_known": true,
+            "context_scope": "provider_request"
+          }
+        },
+        {
+          "number": 5,
+          "title": "Timeout recovery",
+          "chat_id": "dacb3d21-1b4c-4519-bb57-560a372143ed",
+          "execution_id": "f17162f3-0010-4569-a2a4-a8ab458b066a",
+          "strict_acceptance": true,
+          "transport_ok": true,
+          "duration_ms": 46024,
+          "attempts": 1,
+          "status": "completed",
+          "usage": {
+            "input_tokens": 78572,
+            "output_tokens": 7063,
+            "total_tokens": 85635,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "usage_complete": true,
+          "provider_rounds": 13,
+          "recorded_tool_receipts": 18,
+          "completed_tool_calls": 18,
+          "terminal_error": null,
+          "review": {
+            "reviews": 1,
+            "repairs": 0,
+            "outcome": "inconclusive",
+            "findings": [
+              "Review did not provide a valid evidence-backed verdict."
+            ],
+            "evidence_checks": 0
+          },
+          "context_budget": {
+            "system_chars": 9780,
+            "conversation_chars": 4030,
+            "tool_result_chars": 8363,
+            "tool_call_chars": 2104,
+            "tool_schema_bytes": 2,
+            "tool_schema_count": 0,
+            "before_upper_bound": 34202,
+            "after_upper_bound": 34202,
+            "input_allowance": 1042576,
+            "output_reservation": 6000,
+            "envelope_reservation": 0,
+            "compacted_calls": 0,
+            "recovered_facts": 0,
+            "folded_file_reads": 0,
+            "removed_messages": 0,
+            "estimator": "utf8_bytes_plus_framing_upper_bound",
+            "context_window_tokens": 1048576,
+            "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+            "context_limit_known": true,
+            "context_scope": "provider_request"
+          }
+        },
+        {
+          "number": 6,
+          "title": "Go duplicate CLI",
+          "chat_id": "9aba416c-97c1-45f0-95e2-6619f9da7856",
+          "execution_id": "2d3abc2f-3615-49ec-8e7f-960c35d2b14c",
+          "strict_acceptance": true,
+          "transport_ok": true,
+          "duration_ms": 162990,
+          "attempts": 1,
+          "status": "completed",
+          "usage": {
+            "input_tokens": 982853,
+            "output_tokens": 33103,
+            "total_tokens": 1015956,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "usage_complete": true,
+          "provider_rounds": 38,
+          "recorded_tool_receipts": 61,
+          "completed_tool_calls": 61,
+          "terminal_error": null,
+          "review": {
+            "reviews": 1,
+            "repairs": 0,
+            "outcome": "inconclusive",
+            "findings": [
+              "Review did not provide a valid evidence-backed verdict."
+            ],
+            "evidence_checks": 0
+          },
+          "context_budget": {
+            "system_chars": 9780,
+            "conversation_chars": 5973,
+            "tool_result_chars": 44525,
+            "tool_call_chars": 48890,
+            "tool_schema_bytes": 2,
+            "tool_schema_count": 0,
+            "before_upper_bound": 168003,
+            "after_upper_bound": 168003,
+            "input_allowance": 1042576,
+            "output_reservation": 6000,
+            "envelope_reservation": 0,
+            "compacted_calls": 0,
+            "recovered_facts": 0,
+            "folded_file_reads": 0,
+            "removed_messages": 0,
+            "estimator": "utf8_bytes_plus_framing_upper_bound",
+            "context_window_tokens": 1048576,
+            "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+            "context_limit_known": true,
+            "context_scope": "provider_request"
+          }
+        }
+      ],
+      "independent_tests": [
+        {
+          "case": 1,
+          "command": [
+            "go",
+            "test",
+            "-json",
+            "-count=1",
+            "./..."
+          ],
+          "cwd": "data/dev-benchmark-2026-10-04-review-reviewglm2/01",
+          "exit_code": 0,
+          "log": "data/benchmark-runs/reviewglm2-independent-1.log",
+          "passing_tests": 7
+        },
+        {
+          "case": 3,
+          "command": [
+            "node",
+            "--test"
+          ],
+          "cwd": "data/dev-benchmark-2026-10-04-review-reviewglm2/03",
+          "exit_code": 0,
+          "log": "data/benchmark-runs/reviewglm2-independent-3.log",
+          "passing_tests": 4
+        },
+        {
+          "case": 4,
+          "command": [
+            "node",
+            "--test"
+          ],
+          "cwd": "data/dev-benchmark-2026-10-04-review-reviewglm2/04",
+          "exit_code": 0,
+          "log": "data/benchmark-runs/reviewglm2-independent-4.log",
+          "passing_tests": 25
+        },
+        {
+          "case": 6,
+          "command": [
+            "go",
+            "test",
+            "-json",
+            "-count=1",
+            "./..."
+          ],
+          "cwd": "data/dev-benchmark-2026-10-04-review-reviewglm2/06",
+          "exit_code": 0,
+          "log": "data/benchmark-runs/reviewglm2-independent-6.log",
+          "passing_tests": 15
+        }
+      ],
+      "csv_probes": [
+        {
+          "probe": "normal",
+          "exit_code": 0,
+          "stdout": "Alice: $3.00\nBob: $1.00\n",
+          "stderr": "",
+          "stderr_chars": 0
+        },
+        {
+          "probe": "nonfinite",
+          "exit_code": 0,
+          "stdout": "",
+          "stderr": "orders: skipped 2 invalid row(s)\n",
+          "stderr_chars": 33
+        },
+        {
+          "probe": "out_of_range",
+          "exit_code": 0,
+          "stdout": "",
+          "stderr": "orders: skipped 1 invalid row(s)\n",
+          "stderr_chars": 33
+        },
+        {
+          "probe": "integer_overflow",
+          "exit_code": 0,
+          "stdout": "",
+          "stderr": "orders: skipped 1 invalid row(s)\n",
+          "stderr_chars": 33
+        },
+        {
+          "probe": "quoted_customer",
+          "exit_code": 0,
+          "stdout": "A,B: $1.00\n",
+          "stderr": "",
+          "stderr_chars": 0
+        },
+        {
+          "probe": "aggregate_overflow",
+          "exit_code": 0,
+          "stdout": "A: -$89467440737095611.16\n",
+          "stderr": "",
+          "stderr_chars": 0
+        },
+        {
+          "probe": "wrong_header",
+          "exit_code": 0,
+          "stdout": "A: $1.00\n",
+          "stderr": "orders: skipped 1 invalid row(s)\n",
+          "stderr_chars": 33
+        }
+      ],
+      "api_probes": {
+        "label": "reviewglm2",
+        "null_json": {
+          "status": 400,
+          "body": {
+            "error": "request body must be a JSON object",
+            "code": "validation_error"
+          }
+        },
+        "real_process_restart": "pass",
+        "forced_persistence_failure": {
+          "status": 500,
+          "error_detail_exposed": true
+        },
+        "write_failed": true,
+        "memory_count": 2,
+        "disk_unchanged": true,
+        "visible_state_unchanged": false,
+        "alive_after_failure": true,
+        "children_cleaned": true
+      }
+    },
+    {
+      "round": 3,
+      "overall_glm_round": 13,
+      "run_id": "dev-2026-10-04-review-reviewglm3",
+      "started_at": "2026-10-04T12:48:02.852Z",
+      "finished_at": "2026-10-04T13:10:45.032Z",
+      "duration_ms": 1362180,
+      "accepted": 6,
+      "transport_completed": 6,
+      "reported_tokens_lower_bound": 5942515,
+      "all_usage_complete": true,
+      "provider_rounds": 154,
+      "recorded_tool_receipts": 249,
+      "raw_runner_summary": {
+        "total": 6,
+        "completed": 6,
+        "failed": 0,
+        "retry_count": 0,
+        "tool_calls_executed": 249,
+        "tool_input_repairs": 15,
+        "provider_rounds": 154,
+        "latency_ms_total": 1353908,
+        "latency_samples": 6,
+        "token_use": {
+          "input_tokens": 5771262,
+          "output_tokens": 171253,
+          "total_tokens": 5942515
+        },
+        "transport_completion_rate": 1,
+        "task_completion_rate": null,
+        "repair_rate": 0.0602,
+        "average_latency_ms": 225651
+      },
+      "cases": [
+        {
+          "number": 1,
+          "title": "CSV",
+          "chat_id": "6403e997-6eda-42d4-a76a-ee04e3fb5698",
+          "execution_id": "7761de64-30a9-4e25-8773-886a4ddaf8fd",
+          "strict_acceptance": true,
+          "transport_ok": true,
+          "duration_ms": 130638,
+          "attempts": 1,
+          "status": "completed",
+          "usage": {
+            "input_tokens": 167395,
+            "output_tokens": 29365,
+            "total_tokens": 196760,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "usage_complete": true,
+          "provider_rounds": 14,
+          "recorded_tool_receipts": 25,
+          "completed_tool_calls": 25,
+          "terminal_error": null,
+          "review": {
+            "reviews": 1,
+            "repairs": 0,
+            "outcome": "inconclusive",
+            "findings": [
+              "Review did not provide a valid evidence-backed verdict."
+            ],
+            "evidence_checks": 0
+          },
+          "context_budget": {
+            "system_chars": 9780,
+            "conversation_chars": 4414,
+            "tool_result_chars": 5128,
+            "tool_call_chars": 12410,
+            "tool_schema_bytes": 2,
+            "tool_schema_count": 0,
+            "before_upper_bound": 72744,
+            "after_upper_bound": 72744,
+            "input_allowance": 1042576,
+            "output_reservation": 6000,
+            "envelope_reservation": 0,
+            "compacted_calls": 0,
+            "recovered_facts": 0,
+            "folded_file_reads": 0,
+            "removed_messages": 0,
+            "estimator": "utf8_bytes_plus_framing_upper_bound",
+            "context_window_tokens": 1048576,
+            "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+            "context_limit_known": true,
+            "context_scope": "provider_request"
+          }
+        },
+        {
+          "number": 2,
+          "title": "Kujo/Go timing",
+          "chat_id": "e5039fd4-a0cc-455a-8454-c301c8c9b136",
+          "execution_id": "e19887bd-412e-47cf-aa75-801579c5aaf7",
+          "strict_acceptance": true,
+          "transport_ok": true,
+          "duration_ms": 680447,
+          "attempts": 1,
+          "status": "completed",
+          "usage": {
+            "input_tokens": 4036858,
+            "output_tokens": 38862,
+            "total_tokens": 4075720,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "usage_complete": true,
+          "provider_rounds": 62,
+          "recorded_tool_receipts": 90,
+          "completed_tool_calls": 90,
+          "terminal_error": null,
+          "review": {
+            "reviews": 1,
+            "repairs": 0,
+            "outcome": "inconclusive",
+            "findings": [
+              "Review did not provide a valid evidence-backed verdict."
+            ],
+            "evidence_checks": 0
+          },
+          "context_budget": {
+            "system_chars": 9780,
+            "conversation_chars": 8399,
+            "tool_result_chars": 210318,
+            "tool_call_chars": 24112,
+            "tool_schema_bytes": 2,
+            "tool_schema_count": 0,
+            "before_upper_bound": 325982,
+            "after_upper_bound": 325982,
+            "input_allowance": 1042576,
+            "output_reservation": 6000,
+            "envelope_reservation": 0,
+            "compacted_calls": 0,
+            "recovered_facts": 0,
+            "folded_file_reads": 0,
+            "removed_messages": 0,
+            "estimator": "utf8_bytes_plus_framing_upper_bound",
+            "context_window_tokens": 1048576,
+            "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+            "context_limit_known": true,
+            "context_scope": "provider_request"
+          }
+        },
+        {
+          "number": 3,
+          "title": "Discount fix",
+          "chat_id": "22bce05d-45d7-4eed-b747-529962fa4035",
+          "execution_id": "3b6f8906-aefb-4507-81a2-da9d9de89036",
+          "strict_acceptance": true,
+          "transport_ok": true,
+          "duration_ms": 125958,
+          "attempts": 1,
+          "status": "completed",
+          "usage": {
+            "input_tokens": 232136,
+            "output_tokens": 22973,
+            "total_tokens": 255109,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "usage_complete": true,
+          "provider_rounds": 18,
+          "recorded_tool_receipts": 25,
+          "completed_tool_calls": 25,
+          "terminal_error": null,
+          "review": {
+            "reviews": 1,
+            "repairs": 0,
+            "outcome": "inconclusive",
+            "findings": [
+              "Review did not provide a valid evidence-backed verdict."
+            ],
+            "evidence_checks": 0
+          },
+          "context_budget": {
+            "system_chars": 9780,
+            "conversation_chars": 4278,
+            "tool_result_chars": 15031,
+            "tool_call_chars": 3266,
+            "tool_schema_bytes": 2,
+            "tool_schema_count": 0,
+            "before_upper_bound": 73587,
+            "after_upper_bound": 73587,
+            "input_allowance": 1042576,
+            "output_reservation": 6000,
+            "envelope_reservation": 0,
+            "compacted_calls": 0,
+            "recovered_facts": 0,
+            "folded_file_reads": 0,
+            "removed_messages": 0,
+            "estimator": "utf8_bytes_plus_framing_upper_bound",
+            "context_window_tokens": 1048576,
+            "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+            "context_limit_known": true,
+            "context_scope": "provider_request"
+          }
+        },
+        {
+          "number": 4,
+          "title": "Persistent HTTP API",
+          "chat_id": "72e7337d-7e32-40fa-98ae-f32a45565049",
+          "execution_id": "f630bb97-0b7b-4783-badb-bb24e0f277dc",
+          "strict_acceptance": true,
+          "transport_ok": true,
+          "duration_ms": 225124,
+          "attempts": 1,
+          "status": "completed",
+          "usage": {
+            "input_tokens": 847403,
+            "output_tokens": 42706,
+            "total_tokens": 890109,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "usage_complete": true,
+          "provider_rounds": 28,
+          "recorded_tool_receipts": 43,
+          "completed_tool_calls": 43,
+          "terminal_error": null,
+          "review": {
+            "reviews": 1,
+            "repairs": 0,
+            "outcome": "inconclusive",
+            "findings": [
+              "Review did not provide a valid evidence-backed verdict."
+            ],
+            "evidence_checks": 0
+          },
+          "context_budget": {
+            "system_chars": 9780,
+            "conversation_chars": 7156,
+            "tool_result_chars": 113347,
+            "tool_call_chars": 55221,
+            "tool_schema_bytes": 2,
+            "tool_schema_count": 0,
+            "before_upper_bound": 274502,
+            "after_upper_bound": 274502,
+            "input_allowance": 1042576,
+            "output_reservation": 6000,
+            "envelope_reservation": 0,
+            "compacted_calls": 0,
+            "recovered_facts": 0,
+            "folded_file_reads": 0,
+            "removed_messages": 0,
+            "estimator": "utf8_bytes_plus_framing_upper_bound",
+            "context_window_tokens": 1048576,
+            "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+            "context_limit_known": true,
+            "context_scope": "provider_request"
+          }
+        },
+        {
+          "number": 5,
+          "title": "Timeout recovery",
+          "chat_id": "7cb5acca-880e-492a-be8a-11a144ae3989",
+          "execution_id": "a62c1c44-1e31-489a-97cb-fe5a3e33fb70",
+          "strict_acceptance": true,
+          "transport_ok": true,
+          "duration_ms": 34377,
+          "attempts": 1,
+          "status": "completed",
+          "usage": {
+            "input_tokens": 50421,
+            "output_tokens": 5077,
+            "total_tokens": 55498,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "usage_complete": true,
+          "provider_rounds": 10,
+          "recorded_tool_receipts": 14,
+          "completed_tool_calls": 14,
+          "terminal_error": null,
+          "review": {
+            "reviews": 1,
+            "repairs": 0,
+            "outcome": "inconclusive",
+            "findings": [
+              "Review did not provide a valid evidence-backed verdict."
+            ],
+            "evidence_checks": 0
+          },
+          "context_budget": {
+            "system_chars": 9780,
+            "conversation_chars": 3103,
+            "tool_result_chars": 2812,
+            "tool_call_chars": 1405,
+            "tool_schema_bytes": 2,
+            "tool_schema_count": 0,
+            "before_upper_bound": 25243,
+            "after_upper_bound": 25243,
+            "input_allowance": 1042576,
+            "output_reservation": 6000,
+            "envelope_reservation": 0,
+            "compacted_calls": 0,
+            "recovered_facts": 0,
+            "folded_file_reads": 0,
+            "removed_messages": 0,
+            "estimator": "utf8_bytes_plus_framing_upper_bound",
+            "context_window_tokens": 1048576,
+            "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+            "context_limit_known": true,
+            "context_scope": "provider_request"
+          }
+        },
+        {
+          "number": 6,
+          "title": "Go duplicate CLI",
+          "chat_id": "6db49785-9da9-48b5-90ab-9a2f73c4be91",
+          "execution_id": "1155996f-2d8e-45ce-9287-830c9394703e",
+          "strict_acceptance": true,
+          "transport_ok": true,
+          "duration_ms": 157364,
+          "attempts": 1,
+          "status": "completed",
+          "usage": {
+            "input_tokens": 437049,
+            "output_tokens": 32270,
+            "total_tokens": 469319,
+            "cached_input_tokens": null,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": false
+          },
+          "usage_complete": true,
+          "provider_rounds": 22,
+          "recorded_tool_receipts": 52,
+          "completed_tool_calls": 52,
+          "terminal_error": null,
+          "review": {
+            "reviews": 1,
+            "repairs": 0,
+            "outcome": "inconclusive",
+            "findings": [
+              "Review did not provide a valid evidence-backed verdict."
+            ],
+            "evidence_checks": 0
+          },
+          "context_budget": {
+            "system_chars": 9780,
+            "conversation_chars": 5927,
+            "tool_result_chars": 21833,
+            "tool_call_chars": 25408,
+            "tool_schema_bytes": 2,
+            "tool_schema_count": 0,
+            "before_upper_bound": 130677,
+            "after_upper_bound": 130677,
+            "input_allowance": 1042576,
+            "output_reservation": 6000,
+            "envelope_reservation": 0,
+            "compacted_calls": 0,
+            "recovered_facts": 0,
+            "folded_file_reads": 0,
+            "removed_messages": 0,
+            "estimator": "utf8_bytes_plus_framing_upper_bound",
+            "context_window_tokens": 1048576,
+            "context_policy_source": "discovered:ollama:2026-10-03T21:25:47.811Z",
+            "context_limit_known": true,
+            "context_scope": "provider_request"
+          }
+        }
+      ],
+      "independent_tests": [
+        {
+          "case": 1,
+          "command": [
+            "go",
+            "test",
+            "-json",
+            "-count=1",
+            "./..."
+          ],
+          "cwd": "data/dev-benchmark-2026-10-04-review-reviewglm3/01",
+          "exit_code": 0,
+          "log": "data/benchmark-runs/reviewglm3-independent-1.log",
+          "passing_tests": 10
+        },
+        {
+          "case": 3,
+          "command": [
+            "node",
+            "--test"
+          ],
+          "cwd": "data/dev-benchmark-2026-10-04-review-reviewglm3/03",
+          "exit_code": 0,
+          "log": "data/benchmark-runs/reviewglm3-independent-3.log",
+          "passing_tests": 5
+        },
+        {
+          "case": 4,
+          "command": [
+            "node",
+            "--test"
+          ],
+          "cwd": "data/dev-benchmark-2026-10-04-review-reviewglm3/04",
+          "exit_code": 0,
+          "log": "data/benchmark-runs/reviewglm3-independent-4.log",
+          "passing_tests": 10
+        },
+        {
+          "case": 6,
+          "command": [
+            "go",
+            "test",
+            "-json",
+            "-count=1",
+            "./..."
+          ],
+          "cwd": "data/dev-benchmark-2026-10-04-review-reviewglm3/06",
+          "exit_code": 0,
+          "log": "data/benchmark-runs/reviewglm3-independent-6.log",
+          "passing_tests": 13
+        }
+      ],
+      "csv_probes": [
+        {
+          "probe": "normal",
+          "exit_code": 0,
+          "stdout": "Alice\t3.00\nBob\t1.00\n",
+          "stderr": "",
+          "stderr_chars": 0
+        },
+        {
+          "probe": "nonfinite",
+          "exit_code": 1,
+          "stdout": "",
+          "stderr": "orders: line 2: customer \"A\": malformed amount \"NaN\"\n",
+          "stderr_chars": 53
+        },
+        {
+          "probe": "out_of_range",
+          "exit_code": 1,
+          "stdout": "",
+          "stderr": "orders: line 2: customer \"A\": malformed amount \"1e20\"\n",
+          "stderr_chars": 54
+        },
+        {
+          "probe": "integer_overflow",
+          "exit_code": 1,
+          "stdout": "",
+          "stderr": "orders: line 2: customer \"A\": amount \"92233720368547758.08\" out of range\n",
+          "stderr_chars": 73
+        },
+        {
+          "probe": "quoted_customer",
+          "exit_code": 0,
+          "stdout": "A,B\t1.00\n",
+          "stderr": "",
+          "stderr_chars": 0
+        },
+        {
+          "probe": "aggregate_overflow",
+          "exit_code": 1,
+          "stdout": "",
+          "stderr": "orders: line 9225: customer \"A\": total overflows int64\n",
+          "stderr_chars": 55
+        },
+        {
+          "probe": "wrong_header",
+          "exit_code": 1,
+          "stdout": "",
+          "stderr": "orders: bad header \"name,cost\": want \"customer,amount\"\n",
+          "stderr_chars": 55
+        }
+      ],
+      "api_probes": {
+        "label": "reviewglm3",
+        "null_json": {
+          "status": 400,
+          "body": {
+            "error": "Request body must be a JSON object"
+          }
+        },
+        "real_process_restart": "pass",
+        "forced_persistence_failure": {
+          "status": 500,
+          "error_detail_exposed": false
+        },
+        "write_failed": true,
+        "memory_count": 2,
+        "disk_unchanged": true,
+        "visible_state_unchanged": false,
+        "alive_after_failure": true,
+        "children_cleaned": true
+      }
+    }
+  ],
+  "prime_boundary_checks": [
+    {
+      "round": 1,
+      "limit": 0,
+      "inclusive": false,
+      "expected": 0,
+      "observed": [
+        {
+          "exit_code": 0,
+          "count": 0,
+          "stdout": "0",
+          "passed": true
+        },
+        {
+          "exit_code": 0,
+          "count": 0,
+          "stdout": "0",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "round": 1,
+      "limit": 1,
+      "inclusive": false,
+      "expected": 0,
+      "observed": [
+        {
+          "exit_code": 0,
+          "count": 0,
+          "stdout": "0",
+          "passed": true
+        },
+        {
+          "exit_code": 0,
+          "count": 0,
+          "stdout": "0",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "round": 1,
+      "limit": 2,
+      "inclusive": false,
+      "expected": 0,
+      "observed": [
+        {
+          "exit_code": 0,
+          "count": 0,
+          "stdout": "0",
+          "passed": true
+        },
+        {
+          "exit_code": 0,
+          "count": 0,
+          "stdout": "0",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "round": 1,
+      "limit": 3,
+      "inclusive": false,
+      "expected": 1,
+      "observed": [
+        {
+          "exit_code": 0,
+          "count": 1,
+          "stdout": "1",
+          "passed": true
+        },
+        {
+          "exit_code": 0,
+          "count": 1,
+          "stdout": "1",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "round": 1,
+      "limit": 4,
+      "inclusive": false,
+      "expected": 2,
+      "observed": [
+        {
+          "exit_code": 0,
+          "count": 2,
+          "stdout": "2",
+          "passed": true
+        },
+        {
+          "exit_code": 0,
+          "count": 2,
+          "stdout": "2",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "round": 1,
+      "limit": 10,
+      "inclusive": false,
+      "expected": 4,
+      "observed": [
+        {
+          "exit_code": 0,
+          "count": 4,
+          "stdout": "4",
+          "passed": true
+        },
+        {
+          "exit_code": 0,
+          "count": 4,
+          "stdout": "4",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "round": 1,
+      "limit": 49,
+      "inclusive": false,
+      "expected": 15,
+      "observed": [
+        {
+          "exit_code": 0,
+          "count": 15,
+          "stdout": "15",
+          "passed": true
+        },
+        {
+          "exit_code": 0,
+          "count": 15,
+          "stdout": "15",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "round": 1,
+      "limit": 1000,
+      "inclusive": false,
+      "expected": 168,
+      "observed": [
+        {
+          "exit_code": 0,
+          "count": 168,
+          "stdout": "168",
+          "passed": true
+        },
+        {
+          "exit_code": 0,
+          "count": 168,
+          "stdout": "168",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "limit": 0,
+      "inclusive": true,
+      "expected": 0,
+      "observed": [
+        {
+          "exit_code": 0,
+          "count": 0,
+          "stdout": "primes=0 limit=0 elapsed_ms=0.293415",
+          "passed": true
+        },
+        {
+          "exit_code": 0,
+          "count": 0,
+          "stdout": "primes=0 limit=0 elapsed_ms=0",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "limit": 1,
+      "inclusive": true,
+      "expected": 0,
+      "observed": [
+        {
+          "exit_code": 0,
+          "count": 0,
+          "stdout": "primes=0 limit=1 elapsed_ms=0.29297",
+          "passed": true
+        },
+        {
+          "exit_code": 0,
+          "count": 0,
+          "stdout": "primes=0 limit=1 elapsed_ms=0",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "limit": 2,
+      "inclusive": true,
+      "expected": 1,
+      "observed": [
+        {
+          "exit_code": 0,
+          "count": 1,
+          "stdout": "primes=1 limit=2 elapsed_ms=0.319665",
+          "passed": true
+        },
+        {
+          "exit_code": 0,
+          "count": 1,
+          "stdout": "primes=1 limit=2 elapsed_ms=0",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "limit": 3,
+      "inclusive": true,
+      "expected": 2,
+      "observed": [
+        {
+          "exit_code": 0,
+          "count": 2,
+          "stdout": "primes=2 limit=3 elapsed_ms=0.393319",
+          "passed": true
+        },
+        {
+          "exit_code": 0,
+          "count": 2,
+          "stdout": "primes=2 limit=3 elapsed_ms=0",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "limit": 4,
+      "inclusive": true,
+      "expected": 2,
+      "observed": [
+        {
+          "exit_code": 0,
+          "count": 2,
+          "stdout": "primes=2 limit=4 elapsed_ms=0.358948",
+          "passed": true
+        },
+        {
+          "exit_code": 0,
+          "count": 2,
+          "stdout": "primes=2 limit=4 elapsed_ms=0",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "limit": 10,
+      "inclusive": true,
+      "expected": 4,
+      "observed": [
+        {
+          "exit_code": 0,
+          "count": 4,
+          "stdout": "primes=4 limit=10 elapsed_ms=0.441085",
+          "passed": true
+        },
+        {
+          "exit_code": 0,
+          "count": 4,
+          "stdout": "primes=4 limit=10 elapsed_ms=0",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "limit": 49,
+      "inclusive": true,
+      "expected": 15,
+      "observed": [
+        {
+          "exit_code": 0,
+          "count": 15,
+          "stdout": "primes=15 limit=49 elapsed_ms=0.945075",
+          "passed": true
+        },
+        {
+          "exit_code": 0,
+          "count": 15,
+          "stdout": "primes=15 limit=49 elapsed_ms=0",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "limit": 1000,
+      "inclusive": true,
+      "expected": 168,
+      "observed": [
+        {
+          "exit_code": 0,
+          "count": 168,
+          "stdout": "primes=168 limit=1000 elapsed_ms=14.439822",
+          "passed": true
+        },
+        {
+          "exit_code": 0,
+          "count": 168,
+          "stdout": "primes=168 limit=1000 elapsed_ms=0",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "round": 3,
+      "limit": 0,
+      "inclusive": false,
+      "expected": 0,
+      "observed": [
+        {
+          "exit_code": 0,
+          "count": 0,
+          "stdout": "primes_below=0 count=0 elapsed_ms=0.114575",
+          "passed": true
+        },
+        {
+          "exit_code": 0,
+          "count": 0,
+          "stdout": "primes_below=0 count=0 elapsed_ms=0.002",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "round": 3,
+      "limit": 1,
+      "inclusive": false,
+      "expected": 0,
+      "observed": [
+        {
+          "exit_code": 0,
+          "count": 0,
+          "stdout": "primes_below=1 count=0 elapsed_ms=0.110497",
+          "passed": true
+        },
+        {
+          "exit_code": 0,
+          "count": 0,
+          "stdout": "primes_below=1 count=0 elapsed_ms=0.002",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "round": 3,
+      "limit": 2,
+      "inclusive": false,
+      "expected": 0,
+      "observed": [
+        {
+          "exit_code": 0,
+          "count": 0,
+          "stdout": "primes_below=2 count=0 elapsed_ms=0.122814",
+          "passed": true
+        },
+        {
+          "exit_code": 0,
+          "count": 0,
+          "stdout": "primes_below=2 count=0 elapsed_ms=0.003",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "round": 3,
+      "limit": 3,
+      "inclusive": false,
+      "expected": 1,
+      "observed": [
+        {
+          "exit_code": 0,
+          "count": 1,
+          "stdout": "primes_below=3 count=1 elapsed_ms=0.143956",
+          "passed": true
+        },
+        {
+          "exit_code": 0,
+          "count": 1,
+          "stdout": "primes_below=3 count=1 elapsed_ms=0.002",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "round": 3,
+      "limit": 4,
+      "inclusive": false,
+      "expected": 2,
+      "observed": [
+        {
+          "exit_code": 0,
+          "count": 2,
+          "stdout": "primes_below=4 count=2 elapsed_ms=0.152158",
+          "passed": true
+        },
+        {
+          "exit_code": 0,
+          "count": 2,
+          "stdout": "primes_below=4 count=2 elapsed_ms=0.002",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "round": 3,
+      "limit": 10,
+      "inclusive": false,
+      "expected": 4,
+      "observed": [
+        {
+          "exit_code": 0,
+          "count": 4,
+          "stdout": "primes_below=10 count=4 elapsed_ms=0.241953",
+          "passed": true
+        },
+        {
+          "exit_code": 0,
+          "count": 4,
+          "stdout": "primes_below=10 count=4 elapsed_ms=0.004",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "round": 3,
+      "limit": 49,
+      "inclusive": false,
+      "expected": 15,
+      "observed": [
+        {
+          "exit_code": 0,
+          "count": 15,
+          "stdout": "primes_below=49 count=15 elapsed_ms=0.72673",
+          "passed": true
+        },
+        {
+          "exit_code": 0,
+          "count": 15,
+          "stdout": "primes_below=49 count=15 elapsed_ms=0.003",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "round": 3,
+      "limit": 1000,
+      "inclusive": false,
+      "expected": 168,
+      "observed": [
+        {
+          "exit_code": 0,
+          "count": 168,
+          "stdout": "primes_below=1000 count=168 elapsed_ms=14.472794",
+          "passed": true
+        },
+        {
+          "exit_code": 0,
+          "count": 168,
+          "stdout": "primes_below=1000 count=168 elapsed_ms=0.034",
+          "passed": true
+        }
+      ]
+    }
+  ],
+  "cli_checks": [
+    {
+      "round": 1,
+      "source_build": "pass",
+      "repeat_output_identical": true,
+      "hashes_sizes_paths_order": true,
+      "scanned_count": true,
+      "missing_path_error": true,
+      "files": 5,
+      "duplicate_groups": 2,
+      "duplicate_files": 4,
+      "wasted_bytes": 6
+    },
+    {
+      "round": 2,
+      "source_build": "pass",
+      "repeat_output_identical": true,
+      "hashes_sizes_paths_order": true,
+      "scanned_count": true,
+      "missing_path_error": true,
+      "files": 5,
+      "duplicate_groups": 2,
+      "duplicate_files": 4,
+      "wasted_bytes": 6
+    },
+    {
+      "round": 3,
+      "source_build": "pass",
+      "repeat_output_identical": true,
+      "hashes_sizes_paths_order": true,
+      "scanned_count": true,
+      "missing_path_error": true,
+      "files": 5,
+      "duplicate_groups": 2,
+      "duplicate_files": 4,
+      "wasted_bytes": 6
+    }
+  ],
+  "discount_oracle": [
+    {
+      "round": 1,
+      "cases": 101101,
+      "mismatches": 0,
+      "examples": []
+    },
+    {
+      "round": 2,
+      "cases": 101101,
+      "mismatches": 0,
+      "examples": []
+    },
+    {
+      "round": 3,
+      "cases": 101101,
+      "mismatches": 314,
+      "examples": [
+        {
+          "cents": 5,
+          "percent": 90,
+          "expected": 1,
+          "actual": 0
+        },
+        {
+          "cents": 15,
+          "percent": 90,
+          "expected": 2,
+          "actual": 1
+        },
+        {
+          "cents": 25,
+          "percent": 34,
+          "expected": 17,
+          "actual": 16
+        }
+      ]
+    }
+  ],
+  "totals": {
+    "accepted": 16,
+    "tasks": 18,
+    "full_suites": 2,
+    "elapsed_ms": 4086458,
+    "reported_tokens_lower_bound": 14824015,
+    "provider_rounds": 449,
+    "recorded_tool_receipts": 727,
+    "review_outcomes": {
+      "inconclusive": 13,
+      "not_requested": 2,
+      "pass": 3
+    },
+    "repair_cycles": 0,
+    "passing_generated_tests": 128,
+    "failing_generated_tests": 3
+  },
+  "professional_grades": {
+    "overall_capability": 7,
+    "delivered_code_quality": 6.5,
+    "supervised_usefulness": 8,
+    "independent_production_judgment": 4,
+    "scale": 10,
+    "note": "Qualitative assessment, unchanged; not statistically calibrated or inferred from acceptance alone."
+  },
+  "historical_glm": {
+    "rounds": 13,
+    "accepted": 69,
+    "tasks": 78,
+    "full_suites": 6
+  }
+}
