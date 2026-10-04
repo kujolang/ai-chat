@@ -173,3 +173,20 @@ test('correction cannot extend time, rounds, or repeat after resume', () => {
   assert.equal(r.state.repairs, 0);
  }
 });
+
+test('review schema offers only successfully inspected references without leaking across reviews', () => {
+ const r=createEngineeringReview({enabled:true,originalMessages});
+ r.onStop([...originalMessages],'candidate',receipts);
+ const checkSchema=review=>review.schemas(tools).find(t=>t.function.name==='engineering_review_submit').function.parameters.properties.checks;
+ assert.equal(checkSchema(r).maxItems,0);
+ r.noteResults([{id:'good',function:{name:'tool_result_read'}},{id:'bad',function:{name:'local_file_read'}}],[{result_ref:'original'},{ok:false,error:{code:'missing'}}]);
+ const schema=checkSchema(r);
+ assert.deepEqual(schema.items.properties.result_ref.enum,['good','original']);
+ assert.equal(schema.maxItems,12);
+ schema.items.properties.result_ref.enum.push('forged');
+ assert.deepEqual(checkSchema(r).items.properties.result_ref.enum,['good','original']);
+ const resumed=createEngineeringReview({enabled:true,originalMessages,checkpoint:{engineering_review:r.state}});
+ assert.deepEqual(checkSchema(resumed).items.properties.result_ref.enum,['good','original']);
+ const other=createEngineeringReview({enabled:true,originalMessages});other.onStop([...originalMessages],'candidate',receipts);
+ assert.equal(checkSchema(other).maxItems,0);
+});
