@@ -11,7 +11,7 @@ This guide documents how to make the Kujo programming language tooling ecosystem
 ## Prerequisites
 
 - A compiled Kujo binary. Verify the executable used by the running server's PATH with `kujo --version`; do not infer its version from a checkout's manifest. On October 4, 2026, the installed PATH binary reported 1.5.0 and the checkout release binary reported 1.7.0. These are machine-specific observations, not installation requirements.
-- `KUJO_BIN` selects the chat bridge executable. Agent commands (`local_shell` and `local_kujo`) resolve `kujo` through PATH; setting `KUJO_BIN` does not switch those commands.
+- `KUJO_BIN` selects the chat bridge executable. Agent commands (`local_shell` and `local_kujo`) resolve `kujo` through PATH unless `AI_CHAT_AGENT_KUJO_BIN` pins an executable; setting `KUJO_BIN` does not switch those commands.
 
 - The AI SDK source directory containing both `ai_sdk.kujo` and `providers.kujo`:
 
@@ -122,3 +122,24 @@ See [the API contract](API_CONTRACT.md) for arguments and limits, and
 [the evaluation protocol](benchmarks/development-verification-intervention-2026-10-04.md)
 for independent quality checks. The helper is not a sandbox and does not make an
 arbitrary script safe to repeat.
+
+### Qualify and pin the agent runtime
+
+Run `node scripts/qualify-kujo-runtime.js /absolute/path/to/kujo default` before
+pinning a runtime. Require exit 0 and inspect all probe results. The installed
+1.5.0 default VM fails the nested-arithmetic probe; 1.5.0 interpreter and 1.7.0
+default passed the current probe set. This is limited regression evidence, not
+a language conformance guarantee. Do not silently upgrade or switch backends.
+
+Set `AI_CHAT_AGENT_KUJO_BIN` to a stable absolute executable path and
+`AI_CHAT_AGENT_KUJO_SHA256` to the qualification's exact digest in `.env`, then
+restart AI Chat. Set `AI_CHAT_AGENT_KUJO_BACKEND=default` (or `interpreter` if
+that backend was qualified). `local_kujo guide` reports the selected runtime.
+The hash is rechecked before each invocation. Requalify before updating a pin;
+a rebuilt executable must not silently inherit old qualification.
+
+The pin applies to `local_kujo` and shell commands named exactly `kujo`. It does
+not alter explicit alternative executable paths, the bridge, or other providers.
+Shell arguments remain literal; the backend setting applies to structured
+`local_kujo run` and `benchmark`. `test-run` uses its own interpreter. Existing
+shell opt-in, allowlist and command permissions still apply.

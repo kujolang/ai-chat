@@ -799,3 +799,37 @@ test('structured Kujo operations retain shell policy and workspace containment',
   await assert.rejects(disabled.runKujo({root_id:id,operation:'guide'}),e=>e.code==='local_shell_disabled');assert.equal(spawns,2);
  } finally { fs.rmSync(root,{recursive:true,force:true}); }
 });
+
+test('operator Kujo pin applies after permissions and rejects replacement without PATH fallback', async () => {
+ const root=fs.mkdtempSync(path.join(os.tmpdir(),'ai-chat-kujo-pin-'));
+ const binary=path.join(root,'kujo-pinned'); const calls=[];
+ try {
+  fs.writeFileSync(binary,'trusted binary',{mode:0o700}); fs.writeFileSync(path.join(root,'a.kujo'),'print(3)');
+  const hash=require('node:crypto').createHash('sha256').update(fs.readFileSync(binary)).digest('hex');
+  const env={AI_CHAT_LOCAL_TOOLS_ENABLED:'1',AI_CHAT_LOCAL_SHELL_ENABLED:'1',AI_CHAT_LOCAL_WORKSPACE_ROOTS:root,AI_CHAT_LOCAL_SHELL_ALLOWLIST:'kujo',AI_CHAT_AGENT_KUJO_BIN:binary,AI_CHAT_AGENT_KUJO_SHA256:hash,AI_CHAT_AGENT_KUJO_BACKEND:'interpreter',KUJO_BIN:'/unrelated/bridge'};
+  const spawnFn=(command,args)=>{calls.push({command,args});return fakeChild(c=>{c.stdout.end(args[0]==='--version'?'kujo 1.7.0\n':'3\n');c.emit('close',0);});};
+  const runtime=createLocalRuntime({env,spawnFn});
+  const r=await runtime.runKujo({root_id:'workspace_0',path:'a.kujo',operation:'run'});
+  assert.equal(r.ok,true); assert.equal(r.runtime.sha256,hash);assert.equal(r.runtime.pinned,true);
+  assert.ok(calls.every(c=>c.command===fs.realpathSync(binary)));
+  assert.deepEqual(calls[1].args,['run',fs.realpathSync(path.join(root,'a.kujo')),'--interpreter','--']);
+  const shell=await runtime.runCommand({command:'kujo',args:['--version']});
+  assert.equal(shell.kujo_runtime.sha256,hash);
+  const blocked=createLocalRuntime({env:{...env,AI_CHAT_LOCAL_SHELL_ALLOWLIST:'git'},spawnFn});
+  await assert.rejects(blocked.runKujo({operation:'guide'}),e=>e.code==='local_shell_command_blocked');
+  assert.equal(calls.length,3);
+  fs.appendFileSync(binary,'changed');
+  await assert.rejects(runtime.runKujo({operation:'guide'}),e=>e.code==='local_kujo_runtime_invalid'&&e.execution_started===false);
+  assert.equal(calls.length,3);
+ } finally {fs.rmSync(root,{recursive:true,force:true});}
+});
+
+test('invalid agent runtime configuration fails only Kujo calls before spawn', async()=>{
+ for(const config of [{AI_CHAT_AGENT_KUJO_BIN:'relative'}, {AI_CHAT_AGENT_KUJO_SHA256:'bad'}, {AI_CHAT_AGENT_KUJO_BACKEND:'jit'}, {AI_CHAT_AGENT_KUJO_BIN:'/missing/kujo'}]) {
+  let calls=0;
+  const runtime=createLocalRuntime({env:{AI_CHAT_LOCAL_TOOLS_ENABLED:'1',AI_CHAT_LOCAL_SHELL_ENABLED:'1',AI_CHAT_LOCAL_SHELL_ALLOWLIST:'kujo,node',...config},spawnFn:()=>{calls++;return fakeChild(c=>c.emit('close',0));}});
+  await assert.rejects(runtime.runCommand({command:'kujo',args:['--version']}),e=>e.code==='local_kujo_runtime_invalid'&&e.execution_started===false);
+  assert.equal(calls,0);
+  await runtime.runCommand({command:'node',args:['--version']});assert.equal(calls,1);
+ }
+});

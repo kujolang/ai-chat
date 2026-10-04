@@ -34,3 +34,10 @@ test('a stopped script timeout remains a known failed composite receipt without 
  const r=await executeKujo({operation:'benchmark',pure:true,budget_ms:20000},{},f.deps);
  assert.equal(r.ok,false);assert.equal(r.calibration.error.code,'local_shell_timeout');assert.equal(r.calibration.stdout,'partial');assert.deepEqual(r.trials,[]);
 });
+
+test('guide discloses known default-VM defect without claiming general runtime qualification',async()=>{
+ const f=fixture();const r=await executeKujo({operation:'guide'},{},f.deps);
+ assert.equal(r.runtime.warnings.length,1);assert.match(r.runtime.warnings[0],/Never automatically replay/);
+ const old=f.deps.runCommand;f.deps.runCommand=async a=>({...await old(a),kujo_runtime:{backend:'interpreter'}});
+ const interpreter=await executeKujo({operation:'guide'},{},f.deps);assert.deepEqual(interpreter.runtime.warnings,[]);
+});

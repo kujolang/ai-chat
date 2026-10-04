@@ -678,10 +678,20 @@ shell edits and imported dependencies still require inspection. Existing review,
 repair, permission and wall-time limits remain in force.
 
 `local_kujo` is an optional provider-neutral local tool with operations `guide`,
-`check`, `run`, `test` (`test-run`), and `benchmark`. It uses the **PATH `kujo`**,
+`check`, `run`, `test` (`test-run`), and `benchmark`. It uses the **PATH `kujo`** by default,
 not the bridge's `KUJO_BIN`, and the existing local shell opt-in, command allowlist,
 workspace path checks, cancellation and output bounds. It does not sandbox
-scripts or grant additional permissions. `path` is relative to `cwd`; source
+scripts or grant additional permissions. An operator can set absolute
+`AI_CHAT_AGENT_KUJO_BIN` and optional `AI_CHAT_AGENT_KUJO_SHA256` after running
+`scripts/qualify-kujo-runtime.js`. Both `local_kujo` and literal `local_shell`
+command `kujo` use that executable, after normal permission checks. A missing
+executable or mismatched hash fails before spawn without PATH fallback. Hashing
+is a qualification guard, not an execution sandbox or protection against all
+filesystem races. Explicit other shell commands are unaffected.
+`AI_CHAT_AGENT_KUJO_BACKEND=default|interpreter` selects `local_kujo` run and
+benchmark behavior; shell arguments stay literal. `check` uses the compiler and
+`test` uses Kujo's interpreter-based `test-run` command, which has no backend flag.
+Receipts identify the selected executable/hash/backend. `path` is relative to `cwd`; source
 must be a bounded non-sensitive `.kujo` file in the configured workspace.
 
 The guide probes the executable version and returns one small reference topic

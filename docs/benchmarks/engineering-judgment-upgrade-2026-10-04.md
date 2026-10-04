@@ -9,7 +9,7 @@ The requested scope is the complete follow-up to the GLM verification assessment
 
 | Requirement | Evidence required | Current state |
 |---|---|---|
-| Qualify and pin the agent runtime/backend independently of the bridge | Real runtime probes, explicit configuration, permission tests, live tool receipt | Qualification CLI and reproducer added; pinning/integration pending |
+| Qualify and pin the agent runtime/backend independently of the bridge | Real runtime probes, explicit configuration, permission tests, live tool receipt | Qualified stable local 1.7.0 executable pinned; permission tests, configured tool receipt and restarted server verified |
 | Define task failure invariants before implementation | Structured task-scoped contract consumed by worker/reviewer | Pending |
 | Turn invariants into executable independent checks | Trusted checks, deliberate defective controls, final-source evidence | Pending |
 | Supply focused runtime-verified examples | JSON, errors, files/persistence examples checked on selected runtime | Pending |
@@ -51,8 +51,27 @@ fails with `bool * int`; unchanged source prints `12` on 1.5.0 interpreter and
 | 1.5.0 interpreter | 5/5 | Passed |
 | 1.7.0 default VM | 5/5 | Passed |
 
-Passing these probes does not certify all language behavior. The agent runtime
-has **not** yet been switched; runtime integration is the next work item.
+Passing these probes does not certify all language behavior. The local instance
+now pins a repository-local copy under ignored `data/toolchains/` using
+`AI_CHAT_AGENT_KUJO_BIN`, `AI_CHAT_AGENT_KUJO_SHA256`, and backend `default`.
+The bridge is unchanged. Agent shell commands named exactly `kujo` use the pin;
+explicit other executable paths retain their original behavior. The SHA is
+checked before each invocation after permission validation. Backend selection
+applies to structured run/benchmark; shell arguments stay literal.
+
+The configured local tool ran the regression source and returned `12` on 1.7.0,
+with pinned executable metadata (`/tmp/ai-chat-pinned-tool-receipt.json`). Server
+restart health passed; all seven profile IDs remain, streams/queue idle
+(`/tmp/ai-chat-runtime-pin-live.json`). No model benchmark has run on this change.
+The qualification report is `/tmp/ai-chat-pinned-qualification.json`.
+
+Runtime integration checks: 52/52 focused local/tool tests; full serial suite
+611 passed, 0 failed, 1 skipped (`/tmp/ai-chat-runtime-pin-full.log`). The later
+guide-warning test passed with its 8-test module separately. A test path assertion
+was corrected to compare canonical realpaths on macOS. The first health request
+was made before server readiness; the subsequent request succeeded. The profile
+check initially compared absent JSON fields against undefined JS properties;
+corrected to verify the seven actual profile IDs, not claim model-field coverage.
 
 ## Verification receipts
 
