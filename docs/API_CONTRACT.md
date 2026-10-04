@@ -687,7 +687,7 @@ scripts or grant additional permissions. An operator can set absolute
 command `kujo` use that executable, after normal permission checks. A missing
 executable or mismatched hash fails before spawn without PATH fallback. Hashing
 is a qualification guard, not an execution sandbox or protection against all
-filesystem races. Explicit other shell commands are unaffected.
+filesystem races. Explicit other executable paths are not rewritten; child environments follow the qualified runtime inheritance rules below.
 `AI_CHAT_AGENT_KUJO_BACKEND=default|interpreter` selects `local_kujo` run and
 benchmark behavior; shell arguments stay literal. `check` uses the compiler and
 `test` uses Kujo's interpreter-based `test-run` command, which has no backend flag.
@@ -745,3 +745,22 @@ Kujo guide topics now also include `json`, `errors`, and `persistence`, with
 expected output. The persistence example requires a fresh owned directory and
 checks failed-write disk/visible-state consistency before a successful commit.
 These examples are independently executed by the reference/qualification scripts.
+
+### Qualified runtime inheritance
+
+When an agent Kujo executable is configured, local shell children inherit a private
+PATH directory containing only a `kujo` symlink to that qualified executable.
+`KUJO_BIN` in those children points to the same alias; the parent server's bridge
+setting is unchanged. This covers test harnesses which spawn `kujo` by name or
+read `KUJO_BIN`, without exposing provider credentials or shadowing other commands
+from the configured executable's directory. Shell arguments/backend flags remain
+literal; the structured `local_kujo` backend option is unchanged.
+
+The pin is validated before every local command when configured. A missing or
+changed pinned executable/alias fails before spawning even an intermediary such
+as Node, preventing silent fallback through nested commands. Remove or repair
+the operator pin if it is no longer valid. With no pin configured, command
+environments retain their prior behavior. Permissions are checked before creating
+any alias. One private directory is reused per local runtime and cleaned up when
+it closes (with process-exit cleanup as a fallback). This is runtime consistency,
+not a sandbox or protection against concurrent same-user filesystem mutation.

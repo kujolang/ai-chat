@@ -824,12 +824,32 @@ test('operator Kujo pin applies after permissions and rejects replacement withou
  } finally {fs.rmSync(root,{recursive:true,force:true});}
 });
 
-test('invalid agent runtime configuration fails only Kujo calls before spawn', async()=>{
+test('invalid agent runtime configuration cannot fall back through nested commands', async()=>{
  for(const config of [{AI_CHAT_AGENT_KUJO_BIN:'relative'}, {AI_CHAT_AGENT_KUJO_SHA256:'bad'}, {AI_CHAT_AGENT_KUJO_BACKEND:'jit'}, {AI_CHAT_AGENT_KUJO_BIN:'/missing/kujo'}]) {
   let calls=0;
   const runtime=createLocalRuntime({env:{AI_CHAT_LOCAL_TOOLS_ENABLED:'1',AI_CHAT_LOCAL_SHELL_ENABLED:'1',AI_CHAT_LOCAL_SHELL_ALLOWLIST:'kujo,node',...config},spawnFn:()=>{calls++;return fakeChild(c=>c.emit('close',0));}});
   await assert.rejects(runtime.runCommand({command:'kujo',args:['--version']}),e=>e.code==='local_kujo_runtime_invalid'&&e.execution_started===false);
   assert.equal(calls,0);
-  await runtime.runCommand({command:'node',args:['--version']});assert.equal(calls,1);
+  if(config.AI_CHAT_AGENT_KUJO_BIN||config.AI_CHAT_AGENT_KUJO_SHA256){await assert.rejects(runtime.runCommand({command:'node',args:['--version']}),e=>e.code==='local_kujo_runtime_invalid');assert.equal(calls,0);}
+  else {await runtime.runCommand({command:'node',args:['--version']});assert.equal(calls,1);}
  }
+});
+
+test('nested Node processes inherit only the qualified Kujo alias and no provider credentials', async () => {
+ const root=fs.mkdtempSync(path.join(os.tmpdir(),'ai-chat-nested-kujo-'));
+ const binary=path.join(root,'nonstandard-runtime-name');let runtime,alias;
+ try {
+  fs.writeFileSync(binary,'#!/bin/sh\nprintf "qualified-runtime\\n"\n',{mode:0o700});
+  const hash=require('node:crypto').createHash('sha256').update(fs.readFileSync(binary)).digest('hex');
+  runtime=createLocalRuntime({env:{AI_CHAT_LOCAL_TOOLS_ENABLED:'1',AI_CHAT_LOCAL_SHELL_ENABLED:'1',AI_CHAT_LOCAL_SHELL_ALLOWLIST:'node,kujo',AI_CHAT_LOCAL_WORKSPACE_ROOTS:root,AI_CHAT_AGENT_KUJO_BIN:binary,AI_CHAT_AGENT_KUJO_SHA256:hash,API_AUTH_TOKEN:'must-not-leak',KUJO_BIN:'/bridge-must-not-leak'}});
+  const source="const {spawnSync}=require('child_process');const a=spawnSync('kujo',['--version'],{encoding:'utf8'});const b=spawnSync(process.env.KUJO_BIN,['--version'],{encoding:'utf8'});console.log(JSON.stringify({a:a.stdout.trim(),b:b.stdout.trim(),aExit:a.status,bExit:b.status,alias:process.env.KUJO_BIN,path:process.env.PATH,token:process.env.API_AUTH_TOKEN||null}));";
+  const result=await runtime.runCommand({command:'node',args:['-e',source]});assert.equal(result.exit_code,0,result.stderr);
+  const data=JSON.parse(result.stdout);assert.equal(data.a,'qualified-runtime');assert.equal(data.b,data.a);assert.equal(data.aExit,0);assert.equal(data.bExit,0);assert.equal(data.token,null);assert.equal(result.child_kujo_runtime.sha256,hash);
+  alias=data.alias;assert.equal(fs.readlinkSync(alias),fs.realpathSync(binary));assert.equal(data.path.split(path.delimiter)[0],path.dirname(alias));assert.deepEqual(fs.readdirSync(path.dirname(alias)),['kujo']);
+  const direct=await runtime.runCommand({command:'kujo',args:['--version']});assert.equal(direct.stdout.trim(),data.a);
+  fs.unlinkSync(alias);fs.writeFileSync(alias,'not the alias');
+  await assert.rejects(runtime.runCommand({command:'node',args:['--version']}),e=>e.code==='local_kujo_runtime_invalid'&&e.execution_started===false);
+  fs.unlinkSync(alias);fs.symlinkSync(fs.realpathSync(binary),alias);
+  fs.appendFileSync(binary,'# replaced\n');await assert.rejects(runtime.runCommand({command:'node',args:['--version']}),e=>e.code==='local_kujo_runtime_invalid');
+ } finally {runtime?.close();if(alias)assert.equal(fs.existsSync(path.dirname(alias)),false);fs.rmSync(root,{recursive:true,force:true});}
 });

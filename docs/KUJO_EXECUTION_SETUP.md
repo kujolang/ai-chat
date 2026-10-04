@@ -143,3 +143,10 @@ not alter explicit alternative executable paths, the bridge, or other providers.
 Shell arguments remain literal; the backend setting applies to structured
 `local_kujo run` and `benchmark`. `test-run` uses its own interpreter. Existing
 shell opt-in, allowlist and command permissions still apply.
+
+Pinned runtime inheritance also covers nested test harnesses: local command
+children receive a private PATH alias and `KUJO_BIN` for the agent executable.
+This child-only variable does not change the chat bridge. The alias contains no
+other commands; provider secrets remain excluded. Configured pin failures block
+local execution before spawn instead of letting nested processes fall back to an
+older PATH runtime. Requalify or remove a stale pin explicitly.
