@@ -104,3 +104,29 @@ test('ChatGPT explicit non-SSE response is cancelled with bounded safe diagnosti
  });
  assert.equal(cancelled, true);
 });
+
+test('ChatGPT preserves completed streaming items when terminal output is empty', async () => {
+ const item = {type:'function_call',namespace:'ai_chat',name:'system_time',call_id:'call_1',arguments:'{}'};
+ const done = {type:'response.output_item.done',output_index:0,item};
+ const records = await collect(stream({lease,model:'test',messages:[],fetchFn:async()=>sse([done,complete([])],1)}));
+ assert.equal(records.length,1);
+ assert.deepEqual(records[0].responses_output,[item]);
+ assert.equal(records[0].choices[0].delta.tool_calls[0].id,'call_1');
+ // A populated final envelope must not duplicate already received calls.
+ const populated = await collect(stream({lease,model:'test',messages:[],fetchFn:async()=>sse([done,complete([item])])}));
+ assert.equal(populated[0].choices[0].delta.tool_calls.length,1);
+ for (const ending of [[],[{type:'response.incomplete'}]]) {
+  const received=[];
+  await assert.rejects(async()=>{for await(const r of stream({lease,model:'test',messages:[],fetchFn:async()=>sse([done,...ending])}))received.push(r);});
+  assert.equal(received.length,0);
+ }
+});
+
+test('ChatGPT rejects invalid completed streaming items and retains aggregate bounds', async () => {
+ const done = (index,item)=>({type:'response.output_item.done',output_index:index,item});
+ for(const events of [[done(-1,{})],[done(0,{}),done(0,{})],[done(0,{type:'function_call',namespace:'foreign',call_id:'a',name:'x',arguments:'{}'}),complete([])]]) {
+  await assert.rejects(collect(stream({lease,model:'test',messages:[],fetchFn:async()=>sse(events)})));
+ }
+ const events=Array.from({length:18},(_,i)=>done(i,{type:'reasoning',encrypted_content:'x'.repeat(1024*1024)}));
+ await assert.rejects(collect(stream({lease,model:'test',messages:[],fetchFn:async()=>sse(events,1024*1024)})),{code:'chatgpt_output_too_large'});
+});
