@@ -25,7 +25,7 @@ test('failed or stale checks never satisfy deterministic gate; repairs stay boun
 });
 test('focused packet selects final writes, bounded diff, linked checks and original requirements',()=>{
  const old={...write,call_id:'old',input:{...write.input,content:'print(0)'}};
- const read={call_id:'read',tool_name:'local_file_read',status:'completed',input:{root_id:'r',path:'main.kujo'},result:{content:'print(1)'}};
+ const read={call_id:'read',tool_name:'local_file_read',status:'completed',input:{root_id:'r',path:'main.kujo'},result:{content:'print(1)',truncated:false}};
  const p=JSON.parse(focusedPacket('original requirements',[old,read,write,check],'done',null,['design question']));
  assert.equal(p.final_changes.length,1);assert.equal(p.final_changes[0].result_ref,'w');
  assert.equal(p.final_changes[0].diff.added,'print(2)');assert.equal(p.final_changes[0].diff.removed,'print(1)');
@@ -39,4 +39,12 @@ test('focused review cannot certify a truncated set of changed files',()=>{
  r.noteResults([{id:'read',function:{name:'local_file_read'}}],[{ok:true,content:'source'}]);
  r.onStop(m,JSON.stringify({verdict:'pass',findings:[],checks:[{result_ref:'read',claim:'checked'}]}),rs);
  assert.equal(r.state.outcome,'inconclusive');assert.match(r.completionNotice(),/complete scope/);
+});
+
+test('append writes and partial reads cannot manufacture final-source diffs',()=>{
+ const read={call_id:'r',tool_name:'local_file_read',status:'completed',input:{root_id:'r',path:'main.kujo'},result:{content:'old',truncated:false}};
+ for(const [before,after] of [[read,{...write,input:{...write.input,mode:'append'}}],[{...read,result:{...read.result,truncated:true}},write],[{...read,input:{...read.input,offset:2}},write]]) {
+  const p=JSON.parse(focusedPacket('task',[before,after,check],'done'));
+  assert.equal(p.final_changes[0].diff,null);assert.equal(p.final_changes[0].requires_final_read,true);
+ }
 });
