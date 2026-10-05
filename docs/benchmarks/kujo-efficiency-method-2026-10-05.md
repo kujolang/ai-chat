@@ -90,3 +90,14 @@ stream round, without replay. See [transport evidence](../engineering/watchdog-k
 All official configurations must include that same mitigation; baseline and compact
 are rerun in fresh `*-v2` directories. The transport improvement cannot be credited
 to compact grounding, batching or focused review.
+
+## Additional allocation arm
+
+Baseline scaling exposed roughly 13x process-time growth for 4x input, despite
+high-level sorted/linear algorithms. A separate trusted probe reproduced the
+collection-allocation cost and verified a function-local preallocation alternative
+with output equality. An additional opt-in allocation-reference arm will test
+whether the model adopts that general idiom and improves actual program scaling.
+It is exploratory follow-up, not part of the original four-way isolated ablation.
+`KUJO_ALLOCATION_GUIDANCE=0` remains in all four original arms, so their advertised
+schemas and guidance do not gain this hint. Grader assets stay unchanged.

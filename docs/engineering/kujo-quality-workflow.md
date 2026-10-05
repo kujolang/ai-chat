@@ -133,3 +133,27 @@ It separately measures 200/800/3200-element inputs, three trials each. Timing
 ratios are diagnostic evidence, not hardware-sensitive CI gates. Inspect final
 source for algorithmic complexity and duplicated production implementations;
 passing behavioral cases alone does not grade maintainability.
+
+## Allocation performance reference (experimental)
+
+`KUJO_ALLOCATION_GUIDANCE=1` makes the `allocation` guide available and adds a short
+allocation hint to compact grounding. It does not transform generated code.
+Performance guidance requires the exact SHA-256 pin and default backend recorded
+in `lib/kujo-allocation-reference.js`. Other binaries/backends get an explicit
+unqualified-performance notice; version-matched example correctness is separate
+from a speed claim. Full compact context still stays within 2,200 characters.
+
+The general pattern uses a bounded capacity from validated input, allocates
+`range(0, capacity)` **inside a function**, fills single-level indices, and returns
+`slice(out, 0, used)`. Never return unused placeholder elements; do not use nested
+index assignment. For large inputs, repeated functional `push` can copy the growing
+array on the qualified runtime. Global-scope indexed assignment is also materially
+slower than the verified function-local pattern. This is runtime-specific evidence,
+not a blanket rule for other languages or Kujo builds.
+
+Reproduce with `node scripts/measure-kujo-array-growth.js /absolute/qualified/kujo`.
+It checks complete output equality for 200/800/3200 items, three process trials each,
+for append/indexed construction at global and function scope. Fixed pure workloads
+and a per-process deadline keep the experiment bounded. Model benchmark results
+must be reported separately; a fast hand-written probe is not proof the model will
+apply the pattern or improve its final source.

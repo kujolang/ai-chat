@@ -844,3 +844,12 @@ latest write references, bounded change excerpts where an earlier read exists,
 linked/recent checks and prior findings. It must inspect final source and semantic
 coverage. Passing caller-authored tests do **not** skip that review or certify
 quality. Existing checkpoint workflows retain their original mode.
+
+`KUJO_ALLOCATION_GUIDANCE=1` additionally exposes `local_kujo guide` topic
+`allocation` and, in compact mode, a short performance reference. This is off by
+default. Performance advice is eligible only for the exact pinned binary/default
+backend qualified in `lib/kujo-allocation-reference.js`; all other configurations
+are explicitly unqualified for that speed claim. Guide receipts expose
+`performance_qualified` and `performance_guidance`. It never changes permissions,
+executes generated code automatically, or rewrites the candidate. Health and
+stream receipts add `kujo_workflow.allocation_guidance`.

@@ -349,3 +349,13 @@ test("shell schema validation proves non-execution but executor failures remain 
  await assert.rejects(runtime.execute('local_shell', {command:'pwd', args:[]}), error => error.code === 'transport_lost' && error.execution_started === undefined);
  assert.equal(executions, 1);
 });
+test('Kujo allocation guidance and batch verification are independently gated',async()=>{
+ for(const allocation of [false,true])for(const batch of [false,true]) {
+  let executions=0;const runtime=createToolRuntime({kujoAllocationGuidance:allocation,kujoVerificationEnabled:batch,localRuntime:{canExecute:()=>true,runKujo:async()=>{executions++;return{ok:true};}}});
+  const p=runtime.schemas().find(s=>s.function.name==='local_kujo').function.parameters.properties;
+  assert.equal(p.topic.enum.includes('allocation'),allocation);assert.equal(p.operation.enum.includes('verify'),batch);
+  if(!allocation)await assert.rejects(runtime.execute('local_kujo',{root_id:'workspace_0',operation:'guide',topic:'allocation'}),e=>e.code==='invalid_tool_arguments');
+  if(allocation)assert.equal((await runtime.execute('local_kujo',{root_id:'workspace_0',operation:'guide',topic:'allocation'})).ok,true);
+  assert.equal(executions,allocation?1:0);await runtime.close();
+ }
+});
