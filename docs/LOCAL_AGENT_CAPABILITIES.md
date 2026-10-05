@@ -314,3 +314,7 @@ that limitation.
 
 This is a quality intervention awaiting fresh live comparative benchmarks. It does
 not change the grades or acceptance results in earlier benchmark reports.
+
+JavaScript workspace modules with `.js`, `.cjs`, and `.mjs` extensions are supported
+by the bounded file listing, reading and writing tools. The same workspace,
+sensitive-path, symlink, size and overwrite safeguards apply to each extension.

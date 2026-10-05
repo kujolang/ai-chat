@@ -48,3 +48,14 @@ reported tokens. One sample is exploratory; repeat on new held-out tasks before
 changing default agent guidance. Otherwise retain the existing local defaults.
 No endless prompt tuning to this suite. Escalation policy remains a proposal until
 same-task frontier evidence demonstrates a benefit worth its cost.
+
+## Excluded setup pilot
+
+The first baseline pilot encountered repeated `local_file_not_readable` and
+`local_file_write_blocked` for ordinary `.cjs` modules. AI Chat's text extension
+allowlist omitted `.cjs` and `.mjs`. The pilot was explicitly cancelled, not counted
+as a model failure or compared with treatment. Its receipts remain under
+`data/engineering-judgment-20261005/`. Add the two module extensions with existing
+path protections intact, run regression checks, and restart all measured arms in
+fresh `engineering-judgment-20261005-v2` directories on the corrected runtime.
+Do not credit the extension fix to the prompt treatment.

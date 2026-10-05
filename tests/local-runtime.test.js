@@ -856,3 +856,16 @@ test('nested Node processes inherit only the qualified Kujo alias and no provide
   fs.appendFileSync(binary,'# replaced\n');await assert.rejects(runtime.runCommand({command:'node',args:['--version']}),e=>e.code==='local_kujo_runtime_invalid');
  } finally {runtime?.close();if(alias)assert.equal(fs.existsSync(path.dirname(alias)),false);fs.rmSync(root,{recursive:true,force:true});}
 });
+
+test('local file tools support JavaScript module extensions without relaxing sensitive paths', () => {
+ const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ai-chat-js-modules-'));
+ try {
+  const runtime = createLocalRuntime({env:{AI_CHAT_LOCAL_TOOLS_ENABLED:'1', AI_CHAT_LOCAL_WRITE_ENABLED:'1', AI_CHAT_LOCAL_WORKSPACE_ROOTS:root},homeDir:root,projectRoot:root});
+  for(const file of ['module.cjs','module.mjs']) {
+   runtime.writeFile({root_id:'workspace_0',path:file,content:'// module\n',mode:'create'});
+   assert.equal(runtime.readFile({root_id:'workspace_0',path:file}).content,'1\t// module');
+  }
+  assert.deepEqual(runtime.listFiles({root_id:'workspace_0',path:'.'}).entries.map(e=>e.name),['module.cjs','module.mjs']);
+  for(const file of ['.env.cjs','credentials.mjs','../escape.cjs']) assert.throws(()=>runtime.writeFile({root_id:'workspace_0',path:file,content:'blocked',mode:'create'}));
+ } finally { fs.rmSync(root,{recursive:true,force:true}); }
+});
