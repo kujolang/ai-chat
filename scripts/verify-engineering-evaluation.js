@@ -5,6 +5,7 @@ const path = require('node:path');
 const os = require('node:os');
 const assert = require('node:assert/strict');
 const {spawnSync} = require('node:child_process');
+const {randomUUID} = require('node:crypto');
 const cases = {
  1: ['defaults','explicit-values','isolation','validation','consumer'],
  2: ['legacy','sum','boundaries','invalid','arity','large'],
@@ -21,7 +22,7 @@ async function runCase(task, name, dir, bin) {
   assert.ifError(r.error); assert.equal(r.signal,null); return r;
  };
  const good=(r,expected)=>{assert.equal(r.status,0,r.stderr);assert.equal(r.stderr,'');assert.deepEqual(JSON.parse(r.stdout),expected);};
- const bad=r=>{assert.equal(r.status,1,r.stderr);assert.equal(r.stdout,'');const body=JSON.parse(r.stderr);assert.deepEqual(Object.keys(body),['error']);assert.ok(typeof body.error==='string'&&body.error.trim());};
+ const bad=(r,exact=true)=>{assert.equal(r.status,1,r.stderr);assert.equal(r.stdout,'');const body=JSON.parse(r.stderr);assert.ok(body && typeof body === 'object' && !Array.isArray(body));if(exact)assert.deepEqual(Object.keys(body),['error']);assert.ok(typeof body.error==='string'&&body.error.trim());};
  try {
  if(task===1){const {resolve}=load('config.cjs');
   if(name==='defaults')assert.deepEqual(resolve(),{enabled:true,retries:3,label:'default'});
@@ -80,22 +81,30 @@ async function runCase(task, name, dir, bin) {
   if(name==='preview'){preview([{id:'a',value:1},{id:'a',value:2},{value:1,id:'a'}],[2]);assert.ok(fs.readFileSync(path.join(dir,'DECISIONS.md'),'utf8').trim());}
   if(name==='nested-equality')preview([{x:{a:1,b:2},y:[1,2]},{y:[1,2],x:{b:2,a:1}},{x:{a:1,b:2},y:[2,1]}],[1]);
   if(name==='distinct')preview([{}, {x:null},{x:0},{x:false},{x:''},{x:[]},{x:{}}],[]);
-  if(name==='invalid')for(const value of [null,{},[null],[1],[[]]])bad(invoke(value));
-  if(name==='arity'){bad(cli('cleanup.cjs',[]));bad(cli('cleanup.cjs',[file,'extra']));}
+  if(name==='invalid')for(const value of [null,{},[null],[1],[[]]])bad(invoke(value),false);
+  if(name==='arity'){bad(cli('cleanup.cjs',[]),false);bad(cli('cleanup.cjs',[file,'extra']),false);}
  }
  } finally {fs.rmSync(temp,{recursive:true,force:true});}
 }
 function verify(root, bin, tasks = Object.keys(cases)) {
  const results=[];
  for(const [task,names] of Object.entries(cases).filter(([task])=>tasks.map(String).includes(task)))for(const name of names){
-  const r=spawnSync(process.execPath,[__filename,'--case',task,name,path.resolve(root,task.padStart(2,'0')),bin||'kujo'],{encoding:'utf8',timeout:15000,maxBuffer:128*1024,detached:process.platform!=='win32'});
-  if(process.platform!=='win32'&&r.pid)try{process.kill(-r.pid,'SIGKILL');}catch(e){if(e.code!=='ESRCH')throw e;}
-  results.push({task:Number(task),name,passed:!r.error&&r.status===0&&r.signal===null,...(r.status===0&&!r.error?{}:{error:(r.error?.message||r.stderr||`exit ${r.status}`).slice(0,1200)})});
+  const receipt = 'engineering-check-complete:' + randomUUID();
+  const owned = fs.mkdtempSync(path.join(os.tmpdir(), 'ai-chat-engineering-worker-'));
+  try {
+   const r=spawnSync(process.execPath,[__filename,'--case',task,name,path.resolve(root,task.padStart(2,'0')),bin||'kujo',receipt],{encoding:'utf8',timeout:15000,maxBuffer:128*1024,detached:process.platform!=='win32',env:{...process.env,TMPDIR:owned,TMP:owned,TEMP:owned}});
+   if(process.platform!=='win32'&&r.pid)try{process.kill(-r.pid,'SIGKILL');}catch(e){if(e.code!=='ESRCH')throw e;}
+   // Node can exit 0 while an awaited promise remains unresolved. A successful
+   // process must also acknowledge completion of the actual assertion function.
+   const complete = r.stdout?.split(/\r?\n/).includes(receipt);
+   const passed = !r.error && r.status===0 && r.signal===null && complete;
+   results.push({task:Number(task),name,passed,...(passed?{}:{error:(r.error?.message||r.stderr||(!complete?'Missing assertion-completion receipt':`exit ${r.status}`)).slice(0,1200)})});
+  } finally { fs.rmSync(owned,{recursive:true,force:true}); }
  }
  return {checks:results.length,passed:results.filter(r=>r.passed).length,results};
 }
 if(require.main===module){
- if(process.argv[2]==='--case')runCase(Number(process.argv[3]),process.argv[4],process.argv[5],process.argv[6]).catch(e=>{console.error(e.stack);process.exitCode=1;});
+ if(process.argv[2]==='--case')runCase(Number(process.argv[3]),process.argv[4],process.argv[5],process.argv[6]).then(()=>{if(process.argv[7])console.log(process.argv[7]);}).catch(e=>{console.error(e.stack);process.exitCode=1;});
  else {const r=verify(process.argv[2],process.argv[3]);console.log(JSON.stringify(r,null,2));process.exitCode=r.passed===r.checks?0:1;}
 }
 module.exports={verify,runCase,cases};
