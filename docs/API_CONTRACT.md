@@ -529,6 +529,8 @@ Profiles accept `provider_id:"openai_chatgpt_plan"` and an opaque `connection_id
 
 `/api/chat/stream` keeps its existing SSE contract and neutral tool permissions. Its execution request adds `connection_binding:{connection_id,binding_epoch,billing_source:"chatgpt_plan",harness:"ai_chat"}`. Success includes the billing source, connection reference and harness. Resume rejects changed bindings; no request retries against another billing source. `/api/chat` collects a mandatory upstream stream and rejects tool requests, which belong on the streaming route. `/api/transcribe` rejects this provider.
 
+ChatGPT streaming errors may use `chatgpt_connect_timeout`, `chatgpt_network_timeout`, `chatgpt_dns_error`, or `chatgpt_connection_error` when a known transport cause is available. Unknown failures retain `chatgpt_provider_error`. These safe categories are persisted in execution results with `retryable: false`; they do not authorize automatic replay or imply that prior tool work failed. Completed upstream output-item events are retained when the terminal envelope omits its output, but tools remain gated on successful response completion.
+
 See [connection setup and limitations](CHATGPT_PLAN.md). The native Codex profile remains separate; App Server RPC and public website login are not exposed by these routes.
 
 ## September 2026 hardening clarifications
