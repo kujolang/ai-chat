@@ -118,3 +118,10 @@ configuration: 200/800/3200 even integers produce that many separate output pair
 three trials each, full output equality, 20-second per-process bound. It does not
 change the frozen oracle, completion score or original 106-case count. Report it
 separately and do not hide slower variants or treat it as preregistered evidence.
+
+Bounded promotion check: if the allocation arm completes all three tasks, preserves
+all independent checks, and materially improves measured construction cost without
+a new source-quality defect, run one fresh three-task repeat of that exact
+configuration. Otherwise stop this experiment and retain the existing defaults;
+do not search indefinitely for a flattering rerun. Even two successful rounds
+qualify only this narrow workload, not broad model reliability or frontier parity.
