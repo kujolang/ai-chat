@@ -51,6 +51,9 @@ After two consecutive failures in a tool/category, bounded diagnostics request a
 minimal reproduction. After five, they request a compact blocker/verified-state
 summary and an evidence-based next check. Successful execution resets the streak.
 These notices never retry, change runtime, extend timeouts or bypass permissions.
+The worker and reviewer guidance also call for appropriate collection complexity,
+representative scaling checks where relevant, and avoiding duplicated implementations.
+These are advisory checks, not a static complexity analyzer.
 The advisory reviewer must inspect partial-write handling and state publication,
 not merely successful rename. Reviews are still fallible, including correlated
 mistakes from the same model.
