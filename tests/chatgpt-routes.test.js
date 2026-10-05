@@ -91,3 +91,18 @@ test('disconnect cancels active plan streams and blocks later dispatch', async t
  const events = parse(await pending); assert.equal(events.find(e => e.event === 'error').data.code, 'stream_cancelled');
  const next = await (await f.request('/api/chat', f.body)).json(); assert.equal(next.ok, false); assert.equal(f.calls.length, 1);
 });
+
+test('ChatGPT fetch cause is classified safely and persisted without replay', async t => {
+ const f = await fixture(t, async () => {
+  throw new TypeError('fetch failed secret-token', {cause:Object.assign(Error('private address secret-token'),{code:'UND_ERR_CONNECT_TIMEOUT'})});
+ });
+ const events=parse(await(await f.request('/api/chat/stream',{...f.body,request_id:'plan-connect-timeout'})).text());
+ const error=events.find(e=>e.event==='error').data;
+ assert.equal(error.code,'chatgpt_connect_timeout');
+ assert.doesNotMatch(JSON.stringify(events),/secret-token|private address/);
+ assert.equal(f.calls.length,1);
+ assert.equal(events.some(e=>e.event==='done'),false);
+ const saved=await(await f.request('/api/executions/plan-connect-timeout')).json();
+ assert.equal(saved.execution.result.code,'chatgpt_connect_timeout');
+ assert.equal(saved.execution.result.retryable,false);
+});

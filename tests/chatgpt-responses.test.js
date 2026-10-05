@@ -130,3 +130,18 @@ test('ChatGPT rejects invalid completed streaming items and retains aggregate bo
  const events=Array.from({length:18},(_,i)=>done(i,{type:'reasoning',encrypted_content:'x'.repeat(1024*1024)}));
  await assert.rejects(collect(stream({lease,model:'test',messages:[],fetchFn:async()=>sse(events,1024*1024)})),{code:'chatgpt_output_too_large'});
 });
+
+test('ChatGPT transport classification preserves unknown and policy errors and bounds cause traversal', () => {
+ const {normalizeTransportError}=require('../lib/providers/chatgpt-responses');
+ for(const code of ['ENOTFOUND','EAI_AGAIN','ECONNRESET','ECONNREFUSED','UND_ERR_SOCKET','UND_ERR_HEADERS_TIMEOUT','UND_ERR_BODY_TIMEOUT','ETIMEDOUT']) {
+  const e=new TypeError('secret',{cause:Object.assign(Error('secret'),{code})});
+  const result=normalizeTransportError(e);
+  assert.match(result.code,/^chatgpt_(dns_error|connection_error|network_timeout)$/);
+  assert.doesNotMatch(result.message,/secret/);
+  assert.equal(result.retryable,false);
+ }
+ const policy=Object.assign(Error('permission'),{code:'subscription_sharing_usage_limit_exceeded'});
+ assert.equal(normalizeTransportError(policy),policy);
+ const unknown=Error('unknown');unknown.cause=unknown;
+ assert.equal(normalizeTransportError(unknown),unknown);
+});
