@@ -38,3 +38,52 @@ failures. Error-event usage and partial response evidence are retained. Tool-ena
 runs never automatically retry a whole request, even when max-attempts is greater
 than one. At the runner deadline it requests server cancellation instead of merely
 dropping the connection. A completed transport still needs artifact/test review.
+
+## Engineering judgment comparison
+
+The six-task `engineering-judgment-tasks.md` suite adds integration, resource
+ownership and failure judgment. It contains five Node tasks and one Kujo task;
+it is not a replacement for the Kujo collection/scaling suite.
+
+Prepare separate fresh directories for baseline and guidance treatment:
+
+```sh
+node scripts/prepare-engineering-evaluation.js data/engineering-round/baseline
+node scripts/prepare-engineering-evaluation.js data/engineering-round/guided --guidance
+node --test tests/engineering-evaluation.test.js
+```
+
+Run each generated `suite.md` through `benchmark:run` using a dedicated instance,
+`local-dev`, the same exact model/profile, 12000 response tokens, one attempt,
+900000 ms stream deadline and concurrency 1. Pass an acceptance manifest covering
+the generated suite, seeds, verifier, calibration fixtures and protocol. Freeze it
+before generation; validate it again before invoking:
+
+```sh
+node scripts/verify-engineering-evaluation.js data/engineering-round/baseline /absolute/path/to/qualified/kujo
+```
+
+The verifier returns named check-group outcomes. It runs generated entry points in
+bounded child processes, kills remaining process-group members on POSIX and uses
+owned temporary state. It is not an OS sandbox for untrusted code. The independent
+Kujo positive control is `tests/fixtures/engineering/main.kujo`; qualify its six
+case groups against the selected binary before a live comparison. Ordinary tests
+exercise portable Node controls without requiring Kujo to be installed.
+
+Keep oracle assets out of builder context. Separate successful delivery from file
+correctness, and inspect final source/tests before assigning anchored qualitative
+scores. See `engineering-evaluation-protocol.md` for the frozen decision rule,
+limitations and guidance promotion criteria. A frontier comparison must use the
+same tool harness; a native Codex run changes both the model and harness.
+
+A verifier success requires an explicit per-case assertion-completion receipt;
+a zero exit from an unresolved promise is not a pass. After generation, optional
+supplemental resource-failure checks can be run with:
+
+```sh
+node scripts/verify-engineering-failure-edges.js data/engineering-round/baseline/03/store.cjs
+```
+
+Report these separately from the frozen 33 groups. The October 5 engineering
+comparison and grading corrections are in
+[`docs/benchmarks/engineering-judgment-2026-10-05.md`](../docs/benchmarks/engineering-judgment-2026-10-05.md).

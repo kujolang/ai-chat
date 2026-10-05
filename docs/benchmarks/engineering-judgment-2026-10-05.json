@@ -1,0 +1,2080 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-05",
+  "scope": "Five Node tasks and one Kujo task; exploratory, unblinded, one sample per arm",
+  "start_sha": "b7714ba2fe2dce043e3e48e8905b779d01980d58",
+  "source_review": {
+    "rubric": "0–4 anchored controller judgments; not automated or blinded",
+    "reviews": [
+      {
+        "lane": "baseline",
+        "task": 1,
+        "maintainability": 3,
+        "integration": 4,
+        "failure_handling": 3,
+        "judgment": 3,
+        "evidence": "Minimal fresh-result fix; retains own-key validation and unchanged consumer. Regression tests exercise false/zero/empty labels, defaults isolation, input validation and real consumer. Custom test wrapper is larger than necessary but does not duplicate production behavior."
+      },
+      {
+        "lane": "baseline",
+        "task": 2,
+        "maintainability": 3,
+        "integration": 4,
+        "failure_handling": 3,
+        "judgment": 3,
+        "evidence": "Preserves validate helper and legacy count mode; simple optional sum path with bounded integer inputs. Real CLI Go harness uses expected constants and large boundary fixtures. Standalone harness children have no individual deadline, though recorded tool execution has a surrounding deadline. Six independent groups pass."
+      },
+      {
+        "lane": "baseline",
+        "task": 3,
+        "maintainability": 3,
+        "integration": 3,
+        "failure_handling": 2,
+        "judgment": 3,
+        "evidence": "Own exclusive sibling temporary file, progress-checked Buffer short-write loop, close before rename, cleanup preserves original I/O errors. Tests cover real files and injected failures. Source wraps JSON.stringify exceptions in a new TypeError; this loses original serialization-error identity despite the requested original-error propagation. Six frozen groups pass, but they do not assert serialization error identity; assess that separately across arms."
+      },
+      {
+        "lane": "baseline",
+        "task": 4,
+        "maintainability": 3,
+        "integration": 3,
+        "failure_handling": 2,
+        "judgment": 2,
+        "evidence": "Seven initial oracle groups pass including resistant-child reaping and combined byte bound. Implementation uses multiple state flags and spawn/kill listeners (~200 lines) for a small public API. It unconditionally ignores pipe errors and ignores post-spawn child errors, creating a source-supported diagnostic gap beyond frozen tests. Termination waits for close and clears timers/listeners on normal completion. Model tests use fixed 150/300 ms sleeps to assume child readiness, making them timing-sensitive; this is a source observation, not an observed flaky failure."
+      },
+      {
+        "lane": "baseline",
+        "task": 5,
+        "maintainability": 3,
+        "integration": 4,
+        "failure_handling": 3,
+        "judgment": 3,
+        "evidence": "Promise-tail serialization preserves original public interface, checks safe arithmetic, publishes only after persistence and isolates rejection to its caller. Tests include gated persistence, multiple failures, synchronous exceptions and overflow. Tests use a fixed microtask-count helper to reach gates rather than awaiting an explicit entered signal; deterministic but more coupled to scheduling details than necessary. Four initial oracle groups pass."
+      },
+      {
+        "lane": "baseline",
+        "task": 6,
+        "maintainability": 3,
+        "integration": 3,
+        "failure_handling": 3,
+        "judgment": 2,
+        "evidence": "Conservative read-only CLI with full structural equality and clear policy disclosure, preserving same-ID distinct rows and input bytes. Uses handwritten recursive equality and pairwise O(n^2) comparisons; scaling not measured here. Duplicate policy bullet repeated in DECISIONS. Run spent over 160 reads rediscovering the same two complete files before delivering. Frozen error-only-key grader falsely rejects its legitimate extra code field; corrected grading must allow that field."
+      },
+      {
+        "lane": "guided",
+        "task": 1,
+        "maintainability": 3,
+        "integration": 4,
+        "failure_handling": 3,
+        "judgment": 3,
+        "evidence": "Production config implementation is byte-identical to baseline. Added a useful decision record identifying compatibility and failure boundaries; public consumer remains unchanged and regression checks cover real invocation. Documentation improves traceability, not implementation quality for this task."
+      },
+      {
+        "lane": "guided",
+        "task": 2,
+        "maintainability": 3,
+        "integration": 4,
+        "failure_handling": 3,
+        "judgment": 3,
+        "evidence": "Retains the validator and adds a straightforward optional sum branch, as baseline did. Moves invalid-mode rejection before parsing and documents sum bounds. Uses JSON-decoded CLI harness assertions and known generated sums. Fixed its own missing closing bracket in a generated fixture after extra diagnostic probes, leaving those probes behind and documenting the failure. No clear final implementation-quality improvement over baseline."
+      },
+      {
+        "lane": "guided",
+        "task": 3,
+        "maintainability": 3,
+        "integration": 3,
+        "failure_handling": 2,
+        "judgment": 2,
+        "evidence": "Direct JSON.stringify preserves original serialization errors (improvement confirmed by supplemental check). Exclusive sibling temp, short-write loop and error-preserving cleanup are clear. But it closes only once: injected first-close failure before closure leaves the real handle open, whereas baseline retries. Its mock marks the handle closed before throwing and therefore misses this failure despite claiming no open handles. Overall failure quality is a tradeoff, not an upgrade."
+      },
+      {
+        "lane": "guided",
+        "task": 4,
+        "maintainability": 3,
+        "integration": 3,
+        "failure_handling": 2,
+        "judgment": 3,
+        "evidence": "Seven initial oracle groups pass. Tests wait for child marker files rather than fixed startup sleeps, an improvement, although existence alone is weaker than a validated readiness payload. Source propagates stream errors instead of discarding them but rejects immediately without terminating/reaping the child on that error path. A comment incorrectly says the abort listener attaches before spawn; actual code attaches afterward. Ordinary abort/overflow paths wait for close. Overall error ownership still has a gap."
+      },
+      {
+        "lane": "guided",
+        "task": 5,
+        "maintainability": 3,
+        "integration": 4,
+        "failure_handling": 3,
+        "judgment": 4,
+        "evidence": "Keeps the same promise-tail/public API design and correctly queues validation, persistence and publication. Failure recovery, arithmetic and committed-state tests use explicit waitForCall/deferred gates rather than baseline fixed microtask ticks. This is a concrete improvement in test synchronization and failure evidence, without a broader architectural change."
+      },
+      {
+        "lane": "guided",
+        "task": 6,
+        "maintainability": 3,
+        "integration": 3,
+        "failure_handling": 3,
+        "judgment": 3,
+        "evidence": "Read-only canonical structural equality with sorted object keys and Map indexing preserves distinct same-ID records and array order. Avoids baseline pairwise comparisons; no scaling benchmark was run. Explicitly documents extra-argument/BOM policies. Delivered without the unchanged-file read loop observed in baseline; one sample cannot attribute that difference to guidance."
+      },
+      {
+        "lane": "frontier-fixed",
+        "task": 1,
+        "maintainability": 3,
+        "integration": 4,
+        "failure_handling": 3,
+        "judgment": 3,
+        "evidence": "Small fresh-object configuration fix, immutable defaults and unchanged consumer. Tests exercise explicit false/zero/empty string, isolation, invalid options and real consumer output. Similar implementation quality to both GLM variants."
+      },
+      {
+        "lane": "frontier-fixed",
+        "task": 2,
+        "maintainability": 3,
+        "integration": 4,
+        "failure_handling": 3,
+        "judgment": 3,
+        "evidence": "Reuses existing validator and adds simple bounded sum with legacy count preserved. Real Python subprocess harness checks parsed results, exact error shape and 10000-item input. Child harness has no per-case deadline (outer execution is bounded); no clear source-quality advantage over GLM on this small extension."
+      },
+      {
+        "lane": "frontier-fixed",
+        "task": 3,
+        "maintainability": 3,
+        "integration": 3,
+        "failure_handling": 3,
+        "judgment": 3,
+        "evidence": "Real API tests and owned temp cleanup; preserves serialization error identity and retries an isolated first-close failure, passing both supplemental checks. More helper/retry machinery than GLM and a redundant catch/rethrow. Its close mock marks the real handle closed before throwing; passing two injected checks is not proof of all combined resource failures."
+      },
+      {
+        "lane": "frontier-fixed",
+        "task": 6,
+        "maintainability": 3,
+        "integration": 3,
+        "failure_handling": 2,
+        "judgment": 3,
+        "evidence": "Conservative read-only canonical-key Set with public CLI tests and input hash preservation. Post-hoc real CLI probe on [{\"n\":1e400},{\"n\":null}] incorrectly reports the null row as duplicate: JSON.parse yields Infinity, then JSON.stringify canonicalizes it to null. Both GLM arms and unguided follow-up preserve the distinction. This is outside the frozen checks and is recorded separately."
+      }
+    ]
+  },
+  "arms": [
+    {
+      "lane": "baseline",
+      "delivered_source_review_available": true,
+      "complete_six_task_delivery": true,
+      "runtime": "1701d46",
+      "summary": {
+        "total": 6,
+        "completed": 6,
+        "failed": 0,
+        "retry_count": 0,
+        "tool_calls_executed": 301,
+        "tool_input_repairs": 20,
+        "provider_rounds": 196,
+        "latency_ms_total": 1792062,
+        "latency_samples": 6,
+        "token_use": {
+          "input_tokens": 7098668,
+          "output_tokens": 255942,
+          "total_tokens": 7354610
+        },
+        "transport_completion_rate": 1,
+        "task_completion_rate": null,
+        "repair_rate": 0.0664,
+        "average_latency_ms": 298677
+      },
+      "tasks": [
+        {
+          "task": 1,
+          "panes": [
+            {
+              "lane_index": 0,
+              "model": "glm-5.3-flash:cloud",
+              "ok": true,
+              "error": null,
+              "attempts": 1,
+              "retry_count": 0,
+              "duration_ms": 167044,
+              "usage": {
+                "input_tokens": 321099,
+                "output_tokens": 28290,
+                "total_tokens": 349389,
+                "cached_input_tokens": 175104,
+                "cache_write_input_tokens": null,
+                "cache_details_reported": true
+              },
+              "usage_complete": true,
+              "execution_id": "34aac9dd-60f4-4a5f-a2a4-0399b7e5b4c7",
+              "execution_status": null,
+              "usage_source": "stream",
+              "tool_calls_executed": 25,
+              "tool_input_repairs": 0,
+              "provider_rounds": 19,
+              "trace_id": "bbb69ec0-cbde-4c30-9b1f-83cb16c801a2",
+              "finish_reason": "stop"
+            }
+          ]
+        },
+        {
+          "task": 2,
+          "panes": [
+            {
+              "lane_index": 0,
+              "model": "glm-5.3-flash:cloud",
+              "ok": true,
+              "error": null,
+              "attempts": 1,
+              "retry_count": 0,
+              "duration_ms": 250030,
+              "usage": {
+                "input_tokens": 695600,
+                "output_tokens": 38563,
+                "total_tokens": 734163,
+                "cached_input_tokens": 425600,
+                "cache_write_input_tokens": null,
+                "cache_details_reported": true
+              },
+              "usage_complete": true,
+              "execution_id": "95dfff35-ab5b-4a79-bf98-f853020f68f0",
+              "execution_status": null,
+              "usage_source": "stream",
+              "tool_calls_executed": 30,
+              "tool_input_repairs": 2,
+              "provider_rounds": 27,
+              "trace_id": "e02785ae-c2c0-451a-b997-38bd0eb74555",
+              "finish_reason": "stop"
+            }
+          ]
+        },
+        {
+          "task": 3,
+          "panes": [
+            {
+              "lane_index": 0,
+              "model": "glm-5.3-flash:cloud",
+              "ok": true,
+              "error": null,
+              "attempts": 1,
+              "retry_count": 0,
+              "duration_ms": 169614,
+              "usage": {
+                "input_tokens": 260572,
+                "output_tokens": 29476,
+                "total_tokens": 290048,
+                "cached_input_tokens": 121600,
+                "cache_write_input_tokens": null,
+                "cache_details_reported": true
+              },
+              "usage_complete": true,
+              "execution_id": "697c407d-3489-4967-8d27-25fedf0262e9",
+              "execution_status": null,
+              "usage_source": "stream",
+              "tool_calls_executed": 13,
+              "tool_input_repairs": 3,
+              "provider_rounds": 14,
+              "trace_id": "11b52f7a-e71f-4dcc-8c50-d192e1ca4e72",
+              "finish_reason": "stop"
+            }
+          ]
+        },
+        {
+          "task": 4,
+          "panes": [
+            {
+              "lane_index": 0,
+              "model": "glm-5.3-flash:cloud",
+              "ok": true,
+              "error": null,
+              "attempts": 1,
+              "retry_count": 0,
+              "duration_ms": 292749,
+              "usage": {
+                "input_tokens": 359492,
+                "output_tokens": 40847,
+                "total_tokens": 400339,
+                "cached_input_tokens": 204288,
+                "cache_write_input_tokens": null,
+                "cache_details_reported": true
+              },
+              "usage_complete": true,
+              "execution_id": "3c91b83e-26cd-4e06-ab94-7792f73b1713",
+              "execution_status": null,
+              "usage_source": "stream",
+              "tool_calls_executed": 18,
+              "tool_input_repairs": 2,
+              "provider_rounds": 16,
+              "trace_id": "09f56c70-8fed-40d7-a10b-bb4119c6d2ae",
+              "finish_reason": "stop"
+            }
+          ]
+        },
+        {
+          "task": 5,
+          "panes": [
+            {
+              "lane_index": 0,
+              "model": "glm-5.3-flash:cloud",
+              "ok": true,
+              "error": null,
+              "attempts": 1,
+              "retry_count": 0,
+              "duration_ms": 271460,
+              "usage": {
+                "input_tokens": 491968,
+                "output_tokens": 37473,
+                "total_tokens": 529441,
+                "cached_input_tokens": 296704,
+                "cache_write_input_tokens": null,
+                "cache_details_reported": true
+              },
+              "usage_complete": true,
+              "execution_id": "15f1a6a0-fd77-4cac-8a11-75fcda77add3",
+              "execution_status": null,
+              "usage_source": "stream",
+              "tool_calls_executed": 21,
+              "tool_input_repairs": 4,
+              "provider_rounds": 22,
+              "trace_id": "e1b09d8d-2e18-4f04-bef3-e87440956948",
+              "finish_reason": "stop"
+            }
+          ]
+        },
+        {
+          "task": 6,
+          "panes": [
+            {
+              "lane_index": 0,
+              "model": "glm-5.3-flash:cloud",
+              "ok": true,
+              "error": null,
+              "attempts": 1,
+              "retry_count": 0,
+              "duration_ms": 641165,
+              "usage": {
+                "input_tokens": 4969937,
+                "output_tokens": 81293,
+                "total_tokens": 5051230,
+                "cached_input_tokens": 4292480,
+                "cache_write_input_tokens": null,
+                "cache_details_reported": true
+              },
+              "usage_complete": true,
+              "execution_id": "68bae832-5eef-4de4-aa2a-06e0d739ff86",
+              "execution_status": null,
+              "usage_source": "stream",
+              "tool_calls_executed": 194,
+              "tool_input_repairs": 9,
+              "provider_rounds": 98,
+              "trace_id": "5939535b-416f-4ad5-b0aa-51a21e144a13",
+              "finish_reason": "stop"
+            }
+          ]
+        }
+      ],
+      "independent": {
+        "checks": 33,
+        "passed": 33,
+        "results": [
+          {
+            "task": 1,
+            "name": "defaults",
+            "passed": true
+          },
+          {
+            "task": 1,
+            "name": "explicit-values",
+            "passed": true
+          },
+          {
+            "task": 1,
+            "name": "isolation",
+            "passed": true
+          },
+          {
+            "task": 1,
+            "name": "validation",
+            "passed": true
+          },
+          {
+            "task": 1,
+            "name": "consumer",
+            "passed": true
+          },
+          {
+            "task": 2,
+            "name": "legacy",
+            "passed": true
+          },
+          {
+            "task": 2,
+            "name": "sum",
+            "passed": true
+          },
+          {
+            "task": 2,
+            "name": "boundaries",
+            "passed": true
+          },
+          {
+            "task": 2,
+            "name": "invalid",
+            "passed": true
+          },
+          {
+            "task": 2,
+            "name": "arity",
+            "passed": true
+          },
+          {
+            "task": 2,
+            "name": "large",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "replace",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "short-write",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "write-failure",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "rename-failure",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "collision",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "serialization",
+            "passed": true
+          },
+          {
+            "task": 4,
+            "name": "literal-argv",
+            "passed": true
+          },
+          {
+            "task": 4,
+            "name": "nonzero",
+            "passed": true
+          },
+          {
+            "task": 4,
+            "name": "spawn-error",
+            "passed": true
+          },
+          {
+            "task": 4,
+            "name": "pre-abort",
+            "passed": true
+          },
+          {
+            "task": 4,
+            "name": "abort-reap",
+            "passed": true
+          },
+          {
+            "task": 4,
+            "name": "output-limit",
+            "passed": true
+          },
+          {
+            "task": 4,
+            "name": "validation",
+            "passed": true
+          },
+          {
+            "task": 5,
+            "name": "overlap",
+            "passed": true
+          },
+          {
+            "task": 5,
+            "name": "failure-recovery",
+            "passed": true
+          },
+          {
+            "task": 5,
+            "name": "validation",
+            "passed": true
+          },
+          {
+            "task": 5,
+            "name": "publish-after-persist",
+            "passed": true
+          },
+          {
+            "task": 6,
+            "name": "preview",
+            "passed": true
+          },
+          {
+            "task": 6,
+            "name": "nested-equality",
+            "passed": true
+          },
+          {
+            "task": 6,
+            "name": "distinct",
+            "passed": true
+          },
+          {
+            "task": 6,
+            "name": "invalid",
+            "passed": true
+          },
+          {
+            "task": 6,
+            "name": "arity",
+            "passed": true
+          }
+        ]
+      },
+      "supplemental": {
+        "completed": true,
+        "serialization": {
+          "passed": false,
+          "original_error": false,
+          "touched": false
+        },
+        "close_failure": {
+          "passed": true,
+          "original_error": true,
+          "closed": true,
+          "close_attempts": 2,
+          "unchanged": true,
+          "clean": true
+        }
+      },
+      "cleanup_number_edge": {
+        "input": "[{\"n\":1e400},{\"n\":null}]",
+        "expected": {
+          "duplicates": []
+        },
+        "status": 0,
+        "stdout": "{\"duplicates\":[]}\n",
+        "stderr": "",
+        "passed": true
+      },
+      "source_hashes": {
+        "01/README.md": "7e1f6e4c2236227de6662993ca037fcce2845acfbcff0a70cfa70fc751237b4a",
+        "01/config.cjs": "ed106f6ff89b66ac1f85b5b80a45f49d554dafa6d62460c0fc980b3141e87550",
+        "01/config.test.cjs": "fce2c3d3a166602ef35868d8e03f168aa270a8eba915933251346132e708fee6",
+        "01/consumer.cjs": "632900266f4f37ff759d249eda5225b786f09baa3df9b54754ca823ae406e274",
+        "01/package.json": "afa8e0622974c346a9d0fced5302da79a24b5d9fc587cedfc7fe79d2fa7f4aa1",
+        "02/README.md": "b7d092ee7a90cdc3306c559f8cadd515ab26b4132a4c4a1085fb3552244388f5",
+        "02/harness.go": "bfaaaf41e109ca8c6ca944426f515ebc1046ec88cdf05c9af60b4f6a8f1a5875",
+        "02/main.kujo": "01c7463423470ee3fa407bb2925579725f651ab7c886a89c086272b89cbfda56",
+        "03/package.json": "3baf5424021a1184ebd19ebd3ef0bdf55be869fb8f8e1335399a762912a4de2f",
+        "03/store.cjs": "afd88785aa0652fcc4d611d8de1f1f03a59233bcfc47e0b7fec45d1b3151dc59",
+        "03/store.test.cjs": "0fe488cf818a8bd8aa38801384fbe8704be742939942a152bdf5197239e64498",
+        "04/fixtures/echo space.cjs": "be43635dd045a5e2b3f21d32bac7f1dec448c477ff2e6edad8d7aaf52e9f9b82",
+        "04/fixtures/echo_argv.cjs": "7416bc8e25f8bca28283c247f221fcea6d87cc23ea4c3dc65143bb240e31fbae",
+        "04/fixtures/resistant_child.cjs": "82f486181595f71091f51da05e95ff24aa7e027f492fa8f16d29210c2f74ac70",
+        "04/fixtures/spew.cjs": "4c3707c89576f37295255f9a8737a18bed85580addc5ddadf469c88c7d5cf12a",
+        "04/fixtures/utf8_split.cjs": "d1f75c21ab6d785fb6dd7500f342076d43d337b8b249adcc5e5fe3aa7b104a1a",
+        "04/package.json": "011363e088d5d5c3ecb48f8182a06d3db11ad811cb74bb5501924863a2e10e43",
+        "04/runner.cjs": "4695c8f9e31d4876e0f80052d900e08a1c00c83723589fab9077976e228b6f26",
+        "04/runner.test.cjs": "45b18042ae07e2bcb40df2476f93da11ecaeea5d153f58f3f1c8836aa584dfcc",
+        "05/README.md": "9cdaa705c754a819f22fe44baec446b46ad2d103a88ed478dba38cb98367e889",
+        "05/counter.cjs": "3fb852267cff3cd338c6bc1babfd232e4d8c82deb2ea5944405d77579b090f5e",
+        "05/counter.test.cjs": "55701c04cae05e31d7765eb19ce9b256313b113b444f3eb56d466925815eae6a",
+        "05/package.json": "72fb36344ce730877d497b50fc961602c8010e6fcbf9a4c5b81d504cec6e0fe6",
+        "06/DECISIONS.md": "729d89655085d5182a1d0387a88615ffdeb7128040c85ee535ec312c3da67e53",
+        "06/README.md": "38c9361d6267cd469254eedd9bdf06dbba031ad5df946fc34b687758b37b970d",
+        "06/cleanup.cjs": "dd2b518fbe923fb3a334bee31bb4ffce5b56a33a0e0774505b4be28c28be8888",
+        "06/records.json": "2b1bfa0347172c1da2ac438ed3c6c1ad7656467ad20e8c6758eab56ac02398dc",
+        "06/test/cleanup.test.cjs": "23567ca5523417354959ca3bd9549a241e4af50bf81758ecaf44ec7e3b09479a",
+        "06/test/fixtures/badjson.json": "c8f08656d4f6a64be48fbc40a5a8d2a620746db957f52d68cbb9554a495533da",
+        "06/test/fixtures/dup-keyorder.json": "2b1bfa0347172c1da2ac438ed3c6c1ad7656467ad20e8c6758eab56ac02398dc",
+        "06/test/fixtures/element-array.json": "cf1cbb66a638b4860a516671fb74850e6ccf787fe6c4c8d29e9c04efe880bd05",
+        "06/test/fixtures/element-null.json": "1d8fc6ceb1f94c6326d6d5483d258fcb2e179e9869325b245d105c2219bf69fd",
+        "06/test/fixtures/element-number.json": "080a9ed428559ef602668b4c00f114f1a11c3f6b02a435f0bdc154578e4d7f22",
+        "06/test/fixtures/empty.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "06/test/fixtures/nested-array-order.json": "82503570dcbc9fbfe844e080ab50178d9b5ef9ecae029fedd0d77591d6a4308d",
+        "06/test/fixtures/nested-keyorder.json": "6a574c9228c1e61c708328dadb1f95339198380e00bae15b447299b132614bce",
+        "06/test/fixtures/notarray.json": "015abd7f5cc57a2dd94b7590f04ad8084273905ee33ec5cebeae62276a97f862",
+        "06/test/fixtures/same-id-diff.json": "2351e36f5d51296a1c13bf91325c1d11498428cc70fbd91a237ddb0527f438ed",
+        "06/test/fixtures/triple.json": "1938678ade044eb80b6bbc20ea0ddb3d0d64d984709cb97393c7387a7afbc1f5"
+      },
+      "delivered_independent_checks": {
+        "checks": 33,
+        "passed": 33
+      }
+    },
+    {
+      "lane": "guided",
+      "delivered_source_review_available": true,
+      "complete_six_task_delivery": true,
+      "runtime": "1701d46",
+      "summary": {
+        "total": 6,
+        "completed": 6,
+        "failed": 0,
+        "retry_count": 0,
+        "tool_calls_executed": 136,
+        "tool_input_repairs": 19,
+        "provider_rounds": 111,
+        "latency_ms_total": 1683483,
+        "latency_samples": 6,
+        "token_use": {
+          "input_tokens": 2639009,
+          "output_tokens": 218514,
+          "total_tokens": 2857523
+        },
+        "transport_completion_rate": 1,
+        "task_completion_rate": null,
+        "repair_rate": 0.1397,
+        "average_latency_ms": 280581
+      },
+      "tasks": [
+        {
+          "task": 1,
+          "panes": [
+            {
+              "lane_index": 0,
+              "model": "glm-5.3-flash:cloud",
+              "ok": true,
+              "error": null,
+              "attempts": 1,
+              "retry_count": 0,
+              "duration_ms": 163884,
+              "usage": {
+                "input_tokens": 161234,
+                "output_tokens": 20491,
+                "total_tokens": 181725,
+                "cached_input_tokens": 60800,
+                "cache_write_input_tokens": null,
+                "cache_details_reported": true
+              },
+              "usage_complete": true,
+              "execution_id": "e7512c4c-14ae-4c5a-b565-590f50ac9d8d",
+              "execution_status": null,
+              "usage_source": "stream",
+              "tool_calls_executed": 20,
+              "tool_input_repairs": 0,
+              "provider_rounds": 13,
+              "trace_id": "a040acc4-7bff-406f-9ff6-ed3910b2bdfc",
+              "finish_reason": "stop"
+            }
+          ]
+        },
+        {
+          "task": 2,
+          "panes": [
+            {
+              "lane_index": 0,
+              "model": "glm-5.3-flash:cloud",
+              "ok": true,
+              "error": null,
+              "attempts": 1,
+              "retry_count": 0,
+              "duration_ms": 438209,
+              "usage": {
+                "input_tokens": 1036299,
+                "output_tokens": 55459,
+                "total_tokens": 1091758,
+                "cached_input_tokens": 734464,
+                "cache_write_input_tokens": null,
+                "cache_details_reported": true
+              },
+              "usage_complete": true,
+              "execution_id": "61dea449-ec35-4279-81cf-0ce33f836391",
+              "execution_status": null,
+              "usage_source": "stream",
+              "tool_calls_executed": 31,
+              "tool_input_repairs": 2,
+              "provider_rounds": 31,
+              "trace_id": "10b32610-835b-4015-bb76-913d923336e8",
+              "finish_reason": "stop"
+            }
+          ]
+        },
+        {
+          "task": 3,
+          "panes": [
+            {
+              "lane_index": 0,
+              "model": "glm-5.3-flash:cloud",
+              "ok": true,
+              "error": null,
+              "attempts": 1,
+              "retry_count": 0,
+              "duration_ms": 297634,
+              "usage": {
+                "input_tokens": 295631,
+                "output_tokens": 32822,
+                "total_tokens": 328453,
+                "cached_input_tokens": 153216,
+                "cache_write_input_tokens": null,
+                "cache_details_reported": true
+              },
+              "usage_complete": true,
+              "execution_id": "d3c21b60-cb18-423e-bbf8-6e4cb74ba66a",
+              "execution_status": null,
+              "usage_source": "stream",
+              "tool_calls_executed": 16,
+              "tool_input_repairs": 4,
+              "provider_rounds": 15,
+              "trace_id": "19d7cfa8-7f6e-4f5c-9248-244d2a56e92b",
+              "finish_reason": "stop"
+            }
+          ]
+        },
+        {
+          "task": 4,
+          "panes": [
+            {
+              "lane_index": 0,
+              "model": "glm-5.3-flash:cloud",
+              "ok": true,
+              "error": null,
+              "attempts": 1,
+              "retry_count": 0,
+              "duration_ms": 355988,
+              "usage": {
+                "input_tokens": 640258,
+                "output_tokens": 51555,
+                "total_tokens": 691813,
+                "cached_input_tokens": 415872,
+                "cache_write_input_tokens": null,
+                "cache_details_reported": true
+              },
+              "usage_complete": true,
+              "execution_id": "c5ed6b53-5881-4eb8-a14c-bb64f00fb0d9",
+              "execution_status": null,
+              "usage_source": "stream",
+              "tool_calls_executed": 29,
+              "tool_input_repairs": 8,
+              "provider_rounds": 22,
+              "trace_id": "eb8b5317-963c-473f-9e8a-27b63e629b6c",
+              "finish_reason": "stop"
+            }
+          ]
+        },
+        {
+          "task": 5,
+          "panes": [
+            {
+              "lane_index": 0,
+              "model": "glm-5.3-flash:cloud",
+              "ok": true,
+              "error": null,
+              "attempts": 1,
+              "retry_count": 0,
+              "duration_ms": 252397,
+              "usage": {
+                "input_tokens": 302392,
+                "output_tokens": 33283,
+                "total_tokens": 335675,
+                "cached_input_tokens": 150784,
+                "cache_write_input_tokens": null,
+                "cache_details_reported": true
+              },
+              "usage_complete": true,
+              "execution_id": "4ee71ee3-dc56-4f86-bf7b-ff8059e41637",
+              "execution_status": null,
+              "usage_source": "stream",
+              "tool_calls_executed": 18,
+              "tool_input_repairs": 5,
+              "provider_rounds": 16,
+              "trace_id": "deec314b-a638-4a4c-988e-080fce30d264",
+              "finish_reason": "stop"
+            }
+          ]
+        },
+        {
+          "task": 6,
+          "panes": [
+            {
+              "lane_index": 0,
+              "model": "glm-5.3-flash:cloud",
+              "ok": true,
+              "error": null,
+              "attempts": 1,
+              "retry_count": 0,
+              "duration_ms": 175371,
+              "usage": {
+                "input_tokens": 203195,
+                "output_tokens": 24904,
+                "total_tokens": 228099,
+                "cached_input_tokens": 89984,
+                "cache_write_input_tokens": null,
+                "cache_details_reported": true
+              },
+              "usage_complete": true,
+              "execution_id": "f40ce5f8-5590-41b9-9448-b7f187df3c67",
+              "execution_status": null,
+              "usage_source": "stream",
+              "tool_calls_executed": 22,
+              "tool_input_repairs": 0,
+              "provider_rounds": 14,
+              "trace_id": "0a53b414-4ba6-4c2f-827f-65ab0da94ae7",
+              "finish_reason": "stop"
+            }
+          ]
+        }
+      ],
+      "independent": {
+        "checks": 33,
+        "passed": 33,
+        "results": [
+          {
+            "task": 1,
+            "name": "defaults",
+            "passed": true
+          },
+          {
+            "task": 1,
+            "name": "explicit-values",
+            "passed": true
+          },
+          {
+            "task": 1,
+            "name": "isolation",
+            "passed": true
+          },
+          {
+            "task": 1,
+            "name": "validation",
+            "passed": true
+          },
+          {
+            "task": 1,
+            "name": "consumer",
+            "passed": true
+          },
+          {
+            "task": 2,
+            "name": "legacy",
+            "passed": true
+          },
+          {
+            "task": 2,
+            "name": "sum",
+            "passed": true
+          },
+          {
+            "task": 2,
+            "name": "boundaries",
+            "passed": true
+          },
+          {
+            "task": 2,
+            "name": "invalid",
+            "passed": true
+          },
+          {
+            "task": 2,
+            "name": "arity",
+            "passed": true
+          },
+          {
+            "task": 2,
+            "name": "large",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "replace",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "short-write",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "write-failure",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "rename-failure",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "collision",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "serialization",
+            "passed": true
+          },
+          {
+            "task": 4,
+            "name": "literal-argv",
+            "passed": true
+          },
+          {
+            "task": 4,
+            "name": "nonzero",
+            "passed": true
+          },
+          {
+            "task": 4,
+            "name": "spawn-error",
+            "passed": true
+          },
+          {
+            "task": 4,
+            "name": "pre-abort",
+            "passed": true
+          },
+          {
+            "task": 4,
+            "name": "abort-reap",
+            "passed": true
+          },
+          {
+            "task": 4,
+            "name": "output-limit",
+            "passed": true
+          },
+          {
+            "task": 4,
+            "name": "validation",
+            "passed": true
+          },
+          {
+            "task": 5,
+            "name": "overlap",
+            "passed": true
+          },
+          {
+            "task": 5,
+            "name": "failure-recovery",
+            "passed": true
+          },
+          {
+            "task": 5,
+            "name": "validation",
+            "passed": true
+          },
+          {
+            "task": 5,
+            "name": "publish-after-persist",
+            "passed": true
+          },
+          {
+            "task": 6,
+            "name": "preview",
+            "passed": true
+          },
+          {
+            "task": 6,
+            "name": "nested-equality",
+            "passed": true
+          },
+          {
+            "task": 6,
+            "name": "distinct",
+            "passed": true
+          },
+          {
+            "task": 6,
+            "name": "invalid",
+            "passed": true
+          },
+          {
+            "task": 6,
+            "name": "arity",
+            "passed": true
+          }
+        ]
+      },
+      "supplemental": {
+        "completed": true,
+        "serialization": {
+          "passed": true,
+          "original_error": true,
+          "touched": false
+        },
+        "close_failure": {
+          "passed": false,
+          "original_error": true,
+          "closed": false,
+          "close_attempts": 1,
+          "unchanged": true,
+          "clean": true
+        }
+      },
+      "cleanup_number_edge": {
+        "input": "[{\"n\":1e400},{\"n\":null}]",
+        "expected": {
+          "duplicates": []
+        },
+        "status": 0,
+        "stdout": "{\"duplicates\":[]}\n",
+        "stderr": "",
+        "passed": true
+      },
+      "source_hashes": {
+        "01/DECISIONS.md": "896700261da68ddd62921dedd980b5b94468973ad340f9f2f9c807bf1d81e2b0",
+        "01/README.md": "7e1f6e4c2236227de6662993ca037fcce2845acfbcff0a70cfa70fc751237b4a",
+        "01/config.cjs": "ed106f6ff89b66ac1f85b5b80a45f49d554dafa6d62460c0fc980b3141e87550",
+        "01/consumer.cjs": "632900266f4f37ff759d249eda5225b786f09baa3df9b54754ca823ae406e274",
+        "01/package.json": "9e775787a6c74b7317079bf40aa1e6a49844b08cb202669a00fe9695c5faf1a2",
+        "01/test.cjs": "7f7506cad8a37b3741aa876b17dfb38953d3ae7650bd067f6d16356d49610df7",
+        "02/DECISIONS.md": "76a12906cbb48036e0044765e3f6038ef725db9e5383770c25ca33fb642ab9e9",
+        "02/README.md": "52b1bc95e2622efb1d030b3c92df5c2bbf927b4e3f5fdc863d11788676724911",
+        "02/diag.kujo": "5251b1bea3f95aa2f44862bb6f30ec5c91dca21f8eebd48134cc359b1c1c82db",
+        "02/harness.go": "647082a1e825edf1750e0db29ca7b3f617621d5c1d1e517cbff1bfb6eb226f95",
+        "02/main.kujo": "82f503d0df3e462b7d005c4d1bbef69f569a39cf94446993135156b07e40110c",
+        "02/probe.go": "91c4cc0a31372f67cfac5a8774b71b75cd4e72193318d5a5c207cde7d4af4be8",
+        "03/DECISIONS.md": "506ffefe084f7ab2e1ba7c890628eb4eac63a642bf56ab3b652fa5e6999bf21c",
+        "03/package.json": "1f40e57ae621e46be20aa0026136a3a79b6757318d83dda7c2f64930b6e94146",
+        "03/store.cjs": "8f77272657575f0a2715fd1ecf9986cdae8666cc46eb6f08b2de0eb262ddcee9",
+        "03/test.cjs": "50294d802d135c4f369fe44565fce8a3392aaa9637bf1c340650adeffde08f33",
+        "04/DECISIONS.md": "38ee8359fc757f03793b18fd38f0bba102a9afff8a75f0342aa1ca4174de528b",
+        "04/fixtures/big_writer.cjs": "e6cb0635c96a2e656e664cb348f95e63a70c1672c4741cff967010b19fdcad60",
+        "04/fixtures/echo_args.cjs": "f3872ff1e9c25a1671c282d53d4da209379fc034556876df40561d845c9ebd2b",
+        "04/fixtures/idle.cjs": "a8cc3404da9cd96e562d3d1f92fbcb10a204baa5a9616190cca9f4fd1b759d90",
+        "04/fixtures/marker.cjs": "a719ba5a65909bcdd64614be623099b46bda68cb1408d6af9a7c14455652347c",
+        "04/fixtures/sigterm_resistant.cjs": "e475e81991f19b2d57b01361b31a620692c04d096d138662b3c045b03e9b2d9d",
+        "04/package.json": "24cec9150d4af9c880895daef10e5fc0a28361892083868a482d783551fdae6d",
+        "04/runner.cjs": "b118b6c62318694b6dcb67bdff192196d8cf9c0e475fb2d27f1e986687f80c88",
+        "04/runner.test.cjs": "086d3beee9a45588d7b09f7605fb8b3102a6f8b73ff33f92a73a31aef207a48b",
+        "05/DECISIONS.md": "1754e439a93010099913e81b831c3bffaa6142e2e0ceb4545cb8828e357bce59",
+        "05/README.md": "448464daba089a42c19843ff295efe67c1237e64e61f5785967c057db16fcd1f",
+        "05/counter.cjs": "317aec8a0cfc825c8c47c402746776fb54b117b47e6d29e9ce549c22cde233fa",
+        "05/counter.test.cjs": "164f06f03c633302bec662ae6e248ef9bf73c08545bbdfa1e80d55e130254982",
+        "05/package.json": "6408629f4bd743e49c322f077aed4688c7b612d9401a856895bc5d925fd42f14",
+        "06/DECISIONS.md": "9f88e3957da787f62e9ac9aea2acaf886825c643882dda15f102bc9c45a010f7",
+        "06/README.md": "38c9361d6267cd469254eedd9bdf06dbba031ad5df946fc34b687758b37b970d",
+        "06/cleanup.cjs": "d221555acea0f6b627f8046d4a49b131e1b3aea43b45d2bee3ab6eeb9fea28ce",
+        "06/fixtures/array_order.json": "0bc95f84324a11b33dced27f2bcb86f1daca7f718a99fe15ae9d6fce037d1ce9",
+        "06/fixtures/deep_mixed.json": "b956c6dc760977196ededa9a272bf28efa039fcf83e6df70835404f6eb8e5b48",
+        "06/fixtures/empty.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "06/fixtures/has_array_row.json": "cf1cbb66a638b4860a516671fb74850e6ccf787fe6c4c8d29e9c04efe880bd05",
+        "06/fixtures/has_null_row.json": "1d8fc6ceb1f94c6326d6d5483d258fcb2e179e9869325b245d105c2219bf69fd",
+        "06/fixtures/invalid.json": "ffb38b22ee3e0ca90325ebce953a9846990f292faf44c50498771602e31cb61f",
+        "06/fixtures/key_order.json": "82ca3a52beae053e8723a80192d93a1bf96fb352e517bcbe6183a801db27d173",
+        "06/fixtures/nested_array_order.json": "4274a3e2fa568f0fc493a6b17736184c9afd3b5ff38ae9a77bc452259a07856e",
+        "06/fixtures/nested_same.json": "dca84e1f810f7229c8ace5abc70af2d9d7872a41cfff6178e37c353eb45509ad",
+        "06/fixtures/not_array.json": "015abd7f5cc57a2dd94b7590f04ad8084273905ee33ec5cebeae62276a97f862",
+        "06/fixtures/not_objects.json": "49a64717d5d4cb19952e6eac2946415cf6879adacf9908e7d872332d32c6e684",
+        "06/fixtures/shared_id.json": "2351e36f5d51296a1c13bf91325c1d11498428cc70fbd91a237ddb0527f438ed",
+        "06/fixtures/triple.json": "cd9c7cf585b9b9691f32d720fa6ac71ba33983663f6d1633308076ef7e1026ad",
+        "06/fixtures/type_coercion.json": "58f1bff7f8de0376f8fec1bfcd54d0f2b0e39ac35cec7095dcbe306a4b1fb808",
+        "06/package.json": "c2e19990582ca350df3262c6d3f080af6d40b6290d6c295bd6f52cdfdc1f2e81",
+        "06/records.json": "2b1bfa0347172c1da2ac438ed3c6c1ad7656467ad20e8c6758eab56ac02398dc",
+        "06/test_cleanup.cjs": "edb8cf5c83cc6eba9fb8da9a9eec0a2ecb3f2a5b2ba897889fdc2527f1c9de4a"
+      },
+      "delivered_independent_checks": {
+        "checks": 33,
+        "passed": 33
+      }
+    },
+    {
+      "lane": "frontier",
+      "delivered_source_review_available": false,
+      "complete_six_task_delivery": false,
+      "runtime": "1701d46",
+      "summary": {
+        "total": 6,
+        "completed": 0,
+        "failed": 6,
+        "retry_count": 0,
+        "tool_calls_executed": 0,
+        "tool_input_repairs": 0,
+        "provider_rounds": 18,
+        "latency_ms_total": 86781,
+        "latency_samples": 6,
+        "token_use": {
+          "input_tokens": 95214,
+          "output_tokens": 1668,
+          "total_tokens": 96882
+        },
+        "transport_completion_rate": 0,
+        "task_completion_rate": null,
+        "repair_rate": 0,
+        "average_latency_ms": 14464
+      },
+      "tasks": [
+        {
+          "task": 1,
+          "panes": [
+            {
+              "lane_index": 0,
+              "model": "gpt-5.5",
+              "ok": false,
+              "error": "The model ended without a final answer after two continuations. Partial work is retained; inspect the saved execution before continuing.",
+              "attempts": 1,
+              "retry_count": 0,
+              "duration_ms": 21649,
+              "usage": {
+                "input_tokens": 15645,
+                "output_tokens": 271,
+                "total_tokens": 15916,
+                "cached_input_tokens": 0,
+                "cache_write_input_tokens": null,
+                "cache_details_reported": true
+              },
+              "usage_complete": true,
+              "execution_id": "6e63cea7-ff30-4f19-a214-6fe50e5a3dd0",
+              "execution_status": "interrupted",
+              "usage_source": "execution_journal",
+              "tool_calls_executed": 0,
+              "tool_input_repairs": 0,
+              "provider_rounds": 3,
+              "trace_id": null,
+              "finish_reason": null
+            }
+          ]
+        },
+        {
+          "task": 2,
+          "panes": [
+            {
+              "lane_index": 0,
+              "model": "gpt-5.5",
+              "ok": false,
+              "error": "The model ended without a final answer after two continuations. Partial work is retained; inspect the saved execution before continuing.",
+              "attempts": 1,
+              "retry_count": 0,
+              "duration_ms": 11776,
+              "usage": {
+                "input_tokens": 15915,
+                "output_tokens": 296,
+                "total_tokens": 16211,
+                "cached_input_tokens": 3584,
+                "cache_write_input_tokens": null,
+                "cache_details_reported": true
+              },
+              "usage_complete": true,
+              "execution_id": "50d90d7e-bb1d-49c1-bbd3-1050fc058a4c",
+              "execution_status": "interrupted",
+              "usage_source": "execution_journal",
+              "tool_calls_executed": 0,
+              "tool_input_repairs": 0,
+              "provider_rounds": 3,
+              "trace_id": null,
+              "finish_reason": null
+            }
+          ]
+        },
+        {
+          "task": 3,
+          "panes": [
+            {
+              "lane_index": 0,
+              "model": "gpt-5.5",
+              "ok": false,
+              "error": "The model ended without a final answer after two continuations. Partial work is retained; inspect the saved execution before continuing.",
+              "attempts": 1,
+              "retry_count": 0,
+              "duration_ms": 13284,
+              "usage": {
+                "input_tokens": 15906,
+                "output_tokens": 260,
+                "total_tokens": 16166,
+                "cached_input_tokens": 10752,
+                "cache_write_input_tokens": null,
+                "cache_details_reported": true
+              },
+              "usage_complete": true,
+              "execution_id": "9216ec2a-0aba-4fc9-9c02-ab1bc5a3059b",
+              "execution_status": "interrupted",
+              "usage_source": "execution_journal",
+              "tool_calls_executed": 0,
+              "tool_input_repairs": 0,
+              "provider_rounds": 3,
+              "trace_id": null,
+              "finish_reason": null
+            }
+          ]
+        },
+        {
+          "task": 4,
+          "panes": [
+            {
+              "lane_index": 0,
+              "model": "gpt-5.5",
+              "ok": false,
+              "error": "The model ended without a final answer after two continuations. Partial work is retained; inspect the saved execution before continuing.",
+              "attempts": 1,
+              "retry_count": 0,
+              "duration_ms": 12057,
+              "usage": {
+                "input_tokens": 15966,
+                "output_tokens": 261,
+                "total_tokens": 16227,
+                "cached_input_tokens": 10752,
+                "cache_write_input_tokens": null,
+                "cache_details_reported": true
+              },
+              "usage_complete": true,
+              "execution_id": "11b86197-8d53-4d59-92f4-e71a4e57bc10",
+              "execution_status": "interrupted",
+              "usage_source": "execution_journal",
+              "tool_calls_executed": 0,
+              "tool_input_repairs": 0,
+              "provider_rounds": 3,
+              "trace_id": null,
+              "finish_reason": null
+            }
+          ]
+        },
+        {
+          "task": 5,
+          "panes": [
+            {
+              "lane_index": 0,
+              "model": "gpt-5.5",
+              "ok": false,
+              "error": "The model ended without a final answer after two continuations. Partial work is retained; inspect the saved execution before continuing.",
+              "attempts": 1,
+              "retry_count": 0,
+              "duration_ms": 13590,
+              "usage": {
+                "input_tokens": 15828,
+                "output_tokens": 296,
+                "total_tokens": 16124,
+                "cached_input_tokens": 10752,
+                "cache_write_input_tokens": null,
+                "cache_details_reported": true
+              },
+              "usage_complete": true,
+              "execution_id": "1d4b6262-539e-4bbf-9ba8-f8093c785db2",
+              "execution_status": "interrupted",
+              "usage_source": "execution_journal",
+              "tool_calls_executed": 0,
+              "tool_input_repairs": 0,
+              "provider_rounds": 3,
+              "trace_id": null,
+              "finish_reason": null
+            }
+          ]
+        },
+        {
+          "task": 6,
+          "panes": [
+            {
+              "lane_index": 0,
+              "model": "gpt-5.5",
+              "ok": false,
+              "error": "The model ended without a final answer after two continuations. Partial work is retained; inspect the saved execution before continuing.",
+              "attempts": 1,
+              "retry_count": 0,
+              "duration_ms": 14425,
+              "usage": {
+                "input_tokens": 15954,
+                "output_tokens": 284,
+                "total_tokens": 16238,
+                "cached_input_tokens": 10752,
+                "cache_write_input_tokens": null,
+                "cache_details_reported": true
+              },
+              "usage_complete": true,
+              "execution_id": "4c0f4690-ad79-4dff-8096-10b547152040",
+              "execution_status": "interrupted",
+              "usage_source": "execution_journal",
+              "tool_calls_executed": 0,
+              "tool_input_repairs": 0,
+              "provider_rounds": 3,
+              "trace_id": null,
+              "finish_reason": null
+            }
+          ]
+        }
+      ],
+      "independent": {
+        "checks": 33,
+        "passed": 7,
+        "results": [
+          {
+            "task": 1,
+            "name": "defaults",
+            "passed": true
+          },
+          {
+            "task": 1,
+            "name": "explicit-values",
+            "passed": false,
+            "error": "AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:\n+ actual - expected\n\n  {\n+   enabled: true,\n+   label: 'default',\n+   retries: 3\n-   enabled: false,\n-   label: '',\n-   retries: 0\n  }\n\n    at runCase (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:29:38)\n    at Object.<anonymous> (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:107:32)\n    at Module._compile (node:internal/modules/cjs/loader:1730:14)\n    at Object..js (node:internal/modules/cjs/loader:1895:10)\n    at Module.load (node:internal/modules/cjs/loader:1465:32)\n    at Function._load (node:internal/modules/cjs/loader:1282:12)\n    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)\n    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)\n    at node:internal/main/run_main_module:36:49\n"
+          },
+          {
+            "task": 1,
+            "name": "isolation",
+            "passed": false,
+            "error": "AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:\n+ actual - expected\n\n  {\n    enabled: true,\n+   label: 'x',\n+   retries: 9\n-   label: 'default',\n-   retries: 3\n  }\n\n    at runCase (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:30:100)\n    at Object.<anonymous> (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:107:32)\n    at Module._compile (node:internal/modules/cjs/loader:1730:14)\n    at Object..js (node:internal/modules/cjs/loader:1895:10)\n    at Module.load (node:internal/modules/cjs/loader:1465:32)\n    at Function._load (node:internal/modules/cjs/loader:1282:12)\n    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)\n    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)\n    at node:internal/main/run_main_module:36:49\n"
+          },
+          {
+            "task": 1,
+            "name": "validation",
+            "passed": true
+          },
+          {
+            "task": 1,
+            "name": "consumer",
+            "passed": false,
+            "error": "AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:\n+ actual - expected\n\n  {\n+   enabled: true,\n+   label: 'default',\n+   retries: 3\n-   enabled: false,\n-   label: '',\n-   retries: 0\n  }\n\n    at good (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:24:95)\n    at runCase (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:32:24)\n    at Object.<anonymous> (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:107:32)\n    at Module._compile (node:internal/modules/cjs/loader:1730:14)\n    at Object..js (node:internal/modules/cjs/loader:1895:10)\n    at Module.load (node:internal/modules/cjs/loader:1465:32)\n    at Function._load (node:internal/modules/cjs/loader:1282:12)\n    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)\n    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)\n"
+          },
+          {
+            "task": 2,
+            "name": "legacy",
+            "passed": true
+          },
+          {
+            "task": 2,
+            "name": "sum",
+            "passed": false,
+            "error": "AssertionError [ERR_ASSERTION]: {\"error\":\"expected one JSON argument\"}\n\n\n1 !== 0\n\n    at good (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:24:35)\n    at runCase (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:37:19)\n    at Object.<anonymous> (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:107:32)\n    at Module._compile (node:internal/modules/cjs/loader:1730:14)\n    at Object..js (node:internal/modules/cjs/loader:1895:10)\n    at Module.load (node:internal/modules/cjs/loader:1465:32)\n    at Function._load (node:internal/modules/cjs/loader:1282:12)\n    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)\n    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)\n"
+          },
+          {
+            "task": 2,
+            "name": "boundaries",
+            "passed": false,
+            "error": "AssertionError [ERR_ASSERTION]: {\"error\":\"expected one JSON argument\"}\n\n\n1 !== 0\n\n    at good (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:24:35)\n    at runCase (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:38:28)\n    at Object.<anonymous> (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:107:32)\n    at Module._compile (node:internal/modules/cjs/loader:1730:14)\n    at Object..js (node:internal/modules/cjs/loader:1895:10)\n    at Module.load (node:internal/modules/cjs/loader:1465:32)\n    at Function._load (node:internal/modules/cjs/loader:1282:12)\n    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)\n    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)\n"
+          },
+          {
+            "task": 2,
+            "name": "invalid",
+            "passed": true
+          },
+          {
+            "task": 2,
+            "name": "arity",
+            "passed": true
+          },
+          {
+            "task": 2,
+            "name": "large",
+            "passed": false,
+            "error": "AssertionError [ERR_ASSERTION]: {\"error\":\"expected one JSON argument\"}\n\n\n1 !== 0\n\n    at good (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:24:35)\n    at runCase (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:41:21)\n    at Object.<anonymous> (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:107:32)\n    at Module._compile (node:internal/modules/cjs/loader:1730:14)\n    at Object..js (node:internal/modules/cjs/loader:1895:10)\n    at Module.load (node:internal/modules/cjs/loader:1465:32)\n    at Function._load (node:internal/modules/cjs/loader:1282:12)\n    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)\n    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)\n"
+          },
+          {
+            "task": 3,
+            "name": "replace",
+            "passed": false,
+            "error": "Error: Cannot find module '/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/data/engineering-judgment-20261005-v2/frontier/03/store.cjs'\nRequire stack:\n- /Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js\n    at Function._resolveFilename (node:internal/modules/cjs/loader:1401:15)\n    at defaultResolveImpl (node:internal/modules/cjs/loader:1057:19)\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1062:22)\n    at Function._load (node:internal/modules/cjs/loader:1211:37)\n    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)\n    at Module.require (node:internal/modules/cjs/loader:1487:12)\n    at require (node:internal/modules/helpers:135:16)\n    at load (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:19:19)\n    at runCase (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:44:16)\n"
+          },
+          {
+            "task": 3,
+            "name": "short-write",
+            "passed": false,
+            "error": "Error: Cannot find module '/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/data/engineering-judgment-20261005-v2/frontier/03/store.cjs'\nRequire stack:\n- /Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js\n    at Function._resolveFilename (node:internal/modules/cjs/loader:1401:15)\n    at defaultResolveImpl (node:internal/modules/cjs/loader:1057:19)\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1062:22)\n    at Function._load (node:internal/modules/cjs/loader:1211:37)\n    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)\n    at Module.require (node:internal/modules/cjs/loader:1487:12)\n    at require (node:internal/modules/helpers:135:16)\n    at load (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:19:19)\n    at runCase (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:44:16)\n"
+          },
+          {
+            "task": 3,
+            "name": "write-failure",
+            "passed": false,
+            "error": "Error: Cannot find module '/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/data/engineering-judgment-20261005-v2/frontier/03/store.cjs'\nRequire stack:\n- /Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js\n    at Function._resolveFilename (node:internal/modules/cjs/loader:1401:15)\n    at defaultResolveImpl (node:internal/modules/cjs/loader:1057:19)\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1062:22)\n    at Function._load (node:internal/modules/cjs/loader:1211:37)\n    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)\n    at Module.require (node:internal/modules/cjs/loader:1487:12)\n    at require (node:internal/modules/helpers:135:16)\n    at load (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:19:19)\n    at runCase (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:44:16)\n"
+          },
+          {
+            "task": 3,
+            "name": "rename-failure",
+            "passed": false,
+            "error": "Error: Cannot find module '/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/data/engineering-judgment-20261005-v2/frontier/03/store.cjs'\nRequire stack:\n- /Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js\n    at Function._resolveFilename (node:internal/modules/cjs/loader:1401:15)\n    at defaultResolveImpl (node:internal/modules/cjs/loader:1057:19)\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1062:22)\n    at Function._load (node:internal/modules/cjs/loader:1211:37)\n    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)\n    at Module.require (node:internal/modules/cjs/loader:1487:12)\n    at require (node:internal/modules/helpers:135:16)\n    at load (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:19:19)\n    at runCase (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:44:16)\n"
+          },
+          {
+            "task": 3,
+            "name": "collision",
+            "passed": false,
+            "error": "Error: Cannot find module '/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/data/engineering-judgment-20261005-v2/frontier/03/store.cjs'\nRequire stack:\n- /Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js\n    at Function._resolveFilename (node:internal/modules/cjs/loader:1401:15)\n    at defaultResolveImpl (node:internal/modules/cjs/loader:1057:19)\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1062:22)\n    at Function._load (node:internal/modules/cjs/loader:1211:37)\n    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)\n    at Module.require (node:internal/modules/cjs/loader:1487:12)\n    at require (node:internal/modules/helpers:135:16)\n    at load (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:19:19)\n    at runCase (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:44:16)\n"
+          },
+          {
+            "task": 3,
+            "name": "serialization",
+            "passed": false,
+            "error": "Error: Cannot find module '/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/data/engineering-judgment-20261005-v2/frontier/03/store.cjs'\nRequire stack:\n- /Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js\n    at Function._resolveFilename (node:internal/modules/cjs/loader:1401:15)\n    at defaultResolveImpl (node:internal/modules/cjs/loader:1057:19)\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1062:22)\n    at Function._load (node:internal/modules/cjs/loader:1211:37)\n    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)\n    at Module.require (node:internal/modules/cjs/loader:1487:12)\n    at require (node:internal/modules/helpers:135:16)\n    at load (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:19:19)\n    at runCase (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:44:16)\n"
+          },
+          {
+            "task": 4,
+            "name": "literal-argv",
+            "passed": false,
+            "error": "Error: Cannot find module '/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/data/engineering-judgment-20261005-v2/frontier/04/runner.cjs'\nRequire stack:\n- /Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js\n    at Function._resolveFilename (node:internal/modules/cjs/loader:1401:15)\n    at defaultResolveImpl (node:internal/modules/cjs/loader:1057:19)\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1062:22)\n    at Function._load (node:internal/modules/cjs/loader:1211:37)\n    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)\n    at Module.require (node:internal/modules/cjs/loader:1487:12)\n    at require (node:internal/modules/helpers:135:16)\n    at load (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:19:19)\n    at runCase (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:59:27)\n"
+          },
+          {
+            "task": 4,
+            "name": "nonzero",
+            "passed": false,
+            "error": "Error: Cannot find module '/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/data/engineering-judgment-20261005-v2/frontier/04/runner.cjs'\nRequire stack:\n- /Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js\n    at Function._resolveFilename (node:internal/modules/cjs/loader:1401:15)\n    at defaultResolveImpl (node:internal/modules/cjs/loader:1057:19)\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1062:22)\n    at Function._load (node:internal/modules/cjs/loader:1211:37)\n    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)\n    at Module.require (node:internal/modules/cjs/loader:1487:12)\n    at require (node:internal/modules/helpers:135:16)\n    at load (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:19:19)\n    at runCase (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:59:27)\n"
+          },
+          {
+            "task": 4,
+            "name": "spawn-error",
+            "passed": false,
+            "error": "Error: Cannot find module '/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/data/engineering-judgment-20261005-v2/frontier/04/runner.cjs'\nRequire stack:\n- /Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js\n    at Function._resolveFilename (node:internal/modules/cjs/loader:1401:15)\n    at defaultResolveImpl (node:internal/modules/cjs/loader:1057:19)\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1062:22)\n    at Function._load (node:internal/modules/cjs/loader:1211:37)\n    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)\n    at Module.require (node:internal/modules/cjs/loader:1487:12)\n    at require (node:internal/modules/helpers:135:16)\n    at load (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:19:19)\n    at runCase (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:59:27)\n"
+          },
+          {
+            "task": 4,
+            "name": "pre-abort",
+            "passed": false,
+            "error": "Error: Cannot find module '/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/data/engineering-judgment-20261005-v2/frontier/04/runner.cjs'\nRequire stack:\n- /Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js\n    at Function._resolveFilename (node:internal/modules/cjs/loader:1401:15)\n    at defaultResolveImpl (node:internal/modules/cjs/loader:1057:19)\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1062:22)\n    at Function._load (node:internal/modules/cjs/loader:1211:37)\n    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)\n    at Module.require (node:internal/modules/cjs/loader:1487:12)\n    at require (node:internal/modules/helpers:135:16)\n    at load (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:19:19)\n    at runCase (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:59:27)\n"
+          },
+          {
+            "task": 4,
+            "name": "abort-reap",
+            "passed": false,
+            "error": "Error: Cannot find module '/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/data/engineering-judgment-20261005-v2/frontier/04/runner.cjs'\nRequire stack:\n- /Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js\n    at Function._resolveFilename (node:internal/modules/cjs/loader:1401:15)\n    at defaultResolveImpl (node:internal/modules/cjs/loader:1057:19)\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1062:22)\n    at Function._load (node:internal/modules/cjs/loader:1211:37)\n    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)\n    at Module.require (node:internal/modules/cjs/loader:1487:12)\n    at require (node:internal/modules/helpers:135:16)\n    at load (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:19:19)\n    at runCase (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:59:27)\n"
+          },
+          {
+            "task": 4,
+            "name": "output-limit",
+            "passed": false,
+            "error": "Error: Cannot find module '/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/data/engineering-judgment-20261005-v2/frontier/04/runner.cjs'\nRequire stack:\n- /Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js\n    at Function._resolveFilename (node:internal/modules/cjs/loader:1401:15)\n    at defaultResolveImpl (node:internal/modules/cjs/loader:1057:19)\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1062:22)\n    at Function._load (node:internal/modules/cjs/loader:1211:37)\n    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)\n    at Module.require (node:internal/modules/cjs/loader:1487:12)\n    at require (node:internal/modules/helpers:135:16)\n    at load (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:19:19)\n    at runCase (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:59:27)\n"
+          },
+          {
+            "task": 4,
+            "name": "validation",
+            "passed": false,
+            "error": "Error: Cannot find module '/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/data/engineering-judgment-20261005-v2/frontier/04/runner.cjs'\nRequire stack:\n- /Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js\n    at Function._resolveFilename (node:internal/modules/cjs/loader:1401:15)\n    at defaultResolveImpl (node:internal/modules/cjs/loader:1057:19)\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1062:22)\n    at Function._load (node:internal/modules/cjs/loader:1211:37)\n    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)\n    at Module.require (node:internal/modules/cjs/loader:1487:12)\n    at require (node:internal/modules/helpers:135:16)\n    at load (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:19:19)\n    at runCase (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:59:27)\n"
+          },
+          {
+            "task": 5,
+            "name": "overlap",
+            "passed": false,
+            "error": "AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:\n+ actual - expected\n\n  [\n    1,\n+   2,\n    3,\n-   6\n  ]\n\n    at runCase (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:73:121)\n"
+          },
+          {
+            "task": 5,
+            "name": "failure-recovery",
+            "passed": true
+          },
+          {
+            "task": 5,
+            "name": "validation",
+            "passed": false,
+            "error": "AssertionError [ERR_ASSERTION]: Missing expected exception.\n    at runCase (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:75:34)\n    at Object.<anonymous> (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:107:32)\n    at Module._compile (node:internal/modules/cjs/loader:1730:14)\n    at Object..js (node:internal/modules/cjs/loader:1895:10)\n    at Module.load (node:internal/modules/cjs/loader:1465:32)\n    at Function._load (node:internal/modules/cjs/loader:1282:12)\n    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)\n    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)\n    at node:internal/main/run_main_module:36:49\n"
+          },
+          {
+            "task": 5,
+            "name": "publish-after-persist",
+            "passed": true
+          },
+          {
+            "task": 6,
+            "name": "preview",
+            "passed": false,
+            "error": "AssertionError [ERR_ASSERTION]: node:internal/modules/cjs/loader:1404\n  throw err;\n  ^\n\nError: Cannot find module '/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/data/engineering-judgment-20261005-v2/frontier/06/cleanup.cjs'\n    at Function._resolveFilename (node:internal/modules/cjs/loader:1401:15)\n    at defaultResolveImpl (node:internal/modules/cjs/loader:1057:19)\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1062:22)\n    at Function._load (node:internal/modules/cjs/loader:1211:37)\n    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)\n    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)\n    at node:internal/main/run_main_module:36:49 {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: []\n}\n\nNode.js v22.17.0\n\n\n1 !== 0\n\n    at preview (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:80:67)\n    at runCase (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:81:24)\n    at Object.<anonymous> (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineeri"
+          },
+          {
+            "task": 6,
+            "name": "nested-equality",
+            "passed": false,
+            "error": "AssertionError [ERR_ASSERTION]: node:internal/modules/cjs/loader:1404\n  throw err;\n  ^\n\nError: Cannot find module '/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/data/engineering-judgment-20261005-v2/frontier/06/cleanup.cjs'\n    at Function._resolveFilename (node:internal/modules/cjs/loader:1401:15)\n    at defaultResolveImpl (node:internal/modules/cjs/loader:1057:19)\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1062:22)\n    at Function._load (node:internal/modules/cjs/loader:1211:37)\n    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)\n    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)\n    at node:internal/main/run_main_module:36:49 {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: []\n}\n\nNode.js v22.17.0\n\n\n1 !== 0\n\n    at preview (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:80:67)\n    at runCase (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:82:31)\n    at Object.<anonymous> (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineeri"
+          },
+          {
+            "task": 6,
+            "name": "distinct",
+            "passed": false,
+            "error": "AssertionError [ERR_ASSERTION]: node:internal/modules/cjs/loader:1404\n  throw err;\n  ^\n\nError: Cannot find module '/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/data/engineering-judgment-20261005-v2/frontier/06/cleanup.cjs'\n    at Function._resolveFilename (node:internal/modules/cjs/loader:1401:15)\n    at defaultResolveImpl (node:internal/modules/cjs/loader:1057:19)\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1062:22)\n    at Function._load (node:internal/modules/cjs/loader:1211:37)\n    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)\n    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)\n    at node:internal/main/run_main_module:36:49 {\n  code: 'MODULE_NOT_FOUND',\n  requireStack: []\n}\n\nNode.js v22.17.0\n\n\n1 !== 0\n\n    at preview (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:80:67)\n    at runCase (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:83:24)\n    at Object.<anonymous> (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineeri"
+          },
+          {
+            "task": 6,
+            "name": "invalid",
+            "passed": false,
+            "error": "SyntaxError: Unexpected token 'o', \"node:intern\"... is not valid JSON\n    at JSON.parse (<anonymous>)\n    at bad (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:25:105)\n    at runCase (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:84:68)\n    at Object.<anonymous> (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:107:32)\n    at Module._compile (node:internal/modules/cjs/loader:1730:14)\n    at Object..js (node:internal/modules/cjs/loader:1895:10)\n    at Module.load (node:internal/modules/cjs/loader:1465:32)\n    at Function._load (node:internal/modules/cjs/loader:1282:12)\n    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)\n"
+          },
+          {
+            "task": 6,
+            "name": "arity",
+            "passed": false,
+            "error": "SyntaxError: Unexpected token 'o', \"node:intern\"... is not valid JSON\n    at JSON.parse (<anonymous>)\n    at bad (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:25:105)\n    at runCase (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:85:22)\n    at Object.<anonymous> (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:107:32)\n    at Module._compile (node:internal/modules/cjs/loader:1730:14)\n    at Object..js (node:internal/modules/cjs/loader:1895:10)\n    at Module.load (node:internal/modules/cjs/loader:1465:32)\n    at Function._load (node:internal/modules/cjs/loader:1282:12)\n    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)\n"
+          }
+        ]
+      },
+      "cleanup_number_edge": null,
+      "source_hashes": {
+        "01/README.md": "7e1f6e4c2236227de6662993ca037fcce2845acfbcff0a70cfa70fc751237b4a",
+        "01/config.cjs": "a859f86e0186bdc9a9ee3c2e0fcbb9eb8004a815cfd839027477ac9267679215",
+        "01/consumer.cjs": "632900266f4f37ff759d249eda5225b786f09baa3df9b54754ca823ae406e274",
+        "02/README.md": "52b1bc95e2622efb1d030b3c92df5c2bbf927b4e3f5fdc863d11788676724911",
+        "02/main.kujo": "9065c2db7aec6234f663bb6f53bcab5cd8fc3df70433543df8a88eedc05cacd2",
+        "05/README.md": "448464daba089a42c19843ff295efe67c1237e64e61f5785967c057db16fcd1f",
+        "05/counter.cjs": "56d23fc34f049f170097b4790287f1ae9934a29c6092476c4c56c6db161aaad1",
+        "06/README.md": "38c9361d6267cd469254eedd9bdf06dbba031ad5df946fc34b687758b37b970d",
+        "06/records.json": "2b1bfa0347172c1da2ac438ed3c6c1ad7656467ad20e8c6758eab56ac02398dc"
+      },
+      "delivered_independent_checks": {
+        "checks": 0,
+        "passed": 0
+      }
+    },
+    {
+      "lane": "followup",
+      "delivered_source_review_available": true,
+      "complete_six_task_delivery": false,
+      "runtime": "83e70ed",
+      "summary": {
+        "total": 1,
+        "completed": 1,
+        "failed": 0,
+        "retry_count": 0,
+        "tool_calls_executed": 33,
+        "tool_input_repairs": 0,
+        "provider_rounds": 17,
+        "latency_ms_total": 218828,
+        "latency_samples": 1,
+        "token_use": {
+          "input_tokens": 348292,
+          "output_tokens": 35109,
+          "total_tokens": 383401
+        },
+        "transport_completion_rate": 1,
+        "task_completion_rate": null,
+        "repair_rate": 0,
+        "average_latency_ms": 218828
+      },
+      "tasks": [
+        {
+          "task": 6,
+          "panes": [
+            {
+              "lane_index": 0,
+              "model": "glm-5.3-flash:cloud",
+              "ok": true,
+              "error": null,
+              "attempts": 1,
+              "retry_count": 0,
+              "duration_ms": 218828,
+              "usage": {
+                "input_tokens": 348292,
+                "output_tokens": 35109,
+                "total_tokens": 383401,
+                "cached_input_tokens": 194560,
+                "cache_write_input_tokens": null,
+                "cache_details_reported": true
+              },
+              "usage_complete": true,
+              "execution_id": "ed6be95e-1b65-4ee5-8737-6b60625c835e",
+              "execution_status": null,
+              "usage_source": "stream",
+              "tool_calls_executed": 33,
+              "tool_input_repairs": 0,
+              "provider_rounds": 17,
+              "trace_id": "6807db62-4505-4d92-81de-be91015d8074",
+              "finish_reason": "stop"
+            }
+          ]
+        }
+      ],
+      "independent": {
+        "checks": 5,
+        "passed": 5,
+        "results": [
+          {
+            "task": 6,
+            "name": "preview",
+            "passed": true
+          },
+          {
+            "task": 6,
+            "name": "nested-equality",
+            "passed": true
+          },
+          {
+            "task": 6,
+            "name": "distinct",
+            "passed": true
+          },
+          {
+            "task": 6,
+            "name": "invalid",
+            "passed": true
+          },
+          {
+            "task": 6,
+            "name": "arity",
+            "passed": true
+          }
+        ]
+      },
+      "cleanup_number_edge": {
+        "input": "[{\"n\":1e400},{\"n\":null}]",
+        "expected": {
+          "duplicates": []
+        },
+        "status": 0,
+        "stdout": "{\"duplicates\":[]}\n",
+        "stderr": "",
+        "passed": true
+      },
+      "source_hashes": {
+        "01/README.md": "7e1f6e4c2236227de6662993ca037fcce2845acfbcff0a70cfa70fc751237b4a",
+        "01/config.cjs": "a859f86e0186bdc9a9ee3c2e0fcbb9eb8004a815cfd839027477ac9267679215",
+        "01/consumer.cjs": "632900266f4f37ff759d249eda5225b786f09baa3df9b54754ca823ae406e274",
+        "02/README.md": "52b1bc95e2622efb1d030b3c92df5c2bbf927b4e3f5fdc863d11788676724911",
+        "02/main.kujo": "9065c2db7aec6234f663bb6f53bcab5cd8fc3df70433543df8a88eedc05cacd2",
+        "05/README.md": "448464daba089a42c19843ff295efe67c1237e64e61f5785967c057db16fcd1f",
+        "05/counter.cjs": "56d23fc34f049f170097b4790287f1ae9934a29c6092476c4c56c6db161aaad1",
+        "06/DECISIONS.md": "6300ea22ce2f67955b144413005789163a74f0b2f1feb56e5ff47782e8bef2fc",
+        "06/README.md": "38c9361d6267cd469254eedd9bdf06dbba031ad5df946fc34b687758b37b970d",
+        "06/cleanup.cjs": "a6c16cfbab2e24407198a16af78224c1cb74fcef6130adb8cdec9cffc6a8b834",
+        "06/fixtures/arrayelement.json": "a4e47e24e4d9ac3d17ffd75a80bf200f45cce816f64efa04e6134fafe0f7542e",
+        "06/fixtures/badjson.json": "44045778a2a5b53e3f36ae929546535b0be3bb856ac98bd287cf7ffab751f807",
+        "06/fixtures/basic.json": "2b1bfa0347172c1da2ac438ed3c6c1ad7656467ad20e8c6758eab56ac02398dc",
+        "06/fixtures/element.json": "be947e655058258fd543f75512548b5b91aa5839baac3961edaf41666329c489",
+        "06/fixtures/empty.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "06/fixtures/idshare.json": "2351e36f5d51296a1c13bf91325c1d11498428cc70fbd91a237ddb0527f438ed",
+        "06/fixtures/keepfirst.json": "c649d01056d9a6e8a396912dbf2437dc19e712227e81fa30274e4cda56f24c85",
+        "06/fixtures/nested.json": "6262e539479f9a353dab1d9c9d9e2511bb74f70bccd12a35db22fb9527288f7b",
+        "06/fixtures/nonarray.json": "18be726f40bc9f65bd58201f4619819f3bbaa46c9b61d74205961074c78f2fca",
+        "06/fixtures/numbers.json": "64e3998504604c4ca781bde6c57f9898fa456f609f1eb40e6202d54c371b01cf",
+        "06/fixtures/single.json": "87ebf9c78f5b86a3f49a5dbf96cebb8ee1a851ebedb88fdaaf4adec2e107f8d1",
+        "06/package.json": "f20984a2715af12f3688d3a5e20b93e96bce69b8168034c708849de64d2eca95",
+        "06/records.json": "2b1bfa0347172c1da2ac438ed3c6c1ad7656467ad20e8c6758eab56ac02398dc",
+        "06/test.cjs": "76381f28ce51cad413df1238281003a29aca07c0514044b7111aaf5860707b7a"
+      },
+      "delivered_independent_checks": {
+        "checks": 5,
+        "passed": 5
+      }
+    },
+    {
+      "lane": "frontier-fixed",
+      "delivered_source_review_available": true,
+      "complete_six_task_delivery": false,
+      "runtime": "83e70ed",
+      "summary": {
+        "total": 6,
+        "completed": 4,
+        "failed": 2,
+        "retry_count": 0,
+        "tool_calls_executed": 83,
+        "tool_input_repairs": 25,
+        "provider_rounds": 69,
+        "latency_ms_total": 677675,
+        "latency_samples": 6,
+        "token_use": {
+          "input_tokens": 600635,
+          "output_tokens": 25780,
+          "total_tokens": 626415
+        },
+        "transport_completion_rate": 0.6667,
+        "task_completion_rate": null,
+        "repair_rate": 0.3012,
+        "average_latency_ms": 112946
+      },
+      "tasks": [
+        {
+          "task": 1,
+          "panes": [
+            {
+              "lane_index": 0,
+              "model": "gpt-5.5",
+              "ok": true,
+              "error": null,
+              "attempts": 1,
+              "retry_count": 0,
+              "duration_ms": 144613,
+              "usage": {
+                "input_tokens": 137529,
+                "output_tokens": 5003,
+                "total_tokens": 142532,
+                "cached_input_tokens": 57856,
+                "cache_write_input_tokens": null,
+                "cache_details_reported": true
+              },
+              "usage_complete": true,
+              "execution_id": "70bd350f-3cf3-4c7a-9b11-0af20d3f0643",
+              "execution_status": null,
+              "usage_source": "stream",
+              "tool_calls_executed": 24,
+              "tool_input_repairs": 10,
+              "provider_rounds": 17,
+              "trace_id": "53801695-59c8-4e9e-bbb1-cac5daf1c3b0",
+              "finish_reason": "stop"
+            }
+          ]
+        },
+        {
+          "task": 2,
+          "panes": [
+            {
+              "lane_index": 0,
+              "model": "gpt-5.5",
+              "ok": true,
+              "error": null,
+              "attempts": 1,
+              "retry_count": 0,
+              "duration_ms": 174678,
+              "usage": {
+                "input_tokens": 187941,
+                "output_tokens": 6659,
+                "total_tokens": 194600,
+                "cached_input_tokens": 87552,
+                "cache_write_input_tokens": null,
+                "cache_details_reported": true
+              },
+              "usage_complete": true,
+              "execution_id": "2d6d26ce-5431-4152-927d-bc844f3f8462",
+              "execution_status": null,
+              "usage_source": "stream",
+              "tool_calls_executed": 20,
+              "tool_input_repairs": 5,
+              "provider_rounds": 19,
+              "trace_id": "83e232a1-1d86-4199-a5c6-b4a6f6bf1018",
+              "finish_reason": "stop"
+            }
+          ]
+        },
+        {
+          "task": 3,
+          "panes": [
+            {
+              "lane_index": 0,
+              "model": "gpt-5.5",
+              "ok": true,
+              "error": null,
+              "attempts": 1,
+              "retry_count": 0,
+              "duration_ms": 194759,
+              "usage": {
+                "input_tokens": 147766,
+                "output_tokens": 8413,
+                "total_tokens": 156179,
+                "cached_input_tokens": 51968,
+                "cache_write_input_tokens": null,
+                "cache_details_reported": true
+              },
+              "usage_complete": true,
+              "execution_id": "6fef1148-7a71-4e55-a43a-994190f2533c",
+              "execution_status": null,
+              "usage_source": "stream",
+              "tool_calls_executed": 16,
+              "tool_input_repairs": 0,
+              "provider_rounds": 16,
+              "trace_id": "052a54e0-1b45-494d-8aac-a06420e5af56",
+              "finish_reason": "stop"
+            }
+          ]
+        },
+        {
+          "task": 4,
+          "panes": [
+            {
+              "lane_index": 0,
+              "model": "gpt-5.5",
+              "ok": false,
+              "error": "ChatGPT request failed. Partial output was preserved.",
+              "attempts": 1,
+              "retry_count": 0,
+              "duration_ms": 11084,
+              "usage": null,
+              "usage_complete": false,
+              "execution_id": "a5c6bfff-8fcc-468f-9f84-14b38dc71b0b",
+              "execution_status": "interrupted",
+              "usage_source": "execution_journal",
+              "tool_calls_executed": 0,
+              "tool_input_repairs": 0,
+              "provider_rounds": 1,
+              "trace_id": null,
+              "finish_reason": null
+            }
+          ]
+        },
+        {
+          "task": 5,
+          "panes": [
+            {
+              "lane_index": 0,
+              "model": "gpt-5.5",
+              "ok": false,
+              "error": "ChatGPT request failed. Partial output was preserved.",
+              "attempts": 1,
+              "retry_count": 0,
+              "duration_ms": 10751,
+              "usage": null,
+              "usage_complete": false,
+              "execution_id": "d3b62dfa-9b75-4b86-913d-fde2fd535563",
+              "execution_status": "interrupted",
+              "usage_source": "execution_journal",
+              "tool_calls_executed": 0,
+              "tool_input_repairs": 0,
+              "provider_rounds": 1,
+              "trace_id": null,
+              "finish_reason": null
+            }
+          ]
+        },
+        {
+          "task": 6,
+          "panes": [
+            {
+              "lane_index": 0,
+              "model": "gpt-5.5",
+              "ok": true,
+              "error": null,
+              "attempts": 1,
+              "retry_count": 0,
+              "duration_ms": 141790,
+              "usage": {
+                "input_tokens": 127399,
+                "output_tokens": 5705,
+                "total_tokens": 133104,
+                "cached_input_tokens": 40960,
+                "cache_write_input_tokens": null,
+                "cache_details_reported": true
+              },
+              "usage_complete": true,
+              "execution_id": "f0ef629a-249d-4eb2-90cc-08bfbc32db36",
+              "execution_status": null,
+              "usage_source": "stream",
+              "tool_calls_executed": 23,
+              "tool_input_repairs": 10,
+              "provider_rounds": 15,
+              "trace_id": "abfda25a-1cf3-4b0c-a13b-c20dda54d755",
+              "finish_reason": "stop"
+            }
+          ]
+        }
+      ],
+      "independent": {
+        "checks": 33,
+        "passed": 24,
+        "results": [
+          {
+            "task": 1,
+            "name": "defaults",
+            "passed": true
+          },
+          {
+            "task": 1,
+            "name": "explicit-values",
+            "passed": true
+          },
+          {
+            "task": 1,
+            "name": "isolation",
+            "passed": true
+          },
+          {
+            "task": 1,
+            "name": "validation",
+            "passed": true
+          },
+          {
+            "task": 1,
+            "name": "consumer",
+            "passed": true
+          },
+          {
+            "task": 2,
+            "name": "legacy",
+            "passed": true
+          },
+          {
+            "task": 2,
+            "name": "sum",
+            "passed": true
+          },
+          {
+            "task": 2,
+            "name": "boundaries",
+            "passed": true
+          },
+          {
+            "task": 2,
+            "name": "invalid",
+            "passed": true
+          },
+          {
+            "task": 2,
+            "name": "arity",
+            "passed": true
+          },
+          {
+            "task": 2,
+            "name": "large",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "replace",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "short-write",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "write-failure",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "rename-failure",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "collision",
+            "passed": true
+          },
+          {
+            "task": 3,
+            "name": "serialization",
+            "passed": true
+          },
+          {
+            "task": 4,
+            "name": "literal-argv",
+            "passed": false,
+            "error": "Error: Cannot find module '/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/data/engineering-judgment-20261005-v2/frontier-fixed/04/runner.cjs'\nRequire stack:\n- /Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js\n    at Function._resolveFilename (node:internal/modules/cjs/loader:1401:15)\n    at defaultResolveImpl (node:internal/modules/cjs/loader:1057:19)\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1062:22)\n    at Function._load (node:internal/modules/cjs/loader:1211:37)\n    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)\n    at Module.require (node:internal/modules/cjs/loader:1487:12)\n    at require (node:internal/modules/helpers:135:16)\n    at load (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:19:19)\n    at runCase (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:59:27)\n"
+          },
+          {
+            "task": 4,
+            "name": "nonzero",
+            "passed": false,
+            "error": "Error: Cannot find module '/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/data/engineering-judgment-20261005-v2/frontier-fixed/04/runner.cjs'\nRequire stack:\n- /Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js\n    at Function._resolveFilename (node:internal/modules/cjs/loader:1401:15)\n    at defaultResolveImpl (node:internal/modules/cjs/loader:1057:19)\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1062:22)\n    at Function._load (node:internal/modules/cjs/loader:1211:37)\n    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)\n    at Module.require (node:internal/modules/cjs/loader:1487:12)\n    at require (node:internal/modules/helpers:135:16)\n    at load (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:19:19)\n    at runCase (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:59:27)\n"
+          },
+          {
+            "task": 4,
+            "name": "spawn-error",
+            "passed": false,
+            "error": "Error: Cannot find module '/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/data/engineering-judgment-20261005-v2/frontier-fixed/04/runner.cjs'\nRequire stack:\n- /Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js\n    at Function._resolveFilename (node:internal/modules/cjs/loader:1401:15)\n    at defaultResolveImpl (node:internal/modules/cjs/loader:1057:19)\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1062:22)\n    at Function._load (node:internal/modules/cjs/loader:1211:37)\n    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)\n    at Module.require (node:internal/modules/cjs/loader:1487:12)\n    at require (node:internal/modules/helpers:135:16)\n    at load (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:19:19)\n    at runCase (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:59:27)\n"
+          },
+          {
+            "task": 4,
+            "name": "pre-abort",
+            "passed": false,
+            "error": "Error: Cannot find module '/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/data/engineering-judgment-20261005-v2/frontier-fixed/04/runner.cjs'\nRequire stack:\n- /Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js\n    at Function._resolveFilename (node:internal/modules/cjs/loader:1401:15)\n    at defaultResolveImpl (node:internal/modules/cjs/loader:1057:19)\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1062:22)\n    at Function._load (node:internal/modules/cjs/loader:1211:37)\n    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)\n    at Module.require (node:internal/modules/cjs/loader:1487:12)\n    at require (node:internal/modules/helpers:135:16)\n    at load (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:19:19)\n    at runCase (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:59:27)\n"
+          },
+          {
+            "task": 4,
+            "name": "abort-reap",
+            "passed": false,
+            "error": "Error: Cannot find module '/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/data/engineering-judgment-20261005-v2/frontier-fixed/04/runner.cjs'\nRequire stack:\n- /Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js\n    at Function._resolveFilename (node:internal/modules/cjs/loader:1401:15)\n    at defaultResolveImpl (node:internal/modules/cjs/loader:1057:19)\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1062:22)\n    at Function._load (node:internal/modules/cjs/loader:1211:37)\n    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)\n    at Module.require (node:internal/modules/cjs/loader:1487:12)\n    at require (node:internal/modules/helpers:135:16)\n    at load (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:19:19)\n    at runCase (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:59:27)\n"
+          },
+          {
+            "task": 4,
+            "name": "output-limit",
+            "passed": false,
+            "error": "Error: Cannot find module '/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/data/engineering-judgment-20261005-v2/frontier-fixed/04/runner.cjs'\nRequire stack:\n- /Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js\n    at Function._resolveFilename (node:internal/modules/cjs/loader:1401:15)\n    at defaultResolveImpl (node:internal/modules/cjs/loader:1057:19)\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1062:22)\n    at Function._load (node:internal/modules/cjs/loader:1211:37)\n    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)\n    at Module.require (node:internal/modules/cjs/loader:1487:12)\n    at require (node:internal/modules/helpers:135:16)\n    at load (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:19:19)\n    at runCase (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:59:27)\n"
+          },
+          {
+            "task": 4,
+            "name": "validation",
+            "passed": false,
+            "error": "Error: Cannot find module '/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/data/engineering-judgment-20261005-v2/frontier-fixed/04/runner.cjs'\nRequire stack:\n- /Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js\n    at Function._resolveFilename (node:internal/modules/cjs/loader:1401:15)\n    at defaultResolveImpl (node:internal/modules/cjs/loader:1057:19)\n    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1062:22)\n    at Function._load (node:internal/modules/cjs/loader:1211:37)\n    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)\n    at Module.require (node:internal/modules/cjs/loader:1487:12)\n    at require (node:internal/modules/helpers:135:16)\n    at load (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:19:19)\n    at runCase (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:59:27)\n"
+          },
+          {
+            "task": 5,
+            "name": "overlap",
+            "passed": false,
+            "error": "AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:\n+ actual - expected\n\n  [\n    1,\n+   2,\n    3,\n-   6\n  ]\n\n    at runCase (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:73:121)\n"
+          },
+          {
+            "task": 5,
+            "name": "failure-recovery",
+            "passed": true
+          },
+          {
+            "task": 5,
+            "name": "validation",
+            "passed": false,
+            "error": "AssertionError [ERR_ASSERTION]: Missing expected exception.\n    at runCase (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:75:34)\n    at Object.<anonymous> (/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/scripts/verify-engineering-evaluation.js:107:32)\n    at Module._compile (node:internal/modules/cjs/loader:1730:14)\n    at Object..js (node:internal/modules/cjs/loader:1895:10)\n    at Module.load (node:internal/modules/cjs/loader:1465:32)\n    at Function._load (node:internal/modules/cjs/loader:1282:12)\n    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)\n    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)\n    at node:internal/main/run_main_module:36:49\n"
+          },
+          {
+            "task": 5,
+            "name": "publish-after-persist",
+            "passed": true
+          },
+          {
+            "task": 6,
+            "name": "preview",
+            "passed": true
+          },
+          {
+            "task": 6,
+            "name": "nested-equality",
+            "passed": true
+          },
+          {
+            "task": 6,
+            "name": "distinct",
+            "passed": true
+          },
+          {
+            "task": 6,
+            "name": "invalid",
+            "passed": true
+          },
+          {
+            "task": 6,
+            "name": "arity",
+            "passed": true
+          }
+        ]
+      },
+      "supplemental": {
+        "completed": true,
+        "serialization": {
+          "passed": true,
+          "original_error": true,
+          "touched": false
+        },
+        "close_failure": {
+          "passed": true,
+          "original_error": true,
+          "closed": true,
+          "close_attempts": 2,
+          "unchanged": true,
+          "clean": true
+        }
+      },
+      "cleanup_number_edge": {
+        "input": "[{\"n\":1e400},{\"n\":null}]",
+        "expected": {
+          "duplicates": []
+        },
+        "status": 0,
+        "stdout": "{\"duplicates\":[1]}\n",
+        "stderr": "",
+        "passed": false
+      },
+      "source_hashes": {
+        "01/DECISIONS.md": "90c62b109c42ba8edd9e1fb7cc1094231a693d41b9cb7dc8b573d039018fe54b",
+        "01/README.md": "7e1f6e4c2236227de6662993ca037fcce2845acfbcff0a70cfa70fc751237b4a",
+        "01/config.cjs": "6b8aab975b4015e945289244e63f5f03df036eff5fb0e3b878b0d2af4f3ecffa",
+        "01/consumer.cjs": "632900266f4f37ff759d249eda5225b786f09baa3df9b54754ca823ae406e274",
+        "01/test_config.cjs": "dca00d1a4ae578b08960c13ac82661950ac458ac2f5bf4e3c7dfa495838b7e15",
+        "02/README.md": "52b1bc95e2622efb1d030b3c92df5c2bbf927b4e3f5fdc863d11788676724911",
+        "02/cli_tests.py": "a15760f6b06340dde420c774ca76fb7e83ac64db7d3cfcaba9de6eddcbe74ad2",
+        "02/main.kujo": "d917897ecc6abeedf24b06442111594ab4ab2b3fe3411cdda8724517f6045e4a",
+        "03/DECISIONS.md": "19eb13127f0cd15abb55e3f3e1627d79b29d1dfafcc8a9e9f566052a0df261f1",
+        "03/store.cjs": "f62e2a61c8f92a66193cdb4f3b48718bfa5d492652c435430a6398a7967feeb1",
+        "03/store.test.cjs": "d03a5a793a70b5f60fca9386e7182c525415036716fa778d5c763ee54fcd096f",
+        "05/README.md": "448464daba089a42c19843ff295efe67c1237e64e61f5785967c057db16fcd1f",
+        "05/counter.cjs": "56d23fc34f049f170097b4790287f1ae9934a29c6092476c4c56c6db161aaad1",
+        "06/DECISIONS.md": "0352937e4398ee79376394e710bc860fcf5e7cb10ee98faa92b1026a1d6fdd25",
+        "06/README.md": "38c9361d6267cd469254eedd9bdf06dbba031ad5df946fc34b687758b37b970d",
+        "06/cleanup.cjs": "d081c7a1bced5bde59d5e965c51409db851bab3e3db390ae16718911389d4ee4",
+        "06/records.json": "2b1bfa0347172c1da2ac438ed3c6c1ad7656467ad20e8c6758eab56ac02398dc",
+        "06/test_cleanup.cjs": "be9d6b90915c4cb8a512a6ab68035ae6e61cbc7b00feed8cb08f56998b8e9aab",
+        "06/test_fixtures/array-row.json": "a9ffe917643e1055f4d18c269a2d0097b085223e9b305d551794ad6c4f2e9eb5",
+        "06/test_fixtures/duplicates.json": "c06ccb18b3af577bf2d7f9012b068718be6e09bbafcfcafc51c168da0887d482",
+        "06/test_fixtures/invalid-json.json": "021fb596db81e6d02bf3d2586ee3981fe519f275c0ac9ca76bbcf2ebb4097d96",
+        "06/test_fixtures/non-object-row.json": "2fe29841fb5a07ae7751584e8b26685afa125be5c319eeecfd9a3ef63a53b8db",
+        "06/test_fixtures/not-array.json": "8489a5deb454a360345c7868bca8672de92b446caf3d3b014af6a56e3d549d30"
+      },
+      "delivered_independent_checks": {
+        "checks": 22,
+        "passed": 22
+      }
+    }
+  ],
+  "verification": {
+    "tests": 688,
+    "passed": 687,
+    "skipped": 1,
+    "failed": 0,
+    "smoke": "pass",
+    "profile_preservation": "7 profiles byte-equivalent to pre-run snapshot"
+  }
+}
