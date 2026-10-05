@@ -31,6 +31,10 @@ and deployment path; this repository does not have one. Retrieval comes first.
 
 ## Evidence and diagnosis
 
+`local_kujo run/benchmark` inserts the CLI `--` separator. Supply only literal
+script arguments (`args: ["[]"]` for one JSON array), not an additional separator.
+Explicit `--` arguments are preserved, never silently removed.
+
 `local_kujo` accepts optional `verification_paths` (at most 16 unique paths relative
 to cwd). List known imports and test/config inputs. The existing workspace and
 sensitive-file restrictions apply. The tool hashes the entry file and declared
