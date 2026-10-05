@@ -125,3 +125,23 @@ a new source-quality defect, run one fresh three-task repeat of that exact
 configuration. Otherwise stop this experiment and retain the existing defaults;
 do not search indefinitely for a flattering rerun. Even two successful rounds
 qualify only this narrow workload, not broad model reliability or frontier parity.
+
+## Observed read-isolation deviation
+
+A receipt audit after the original four arms found Batch merge ran `rg -n keys`
+over AI Chat's entire `docs` directory. Its output included one descriptive line
+from the historical interval-quality report and one historical benchmark JSON
+fixture path. It did not expose a source implementation of these matched tasks,
+but it violated the intended restriction against prior benchmark information.
+Keep Batch's outcome/cost/artifact checks visible with this caveat; do not present
+it as a clean causal control. Hash integrity checks remained satisfied and do not
+prove read isolation. The allocation arm was already underway when this was found;
+its comparison with Batch is consequently descriptive. Promotion must rely on its
+own independent outcomes and a clean observed confirmation, not that control alone.
+
+Generation wall time was not measured on an otherwise idle host: local regression
+suites ran during parts of model generation. Consequently response-time differences
+are descriptive and can reflect host load as well as provider load and stochastic
+work. Independent generated-program scaling measurements ran sequentially after
+model tasks, outside those full-suite runs. No wall-time percentage is claimed as
+an isolated harness optimization.

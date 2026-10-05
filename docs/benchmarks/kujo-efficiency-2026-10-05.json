@@ -1,0 +1,6151 @@
+{
+  "date": "2026-10-05",
+  "scope": "Exploratory matched three-task Kujo CLI comparison. Source hashes captured during reporting. No frontier control. Reported tokens may exclude unfinished provider rounds.",
+  "configurations": [
+    {
+      "lane": "baseline-v2",
+      "finished": "2026-10-05T16:07:22.562Z",
+      "summary": {
+        "total": 3,
+        "completed": 2,
+        "failed": 1,
+        "retry_count": 0,
+        "tool_calls_executed": 227,
+        "tool_input_repairs": 10,
+        "provider_rounds": 118,
+        "latency_ms_total": 2253608,
+        "latency_samples": 3,
+        "token_use": {
+          "input_tokens": 5902632,
+          "output_tokens": 232622,
+          "total_tokens": 6135254
+        },
+        "transport_completion_rate": 0.6667,
+        "task_completion_rate": null,
+        "repair_rate": 0.0441,
+        "average_latency_ms": 751203
+      },
+      "acceptance_integrity": "unchanged_after_generation",
+      "rows": [
+        {
+          "task": "runs",
+          "delivered": false,
+          "error": "Stream timed out after 900000ms.",
+          "execution_id": "2cd32147-d475-42fc-820e-63acdf990c9d",
+          "execution_status": "cancelled",
+          "duration_ms": 900124,
+          "usage": {
+            "input_tokens": 2212463,
+            "output_tokens": 92744,
+            "total_tokens": 2305207,
+            "cached_input_tokens": 1783040,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": true
+          },
+          "usage_complete": false,
+          "model_tool_calls": 71,
+          "provider_rounds": 39,
+          "receipt_counts": {
+            "local_workspace_list": 1,
+            "local_kujo:guide": 9,
+            "documentation_query": 4,
+            "local_file_write": 10,
+            "local_kujo:run": 25,
+            "local_file_read": 9,
+            "local_kujo:check": 1,
+            "local_kujo:test": 1,
+            "local_shell": 2,
+            "tool_result_read": 9
+          },
+          "review": {
+            "outcome": "pending",
+            "reviews": 2,
+            "repairs": 1,
+            "deterministic_repairs": 0
+          },
+          "main_sha256": "1b35f2c50d8b98c8566ecdaf67ad2119dd2b214b4923c12f63b3c4c929b4ba55",
+          "independent": {
+            "task": "runs",
+            "checks": 35,
+            "passed": 35,
+            "results": [
+              {
+                "case": 1,
+                "passed": true
+              },
+              {
+                "case": 2,
+                "passed": true
+              },
+              {
+                "case": 3,
+                "passed": true
+              },
+              {
+                "case": 4,
+                "passed": true
+              },
+              {
+                "case": 5,
+                "passed": true
+              },
+              {
+                "case": 6,
+                "passed": true
+              },
+              {
+                "case": 7,
+                "passed": true
+              },
+              {
+                "case": 8,
+                "passed": true
+              },
+              {
+                "case": 9,
+                "passed": true
+              },
+              {
+                "case": 10,
+                "passed": true
+              },
+              {
+                "case": 11,
+                "passed": true
+              },
+              {
+                "case": 12,
+                "passed": true
+              },
+              {
+                "case": 13,
+                "passed": true
+              },
+              {
+                "case": 14,
+                "passed": true
+              },
+              {
+                "case": 15,
+                "passed": true
+              },
+              {
+                "case": 16,
+                "passed": true
+              },
+              {
+                "case": 17,
+                "passed": true
+              },
+              {
+                "case": 18,
+                "passed": true
+              },
+              {
+                "case": 19,
+                "passed": true
+              },
+              {
+                "case": 20,
+                "passed": true
+              },
+              {
+                "case": 21,
+                "passed": true
+              },
+              {
+                "case": 22,
+                "passed": true
+              },
+              {
+                "case": 23,
+                "passed": true
+              },
+              {
+                "case": 24,
+                "passed": true
+              },
+              {
+                "case": 25,
+                "passed": true
+              },
+              {
+                "case": 26,
+                "passed": true
+              },
+              {
+                "case": 27,
+                "passed": true
+              },
+              {
+                "case": 28,
+                "passed": true
+              },
+              {
+                "case": 29,
+                "passed": true
+              },
+              {
+                "case": 30,
+                "passed": true
+              },
+              {
+                "case": 31,
+                "passed": true
+              },
+              {
+                "case": 32,
+                "passed": true
+              },
+              {
+                "case": 33,
+                "passed": true
+              },
+              {
+                "case": 34,
+                "passed": true
+              },
+              {
+                "case": 35,
+                "passed": true
+              }
+            ],
+            "scaling": {
+              "levels": [
+                {
+                  "n": 200,
+                  "trials": [
+                    {
+                      "ms": 42.304104999999936,
+                      "passed": true
+                    },
+                    {
+                      "ms": 45.35608400000001,
+                      "passed": true
+                    },
+                    {
+                      "ms": 42.00316699999996,
+                      "passed": true
+                    }
+                  ],
+                  "median_ms": 42.304104999999936
+                },
+                {
+                  "n": 800,
+                  "trials": [
+                    {
+                      "ms": 179.25919999999985,
+                      "passed": true
+                    },
+                    {
+                      "ms": 167.8109320000001,
+                      "passed": true
+                    },
+                    {
+                      "ms": 172.75768799999992,
+                      "passed": true
+                    }
+                  ],
+                  "median_ms": 172.75768799999992
+                },
+                {
+                  "n": 3200,
+                  "trials": [
+                    {
+                      "ms": 2171.3808529999997,
+                      "passed": true
+                    },
+                    {
+                      "ms": 2849.6574310000005,
+                      "passed": true
+                    },
+                    {
+                      "ms": 2260.088398,
+                      "passed": true
+                    }
+                  ],
+                  "median_ms": 2260.088398
+                }
+              ],
+              "ratio_3200_800": 13.082418641768353,
+              "scope": "Real entry-point process wall time, three trials. Includes startup; ratios are evidence, not a portable CI gate."
+            }
+          }
+        },
+        {
+          "task": "frequencies",
+          "delivered": true,
+          "error": null,
+          "execution_id": "3156ca4b-24b2-44d5-8d52-917a677f1a7f",
+          "execution_status": "completed",
+          "duration_ms": 710901,
+          "usage": {
+            "input_tokens": 1959513,
+            "output_tokens": 76534,
+            "total_tokens": 2036047,
+            "cached_input_tokens": 1406720,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": true
+          },
+          "usage_complete": true,
+          "model_tool_calls": 84,
+          "provider_rounds": 42,
+          "receipt_counts": {
+            "local_workspace_list": 1,
+            "skill_list": 1,
+            "local_kujo:guide": 10,
+            "documentation_query": 2,
+            "local_file_write": 6,
+            "local_kujo:check": 3,
+            "local_kujo:run": 31,
+            "local_file_read": 5,
+            "local_shell": 1,
+            "tool_result_read": 24
+          },
+          "review": {
+            "outcome": "inconclusive",
+            "reviews": 2,
+            "repairs": 1,
+            "deterministic_repairs": 0
+          },
+          "main_sha256": "05960b2b75c50376f6f94365ef6ebba99920f8a55f6554d8453a07b6d6cb3431",
+          "independent": {
+            "task": "frequencies",
+            "checks": 35,
+            "passed": 35,
+            "results": [
+              {
+                "case": 1,
+                "passed": true
+              },
+              {
+                "case": 2,
+                "passed": true
+              },
+              {
+                "case": 3,
+                "passed": true
+              },
+              {
+                "case": 4,
+                "passed": true
+              },
+              {
+                "case": 5,
+                "passed": true
+              },
+              {
+                "case": 6,
+                "passed": true
+              },
+              {
+                "case": 7,
+                "passed": true
+              },
+              {
+                "case": 8,
+                "passed": true
+              },
+              {
+                "case": 9,
+                "passed": true
+              },
+              {
+                "case": 10,
+                "passed": true
+              },
+              {
+                "case": 11,
+                "passed": true
+              },
+              {
+                "case": 12,
+                "passed": true
+              },
+              {
+                "case": 13,
+                "passed": true
+              },
+              {
+                "case": 14,
+                "passed": true
+              },
+              {
+                "case": 15,
+                "passed": true
+              },
+              {
+                "case": 16,
+                "passed": true
+              },
+              {
+                "case": 17,
+                "passed": true
+              },
+              {
+                "case": 18,
+                "passed": true
+              },
+              {
+                "case": 19,
+                "passed": true
+              },
+              {
+                "case": 20,
+                "passed": true
+              },
+              {
+                "case": 21,
+                "passed": true
+              },
+              {
+                "case": 22,
+                "passed": true
+              },
+              {
+                "case": 23,
+                "passed": true
+              },
+              {
+                "case": 24,
+                "passed": true
+              },
+              {
+                "case": 25,
+                "passed": true
+              },
+              {
+                "case": 26,
+                "passed": true
+              },
+              {
+                "case": 27,
+                "passed": true
+              },
+              {
+                "case": 28,
+                "passed": true
+              },
+              {
+                "case": 29,
+                "passed": true
+              },
+              {
+                "case": 30,
+                "passed": true
+              },
+              {
+                "case": 31,
+                "passed": true
+              },
+              {
+                "case": 32,
+                "passed": true
+              },
+              {
+                "case": 33,
+                "passed": true
+              },
+              {
+                "case": 34,
+                "passed": true
+              },
+              {
+                "case": 35,
+                "passed": true
+              }
+            ],
+            "scaling": {
+              "levels": [
+                {
+                  "n": 200,
+                  "trials": [
+                    {
+                      "ms": 39.97416499999997,
+                      "passed": true
+                    },
+                    {
+                      "ms": 45.504606999999965,
+                      "passed": true
+                    },
+                    {
+                      "ms": 41.89596499999993,
+                      "passed": true
+                    }
+                  ],
+                  "median_ms": 41.89596499999993
+                },
+                {
+                  "n": 800,
+                  "trials": [
+                    {
+                      "ms": 181.45249799999988,
+                      "passed": true
+                    },
+                    {
+                      "ms": 176.68080999999984,
+                      "passed": true
+                    },
+                    {
+                      "ms": 183.43509999999992,
+                      "passed": true
+                    }
+                  ],
+                  "median_ms": 181.45249799999988
+                },
+                {
+                  "n": 3200,
+                  "trials": [
+                    {
+                      "ms": 2394.9893810000003,
+                      "passed": true
+                    },
+                    {
+                      "ms": 2350.3250340000004,
+                      "passed": true
+                    },
+                    {
+                      "ms": 2291.1832490000006,
+                      "passed": true
+                    }
+                  ],
+                  "median_ms": 2350.3250340000004
+                }
+              ],
+              "ratio_3200_800": 12.952839227377305,
+              "scope": "Real entry-point process wall time, three trials. Includes startup; ratios are evidence, not a portable CI gate."
+            }
+          }
+        },
+        {
+          "task": "merge",
+          "delivered": true,
+          "error": null,
+          "execution_id": "0e1c799f-aaa7-44a3-9553-6b6e6b2008ab",
+          "execution_status": "completed",
+          "duration_ms": 642583,
+          "usage": {
+            "input_tokens": 1730656,
+            "output_tokens": 63344,
+            "total_tokens": 1794000,
+            "cached_input_tokens": 1272320,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": true
+          },
+          "usage_complete": true,
+          "model_tool_calls": 72,
+          "provider_rounds": 37,
+          "receipt_counts": {
+            "local_workspace_list": 1,
+            "skill_list": 1,
+            "local_kujo:guide": 8,
+            "documentation_query": 2,
+            "local_file_write": 8,
+            "local_kujo:run": 11,
+            "local_kujo:check": 2,
+            "local_shell": 26,
+            "local_file_read": 8,
+            "local_kujo:test": 1,
+            "tool_result_read": 4
+          },
+          "review": {
+            "outcome": "inconclusive",
+            "reviews": 1,
+            "repairs": 0,
+            "deterministic_repairs": 0
+          },
+          "main_sha256": "007e9164683849aee8ad215f5034f5f6fd7e4a99027c3457656fc68d37aebe53",
+          "independent": {
+            "task": "merge",
+            "checks": 36,
+            "passed": 36,
+            "results": [
+              {
+                "case": 1,
+                "passed": true
+              },
+              {
+                "case": 2,
+                "passed": true
+              },
+              {
+                "case": 3,
+                "passed": true
+              },
+              {
+                "case": 4,
+                "passed": true
+              },
+              {
+                "case": 5,
+                "passed": true
+              },
+              {
+                "case": 6,
+                "passed": true
+              },
+              {
+                "case": 7,
+                "passed": true
+              },
+              {
+                "case": 8,
+                "passed": true
+              },
+              {
+                "case": 9,
+                "passed": true
+              },
+              {
+                "case": 10,
+                "passed": true
+              },
+              {
+                "case": 11,
+                "passed": true
+              },
+              {
+                "case": 12,
+                "passed": true
+              },
+              {
+                "case": 13,
+                "passed": true
+              },
+              {
+                "case": 14,
+                "passed": true
+              },
+              {
+                "case": 15,
+                "passed": true
+              },
+              {
+                "case": 16,
+                "passed": true
+              },
+              {
+                "case": 17,
+                "passed": true
+              },
+              {
+                "case": 18,
+                "passed": true
+              },
+              {
+                "case": 19,
+                "passed": true
+              },
+              {
+                "case": 20,
+                "passed": true
+              },
+              {
+                "case": 21,
+                "passed": true
+              },
+              {
+                "case": 22,
+                "passed": true
+              },
+              {
+                "case": 23,
+                "passed": true
+              },
+              {
+                "case": 24,
+                "passed": true
+              },
+              {
+                "case": 25,
+                "passed": true
+              },
+              {
+                "case": 26,
+                "passed": true
+              },
+              {
+                "case": 27,
+                "passed": true
+              },
+              {
+                "case": 28,
+                "passed": true
+              },
+              {
+                "case": 29,
+                "passed": true
+              },
+              {
+                "case": 30,
+                "passed": true
+              },
+              {
+                "case": 31,
+                "passed": true
+              },
+              {
+                "case": 32,
+                "passed": true
+              },
+              {
+                "case": 33,
+                "passed": true
+              },
+              {
+                "case": 34,
+                "passed": true
+              },
+              {
+                "case": 35,
+                "passed": true
+              },
+              {
+                "case": 36,
+                "passed": true
+              }
+            ],
+            "scaling": {
+              "levels": [
+                {
+                  "n": 200,
+                  "trials": [
+                    {
+                      "ms": 42.249505,
+                      "passed": true
+                    },
+                    {
+                      "ms": 44.30217899999991,
+                      "passed": true
+                    },
+                    {
+                      "ms": 49.19641899999988,
+                      "passed": true
+                    }
+                  ],
+                  "median_ms": 44.30217899999991
+                },
+                {
+                  "n": 800,
+                  "trials": [
+                    {
+                      "ms": 174.60855400000014,
+                      "passed": true
+                    },
+                    {
+                      "ms": 173.35677800000008,
+                      "passed": true
+                    },
+                    {
+                      "ms": 172.4573089999999,
+                      "passed": true
+                    }
+                  ],
+                  "median_ms": 173.35677800000008
+                },
+                {
+                  "n": 3200,
+                  "trials": [
+                    {
+                      "ms": 2316.7166740000002,
+                      "passed": true
+                    },
+                    {
+                      "ms": 2406.617668,
+                      "passed": true
+                    },
+                    {
+                      "ms": 2609.3181670000004,
+                      "passed": true
+                    }
+                  ],
+                  "median_ms": 2406.617668
+                }
+              ],
+              "ratio_3200_800": 13.882454991174322,
+              "scope": "Real entry-point process wall time, three trials. Includes startup; ratios are evidence, not a portable CI gate."
+            }
+          }
+        }
+      ],
+      "workflow": {
+        "grounding": "legacy",
+        "batch_verification": false,
+        "review": "always"
+      },
+      "sparse_runs": {
+        "scope": "Supplemental sparse runs, three real entry-point process trials per size, startup included. Full output equality; no portable speed threshold.",
+        "levels": [
+          {
+            "n": 200,
+            "trials": [
+              {
+                "ms": 51.511509000000004,
+                "correct": true,
+                "status": 0,
+                "signal": null,
+                "error": null
+              },
+              {
+                "ms": 50.45840299999999,
+                "correct": true,
+                "status": 0,
+                "signal": null,
+                "error": null
+              },
+              {
+                "ms": 52.98077699999999,
+                "correct": true,
+                "status": 0,
+                "signal": null,
+                "error": null
+              }
+            ],
+            "median_ms": 51.511509000000004
+          },
+          {
+            "n": 800,
+            "trials": [
+              {
+                "ms": 306.79131700000005,
+                "correct": true,
+                "status": 0,
+                "signal": null,
+                "error": null
+              },
+              {
+                "ms": 338.06720399999995,
+                "correct": true,
+                "status": 0,
+                "signal": null,
+                "error": null
+              },
+              {
+                "ms": 321.736354,
+                "correct": true,
+                "status": 0,
+                "signal": null,
+                "error": null
+              }
+            ],
+            "median_ms": 321.736354
+          },
+          {
+            "n": 3200,
+            "trials": [
+              {
+                "ms": 3919.148669,
+                "correct": true,
+                "status": 0,
+                "signal": null,
+                "error": null
+              },
+              {
+                "ms": 3297.3818809999993,
+                "correct": true,
+                "status": 0,
+                "signal": null,
+                "error": null
+              },
+              {
+                "ms": 3946.0673540000007,
+                "correct": true,
+                "status": 0,
+                "signal": null,
+                "error": null
+              }
+            ],
+            "median_ms": 3919.148669
+          }
+        ],
+        "passed": true
+      },
+      "source_audit": [
+        {
+          "task": "runs",
+          "files": [
+            {
+              "path": "main.kujo",
+              "sha256": "1b35f2c50d8b98c8566ecdaf67ad2119dd2b214b4923c12f63b3c4c929b4ba55",
+              "bytes": 3102,
+              "lines": 111
+            },
+            {
+              "path": "pipeline_copy.kujo",
+              "sha256": "fcedfc5dbc0f0c0ae7f21fcf2085f4471a87da40d9963231520fcf43e07193ab",
+              "bytes": 597,
+              "lines": 9
+            },
+            {
+              "path": "probe2.kujo",
+              "sha256": "70d9cc0238ecee5d1abe734b405155c2011e055bee70c1ab2bcc3cb16b3b49b6",
+              "bytes": 75,
+              "lines": 2
+            },
+            {
+              "path": "scale_test.kujo",
+              "sha256": "9fe00e82745c9dfe41ec9472a9bee9fb7c0706515042888d3021ee120d87bfe1",
+              "bytes": 986,
+              "lines": 14
+            },
+            {
+              "path": "tests/probe.kujo",
+              "sha256": "159122c2fd885cb0c5ef0a667f695220a14b960d16553dc02cb523a805cec942",
+              "bytes": 422,
+              "lines": 20
+            },
+            {
+              "path": "tests/probe_lib.kujo",
+              "sha256": "d924b064d2bb5d820615a6ccb3e6e05dc395b53232e931388de807c7201425c2",
+              "bytes": 65,
+              "lines": 4
+            }
+          ],
+          "candidate_spans": [],
+          "limit": 20,
+          "scope": "Exact 8-line cross-file matches of at least 160 characters. Not semantic duplication; shared boilerplate may be legitimate. Inspect each candidate."
+        },
+        {
+          "task": "frequencies",
+          "files": [
+            {
+              "path": "main.kujo",
+              "sha256": "05960b2b75c50376f6f94365ef6ebba99920f8a55f6554d8453a07b6d6cb3431",
+              "bytes": 1502,
+              "lines": 67
+            },
+            {
+              "path": "probe.kujo",
+              "sha256": "ff9c579e80833950b70eda0eb2010d20717071f07dfda25d3212d554cf1f539f",
+              "bytes": 526,
+              "lines": 28
+            },
+            {
+              "path": "probe_push.kujo",
+              "sha256": "4c55cef930c5e7b5bd40fa5719b457a8f9d6dd9e396e54f9baab4ab2ce70f0b5",
+              "bytes": 201,
+              "lines": 9
+            },
+            {
+              "path": "probe_scale.kujo",
+              "sha256": "028087c308f2fe88e8c227dc74fa964a6f60f891b119d78a9fb8b6e6066e0383",
+              "bytes": 305,
+              "lines": 13
+            },
+            {
+              "path": "test_gates.kujo",
+              "sha256": "48de1c6941f3f5c356f406484e6b7ad92636c25de681d6df698716d47d49bc41",
+              "bytes": 1249,
+              "lines": 66
+            }
+          ],
+          "candidate_spans": [
+            {
+              "lines": 8,
+              "locations": [
+                {
+                  "path": "main.kujo",
+                  "line": 32
+                },
+                {
+                  "path": "probe.kujo",
+                  "line": 12
+                }
+              ]
+            }
+          ],
+          "limit": 20,
+          "scope": "Exact 8-line cross-file matches of at least 160 characters. Not semantic duplication; shared boilerplate may be legitimate. Inspect each candidate."
+        },
+        {
+          "task": "merge",
+          "files": [
+            {
+              "path": "imp_probe.kujo",
+              "sha256": "b7b28c029138896251c809027060690af63d6793a27132397d48806bb2d60b67",
+              "bytes": 81,
+              "lines": 1
+            },
+            {
+              "path": "main.kujo",
+              "sha256": "007e9164683849aee8ad215f5034f5f6fd7e4a99027c3457656fc68d37aebe53",
+              "bytes": 2839,
+              "lines": 115
+            },
+            {
+              "path": "main_test.kujo",
+              "sha256": "6955f3c116287f7e335c4778067622856814b8071b9d9fb83fc19102c37f37ca",
+              "bytes": 2488,
+              "lines": 57
+            },
+            {
+              "path": "mod_probe.kujo",
+              "sha256": "b7b28c029138896251c809027060690af63d6793a27132397d48806bb2d60b67",
+              "bytes": 81,
+              "lines": 1
+            }
+          ],
+          "candidate_spans": [],
+          "limit": 20,
+          "scope": "Exact 8-line cross-file matches of at least 160 characters. Not semantic duplication; shared boilerplate may be legitimate. Inspect each candidate."
+        }
+      ]
+    },
+    {
+      "lane": "compact-v2",
+      "finished": "2026-10-05T16:35:27.563Z",
+      "summary": {
+        "total": 3,
+        "completed": 2,
+        "failed": 1,
+        "retry_count": 0,
+        "tool_calls_executed": 163,
+        "tool_input_repairs": 4,
+        "provider_rounds": 90,
+        "latency_ms_total": 1653523,
+        "latency_samples": 3,
+        "token_use": {
+          "input_tokens": 3925775,
+          "output_tokens": 182375,
+          "total_tokens": 4108150
+        },
+        "transport_completion_rate": 0.6667,
+        "task_completion_rate": null,
+        "repair_rate": 0.0245,
+        "average_latency_ms": 551174
+      },
+      "acceptance_integrity": "unchanged_after_generation",
+      "rows": [
+        {
+          "task": "runs",
+          "delivered": true,
+          "error": null,
+          "execution_id": "53203ee1-7eed-45c8-853a-39271803f7ca",
+          "execution_status": "completed",
+          "duration_ms": 348435,
+          "usage": {
+            "input_tokens": 697503,
+            "output_tokens": 41980,
+            "total_tokens": 739483,
+            "cached_input_tokens": 425600,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": true
+          },
+          "usage_complete": true,
+          "model_tool_calls": 27,
+          "provider_rounds": 23,
+          "receipt_counts": {
+            "kujo_grounding:guide": 1,
+            "local_workspace_list": 1,
+            "skill_list": 1,
+            "local_file_list": 1,
+            "local_shell": 4,
+            "local_kujo:guide": 3,
+            "local_file_write": 3,
+            "local_kujo:check": 1,
+            "local_kujo:run": 6,
+            "local_file_read": 3,
+            "tool_result_read": 4
+          },
+          "review": {
+            "outcome": "inconclusive",
+            "reviews": 1,
+            "repairs": 0,
+            "deterministic_repairs": 0
+          },
+          "main_sha256": "608c72ba3650882cacf663dddeb03714ce545d04d02cdfc709f896d398a3914a",
+          "independent": {
+            "task": "runs",
+            "checks": 35,
+            "passed": 35,
+            "results": [
+              {
+                "case": 1,
+                "passed": true
+              },
+              {
+                "case": 2,
+                "passed": true
+              },
+              {
+                "case": 3,
+                "passed": true
+              },
+              {
+                "case": 4,
+                "passed": true
+              },
+              {
+                "case": 5,
+                "passed": true
+              },
+              {
+                "case": 6,
+                "passed": true
+              },
+              {
+                "case": 7,
+                "passed": true
+              },
+              {
+                "case": 8,
+                "passed": true
+              },
+              {
+                "case": 9,
+                "passed": true
+              },
+              {
+                "case": 10,
+                "passed": true
+              },
+              {
+                "case": 11,
+                "passed": true
+              },
+              {
+                "case": 12,
+                "passed": true
+              },
+              {
+                "case": 13,
+                "passed": true
+              },
+              {
+                "case": 14,
+                "passed": true
+              },
+              {
+                "case": 15,
+                "passed": true
+              },
+              {
+                "case": 16,
+                "passed": true
+              },
+              {
+                "case": 17,
+                "passed": true
+              },
+              {
+                "case": 18,
+                "passed": true
+              },
+              {
+                "case": 19,
+                "passed": true
+              },
+              {
+                "case": 20,
+                "passed": true
+              },
+              {
+                "case": 21,
+                "passed": true
+              },
+              {
+                "case": 22,
+                "passed": true
+              },
+              {
+                "case": 23,
+                "passed": true
+              },
+              {
+                "case": 24,
+                "passed": true
+              },
+              {
+                "case": 25,
+                "passed": true
+              },
+              {
+                "case": 26,
+                "passed": true
+              },
+              {
+                "case": 27,
+                "passed": true
+              },
+              {
+                "case": 28,
+                "passed": true
+              },
+              {
+                "case": 29,
+                "passed": true
+              },
+              {
+                "case": 30,
+                "passed": true
+              },
+              {
+                "case": 31,
+                "passed": true
+              },
+              {
+                "case": 32,
+                "passed": true
+              },
+              {
+                "case": 33,
+                "passed": true
+              },
+              {
+                "case": 34,
+                "passed": true
+              },
+              {
+                "case": 35,
+                "passed": true
+              }
+            ],
+            "scaling": {
+              "levels": [
+                {
+                  "n": 200,
+                  "trials": [
+                    {
+                      "ms": 33.77919800000018,
+                      "passed": true
+                    },
+                    {
+                      "ms": 30.44405599999982,
+                      "passed": true
+                    },
+                    {
+                      "ms": 32.449006000000054,
+                      "passed": true
+                    }
+                  ],
+                  "median_ms": 32.449006000000054
+                },
+                {
+                  "n": 800,
+                  "trials": [
+                    {
+                      "ms": 46.65365900000006,
+                      "passed": true
+                    },
+                    {
+                      "ms": 47.107708999999886,
+                      "passed": true
+                    },
+                    {
+                      "ms": 49.164772000000085,
+                      "passed": true
+                    }
+                  ],
+                  "median_ms": 47.107708999999886
+                },
+                {
+                  "n": 3200,
+                  "trials": [
+                    {
+                      "ms": 109.20079299999998,
+                      "passed": true
+                    },
+                    {
+                      "ms": 111.12275599999998,
+                      "passed": true
+                    },
+                    {
+                      "ms": 109.76273000000015,
+                      "passed": true
+                    }
+                  ],
+                  "median_ms": 109.76273000000015
+                }
+              ],
+              "ratio_3200_800": 2.330037531649022,
+              "scope": "Real entry-point process wall time, three trials. Includes startup; ratios are evidence, not a portable CI gate."
+            }
+          }
+        },
+        {
+          "task": "frequencies",
+          "delivered": true,
+          "error": null,
+          "execution_id": "41dfc65b-08c4-4d18-a0bd-7b2796ce1a19",
+          "execution_status": "completed",
+          "duration_ms": 404965,
+          "usage": {
+            "input_tokens": 931584,
+            "output_tokens": 45410,
+            "total_tokens": 976994,
+            "cached_input_tokens": 600320,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": true
+          },
+          "usage_complete": true,
+          "model_tool_calls": 50,
+          "provider_rounds": 26,
+          "receipt_counts": {
+            "kujo_grounding:guide": 1,
+            "local_workspace_list": 1,
+            "local_kujo:guide": 3,
+            "local_file_write": 3,
+            "local_kujo:check": 2,
+            "local_kujo:run": 23,
+            "local_shell": 3,
+            "local_file_read": 3,
+            "tool_result_read": 12
+          },
+          "review": {
+            "outcome": "pass",
+            "reviews": 1,
+            "repairs": 0,
+            "deterministic_repairs": 0
+          },
+          "main_sha256": "e6af943718a818fbd863838146702d68b0738b093d359afa35445074b46e5f9f",
+          "independent": {
+            "task": "frequencies",
+            "checks": 35,
+            "passed": 35,
+            "results": [
+              {
+                "case": 1,
+                "passed": true
+              },
+              {
+                "case": 2,
+                "passed": true
+              },
+              {
+                "case": 3,
+                "passed": true
+              },
+              {
+                "case": 4,
+                "passed": true
+              },
+              {
+                "case": 5,
+                "passed": true
+              },
+              {
+                "case": 6,
+                "passed": true
+              },
+              {
+                "case": 7,
+                "passed": true
+              },
+              {
+                "case": 8,
+                "passed": true
+              },
+              {
+                "case": 9,
+                "passed": true
+              },
+              {
+                "case": 10,
+                "passed": true
+              },
+              {
+                "case": 11,
+                "passed": true
+              },
+              {
+                "case": 12,
+                "passed": true
+              },
+              {
+                "case": 13,
+                "passed": true
+              },
+              {
+                "case": 14,
+                "passed": true
+              },
+              {
+                "case": 15,
+                "passed": true
+              },
+              {
+                "case": 16,
+                "passed": true
+              },
+              {
+                "case": 17,
+                "passed": true
+              },
+              {
+                "case": 18,
+                "passed": true
+              },
+              {
+                "case": 19,
+                "passed": true
+              },
+              {
+                "case": 20,
+                "passed": true
+              },
+              {
+                "case": 21,
+                "passed": true
+              },
+              {
+                "case": 22,
+                "passed": true
+              },
+              {
+                "case": 23,
+                "passed": true
+              },
+              {
+                "case": 24,
+                "passed": true
+              },
+              {
+                "case": 25,
+                "passed": true
+              },
+              {
+                "case": 26,
+                "passed": true
+              },
+              {
+                "case": 27,
+                "passed": true
+              },
+              {
+                "case": 28,
+                "passed": true
+              },
+              {
+                "case": 29,
+                "passed": true
+              },
+              {
+                "case": 30,
+                "passed": true
+              },
+              {
+                "case": 31,
+                "passed": true
+              },
+              {
+                "case": 32,
+                "passed": true
+              },
+              {
+                "case": 33,
+                "passed": true
+              },
+              {
+                "case": 34,
+                "passed": true
+              },
+              {
+                "case": 35,
+                "passed": true
+              }
+            ],
+            "scaling": {
+              "levels": [
+                {
+                  "n": 200,
+                  "trials": [
+                    {
+                      "ms": 53.57854700000007,
+                      "passed": true
+                    },
+                    {
+                      "ms": 61.036947000000055,
+                      "passed": true
+                    },
+                    {
+                      "ms": 56.546490000000176,
+                      "passed": true
+                    }
+                  ],
+                  "median_ms": 56.546490000000176
+                },
+                {
+                  "n": 800,
+                  "trials": [
+                    {
+                      "ms": 342.75426100000004,
+                      "passed": true
+                    },
+                    {
+                      "ms": 334.415162,
+                      "passed": true
+                    },
+                    {
+                      "ms": 334.2490059999998,
+                      "passed": true
+                    }
+                  ],
+                  "median_ms": 334.415162
+                },
+                {
+                  "n": 3200,
+                  "trials": [
+                    {
+                      "ms": 5159.208213,
+                      "passed": true
+                    },
+                    {
+                      "ms": 4827.780839999999,
+                      "passed": true
+                    },
+                    {
+                      "ms": 5444.5503659999995,
+                      "passed": true
+                    }
+                  ],
+                  "median_ms": 5159.208213
+                }
+              ],
+              "ratio_3200_800": 15.427554726122136,
+              "scope": "Real entry-point process wall time, three trials. Includes startup; ratios are evidence, not a portable CI gate."
+            }
+          }
+        },
+        {
+          "task": "merge",
+          "delivered": false,
+          "error": "Stream timed out after 900000ms.",
+          "execution_id": "63d600c7-961a-4037-a297-a133be82e3b0",
+          "execution_status": "cancelled",
+          "duration_ms": 900123,
+          "usage": {
+            "input_tokens": 2296688,
+            "output_tokens": 94985,
+            "total_tokens": 2391673,
+            "cached_input_tokens": 1796480,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": true
+          },
+          "usage_complete": false,
+          "model_tool_calls": 86,
+          "provider_rounds": 41,
+          "receipt_counts": {
+            "kujo_grounding:guide": 1,
+            "local_workspace_list": 1,
+            "local_kujo:guide": 4,
+            "local_file_write": 15,
+            "local_kujo:run": 38,
+            "local_file_read": 3,
+            "local_kujo:check": 1,
+            "local_shell": 7,
+            "documentation_query": 2,
+            "tool_result_read": 15
+          },
+          "review": {
+            "outcome": "inconclusive",
+            "reviews": 2,
+            "repairs": 1,
+            "deterministic_repairs": 0
+          },
+          "main_sha256": "f21e5d6701a54f18a7ddf34295d380f9649e587ef212f3f56ae57f5bbf0d1833",
+          "independent": {
+            "task": "merge",
+            "checks": 36,
+            "passed": 36,
+            "results": [
+              {
+                "case": 1,
+                "passed": true
+              },
+              {
+                "case": 2,
+                "passed": true
+              },
+              {
+                "case": 3,
+                "passed": true
+              },
+              {
+                "case": 4,
+                "passed": true
+              },
+              {
+                "case": 5,
+                "passed": true
+              },
+              {
+                "case": 6,
+                "passed": true
+              },
+              {
+                "case": 7,
+                "passed": true
+              },
+              {
+                "case": 8,
+                "passed": true
+              },
+              {
+                "case": 9,
+                "passed": true
+              },
+              {
+                "case": 10,
+                "passed": true
+              },
+              {
+                "case": 11,
+                "passed": true
+              },
+              {
+                "case": 12,
+                "passed": true
+              },
+              {
+                "case": 13,
+                "passed": true
+              },
+              {
+                "case": 14,
+                "passed": true
+              },
+              {
+                "case": 15,
+                "passed": true
+              },
+              {
+                "case": 16,
+                "passed": true
+              },
+              {
+                "case": 17,
+                "passed": true
+              },
+              {
+                "case": 18,
+                "passed": true
+              },
+              {
+                "case": 19,
+                "passed": true
+              },
+              {
+                "case": 20,
+                "passed": true
+              },
+              {
+                "case": 21,
+                "passed": true
+              },
+              {
+                "case": 22,
+                "passed": true
+              },
+              {
+                "case": 23,
+                "passed": true
+              },
+              {
+                "case": 24,
+                "passed": true
+              },
+              {
+                "case": 25,
+                "passed": true
+              },
+              {
+                "case": 26,
+                "passed": true
+              },
+              {
+                "case": 27,
+                "passed": true
+              },
+              {
+                "case": 28,
+                "passed": true
+              },
+              {
+                "case": 29,
+                "passed": true
+              },
+              {
+                "case": 30,
+                "passed": true
+              },
+              {
+                "case": 31,
+                "passed": true
+              },
+              {
+                "case": 32,
+                "passed": true
+              },
+              {
+                "case": 33,
+                "passed": true
+              },
+              {
+                "case": 34,
+                "passed": true
+              },
+              {
+                "case": 35,
+                "passed": true
+              },
+              {
+                "case": 36,
+                "passed": true
+              }
+            ],
+            "scaling": {
+              "levels": [
+                {
+                  "n": 200,
+                  "trials": [
+                    {
+                      "ms": 56.84104400000001,
+                      "passed": true
+                    },
+                    {
+                      "ms": 56.419676999999865,
+                      "passed": true
+                    },
+                    {
+                      "ms": 59.94591400000013,
+                      "passed": true
+                    }
+                  ],
+                  "median_ms": 56.84104400000001
+                },
+                {
+                  "n": 800,
+                  "trials": [
+                    {
+                      "ms": 223.08972300000005,
+                      "passed": true
+                    },
+                    {
+                      "ms": 231.91523699999993,
+                      "passed": true
+                    },
+                    {
+                      "ms": 260.443074,
+                      "passed": true
+                    }
+                  ],
+                  "median_ms": 231.91523699999993
+                },
+                {
+                  "n": 3200,
+                  "trials": [
+                    {
+                      "ms": 2354.039751,
+                      "passed": true
+                    },
+                    {
+                      "ms": 2347.9346889999997,
+                      "passed": true
+                    },
+                    {
+                      "ms": 1803.4966510000004,
+                      "passed": true
+                    }
+                  ],
+                  "median_ms": 2347.9346889999997
+                }
+              ],
+              "ratio_3200_800": 10.124107063306067,
+              "scope": "Real entry-point process wall time, three trials. Includes startup; ratios are evidence, not a portable CI gate."
+            }
+          }
+        }
+      ],
+      "workflow": {
+        "grounding": "compact",
+        "batch_verification": false,
+        "review": "always"
+      },
+      "sparse_runs": {
+        "scope": "Supplemental sparse runs, three real entry-point process trials per size, startup included. Full output equality; no portable speed threshold.",
+        "levels": [
+          {
+            "n": 200,
+            "trials": [
+              {
+                "ms": 35.762823,
+                "correct": true,
+                "status": 0,
+                "signal": null,
+                "error": null
+              },
+              {
+                "ms": 38.057576,
+                "correct": true,
+                "status": 0,
+                "signal": null,
+                "error": null
+              },
+              {
+                "ms": 35.85352399999999,
+                "correct": true,
+                "status": 0,
+                "signal": null,
+                "error": null
+              }
+            ],
+            "median_ms": 35.85352399999999
+          },
+          {
+            "n": 800,
+            "trials": [
+              {
+                "ms": 159.954217,
+                "correct": true,
+                "status": 0,
+                "signal": null,
+                "error": null
+              },
+              {
+                "ms": 156.470503,
+                "correct": true,
+                "status": 0,
+                "signal": null,
+                "error": null
+              },
+              {
+                "ms": 151.23846600000002,
+                "correct": true,
+                "status": 0,
+                "signal": null,
+                "error": null
+              }
+            ],
+            "median_ms": 156.470503
+          },
+          {
+            "n": 3200,
+            "trials": [
+              {
+                "ms": 2014.3762480000003,
+                "correct": true,
+                "status": 0,
+                "signal": null,
+                "error": null
+              },
+              {
+                "ms": 2087.930387,
+                "correct": true,
+                "status": 0,
+                "signal": null,
+                "error": null
+              },
+              {
+                "ms": 2153.691057,
+                "correct": true,
+                "status": 0,
+                "signal": null,
+                "error": null
+              }
+            ],
+            "median_ms": 2087.930387
+          }
+        ],
+        "passed": true
+      },
+      "source_audit": [
+        {
+          "task": "runs",
+          "files": [
+            {
+              "path": "main.kujo",
+              "sha256": "608c72ba3650882cacf663dddeb03714ce545d04d02cdfc709f896d398a3914a",
+              "bytes": 1667,
+              "lines": 76
+            }
+          ],
+          "candidate_spans": [],
+          "limit": 20,
+          "scope": "Exact 8-line cross-file matches of at least 160 characters. Not semantic duplication; shared boilerplate may be legitimate. Inspect each candidate."
+        },
+        {
+          "task": "frequencies",
+          "files": [
+            {
+              "path": "main.kujo",
+              "sha256": "e6af943718a818fbd863838146702d68b0738b093d359afa35445074b46e5f9f",
+              "bytes": 1369,
+              "lines": 62
+            }
+          ],
+          "candidate_spans": [],
+          "limit": 20,
+          "scope": "Exact 8-line cross-file matches of at least 160 characters. Not semantic duplication; shared boilerplate may be legitimate. Inspect each candidate."
+        },
+        {
+          "task": "merge",
+          "files": [
+            {
+              "path": "main.kujo",
+              "sha256": "f21e5d6701a54f18a7ddf34295d380f9649e587ef212f3f56ae57f5bbf0d1833",
+              "bytes": 3291,
+              "lines": 128
+            },
+            {
+              "path": "tests/gen_large.kujo",
+              "sha256": "e36238a952ebf13f4a70e5ce5b7015eaf537d222b1aeea5ba7a76ad3d60ca47d",
+              "bytes": 750,
+              "lines": 26
+            },
+            {
+              "path": "tests/p_command.kujo",
+              "sha256": "23ad79012742f919c9159b074884e700a0e528023a6e23f0e266020af5b4639e",
+              "bytes": 35,
+              "lines": 1
+            },
+            {
+              "path": "tests/p_exec.kujo",
+              "sha256": "5e2179a4ffc1c288c2bb246a4bbfcb7f32b251199bd920da83bfedd61b9dc99c",
+              "bytes": 32,
+              "lines": 1
+            },
+            {
+              "path": "tests/p_process_run.kujo",
+              "sha256": "126125cffb66e903dd559deddb436d70b42434d2a1180aa3a156c5eda37b231f",
+              "bytes": 39,
+              "lines": 1
+            },
+            {
+              "path": "tests/p_run_process.kujo",
+              "sha256": "f100bb4ad1d0d4a401274c9bd3d2421f82fd6817a3105e9d0c4e7611a4e71d6c",
+              "bytes": 39,
+              "lines": 1
+            },
+            {
+              "path": "tests/p_spawn.kujo",
+              "sha256": "d1da54ff8764138bbf333db97446f87e59584a626c09ea2a493af956e83afbff",
+              "bytes": 33,
+              "lines": 1
+            },
+            {
+              "path": "tests/p_system.kujo",
+              "sha256": "13aada8a424fe8232f2943b149db115cea32dc59fe17f8b96816398dc92b0bae",
+              "bytes": 24,
+              "lines": 1
+            },
+            {
+              "path": "tests/probe.kujo",
+              "sha256": "a38ca375c89d1f780b96eb52241513a692cd4efc6daf731f230d2d3bc3056b7c",
+              "bytes": 400,
+              "lines": 15
+            },
+            {
+              "path": "tests/probe2.kujo",
+              "sha256": "af24fed806c2be2a4b90cfd53297df0066198ef920b0aad92f98764d84dba74d",
+              "bytes": 367,
+              "lines": 13
+            },
+            {
+              "path": "tests/probe3.kujo",
+              "sha256": "358ebb862b52274d8a20c956a1d0834c0e34b8de3188fb5f43584b33354f3cb0",
+              "bytes": 84,
+              "lines": 3
+            },
+            {
+              "path": "tests/probe4.kujo",
+              "sha256": "8a6c2a260236f939f03aa6908a3ba1ff4f67e74f27a4a50624c5da9473e2895f",
+              "bytes": 383,
+              "lines": 13
+            }
+          ],
+          "candidate_spans": [
+            {
+              "lines": 8,
+              "locations": [
+                {
+                  "path": "tests/probe.kujo",
+                  "line": 2
+                },
+                {
+                  "path": "tests/probe2.kujo",
+                  "line": 2
+                }
+              ]
+            }
+          ],
+          "limit": 20,
+          "scope": "Exact 8-line cross-file matches of at least 160 characters. Not semantic duplication; shared boilerplate may be legitimate. Inspect each candidate."
+        }
+      ]
+    },
+    {
+      "lane": "batch-v2",
+      "finished": "2026-10-05T16:55:44.510Z",
+      "summary": {
+        "total": 3,
+        "completed": 2,
+        "failed": 1,
+        "retry_count": 0,
+        "tool_calls_executed": 70,
+        "tool_input_repairs": 4,
+        "provider_rounds": 57,
+        "latency_ms_total": 1186367,
+        "latency_samples": 3,
+        "token_use": {
+          "input_tokens": 1575748,
+          "output_tokens": 138219,
+          "total_tokens": 1713967
+        },
+        "transport_completion_rate": 0.6667,
+        "task_completion_rate": null,
+        "repair_rate": 0.0571,
+        "average_latency_ms": 395456
+      },
+      "acceptance_integrity": "unchanged_after_generation",
+      "rows": [
+        {
+          "task": "runs",
+          "delivered": true,
+          "error": null,
+          "execution_id": "f22eda10-1cd9-4e75-adb1-28b6dbe58aa7",
+          "execution_status": "completed",
+          "duration_ms": 306176,
+          "usage": {
+            "input_tokens": 616837,
+            "output_tokens": 35288,
+            "total_tokens": 652125,
+            "cached_input_tokens": 367360,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": true
+          },
+          "usage_complete": true,
+          "model_tool_calls": 18,
+          "provider_rounds": 24,
+          "receipt_counts": {
+            "kujo_grounding:guide": 1,
+            "local_workspace_list": 1,
+            "skill_list": 1,
+            "local_kujo:guide": 3,
+            "local_file_write": 3,
+            "local_kujo:check": 2,
+            "local_kujo:verify": 1,
+            "local_kujo_case": 30,
+            "local_shell": 2,
+            "local_file_read": 3,
+            "tool_result_read": 2
+          },
+          "review": {
+            "outcome": "inconclusive",
+            "reviews": 1,
+            "repairs": 0,
+            "deterministic_repairs": 0
+          },
+          "main_sha256": "652cc59574334c59bcfe9051ffb0ef8552d4ab5d46a01de37125e88754367bc3",
+          "independent": {
+            "task": "runs",
+            "checks": 35,
+            "passed": 35,
+            "results": [
+              {
+                "case": 1,
+                "passed": true
+              },
+              {
+                "case": 2,
+                "passed": true
+              },
+              {
+                "case": 3,
+                "passed": true
+              },
+              {
+                "case": 4,
+                "passed": true
+              },
+              {
+                "case": 5,
+                "passed": true
+              },
+              {
+                "case": 6,
+                "passed": true
+              },
+              {
+                "case": 7,
+                "passed": true
+              },
+              {
+                "case": 8,
+                "passed": true
+              },
+              {
+                "case": 9,
+                "passed": true
+              },
+              {
+                "case": 10,
+                "passed": true
+              },
+              {
+                "case": 11,
+                "passed": true
+              },
+              {
+                "case": 12,
+                "passed": true
+              },
+              {
+                "case": 13,
+                "passed": true
+              },
+              {
+                "case": 14,
+                "passed": true
+              },
+              {
+                "case": 15,
+                "passed": true
+              },
+              {
+                "case": 16,
+                "passed": true
+              },
+              {
+                "case": 17,
+                "passed": true
+              },
+              {
+                "case": 18,
+                "passed": true
+              },
+              {
+                "case": 19,
+                "passed": true
+              },
+              {
+                "case": 20,
+                "passed": true
+              },
+              {
+                "case": 21,
+                "passed": true
+              },
+              {
+                "case": 22,
+                "passed": true
+              },
+              {
+                "case": 23,
+                "passed": true
+              },
+              {
+                "case": 24,
+                "passed": true
+              },
+              {
+                "case": 25,
+                "passed": true
+              },
+              {
+                "case": 26,
+                "passed": true
+              },
+              {
+                "case": 27,
+                "passed": true
+              },
+              {
+                "case": 28,
+                "passed": true
+              },
+              {
+                "case": 29,
+                "passed": true
+              },
+              {
+                "case": 30,
+                "passed": true
+              },
+              {
+                "case": 31,
+                "passed": true
+              },
+              {
+                "case": 32,
+                "passed": true
+              },
+              {
+                "case": 33,
+                "passed": true
+              },
+              {
+                "case": 34,
+                "passed": true
+              },
+              {
+                "case": 35,
+                "passed": true
+              }
+            ],
+            "scaling": {
+              "levels": [
+                {
+                  "n": 200,
+                  "trials": [
+                    {
+                      "ms": 40.34683199999995,
+                      "passed": true
+                    },
+                    {
+                      "ms": 35.447272999999996,
+                      "passed": true
+                    },
+                    {
+                      "ms": 43.21436100000005,
+                      "passed": true
+                    }
+                  ],
+                  "median_ms": 40.34683199999995
+                },
+                {
+                  "n": 800,
+                  "trials": [
+                    {
+                      "ms": 57.37707399999999,
+                      "passed": true
+                    },
+                    {
+                      "ms": 58.793759000000136,
+                      "passed": true
+                    },
+                    {
+                      "ms": 58.22613799999999,
+                      "passed": true
+                    }
+                  ],
+                  "median_ms": 58.22613799999999
+                },
+                {
+                  "n": 3200,
+                  "trials": [
+                    {
+                      "ms": 135.3875519999999,
+                      "passed": true
+                    },
+                    {
+                      "ms": 163.31646,
+                      "passed": true
+                    },
+                    {
+                      "ms": 154.17892400000005,
+                      "passed": true
+                    }
+                  ],
+                  "median_ms": 154.17892400000005
+                }
+              ],
+              "ratio_3200_800": 2.6479332014086197,
+              "scope": "Real entry-point process wall time, three trials. Includes startup; ratios are evidence, not a portable CI gate."
+            }
+          }
+        },
+        {
+          "task": "frequencies",
+          "delivered": true,
+          "error": null,
+          "execution_id": "398f205a-a864-4b91-8c8d-9e608cb5ace9",
+          "execution_status": "completed",
+          "duration_ms": 353868,
+          "usage": {
+            "input_tokens": 519264,
+            "output_tokens": 40019,
+            "total_tokens": 559283,
+            "cached_input_tokens": 268800,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": true
+          },
+          "usage_complete": true,
+          "model_tool_calls": 27,
+          "provider_rounds": 19,
+          "receipt_counts": {
+            "kujo_grounding:guide": 1,
+            "local_workspace_list": 1,
+            "local_file_list": 2,
+            "local_kujo:guide": 5,
+            "local_file_write": 2,
+            "local_shell": 2,
+            "local_kujo:check": 2,
+            "local_kujo:verify": 5,
+            "local_kujo_case": 60,
+            "local_file_read": 2,
+            "tool_result_read": 6
+          },
+          "review": {
+            "outcome": "pass",
+            "reviews": 1,
+            "repairs": 0,
+            "deterministic_repairs": 0
+          },
+          "main_sha256": "adc8ec973976532dd0fcfddb4d8339064806235d4056920cb93b54fe072265c2",
+          "independent": {
+            "task": "frequencies",
+            "checks": 35,
+            "passed": 35,
+            "results": [
+              {
+                "case": 1,
+                "passed": true
+              },
+              {
+                "case": 2,
+                "passed": true
+              },
+              {
+                "case": 3,
+                "passed": true
+              },
+              {
+                "case": 4,
+                "passed": true
+              },
+              {
+                "case": 5,
+                "passed": true
+              },
+              {
+                "case": 6,
+                "passed": true
+              },
+              {
+                "case": 7,
+                "passed": true
+              },
+              {
+                "case": 8,
+                "passed": true
+              },
+              {
+                "case": 9,
+                "passed": true
+              },
+              {
+                "case": 10,
+                "passed": true
+              },
+              {
+                "case": 11,
+                "passed": true
+              },
+              {
+                "case": 12,
+                "passed": true
+              },
+              {
+                "case": 13,
+                "passed": true
+              },
+              {
+                "case": 14,
+                "passed": true
+              },
+              {
+                "case": 15,
+                "passed": true
+              },
+              {
+                "case": 16,
+                "passed": true
+              },
+              {
+                "case": 17,
+                "passed": true
+              },
+              {
+                "case": 18,
+                "passed": true
+              },
+              {
+                "case": 19,
+                "passed": true
+              },
+              {
+                "case": 20,
+                "passed": true
+              },
+              {
+                "case": 21,
+                "passed": true
+              },
+              {
+                "case": 22,
+                "passed": true
+              },
+              {
+                "case": 23,
+                "passed": true
+              },
+              {
+                "case": 24,
+                "passed": true
+              },
+              {
+                "case": 25,
+                "passed": true
+              },
+              {
+                "case": 26,
+                "passed": true
+              },
+              {
+                "case": 27,
+                "passed": true
+              },
+              {
+                "case": 28,
+                "passed": true
+              },
+              {
+                "case": 29,
+                "passed": true
+              },
+              {
+                "case": 30,
+                "passed": true
+              },
+              {
+                "case": 31,
+                "passed": true
+              },
+              {
+                "case": 32,
+                "passed": true
+              },
+              {
+                "case": 33,
+                "passed": true
+              },
+              {
+                "case": 34,
+                "passed": true
+              },
+              {
+                "case": 35,
+                "passed": true
+              }
+            ],
+            "scaling": {
+              "levels": [
+                {
+                  "n": 200,
+                  "trials": [
+                    {
+                      "ms": 59.314338000000134,
+                      "passed": true
+                    },
+                    {
+                      "ms": 62.81226199999992,
+                      "passed": true
+                    },
+                    {
+                      "ms": 60.6798960000001,
+                      "passed": true
+                    }
+                  ],
+                  "median_ms": 60.6798960000001
+                },
+                {
+                  "n": 800,
+                  "trials": [
+                    {
+                      "ms": 266.849596,
+                      "passed": true
+                    },
+                    {
+                      "ms": 269.64084300000013,
+                      "passed": true
+                    },
+                    {
+                      "ms": 274.7374050000001,
+                      "passed": true
+                    }
+                  ],
+                  "median_ms": 269.64084300000013
+                },
+                {
+                  "n": 3200,
+                  "trials": [
+                    {
+                      "ms": 2719.1556219999998,
+                      "passed": true
+                    },
+                    {
+                      "ms": 3439.0118459999994,
+                      "passed": true
+                    },
+                    {
+                      "ms": 2254.6816210000015,
+                      "passed": true
+                    }
+                  ],
+                  "median_ms": 2719.1556219999998
+                }
+              ],
+              "ratio_3200_800": 10.084361077301626,
+              "scope": "Real entry-point process wall time, three trials. Includes startup; ratios are evidence, not a portable CI gate."
+            }
+          }
+        },
+        {
+          "task": "merge",
+          "delivered": false,
+          "error": "The model exhausted two output-limit continuations before completing the task. Completed tools and partial files are retained; inspect the saved execution before continuing.",
+          "execution_id": "fcb62c08-59b0-4b6e-9d03-6134eed46ad4",
+          "execution_status": "interrupted",
+          "duration_ms": 526323,
+          "usage": {
+            "input_tokens": 439647,
+            "output_tokens": 62912,
+            "total_tokens": 502559,
+            "cached_input_tokens": 273280,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": true
+          },
+          "usage_complete": true,
+          "model_tool_calls": 25,
+          "provider_rounds": 14,
+          "receipt_counts": {
+            "kujo_grounding:guide": 1,
+            "local_workspace_list": 1,
+            "skill_list": 1,
+            "local_kujo:guide": 6,
+            "local_shell": 3,
+            "local_file_read": 1,
+            "local_file_write": 6,
+            "local_kujo:run": 5,
+            "local_kujo:check": 1,
+            "local_kujo:verify": 1,
+            "local_kujo_case": 32
+          },
+          "review": {
+            "outcome": "not_requested",
+            "reviews": 0,
+            "repairs": 0,
+            "deterministic_repairs": 0
+          },
+          "main_sha256": "319e8a81e95c744fa6886a0bac772b1b09684da3a47cf14c2b3ebccd2abb8238",
+          "independent": {
+            "task": "merge",
+            "checks": 36,
+            "passed": 36,
+            "results": [
+              {
+                "case": 1,
+                "passed": true
+              },
+              {
+                "case": 2,
+                "passed": true
+              },
+              {
+                "case": 3,
+                "passed": true
+              },
+              {
+                "case": 4,
+                "passed": true
+              },
+              {
+                "case": 5,
+                "passed": true
+              },
+              {
+                "case": 6,
+                "passed": true
+              },
+              {
+                "case": 7,
+                "passed": true
+              },
+              {
+                "case": 8,
+                "passed": true
+              },
+              {
+                "case": 9,
+                "passed": true
+              },
+              {
+                "case": 10,
+                "passed": true
+              },
+              {
+                "case": 11,
+                "passed": true
+              },
+              {
+                "case": 12,
+                "passed": true
+              },
+              {
+                "case": 13,
+                "passed": true
+              },
+              {
+                "case": 14,
+                "passed": true
+              },
+              {
+                "case": 15,
+                "passed": true
+              },
+              {
+                "case": 16,
+                "passed": true
+              },
+              {
+                "case": 17,
+                "passed": true
+              },
+              {
+                "case": 18,
+                "passed": true
+              },
+              {
+                "case": 19,
+                "passed": true
+              },
+              {
+                "case": 20,
+                "passed": true
+              },
+              {
+                "case": 21,
+                "passed": true
+              },
+              {
+                "case": 22,
+                "passed": true
+              },
+              {
+                "case": 23,
+                "passed": true
+              },
+              {
+                "case": 24,
+                "passed": true
+              },
+              {
+                "case": 25,
+                "passed": true
+              },
+              {
+                "case": 26,
+                "passed": true
+              },
+              {
+                "case": 27,
+                "passed": true
+              },
+              {
+                "case": 28,
+                "passed": true
+              },
+              {
+                "case": 29,
+                "passed": true
+              },
+              {
+                "case": 30,
+                "passed": true
+              },
+              {
+                "case": 31,
+                "passed": true
+              },
+              {
+                "case": 32,
+                "passed": true
+              },
+              {
+                "case": 33,
+                "passed": true
+              },
+              {
+                "case": 34,
+                "passed": true
+              },
+              {
+                "case": 35,
+                "passed": true
+              },
+              {
+                "case": 36,
+                "passed": true
+              }
+            ],
+            "scaling": {
+              "levels": [
+                {
+                  "n": 200,
+                  "trials": [
+                    {
+                      "ms": 50.17564500000003,
+                      "passed": true
+                    },
+                    {
+                      "ms": 50.77131899999995,
+                      "passed": true
+                    },
+                    {
+                      "ms": 50.78690400000005,
+                      "passed": true
+                    }
+                  ],
+                  "median_ms": 50.77131899999995
+                },
+                {
+                  "n": 800,
+                  "trials": [
+                    {
+                      "ms": 213.64421600000014,
+                      "passed": true
+                    },
+                    {
+                      "ms": 219.107346,
+                      "passed": true
+                    },
+                    {
+                      "ms": 199.18447300000003,
+                      "passed": true
+                    }
+                  ],
+                  "median_ms": 213.64421600000014
+                },
+                {
+                  "n": 3200,
+                  "trials": [
+                    {
+                      "ms": 1748.061058,
+                      "passed": true
+                    },
+                    {
+                      "ms": 2403.7159540000002,
+                      "passed": true
+                    },
+                    {
+                      "ms": 3177.2833359999995,
+                      "passed": true
+                    }
+                  ],
+                  "median_ms": 2403.7159540000002
+                }
+              ],
+              "ratio_3200_800": 11.251022840702595,
+              "scope": "Real entry-point process wall time, three trials. Includes startup; ratios are evidence, not a portable CI gate."
+            }
+          }
+        }
+      ],
+      "workflow": {
+        "grounding": "compact",
+        "batch_verification": true,
+        "review": "always",
+        "allocation_guidance": false
+      },
+      "sparse_runs": {
+        "scope": "Supplemental sparse runs, three real entry-point process trials per size, startup included. Full output equality; no portable speed threshold.",
+        "levels": [
+          {
+            "n": 200,
+            "trials": [
+              {
+                "ms": 42.95273100000001,
+                "correct": true,
+                "status": 0,
+                "signal": null,
+                "error": null
+              },
+              {
+                "ms": 38.49212399999999,
+                "correct": true,
+                "status": 0,
+                "signal": null,
+                "error": null
+              },
+              {
+                "ms": 39.417668000000006,
+                "correct": true,
+                "status": 0,
+                "signal": null,
+                "error": null
+              }
+            ],
+            "median_ms": 39.417668000000006
+          },
+          {
+            "n": 800,
+            "trials": [
+              {
+                "ms": 167.17152399999998,
+                "correct": true,
+                "status": 0,
+                "signal": null,
+                "error": null
+              },
+              {
+                "ms": 169.84155200000004,
+                "correct": true,
+                "status": 0,
+                "signal": null,
+                "error": null
+              },
+              {
+                "ms": 176.267878,
+                "correct": true,
+                "status": 0,
+                "signal": null,
+                "error": null
+              }
+            ],
+            "median_ms": 169.84155200000004
+          },
+          {
+            "n": 3200,
+            "trials": [
+              {
+                "ms": 2505.113773,
+                "correct": true,
+                "status": 0,
+                "signal": null,
+                "error": null
+              },
+              {
+                "ms": 1708.716778,
+                "correct": true,
+                "status": 0,
+                "signal": null,
+                "error": null
+              },
+              {
+                "ms": 1807.0625250000003,
+                "correct": true,
+                "status": 0,
+                "signal": null,
+                "error": null
+              }
+            ],
+            "median_ms": 1807.0625250000003
+          }
+        ],
+        "passed": true
+      },
+      "source_audit": [
+        {
+          "task": "runs",
+          "files": [
+            {
+              "path": "main.kujo",
+              "sha256": "652cc59574334c59bcfe9051ffb0ef8552d4ab5d46a01de37125e88754367bc3",
+              "bytes": 1954,
+              "lines": 91
+            }
+          ],
+          "candidate_spans": [],
+          "limit": 20,
+          "scope": "Exact 8-line cross-file matches of at least 160 characters. Not semantic duplication; shared boilerplate may be legitimate. Inspect each candidate."
+        },
+        {
+          "task": "frequencies",
+          "files": [
+            {
+              "path": "main.kujo",
+              "sha256": "adc8ec973976532dd0fcfddb4d8339064806235d4056920cb93b54fe072265c2",
+              "bytes": 2244,
+              "lines": 85
+            }
+          ],
+          "candidate_spans": [],
+          "limit": 20,
+          "scope": "Exact 8-line cross-file matches of at least 160 characters. Not semantic duplication; shared boilerplate may be legitimate. Inspect each candidate."
+        },
+        {
+          "task": "merge",
+          "files": [
+            {
+              "path": "main.kujo",
+              "sha256": "319e8a81e95c744fa6886a0bac772b1b09684da3a47cf14c2b3ebccd2abb8238",
+              "bytes": 2631,
+              "lines": 93
+            },
+            {
+              "path": "probe_a.kujo",
+              "sha256": "cf256353239f6168310e56c6d8fbdec932418fb3effb6f9601cc4f4ada91b29e",
+              "bytes": 259,
+              "lines": 16
+            },
+            {
+              "path": "probe_b.kujo",
+              "sha256": "2386097f46e4a5453baa337165ecfb6ea9dc851a9536b1e56424344b5e0d446a",
+              "bytes": 16,
+              "lines": 1
+            },
+            {
+              "path": "probe_c.kujo",
+              "sha256": "5573c50bafdd1d89ccbca310a90189fa62a0bc8dc1b45ec2a5982f4908f559b5",
+              "bytes": 110,
+              "lines": 7
+            },
+            {
+              "path": "probe_d.kujo",
+              "sha256": "0a36f3deb591f469fd7666c807ce28434d9189a8fdc631e821a0f014147aceb8",
+              "bytes": 154,
+              "lines": 7
+            },
+            {
+              "path": "scale_probe.kujo",
+              "sha256": "8b32d0117706e064c215b0f47c26eea8d407fbf2940830b048a66fb094f2ccf8",
+              "bytes": 48,
+              "lines": 2
+            }
+          ],
+          "candidate_spans": [],
+          "limit": 20,
+          "scope": "Exact 8-line cross-file matches of at least 160 characters. Not semantic duplication; shared boilerplate may be legitimate. Inspect each candidate."
+        }
+      ],
+      "protocol_deviation": "Broad documentation search exposed historical benchmark descriptions/path, not a matched-task implementation."
+    },
+    {
+      "lane": "selective-v2",
+      "finished": "2026-10-05T17:20:04.094Z",
+      "summary": {
+        "total": 3,
+        "completed": 3,
+        "failed": 0,
+        "retry_count": 0,
+        "tool_calls_executed": 87,
+        "tool_input_repairs": 10,
+        "provider_rounds": 71,
+        "latency_ms_total": 1435451,
+        "latency_samples": 3,
+        "token_use": {
+          "input_tokens": 2634826,
+          "output_tokens": 144794,
+          "total_tokens": 2779620
+        },
+        "transport_completion_rate": 1,
+        "task_completion_rate": null,
+        "repair_rate": 0.1149,
+        "average_latency_ms": 478484
+      },
+      "acceptance_integrity": "unchanged_after_generation",
+      "rows": [
+        {
+          "task": "runs",
+          "delivered": true,
+          "error": null,
+          "execution_id": "3c52a69a-92da-4a0e-9ca8-3ade74a8d756",
+          "execution_status": "completed",
+          "duration_ms": 573272,
+          "usage": {
+            "input_tokens": 1547537,
+            "output_tokens": 56681,
+            "total_tokens": 1604218,
+            "cached_input_tokens": 1146880,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": true
+          },
+          "usage_complete": true,
+          "model_tool_calls": 35,
+          "provider_rounds": 32,
+          "receipt_counts": {
+            "kujo_grounding:guide": 1,
+            "local_workspace_list": 1,
+            "local_kujo:guide": 6,
+            "local_file_write": 6,
+            "local_kujo:check": 3,
+            "local_kujo:verify": 3,
+            "local_kujo_case": 90,
+            "local_shell": 4,
+            "local_file_read": 5,
+            "documentation_query": 2,
+            "local_kujo:run": 2,
+            "tool_result_read": 3
+          },
+          "review": {
+            "outcome": "pass",
+            "reviews": 1,
+            "repairs": 0,
+            "deterministic_repairs": 0
+          },
+          "main_sha256": "756b6f7661e9f34ae0c045010adbc1efda1d51955033c1290c2eb2c808d250a5",
+          "independent": {
+            "task": "runs",
+            "checks": 35,
+            "passed": 35,
+            "results": [
+              {
+                "case": 1,
+                "passed": true
+              },
+              {
+                "case": 2,
+                "passed": true
+              },
+              {
+                "case": 3,
+                "passed": true
+              },
+              {
+                "case": 4,
+                "passed": true
+              },
+              {
+                "case": 5,
+                "passed": true
+              },
+              {
+                "case": 6,
+                "passed": true
+              },
+              {
+                "case": 7,
+                "passed": true
+              },
+              {
+                "case": 8,
+                "passed": true
+              },
+              {
+                "case": 9,
+                "passed": true
+              },
+              {
+                "case": 10,
+                "passed": true
+              },
+              {
+                "case": 11,
+                "passed": true
+              },
+              {
+                "case": 12,
+                "passed": true
+              },
+              {
+                "case": 13,
+                "passed": true
+              },
+              {
+                "case": 14,
+                "passed": true
+              },
+              {
+                "case": 15,
+                "passed": true
+              },
+              {
+                "case": 16,
+                "passed": true
+              },
+              {
+                "case": 17,
+                "passed": true
+              },
+              {
+                "case": 18,
+                "passed": true
+              },
+              {
+                "case": 19,
+                "passed": true
+              },
+              {
+                "case": 20,
+                "passed": true
+              },
+              {
+                "case": 21,
+                "passed": true
+              },
+              {
+                "case": 22,
+                "passed": true
+              },
+              {
+                "case": 23,
+                "passed": true
+              },
+              {
+                "case": 24,
+                "passed": true
+              },
+              {
+                "case": 25,
+                "passed": true
+              },
+              {
+                "case": 26,
+                "passed": true
+              },
+              {
+                "case": 27,
+                "passed": true
+              },
+              {
+                "case": 28,
+                "passed": true
+              },
+              {
+                "case": 29,
+                "passed": true
+              },
+              {
+                "case": 30,
+                "passed": true
+              },
+              {
+                "case": 31,
+                "passed": true
+              },
+              {
+                "case": 32,
+                "passed": true
+              },
+              {
+                "case": 33,
+                "passed": true
+              },
+              {
+                "case": 34,
+                "passed": true
+              },
+              {
+                "case": 35,
+                "passed": true
+              }
+            ],
+            "scaling": {
+              "levels": [
+                {
+                  "n": 200,
+                  "trials": [
+                    {
+                      "ms": 35.634518999999955,
+                      "passed": true
+                    },
+                    {
+                      "ms": 36.72111899999982,
+                      "passed": true
+                    },
+                    {
+                      "ms": 39.84156200000007,
+                      "passed": true
+                    }
+                  ],
+                  "median_ms": 36.72111899999982
+                },
+                {
+                  "n": 800,
+                  "trials": [
+                    {
+                      "ms": 66.19589500000006,
+                      "passed": true
+                    },
+                    {
+                      "ms": 67.64111600000001,
+                      "passed": true
+                    },
+                    {
+                      "ms": 69.75776200000018,
+                      "passed": true
+                    }
+                  ],
+                  "median_ms": 67.64111600000001
+                },
+                {
+                  "n": 3200,
+                  "trials": [
+                    {
+                      "ms": 181.16823799999997,
+                      "passed": true
+                    },
+                    {
+                      "ms": 188.9790069999999,
+                      "passed": true
+                    },
+                    {
+                      "ms": 180.20813199999998,
+                      "passed": true
+                    }
+                  ],
+                  "median_ms": 181.16823799999997
+                }
+              ],
+              "ratio_3200_800": 2.6783744667962006,
+              "scope": "Real entry-point process wall time, three trials. Includes startup; ratios are evidence, not a portable CI gate."
+            }
+          }
+        },
+        {
+          "task": "frequencies",
+          "delivered": true,
+          "error": null,
+          "execution_id": "7d766ffa-62ff-46eb-a671-6a5c5f8a8b8c",
+          "execution_status": "completed",
+          "duration_ms": 378638,
+          "usage": {
+            "input_tokens": 530936,
+            "output_tokens": 37170,
+            "total_tokens": 568106,
+            "cached_input_tokens": 273280,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": true
+          },
+          "usage_complete": true,
+          "model_tool_calls": 23,
+          "provider_rounds": 22,
+          "receipt_counts": {
+            "kujo_grounding:guide": 1,
+            "local_workspace_list": 1,
+            "local_kujo:guide": 6,
+            "local_file_list": 1,
+            "local_file_write": 2,
+            "local_kujo:check": 2,
+            "local_kujo:verify": 2,
+            "local_kujo_case": 48,
+            "local_shell": 1,
+            "local_file_read": 2,
+            "tool_result_read": 6
+          },
+          "review": {
+            "outcome": "inconclusive",
+            "reviews": 1,
+            "repairs": 0,
+            "deterministic_repairs": 0
+          },
+          "main_sha256": "9acf56dc72992e997d2b88d1878149de780154a659cbca29f84ca4e6bcf90f2e",
+          "independent": {
+            "task": "frequencies",
+            "checks": 35,
+            "passed": 35,
+            "results": [
+              {
+                "case": 1,
+                "passed": true
+              },
+              {
+                "case": 2,
+                "passed": true
+              },
+              {
+                "case": 3,
+                "passed": true
+              },
+              {
+                "case": 4,
+                "passed": true
+              },
+              {
+                "case": 5,
+                "passed": true
+              },
+              {
+                "case": 6,
+                "passed": true
+              },
+              {
+                "case": 7,
+                "passed": true
+              },
+              {
+                "case": 8,
+                "passed": true
+              },
+              {
+                "case": 9,
+                "passed": true
+              },
+              {
+                "case": 10,
+                "passed": true
+              },
+              {
+                "case": 11,
+                "passed": true
+              },
+              {
+                "case": 12,
+                "passed": true
+              },
+              {
+                "case": 13,
+                "passed": true
+              },
+              {
+                "case": 14,
+                "passed": true
+              },
+              {
+                "case": 15,
+                "passed": true
+              },
+              {
+                "case": 16,
+                "passed": true
+              },
+              {
+                "case": 17,
+                "passed": true
+              },
+              {
+                "case": 18,
+                "passed": true
+              },
+              {
+                "case": 19,
+                "passed": true
+              },
+              {
+                "case": 20,
+                "passed": true
+              },
+              {
+                "case": 21,
+                "passed": true
+              },
+              {
+                "case": 22,
+                "passed": true
+              },
+              {
+                "case": 23,
+                "passed": true
+              },
+              {
+                "case": 24,
+                "passed": true
+              },
+              {
+                "case": 25,
+                "passed": true
+              },
+              {
+                "case": 26,
+                "passed": true
+              },
+              {
+                "case": 27,
+                "passed": true
+              },
+              {
+                "case": 28,
+                "passed": true
+              },
+              {
+                "case": 29,
+                "passed": true
+              },
+              {
+                "case": 30,
+                "passed": true
+              },
+              {
+                "case": 31,
+                "passed": true
+              },
+              {
+                "case": 32,
+                "passed": true
+              },
+              {
+                "case": 33,
+                "passed": true
+              },
+              {
+                "case": 34,
+                "passed": true
+              },
+              {
+                "case": 35,
+                "passed": true
+              }
+            ],
+            "scaling": {
+              "levels": [
+                {
+                  "n": 200,
+                  "trials": [
+                    {
+                      "ms": 44.62612899999999,
+                      "passed": true
+                    },
+                    {
+                      "ms": 44.500068000000056,
+                      "passed": true
+                    },
+                    {
+                      "ms": 47.77924699999994,
+                      "passed": true
+                    }
+                  ],
+                  "median_ms": 44.62612899999999
+                },
+                {
+                  "n": 800,
+                  "trials": [
+                    {
+                      "ms": 193.29935,
+                      "passed": true
+                    },
+                    {
+                      "ms": 198.74241499999994,
+                      "passed": true
+                    },
+                    {
+                      "ms": 202.89726900000005,
+                      "passed": true
+                    }
+                  ],
+                  "median_ms": 198.74241499999994
+                },
+                {
+                  "n": 3200,
+                  "trials": [
+                    {
+                      "ms": 2663.355751,
+                      "passed": true
+                    },
+                    {
+                      "ms": 2335.4317439999995,
+                      "passed": true
+                    },
+                    {
+                      "ms": 2359.285430000001,
+                      "passed": true
+                    }
+                  ],
+                  "median_ms": 2359.285430000001
+                }
+              ],
+              "ratio_3200_800": 11.871071557623981,
+              "scope": "Real entry-point process wall time, three trials. Includes startup; ratios are evidence, not a portable CI gate."
+            }
+          }
+        },
+        {
+          "task": "merge",
+          "delivered": true,
+          "error": null,
+          "execution_id": "f1584251-2e8f-4cc4-bce7-7b4f3c3c2ce5",
+          "execution_status": "completed",
+          "duration_ms": 483541,
+          "usage": {
+            "input_tokens": 556353,
+            "output_tokens": 50943,
+            "total_tokens": 607296,
+            "cached_input_tokens": 304640,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": true
+          },
+          "usage_complete": true,
+          "model_tool_calls": 29,
+          "provider_rounds": 17,
+          "receipt_counts": {
+            "kujo_grounding:guide": 1,
+            "local_workspace_list": 2,
+            "local_file_list": 1,
+            "local_kujo:guide": 4,
+            "local_file_write": 3,
+            "local_kujo:check": 2,
+            "local_shell": 3,
+            "local_kujo:verify": 2,
+            "local_kujo_case": 56,
+            "local_file_read": 3,
+            "tool_result_read": 9
+          },
+          "review": {
+            "outcome": "inconclusive",
+            "reviews": 1,
+            "repairs": 0,
+            "deterministic_repairs": 0
+          },
+          "main_sha256": "54cc590519a1d54a376b5b0b2b5dc5966379fef377d745db1523ef835486b875",
+          "independent": {
+            "task": "merge",
+            "checks": 36,
+            "passed": 36,
+            "results": [
+              {
+                "case": 1,
+                "passed": true
+              },
+              {
+                "case": 2,
+                "passed": true
+              },
+              {
+                "case": 3,
+                "passed": true
+              },
+              {
+                "case": 4,
+                "passed": true
+              },
+              {
+                "case": 5,
+                "passed": true
+              },
+              {
+                "case": 6,
+                "passed": true
+              },
+              {
+                "case": 7,
+                "passed": true
+              },
+              {
+                "case": 8,
+                "passed": true
+              },
+              {
+                "case": 9,
+                "passed": true
+              },
+              {
+                "case": 10,
+                "passed": true
+              },
+              {
+                "case": 11,
+                "passed": true
+              },
+              {
+                "case": 12,
+                "passed": true
+              },
+              {
+                "case": 13,
+                "passed": true
+              },
+              {
+                "case": 14,
+                "passed": true
+              },
+              {
+                "case": 15,
+                "passed": true
+              },
+              {
+                "case": 16,
+                "passed": true
+              },
+              {
+                "case": 17,
+                "passed": true
+              },
+              {
+                "case": 18,
+                "passed": true
+              },
+              {
+                "case": 19,
+                "passed": true
+              },
+              {
+                "case": 20,
+                "passed": true
+              },
+              {
+                "case": 21,
+                "passed": true
+              },
+              {
+                "case": 22,
+                "passed": true
+              },
+              {
+                "case": 23,
+                "passed": true
+              },
+              {
+                "case": 24,
+                "passed": true
+              },
+              {
+                "case": 25,
+                "passed": true
+              },
+              {
+                "case": 26,
+                "passed": true
+              },
+              {
+                "case": 27,
+                "passed": true
+              },
+              {
+                "case": 28,
+                "passed": true
+              },
+              {
+                "case": 29,
+                "passed": true
+              },
+              {
+                "case": 30,
+                "passed": true
+              },
+              {
+                "case": 31,
+                "passed": true
+              },
+              {
+                "case": 32,
+                "passed": true
+              },
+              {
+                "case": 33,
+                "passed": true
+              },
+              {
+                "case": 34,
+                "passed": true
+              },
+              {
+                "case": 35,
+                "passed": true
+              },
+              {
+                "case": 36,
+                "passed": true
+              }
+            ],
+            "scaling": {
+              "levels": [
+                {
+                  "n": 200,
+                  "trials": [
+                    {
+                      "ms": 83.86372100000017,
+                      "passed": true
+                    },
+                    {
+                      "ms": 79.77749999999992,
+                      "passed": true
+                    },
+                    {
+                      "ms": 80.42915700000003,
+                      "passed": true
+                    }
+                  ],
+                  "median_ms": 80.42915700000003
+                },
+                {
+                  "n": 800,
+                  "trials": [
+                    {
+                      "ms": 347.36084800000003,
+                      "passed": true
+                    },
+                    {
+                      "ms": 334.8821290000001,
+                      "passed": true
+                    },
+                    {
+                      "ms": 332.82675500000005,
+                      "passed": true
+                    }
+                  ],
+                  "median_ms": 334.8821290000001
+                },
+                {
+                  "n": 3200,
+                  "trials": [
+                    {
+                      "ms": 2859.413572,
+                      "passed": true
+                    },
+                    {
+                      "ms": 3551.802680999999,
+                      "passed": true
+                    },
+                    {
+                      "ms": 2822.3994000000002,
+                      "passed": true
+                    }
+                  ],
+                  "median_ms": 2859.413572
+                }
+              ],
+              "ratio_3200_800": 8.538567228232115,
+              "scope": "Real entry-point process wall time, three trials. Includes startup; ratios are evidence, not a portable CI gate."
+            }
+          }
+        }
+      ],
+      "workflow": {
+        "grounding": "compact",
+        "batch_verification": true,
+        "review": "selective",
+        "allocation_guidance": false
+      },
+      "sparse_runs": {
+        "scope": "Supplemental sparse runs, three real entry-point process trials per size, startup included. Full output equality; no portable speed threshold.",
+        "levels": [
+          {
+            "n": 200,
+            "trials": [
+              {
+                "ms": 46.016448,
+                "correct": true,
+                "status": 0,
+                "signal": null,
+                "error": null
+              },
+              {
+                "ms": 45.489768999999995,
+                "correct": true,
+                "status": 0,
+                "signal": null,
+                "error": null
+              },
+              {
+                "ms": 44.157779000000005,
+                "correct": true,
+                "status": 0,
+                "signal": null,
+                "error": null
+              }
+            ],
+            "median_ms": 45.489768999999995
+          },
+          {
+            "n": 800,
+            "trials": [
+              {
+                "ms": 109.06645,
+                "correct": true,
+                "status": 0,
+                "signal": null,
+                "error": null
+              },
+              {
+                "ms": 99.78519899999998,
+                "correct": true,
+                "status": 0,
+                "signal": null,
+                "error": null
+              },
+              {
+                "ms": 99.781543,
+                "correct": true,
+                "status": 0,
+                "signal": null,
+                "error": null
+              }
+            ],
+            "median_ms": 99.78519899999998
+          },
+          {
+            "n": 3200,
+            "trials": [
+              {
+                "ms": 341.05899999999997,
+                "correct": true,
+                "status": 0,
+                "signal": null,
+                "error": null
+              },
+              {
+                "ms": 335.3104229999999,
+                "correct": true,
+                "status": 0,
+                "signal": null,
+                "error": null
+              },
+              {
+                "ms": 307.073805,
+                "correct": true,
+                "status": 0,
+                "signal": null,
+                "error": null
+              }
+            ],
+            "median_ms": 335.3104229999999
+          }
+        ],
+        "passed": true
+      },
+      "source_audit": [
+        {
+          "task": "runs",
+          "files": [
+            {
+              "path": "main.kujo",
+              "sha256": "756b6f7661e9f34ae0c045010adbc1efda1d51955033c1290c2eb2c808d250a5",
+              "bytes": 3199,
+              "lines": 120
+            },
+            {
+              "path": "probe.kujo",
+              "sha256": "d9d888ba5388d0ef8fc970ee6c0183fa256ad0bbe98b6d71b56b86a1d83ca555",
+              "bytes": 493,
+              "lines": 21
+            }
+          ],
+          "candidate_spans": [],
+          "limit": 20,
+          "scope": "Exact 8-line cross-file matches of at least 160 characters. Not semantic duplication; shared boilerplate may be legitimate. Inspect each candidate."
+        },
+        {
+          "task": "frequencies",
+          "files": [
+            {
+              "path": "main.kujo",
+              "sha256": "9acf56dc72992e997d2b88d1878149de780154a659cbca29f84ca4e6bcf90f2e",
+              "bytes": 1862,
+              "lines": 74
+            }
+          ],
+          "candidate_spans": [],
+          "limit": 20,
+          "scope": "Exact 8-line cross-file matches of at least 160 characters. Not semantic duplication; shared boilerplate may be legitimate. Inspect each candidate."
+        },
+        {
+          "task": "merge",
+          "files": [
+            {
+              "path": "main.kujo",
+              "sha256": "54cc590519a1d54a376b5b0b2b5dc5966379fef377d745db1523ef835486b875",
+              "bytes": 3635,
+              "lines": 143
+            }
+          ],
+          "candidate_spans": [],
+          "limit": 20,
+          "scope": "Exact 8-line cross-file matches of at least 160 characters. Not semantic duplication; shared boilerplate may be legitimate. Inspect each candidate."
+        }
+      ]
+    },
+    {
+      "lane": "allocation-v2",
+      "finished": "2026-10-05T17:45:49.644Z",
+      "summary": {
+        "total": 3,
+        "completed": 3,
+        "failed": 0,
+        "retry_count": 0,
+        "tool_calls_executed": 84,
+        "tool_input_repairs": 10,
+        "provider_rounds": 76,
+        "latency_ms_total": 1467372,
+        "latency_samples": 3,
+        "token_use": {
+          "input_tokens": 2761778,
+          "output_tokens": 161351,
+          "total_tokens": 2923129
+        },
+        "transport_completion_rate": 1,
+        "task_completion_rate": null,
+        "repair_rate": 0.119,
+        "average_latency_ms": 489124
+      },
+      "acceptance_integrity": "unchanged_after_generation",
+      "rows": [
+        {
+          "task": "runs",
+          "delivered": true,
+          "error": null,
+          "execution_id": "7e5ffb1a-a904-4a14-883d-1e0830ce4132",
+          "execution_status": "completed",
+          "duration_ms": 481284,
+          "usage": {
+            "input_tokens": 861839,
+            "output_tokens": 56707,
+            "total_tokens": 918546,
+            "cached_input_tokens": 555520,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": true
+          },
+          "usage_complete": true,
+          "model_tool_calls": 26,
+          "provider_rounds": 25,
+          "receipt_counts": {
+            "kujo_grounding:guide": 1,
+            "local_workspace_list": 1,
+            "local_file_list": 1,
+            "local_kujo:guide": 3,
+            "local_file_write": 3,
+            "local_kujo:check": 2,
+            "local_kujo:verify": 1,
+            "local_kujo_case": 25,
+            "local_shell": 8,
+            "local_kujo:run": 4,
+            "local_file_read": 3
+          },
+          "review": {
+            "outcome": "pass",
+            "reviews": 1,
+            "repairs": 0,
+            "deterministic_repairs": 0
+          },
+          "main_sha256": "106cf85f07e1394d2ab2dd9d56575002402cdbafd9785f9291049709d9926b76",
+          "independent": {
+            "task": "runs",
+            "checks": 35,
+            "passed": 35,
+            "results": [
+              {
+                "case": 1,
+                "passed": true
+              },
+              {
+                "case": 2,
+                "passed": true
+              },
+              {
+                "case": 3,
+                "passed": true
+              },
+              {
+                "case": 4,
+                "passed": true
+              },
+              {
+                "case": 5,
+                "passed": true
+              },
+              {
+                "case": 6,
+                "passed": true
+              },
+              {
+                "case": 7,
+                "passed": true
+              },
+              {
+                "case": 8,
+                "passed": true
+              },
+              {
+                "case": 9,
+                "passed": true
+              },
+              {
+                "case": 10,
+                "passed": true
+              },
+              {
+                "case": 11,
+                "passed": true
+              },
+              {
+                "case": 12,
+                "passed": true
+              },
+              {
+                "case": 13,
+                "passed": true
+              },
+              {
+                "case": 14,
+                "passed": true
+              },
+              {
+                "case": 15,
+                "passed": true
+              },
+              {
+                "case": 16,
+                "passed": true
+              },
+              {
+                "case": 17,
+                "passed": true
+              },
+              {
+                "case": 18,
+                "passed": true
+              },
+              {
+                "case": 19,
+                "passed": true
+              },
+              {
+                "case": 20,
+                "passed": true
+              },
+              {
+                "case": 21,
+                "passed": true
+              },
+              {
+                "case": 22,
+                "passed": true
+              },
+              {
+                "case": 23,
+                "passed": true
+              },
+              {
+                "case": 24,
+                "passed": true
+              },
+              {
+                "case": 25,
+                "passed": true
+              },
+              {
+                "case": 26,
+                "passed": true
+              },
+              {
+                "case": 27,
+                "passed": true
+              },
+              {
+                "case": 28,
+                "passed": true
+              },
+              {
+                "case": 29,
+                "passed": true
+              },
+              {
+                "case": 30,
+                "passed": true
+              },
+              {
+                "case": 31,
+                "passed": true
+              },
+              {
+                "case": 32,
+                "passed": true
+              },
+              {
+                "case": 33,
+                "passed": true
+              },
+              {
+                "case": 34,
+                "passed": true
+              },
+              {
+                "case": 35,
+                "passed": true
+              }
+            ],
+            "scaling": {
+              "levels": [
+                {
+                  "n": 200,
+                  "trials": [
+                    {
+                      "ms": 39.736741999999936,
+                      "passed": true
+                    },
+                    {
+                      "ms": 32.11202800000001,
+                      "passed": true
+                    },
+                    {
+                      "ms": 35.41154699999993,
+                      "passed": true
+                    }
+                  ],
+                  "median_ms": 35.41154699999993
+                },
+                {
+                  "n": 800,
+                  "trials": [
+                    {
+                      "ms": 55.81609800000001,
+                      "passed": true
+                    },
+                    {
+                      "ms": 50.22737699999993,
+                      "passed": true
+                    },
+                    {
+                      "ms": 49.12278800000013,
+                      "passed": true
+                    }
+                  ],
+                  "median_ms": 50.22737699999993
+                },
+                {
+                  "n": 3200,
+                  "trials": [
+                    {
+                      "ms": 131.92937099999995,
+                      "passed": true
+                    },
+                    {
+                      "ms": 123.41217899999992,
+                      "passed": true
+                    },
+                    {
+                      "ms": 131.817681,
+                      "passed": true
+                    }
+                  ],
+                  "median_ms": 131.817681
+                }
+              ],
+              "ratio_3200_800": 2.6244189697582687,
+              "scope": "Real entry-point process wall time, three trials. Includes startup; ratios are evidence, not a portable CI gate."
+            }
+          }
+        },
+        {
+          "task": "frequencies",
+          "delivered": true,
+          "error": null,
+          "execution_id": "a2b3944d-b5cc-4ee9-a231-e56545a2fc7c",
+          "execution_status": "completed",
+          "duration_ms": 506996,
+          "usage": {
+            "input_tokens": 1085128,
+            "output_tokens": 54778,
+            "total_tokens": 1139906,
+            "cached_input_tokens": 734720,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": true
+          },
+          "usage_complete": true,
+          "model_tool_calls": 30,
+          "provider_rounds": 29,
+          "receipt_counts": {
+            "kujo_grounding:guide": 1,
+            "local_workspace_list": 1,
+            "local_file_list": 3,
+            "local_kujo:guide": 6,
+            "local_shell": 3,
+            "local_file_write": 4,
+            "local_kujo:check": 2,
+            "local_kujo:verify": 2,
+            "local_kujo_case": 50,
+            "tool_result_read": 5,
+            "local_file_read": 4
+          },
+          "review": {
+            "outcome": "pass",
+            "reviews": 1,
+            "repairs": 0,
+            "deterministic_repairs": 0
+          },
+          "main_sha256": "241c51f2e89ce867144fa1d32fa0a7dbcf1b46fdfca63125533e1c92d4ab1468",
+          "independent": {
+            "task": "frequencies",
+            "checks": 35,
+            "passed": 35,
+            "results": [
+              {
+                "case": 1,
+                "passed": true
+              },
+              {
+                "case": 2,
+                "passed": true
+              },
+              {
+                "case": 3,
+                "passed": true
+              },
+              {
+                "case": 4,
+                "passed": true
+              },
+              {
+                "case": 5,
+                "passed": true
+              },
+              {
+                "case": 6,
+                "passed": true
+              },
+              {
+                "case": 7,
+                "passed": true
+              },
+              {
+                "case": 8,
+                "passed": true
+              },
+              {
+                "case": 9,
+                "passed": true
+              },
+              {
+                "case": 10,
+                "passed": true
+              },
+              {
+                "case": 11,
+                "passed": true
+              },
+              {
+                "case": 12,
+                "passed": true
+              },
+              {
+                "case": 13,
+                "passed": true
+              },
+              {
+                "case": 14,
+                "passed": true
+              },
+              {
+                "case": 15,
+                "passed": true
+              },
+              {
+                "case": 16,
+                "passed": true
+              },
+              {
+                "case": 17,
+                "passed": true
+              },
+              {
+                "case": 18,
+                "passed": true
+              },
+              {
+                "case": 19,
+                "passed": true
+              },
+              {
+                "case": 20,
+                "passed": true
+              },
+              {
+                "case": 21,
+                "passed": true
+              },
+              {
+                "case": 22,
+                "passed": true
+              },
+              {
+                "case": 23,
+                "passed": true
+              },
+              {
+                "case": 24,
+                "passed": true
+              },
+              {
+                "case": 25,
+                "passed": true
+              },
+              {
+                "case": 26,
+                "passed": true
+              },
+              {
+                "case": 27,
+                "passed": true
+              },
+              {
+                "case": 28,
+                "passed": true
+              },
+              {
+                "case": 29,
+                "passed": true
+              },
+              {
+                "case": 30,
+                "passed": true
+              },
+              {
+                "case": 31,
+                "passed": true
+              },
+              {
+                "case": 32,
+                "passed": true
+              },
+              {
+                "case": 33,
+                "passed": true
+              },
+              {
+                "case": 34,
+                "passed": true
+              },
+              {
+                "case": 35,
+                "passed": true
+              }
+            ],
+            "scaling": {
+              "levels": [
+                {
+                  "n": 200,
+                  "trials": [
+                    {
+                      "ms": 28.477071000000024,
+                      "passed": true
+                    },
+                    {
+                      "ms": 31.977045999999973,
+                      "passed": true
+                    },
+                    {
+                      "ms": 28.20122800000013,
+                      "passed": true
+                    }
+                  ],
+                  "median_ms": 28.477071000000024
+                },
+                {
+                  "n": 800,
+                  "trials": [
+                    {
+                      "ms": 57.980829000000085,
+                      "passed": true
+                    },
+                    {
+                      "ms": 51.79601899999989,
+                      "passed": true
+                    },
+                    {
+                      "ms": 49.12115599999993,
+                      "passed": true
+                    }
+                  ],
+                  "median_ms": 51.79601899999989
+                },
+                {
+                  "n": 3200,
+                  "trials": [
+                    {
+                      "ms": 119.78749999999991,
+                      "passed": true
+                    },
+                    {
+                      "ms": 119.424757,
+                      "passed": true
+                    },
+                    {
+                      "ms": 117.3039839999999,
+                      "passed": true
+                    }
+                  ],
+                  "median_ms": 119.424757
+                }
+              ],
+              "ratio_3200_800": 2.3056744380296923,
+              "scope": "Real entry-point process wall time, three trials. Includes startup; ratios are evidence, not a portable CI gate."
+            }
+          }
+        },
+        {
+          "task": "merge",
+          "delivered": true,
+          "error": null,
+          "execution_id": "dc50a417-62af-43b7-83bb-6986efc15382",
+          "execution_status": "completed",
+          "duration_ms": 479092,
+          "usage": {
+            "input_tokens": 814811,
+            "output_tokens": 49866,
+            "total_tokens": 864677,
+            "cached_input_tokens": 519680,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": true
+          },
+          "usage_complete": true,
+          "model_tool_calls": 28,
+          "provider_rounds": 22,
+          "receipt_counts": {
+            "kujo_grounding:guide": 1,
+            "local_workspace_list": 1,
+            "local_file_list": 1,
+            "local_kujo:guide": 4,
+            "local_file_write": 5,
+            "local_shell": 4,
+            "local_kujo:check": 1,
+            "local_kujo:run": 2,
+            "local_kujo:verify": 1,
+            "local_kujo_case": 32,
+            "local_file_read": 5,
+            "tool_result_read": 4
+          },
+          "review": {
+            "outcome": "inconclusive",
+            "reviews": 1,
+            "repairs": 0,
+            "deterministic_repairs": 0
+          },
+          "main_sha256": "6c959a8e5620b0ee04f137c261a80ef3154fa8d29480a4865b791b5e74be1696",
+          "independent": {
+            "task": "merge",
+            "checks": 36,
+            "passed": 36,
+            "results": [
+              {
+                "case": 1,
+                "passed": true
+              },
+              {
+                "case": 2,
+                "passed": true
+              },
+              {
+                "case": 3,
+                "passed": true
+              },
+              {
+                "case": 4,
+                "passed": true
+              },
+              {
+                "case": 5,
+                "passed": true
+              },
+              {
+                "case": 6,
+                "passed": true
+              },
+              {
+                "case": 7,
+                "passed": true
+              },
+              {
+                "case": 8,
+                "passed": true
+              },
+              {
+                "case": 9,
+                "passed": true
+              },
+              {
+                "case": 10,
+                "passed": true
+              },
+              {
+                "case": 11,
+                "passed": true
+              },
+              {
+                "case": 12,
+                "passed": true
+              },
+              {
+                "case": 13,
+                "passed": true
+              },
+              {
+                "case": 14,
+                "passed": true
+              },
+              {
+                "case": 15,
+                "passed": true
+              },
+              {
+                "case": 16,
+                "passed": true
+              },
+              {
+                "case": 17,
+                "passed": true
+              },
+              {
+                "case": 18,
+                "passed": true
+              },
+              {
+                "case": 19,
+                "passed": true
+              },
+              {
+                "case": 20,
+                "passed": true
+              },
+              {
+                "case": 21,
+                "passed": true
+              },
+              {
+                "case": 22,
+                "passed": true
+              },
+              {
+                "case": 23,
+                "passed": true
+              },
+              {
+                "case": 24,
+                "passed": true
+              },
+              {
+                "case": 25,
+                "passed": true
+              },
+              {
+                "case": 26,
+                "passed": true
+              },
+              {
+                "case": 27,
+                "passed": true
+              },
+              {
+                "case": 28,
+                "passed": true
+              },
+              {
+                "case": 29,
+                "passed": true
+              },
+              {
+                "case": 30,
+                "passed": true
+              },
+              {
+                "case": 31,
+                "passed": true
+              },
+              {
+                "case": 32,
+                "passed": true
+              },
+              {
+                "case": 33,
+                "passed": true
+              },
+              {
+                "case": 34,
+                "passed": true
+              },
+              {
+                "case": 35,
+                "passed": true
+              },
+              {
+                "case": 36,
+                "passed": true
+              }
+            ],
+            "scaling": {
+              "levels": [
+                {
+                  "n": 200,
+                  "trials": [
+                    {
+                      "ms": 30.197461999999973,
+                      "passed": true
+                    },
+                    {
+                      "ms": 34.868649000000005,
+                      "passed": true
+                    },
+                    {
+                      "ms": 32.30422700000008,
+                      "passed": true
+                    }
+                  ],
+                  "median_ms": 32.30422700000008
+                },
+                {
+                  "n": 800,
+                  "trials": [
+                    {
+                      "ms": 57.46150399999988,
+                      "passed": true
+                    },
+                    {
+                      "ms": 51.58295999999996,
+                      "passed": true
+                    },
+                    {
+                      "ms": 53.48522300000013,
+                      "passed": true
+                    }
+                  ],
+                  "median_ms": 53.48522300000013
+                },
+                {
+                  "n": 3200,
+                  "trials": [
+                    {
+                      "ms": 135.03298100000006,
+                      "passed": true
+                    },
+                    {
+                      "ms": 144.74357899999995,
+                      "passed": true
+                    },
+                    {
+                      "ms": 117.66194799999994,
+                      "passed": true
+                    }
+                  ],
+                  "median_ms": 135.03298100000006
+                }
+              ],
+              "ratio_3200_800": 2.5246782835700197,
+              "scope": "Real entry-point process wall time, three trials. Includes startup; ratios are evidence, not a portable CI gate."
+            }
+          }
+        }
+      ],
+      "workflow": {
+        "grounding": "compact",
+        "batch_verification": true,
+        "review": "always",
+        "allocation_guidance": true
+      },
+      "sparse_runs": {
+        "scope": "Supplemental sparse runs, three real entry-point process trials per size, startup included. Full output equality; no portable speed threshold.",
+        "levels": [
+          {
+            "n": 200,
+            "trials": [
+              {
+                "ms": 34.203743,
+                "correct": true,
+                "status": 0,
+                "signal": null,
+                "error": null
+              },
+              {
+                "ms": 29.607613999999998,
+                "correct": true,
+                "status": 0,
+                "signal": null,
+                "error": null
+              },
+              {
+                "ms": 31.105721000000003,
+                "correct": true,
+                "status": 0,
+                "signal": null,
+                "error": null
+              }
+            ],
+            "median_ms": 31.105721000000003
+          },
+          {
+            "n": 800,
+            "trials": [
+              {
+                "ms": 48.00432799999999,
+                "correct": true,
+                "status": 0,
+                "signal": null,
+                "error": null
+              },
+              {
+                "ms": 48.272564999999986,
+                "correct": true,
+                "status": 0,
+                "signal": null,
+                "error": null
+              },
+              {
+                "ms": 54.51560899999998,
+                "correct": true,
+                "status": 0,
+                "signal": null,
+                "error": null
+              }
+            ],
+            "median_ms": 48.272564999999986
+          },
+          {
+            "n": 3200,
+            "trials": [
+              {
+                "ms": 135.491625,
+                "correct": true,
+                "status": 0,
+                "signal": null,
+                "error": null
+              },
+              {
+                "ms": 121.43595100000005,
+                "correct": true,
+                "status": 0,
+                "signal": null,
+                "error": null
+              },
+              {
+                "ms": 129.18185600000004,
+                "correct": true,
+                "status": 0,
+                "signal": null,
+                "error": null
+              }
+            ],
+            "median_ms": 129.18185600000004
+          }
+        ],
+        "passed": true
+      },
+      "source_audit": [
+        {
+          "task": "runs",
+          "files": [
+            {
+              "path": "main.kujo",
+              "sha256": "106cf85f07e1394d2ab2dd9d56575002402cdbafd9785f9291049709d9926b76",
+              "bytes": 2173,
+              "lines": 92
+            }
+          ],
+          "candidate_spans": [],
+          "limit": 20,
+          "scope": "Exact 8-line cross-file matches of at least 160 characters. Not semantic duplication; shared boilerplate may be legitimate. Inspect each candidate."
+        },
+        {
+          "task": "frequencies",
+          "files": [
+            {
+              "path": "main.kujo",
+              "sha256": "241c51f2e89ce867144fa1d32fa0a7dbcf1b46fdfca63125533e1c92d4ab1468",
+              "bytes": 2076,
+              "lines": 78
+            }
+          ],
+          "candidate_spans": [],
+          "limit": 20,
+          "scope": "Exact 8-line cross-file matches of at least 160 characters. Not semantic duplication; shared boilerplate may be legitimate. Inspect each candidate."
+        },
+        {
+          "task": "merge",
+          "files": [
+            {
+              "path": "main.kujo",
+              "sha256": "6c959a8e5620b0ee04f137c261a80ef3154fa8d29480a4865b791b5e74be1696",
+              "bytes": 3104,
+              "lines": 119
+            },
+            {
+              "path": "tests/probe.kujo",
+              "sha256": "afc27502855124d6cf8ec0a2a8bd7531149c3ee0ce725d8986af4d90d59e94cc",
+              "bytes": 296,
+              "lines": 8
+            }
+          ],
+          "candidate_spans": [],
+          "limit": 20,
+          "scope": "Exact 8-line cross-file matches of at least 160 characters. Not semantic duplication; shared boilerplate may be legitimate. Inspect each candidate."
+        }
+      ]
+    },
+    {
+      "lane": "confirmation-v2",
+      "finished": "2026-10-05T18:10:48.628Z",
+      "summary": {
+        "total": 3,
+        "completed": 3,
+        "failed": 0,
+        "retry_count": 0,
+        "tool_calls_executed": 69,
+        "tool_input_repairs": 8,
+        "provider_rounds": 68,
+        "latency_ms_total": 1356275,
+        "latency_samples": 3,
+        "token_use": {
+          "input_tokens": 2364951,
+          "output_tokens": 140483,
+          "total_tokens": 2505434
+        },
+        "transport_completion_rate": 1,
+        "task_completion_rate": null,
+        "repair_rate": 0.1159,
+        "average_latency_ms": 452092
+      },
+      "acceptance_integrity": "unchanged_after_generation",
+      "rows": [
+        {
+          "task": "runs",
+          "delivered": true,
+          "error": null,
+          "execution_id": "890e7594-73af-41de-8aac-37dbbffc6516",
+          "execution_status": "completed",
+          "duration_ms": 434064,
+          "usage": {
+            "input_tokens": 715530,
+            "output_tokens": 45828,
+            "total_tokens": 761358,
+            "cached_input_tokens": 456960,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": true
+          },
+          "usage_complete": true,
+          "model_tool_calls": 24,
+          "provider_rounds": 21,
+          "receipt_counts": {
+            "kujo_grounding:guide": 1,
+            "local_workspace_list": 1,
+            "local_file_list": 1,
+            "local_kujo:guide": 3,
+            "skill_list": 1,
+            "local_file_write": 3,
+            "local_kujo:check": 2,
+            "local_kujo:run": 2,
+            "local_file_read": 4,
+            "local_kujo:verify": 2,
+            "local_kujo_case": 30,
+            "local_shell": 1,
+            "tool_result_read": 4
+          },
+          "review": {
+            "outcome": "pass",
+            "reviews": 1,
+            "repairs": 0,
+            "deterministic_repairs": 0
+          },
+          "main_sha256": "e1b8f35ccaa588d55fa28f22eb314c4205dc0bb42c3fac02ad479c38a8cd4118",
+          "independent": {
+            "task": "runs",
+            "checks": 35,
+            "passed": 35,
+            "results": [
+              {
+                "case": 1,
+                "passed": true
+              },
+              {
+                "case": 2,
+                "passed": true
+              },
+              {
+                "case": 3,
+                "passed": true
+              },
+              {
+                "case": 4,
+                "passed": true
+              },
+              {
+                "case": 5,
+                "passed": true
+              },
+              {
+                "case": 6,
+                "passed": true
+              },
+              {
+                "case": 7,
+                "passed": true
+              },
+              {
+                "case": 8,
+                "passed": true
+              },
+              {
+                "case": 9,
+                "passed": true
+              },
+              {
+                "case": 10,
+                "passed": true
+              },
+              {
+                "case": 11,
+                "passed": true
+              },
+              {
+                "case": 12,
+                "passed": true
+              },
+              {
+                "case": 13,
+                "passed": true
+              },
+              {
+                "case": 14,
+                "passed": true
+              },
+              {
+                "case": 15,
+                "passed": true
+              },
+              {
+                "case": 16,
+                "passed": true
+              },
+              {
+                "case": 17,
+                "passed": true
+              },
+              {
+                "case": 18,
+                "passed": true
+              },
+              {
+                "case": 19,
+                "passed": true
+              },
+              {
+                "case": 20,
+                "passed": true
+              },
+              {
+                "case": 21,
+                "passed": true
+              },
+              {
+                "case": 22,
+                "passed": true
+              },
+              {
+                "case": 23,
+                "passed": true
+              },
+              {
+                "case": 24,
+                "passed": true
+              },
+              {
+                "case": 25,
+                "passed": true
+              },
+              {
+                "case": 26,
+                "passed": true
+              },
+              {
+                "case": 27,
+                "passed": true
+              },
+              {
+                "case": 28,
+                "passed": true
+              },
+              {
+                "case": 29,
+                "passed": true
+              },
+              {
+                "case": 30,
+                "passed": true
+              },
+              {
+                "case": 31,
+                "passed": true
+              },
+              {
+                "case": 32,
+                "passed": true
+              },
+              {
+                "case": 33,
+                "passed": true
+              },
+              {
+                "case": 34,
+                "passed": true
+              },
+              {
+                "case": 35,
+                "passed": true
+              }
+            ],
+            "scaling": {
+              "levels": [
+                {
+                  "n": 200,
+                  "trials": [
+                    {
+                      "ms": 31.448517000000038,
+                      "passed": true
+                    },
+                    {
+                      "ms": 32.927588000000014,
+                      "passed": true
+                    },
+                    {
+                      "ms": 32.58094899999992,
+                      "passed": true
+                    }
+                  ],
+                  "median_ms": 32.58094899999992
+                },
+                {
+                  "n": 800,
+                  "trials": [
+                    {
+                      "ms": 59.51001599999995,
+                      "passed": true
+                    },
+                    {
+                      "ms": 59.466167999999925,
+                      "passed": true
+                    },
+                    {
+                      "ms": 63.47470599999997,
+                      "passed": true
+                    }
+                  ],
+                  "median_ms": 59.51001599999995
+                },
+                {
+                  "n": 3200,
+                  "trials": [
+                    {
+                      "ms": 155.4097159999999,
+                      "passed": true
+                    },
+                    {
+                      "ms": 137.26164700000004,
+                      "passed": true
+                    },
+                    {
+                      "ms": 139.17532600000004,
+                      "passed": true
+                    }
+                  ],
+                  "median_ms": 139.17532600000004
+                }
+              ],
+              "ratio_3200_800": 2.3386874236431083,
+              "scope": "Real entry-point process wall time, three trials. Includes startup; ratios are evidence, not a portable CI gate."
+            }
+          }
+        },
+        {
+          "task": "frequencies",
+          "delivered": true,
+          "error": null,
+          "execution_id": "c1db92d3-5be6-4474-ba25-ab51c8fb6815",
+          "execution_status": "completed",
+          "duration_ms": 463206,
+          "usage": {
+            "input_tokens": 941374,
+            "output_tokens": 47797,
+            "total_tokens": 989171,
+            "cached_input_tokens": 640640,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": true
+          },
+          "usage_complete": true,
+          "model_tool_calls": 26,
+          "provider_rounds": 25,
+          "receipt_counts": {
+            "kujo_grounding:guide": 1,
+            "local_workspace_list": 1,
+            "local_kujo:guide": 4,
+            "local_file_list": 1,
+            "local_shell": 3,
+            "local_file_write": 3,
+            "local_kujo:check": 3,
+            "local_kujo:verify": 3,
+            "local_kujo_case": 68,
+            "tool_result_read": 4,
+            "local_file_read": 4
+          },
+          "review": {
+            "outcome": "pass",
+            "reviews": 1,
+            "repairs": 0,
+            "deterministic_repairs": 0
+          },
+          "main_sha256": "94c635339d827020a398ea3c19cfd54006152d90f4b1b2be4dc5adbfd832dac7",
+          "independent": {
+            "task": "frequencies",
+            "checks": 35,
+            "passed": 35,
+            "results": [
+              {
+                "case": 1,
+                "passed": true
+              },
+              {
+                "case": 2,
+                "passed": true
+              },
+              {
+                "case": 3,
+                "passed": true
+              },
+              {
+                "case": 4,
+                "passed": true
+              },
+              {
+                "case": 5,
+                "passed": true
+              },
+              {
+                "case": 6,
+                "passed": true
+              },
+              {
+                "case": 7,
+                "passed": true
+              },
+              {
+                "case": 8,
+                "passed": true
+              },
+              {
+                "case": 9,
+                "passed": true
+              },
+              {
+                "case": 10,
+                "passed": true
+              },
+              {
+                "case": 11,
+                "passed": true
+              },
+              {
+                "case": 12,
+                "passed": true
+              },
+              {
+                "case": 13,
+                "passed": true
+              },
+              {
+                "case": 14,
+                "passed": true
+              },
+              {
+                "case": 15,
+                "passed": true
+              },
+              {
+                "case": 16,
+                "passed": true
+              },
+              {
+                "case": 17,
+                "passed": true
+              },
+              {
+                "case": 18,
+                "passed": true
+              },
+              {
+                "case": 19,
+                "passed": true
+              },
+              {
+                "case": 20,
+                "passed": true
+              },
+              {
+                "case": 21,
+                "passed": true
+              },
+              {
+                "case": 22,
+                "passed": true
+              },
+              {
+                "case": 23,
+                "passed": true
+              },
+              {
+                "case": 24,
+                "passed": true
+              },
+              {
+                "case": 25,
+                "passed": true
+              },
+              {
+                "case": 26,
+                "passed": true
+              },
+              {
+                "case": 27,
+                "passed": true
+              },
+              {
+                "case": 28,
+                "passed": true
+              },
+              {
+                "case": 29,
+                "passed": true
+              },
+              {
+                "case": 30,
+                "passed": true
+              },
+              {
+                "case": 31,
+                "passed": true
+              },
+              {
+                "case": 32,
+                "passed": true
+              },
+              {
+                "case": 33,
+                "passed": true
+              },
+              {
+                "case": 34,
+                "passed": true
+              },
+              {
+                "case": 35,
+                "passed": true
+              }
+            ],
+            "scaling": {
+              "levels": [
+                {
+                  "n": 200,
+                  "trials": [
+                    {
+                      "ms": 30.612188999999944,
+                      "passed": true
+                    },
+                    {
+                      "ms": 34.150165000000015,
+                      "passed": true
+                    },
+                    {
+                      "ms": 31.277513000000113,
+                      "passed": true
+                    }
+                  ],
+                  "median_ms": 31.277513000000113
+                },
+                {
+                  "n": 800,
+                  "trials": [
+                    {
+                      "ms": 47.05780499999992,
+                      "passed": true
+                    },
+                    {
+                      "ms": 50.719667999999956,
+                      "passed": true
+                    },
+                    {
+                      "ms": 45.18505600000003,
+                      "passed": true
+                    }
+                  ],
+                  "median_ms": 47.05780499999992
+                },
+                {
+                  "n": 3200,
+                  "trials": [
+                    {
+                      "ms": 102.45292299999983,
+                      "passed": true
+                    },
+                    {
+                      "ms": 108.805523,
+                      "passed": true
+                    },
+                    {
+                      "ms": 103.24339099999997,
+                      "passed": true
+                    }
+                  ],
+                  "median_ms": 103.24339099999997
+                }
+              ],
+              "ratio_3200_800": 2.193969544478332,
+              "scope": "Real entry-point process wall time, three trials. Includes startup; ratios are evidence, not a portable CI gate."
+            }
+          }
+        },
+        {
+          "task": "merge",
+          "delivered": true,
+          "error": null,
+          "execution_id": "554fa820-5a0e-41db-8547-9c17bc55eec1",
+          "execution_status": "completed",
+          "duration_ms": 459005,
+          "usage": {
+            "input_tokens": 708047,
+            "output_tokens": 46858,
+            "total_tokens": 754905,
+            "cached_input_tokens": 421120,
+            "cache_write_input_tokens": null,
+            "cache_details_reported": true
+          },
+          "usage_complete": true,
+          "model_tool_calls": 19,
+          "provider_rounds": 22,
+          "receipt_counts": {
+            "kujo_grounding:guide": 1,
+            "local_workspace_list": 1,
+            "local_kujo:guide": 4,
+            "local_file_write": 2,
+            "documentation_query": 1,
+            "local_kujo:check": 1,
+            "local_kujo:run": 1,
+            "local_kujo:verify": 2,
+            "local_kujo_case": 64,
+            "local_shell": 1,
+            "local_file_read": 2,
+            "tool_result_read": 4
+          },
+          "review": {
+            "outcome": "inconclusive",
+            "reviews": 1,
+            "repairs": 0,
+            "deterministic_repairs": 0
+          },
+          "main_sha256": "a4ad74561711ba2bbbb904f5864cf237189d0f61a7ee9867d95181ddffa221de",
+          "independent": {
+            "task": "merge",
+            "checks": 36,
+            "passed": 36,
+            "results": [
+              {
+                "case": 1,
+                "passed": true
+              },
+              {
+                "case": 2,
+                "passed": true
+              },
+              {
+                "case": 3,
+                "passed": true
+              },
+              {
+                "case": 4,
+                "passed": true
+              },
+              {
+                "case": 5,
+                "passed": true
+              },
+              {
+                "case": 6,
+                "passed": true
+              },
+              {
+                "case": 7,
+                "passed": true
+              },
+              {
+                "case": 8,
+                "passed": true
+              },
+              {
+                "case": 9,
+                "passed": true
+              },
+              {
+                "case": 10,
+                "passed": true
+              },
+              {
+                "case": 11,
+                "passed": true
+              },
+              {
+                "case": 12,
+                "passed": true
+              },
+              {
+                "case": 13,
+                "passed": true
+              },
+              {
+                "case": 14,
+                "passed": true
+              },
+              {
+                "case": 15,
+                "passed": true
+              },
+              {
+                "case": 16,
+                "passed": true
+              },
+              {
+                "case": 17,
+                "passed": true
+              },
+              {
+                "case": 18,
+                "passed": true
+              },
+              {
+                "case": 19,
+                "passed": true
+              },
+              {
+                "case": 20,
+                "passed": true
+              },
+              {
+                "case": 21,
+                "passed": true
+              },
+              {
+                "case": 22,
+                "passed": true
+              },
+              {
+                "case": 23,
+                "passed": true
+              },
+              {
+                "case": 24,
+                "passed": true
+              },
+              {
+                "case": 25,
+                "passed": true
+              },
+              {
+                "case": 26,
+                "passed": true
+              },
+              {
+                "case": 27,
+                "passed": true
+              },
+              {
+                "case": 28,
+                "passed": true
+              },
+              {
+                "case": 29,
+                "passed": true
+              },
+              {
+                "case": 30,
+                "passed": true
+              },
+              {
+                "case": 31,
+                "passed": true
+              },
+              {
+                "case": 32,
+                "passed": true
+              },
+              {
+                "case": 33,
+                "passed": true
+              },
+              {
+                "case": 34,
+                "passed": true
+              },
+              {
+                "case": 35,
+                "passed": true
+              },
+              {
+                "case": 36,
+                "passed": true
+              }
+            ],
+            "scaling": {
+              "levels": [
+                {
+                  "n": 200,
+                  "trials": [
+                    {
+                      "ms": 31.39543900000001,
+                      "passed": true
+                    },
+                    {
+                      "ms": 29.848202000000015,
+                      "passed": true
+                    },
+                    {
+                      "ms": 32.27801000000011,
+                      "passed": true
+                    }
+                  ],
+                  "median_ms": 31.39543900000001
+                },
+                {
+                  "n": 800,
+                  "trials": [
+                    {
+                      "ms": 54.58039300000007,
+                      "passed": true
+                    },
+                    {
+                      "ms": 60.03653599999984,
+                      "passed": true
+                    },
+                    {
+                      "ms": 48.70887399999992,
+                      "passed": true
+                    }
+                  ],
+                  "median_ms": 54.58039300000007
+                },
+                {
+                  "n": 3200,
+                  "trials": [
+                    {
+                      "ms": 113.4924759999999,
+                      "passed": true
+                    },
+                    {
+                      "ms": 112.72090500000013,
+                      "passed": true
+                    },
+                    {
+                      "ms": 124.07302500000014,
+                      "passed": true
+                    }
+                  ],
+                  "median_ms": 113.4924759999999
+                }
+              ],
+              "ratio_3200_800": 2.0793634813146133,
+              "scope": "Real entry-point process wall time, three trials. Includes startup; ratios are evidence, not a portable CI gate."
+            }
+          }
+        }
+      ],
+      "workflow": {
+        "grounding": "compact",
+        "batch_verification": true,
+        "review": "always",
+        "allocation_guidance": true
+      },
+      "sparse_runs": {
+        "scope": "Supplemental sparse runs, three real entry-point process trials per size, startup included. Full output equality; no portable speed threshold.",
+        "levels": [
+          {
+            "n": 200,
+            "trials": [
+              {
+                "ms": 37.14054599999999,
+                "correct": true,
+                "status": 0,
+                "signal": null,
+                "error": null
+              },
+              {
+                "ms": 30.59993700000001,
+                "correct": true,
+                "status": 0,
+                "signal": null,
+                "error": null
+              },
+              {
+                "ms": 32.237368000000004,
+                "correct": true,
+                "status": 0,
+                "signal": null,
+                "error": null
+              }
+            ],
+            "median_ms": 32.237368000000004
+          },
+          {
+            "n": 800,
+            "trials": [
+              {
+                "ms": 53.431374000000005,
+                "correct": true,
+                "status": 0,
+                "signal": null,
+                "error": null
+              },
+              {
+                "ms": 53.180575000000005,
+                "correct": true,
+                "status": 0,
+                "signal": null,
+                "error": null
+              },
+              {
+                "ms": 53.018850999999984,
+                "correct": true,
+                "status": 0,
+                "signal": null,
+                "error": null
+              }
+            ],
+            "median_ms": 53.180575000000005
+          },
+          {
+            "n": 3200,
+            "trials": [
+              {
+                "ms": 142.20421600000003,
+                "correct": true,
+                "status": 0,
+                "signal": null,
+                "error": null
+              },
+              {
+                "ms": 147.03936700000003,
+                "correct": true,
+                "status": 0,
+                "signal": null,
+                "error": null
+              },
+              {
+                "ms": 139.40046000000007,
+                "correct": true,
+                "status": 0,
+                "signal": null,
+                "error": null
+              }
+            ],
+            "median_ms": 142.20421600000003
+          }
+        ],
+        "passed": true
+      },
+      "source_audit": [
+        {
+          "task": "runs",
+          "files": [
+            {
+              "path": "main.kujo",
+              "sha256": "e1b8f35ccaa588d55fa28f22eb314c4205dc0bb42c3fac02ad479c38a8cd4118",
+              "bytes": 2520,
+              "lines": 110
+            }
+          ],
+          "candidate_spans": [],
+          "limit": 20,
+          "scope": "Exact 8-line cross-file matches of at least 160 characters. Not semantic duplication; shared boilerplate may be legitimate. Inspect each candidate."
+        },
+        {
+          "task": "frequencies",
+          "files": [
+            {
+              "path": "main.kujo",
+              "sha256": "94c635339d827020a398ea3c19cfd54006152d90f4b1b2be4dc5adbfd832dac7",
+              "bytes": 2541,
+              "lines": 105
+            }
+          ],
+          "candidate_spans": [],
+          "limit": 20,
+          "scope": "Exact 8-line cross-file matches of at least 160 characters. Not semantic duplication; shared boilerplate may be legitimate. Inspect each candidate."
+        },
+        {
+          "task": "merge",
+          "files": [
+            {
+              "path": "main.kujo",
+              "sha256": "a4ad74561711ba2bbbb904f5864cf237189d0f61a7ee9867d95181ddffa221de",
+              "bytes": 2634,
+              "lines": 105
+            }
+          ],
+          "candidate_spans": [],
+          "limit": 20,
+          "scope": "Exact 8-line cross-file matches of at least 160 characters. Not semantic duplication; shared boilerplate may be legitimate. Inspect each candidate."
+        }
+      ]
+    }
+  ],
+  "runtime": {
+    "version": "1.7.0",
+    "backend": "default",
+    "sha256": "2f9242613c497736f77c20fdb669a18b7c815e489e8a2e8cf5047ee75fd2e3e0"
+  },
+  "excluded_pilots": [
+    {
+      "lane": "baseline",
+      "summary": {
+        "total": 3,
+        "completed": 0,
+        "failed": 3,
+        "retry_count": 0,
+        "tool_calls_executed": 71,
+        "tool_input_repairs": 0,
+        "provider_rounds": 29,
+        "latency_ms_total": 694710,
+        "latency_samples": 3,
+        "token_use": {
+          "input_tokens": 553712,
+          "output_tokens": 69611,
+          "total_tokens": 623323
+        },
+        "transport_completion_rate": 0,
+        "task_completion_rate": null,
+        "repair_rate": 0,
+        "average_latency_ms": 231570
+      },
+      "acceptance_integrity": "invalid",
+      "reason": "Pre-fix transport failures and observed acceptance-file modification"
+    },
+    {
+      "lane": "compact",
+      "summary": {
+        "total": 3,
+        "completed": 0,
+        "failed": 3,
+        "retry_count": 0,
+        "tool_calls_executed": 2,
+        "tool_input_repairs": 0,
+        "provider_rounds": 7,
+        "latency_ms_total": 270098,
+        "latency_samples": 3,
+        "token_use": {
+          "input_tokens": 33087,
+          "output_tokens": 26055,
+          "total_tokens": 59142
+        },
+        "transport_completion_rate": 0,
+        "task_completion_rate": null,
+        "repair_rate": 0,
+        "average_latency_ms": 90033
+      },
+      "acceptance_integrity": "unchanged_after_generation",
+      "reason": "Pre-fix transport failures; different transport from official arms"
+    }
+  ],
+  "model": "glm-5.3-flash:cloud",
+  "profile": "Watchdog / Ollama Cloud",
+  "trusted_allocation_probe": {
+    "push": [
+      {
+        "n": 200,
+        "trials": [
+          {
+            "ms": 29.887573999999987,
+            "correct": true
+          },
+          {
+            "ms": 34.295276999999984,
+            "correct": true
+          },
+          {
+            "ms": 31.626362,
+            "correct": true
+          }
+        ],
+        "median_ms": 31.626362
+      },
+      {
+        "n": 800,
+        "trials": [
+          {
+            "ms": 146.758304,
+            "correct": true
+          },
+          {
+            "ms": 139.93523800000003,
+            "correct": true
+          },
+          {
+            "ms": 137.45450499999993,
+            "correct": true
+          }
+        ],
+        "median_ms": 139.93523800000003
+      },
+      {
+        "n": 3200,
+        "trials": [
+          {
+            "ms": 2344.719796,
+            "correct": true
+          },
+          {
+            "ms": 2260.019163,
+            "correct": true
+          },
+          {
+            "ms": 2327.2080609999994,
+            "correct": true
+          }
+        ],
+        "median_ms": 2327.2080609999994
+      }
+    ],
+    "indexed": [
+      {
+        "n": 200,
+        "trials": [
+          {
+            "ms": 26.884753999999703,
+            "correct": true
+          },
+          {
+            "ms": 28.273317999999563,
+            "correct": true
+          },
+          {
+            "ms": 25.790774000000056,
+            "correct": true
+          }
+        ],
+        "median_ms": 26.884753999999703
+      },
+      {
+        "n": 800,
+        "trials": [
+          {
+            "ms": 60.12141900000006,
+            "correct": true
+          },
+          {
+            "ms": 59.95284300000003,
+            "correct": true
+          },
+          {
+            "ms": 57.045594999999594,
+            "correct": true
+          }
+        ],
+        "median_ms": 59.95284300000003
+      },
+      {
+        "n": 3200,
+        "trials": [
+          {
+            "ms": 894.4085079999995,
+            "correct": true
+          },
+          {
+            "ms": 596.4475689999999,
+            "correct": true
+          },
+          {
+            "ms": 590.915543000001,
+            "correct": true
+          }
+        ],
+        "median_ms": 596.4475689999999
+      }
+    ],
+    "push_function": [
+      {
+        "n": 200,
+        "trials": [
+          {
+            "ms": 34.80558700000074,
+            "correct": true
+          },
+          {
+            "ms": 34.516819000000396,
+            "correct": true
+          },
+          {
+            "ms": 33.48589300000094,
+            "correct": true
+          }
+        ],
+        "median_ms": 34.516819000000396
+      },
+      {
+        "n": 800,
+        "trials": [
+          {
+            "ms": 130.57009900000048,
+            "correct": true
+          },
+          {
+            "ms": 145.51094300000113,
+            "correct": true
+          },
+          {
+            "ms": 151.0083999999988,
+            "correct": true
+          }
+        ],
+        "median_ms": 145.51094300000113
+      },
+      {
+        "n": 3200,
+        "trials": [
+          {
+            "ms": 1873.9965489999995,
+            "correct": true
+          },
+          {
+            "ms": 1905.2274230000003,
+            "correct": true
+          },
+          {
+            "ms": 2170.6582039999976,
+            "correct": true
+          }
+        ],
+        "median_ms": 1905.2274230000003
+      }
+    ],
+    "indexed_function": [
+      {
+        "n": 200,
+        "trials": [
+          {
+            "ms": 27.792226999998093,
+            "correct": true
+          },
+          {
+            "ms": 26.9832639999986,
+            "correct": true
+          },
+          {
+            "ms": 27.931711999997788,
+            "correct": true
+          }
+        ],
+        "median_ms": 27.792226999998093
+      },
+      {
+        "n": 800,
+        "trials": [
+          {
+            "ms": 23.879444999998668,
+            "correct": true
+          },
+          {
+            "ms": 27.961370000000898,
+            "correct": true
+          },
+          {
+            "ms": 26.24598799999876,
+            "correct": true
+          }
+        ],
+        "median_ms": 26.24598799999876
+      },
+      {
+        "n": 3200,
+        "trials": [
+          {
+            "ms": 36.04676200000176,
+            "correct": true
+          },
+          {
+            "ms": 32.89770999999746,
+            "correct": true
+          },
+          {
+            "ms": 31.53244099999938,
+            "correct": true
+          }
+        ],
+        "median_ms": 32.89770999999746
+      }
+    ]
+  },
+  "batch_fixture": {
+    "cases": 8,
+    "separate_subprocesses": 16,
+    "batch_subprocesses": 9,
+    "separate_model_result_bytes": 10832,
+    "batch_model_result_bytes": 2400,
+    "limitation": "Excludes tool schemas and arguments. Bytes are not billed tokens."
+  },
+  "local_decision": {
+    "grounding": "compact",
+    "batch_verification": true,
+    "allocation_guidance": true,
+    "review": "always",
+    "basis": "Two fresh three-task allocation rounds, 6/6 deliveries, 212/212 independent checks, repeatable runtime improvement. Narrow local qualification, not frontier parity.",
+    "shipped_defaults_changed": false
+  },
+  "limitations": [
+    "Baseline runs and Compact merge usage omit unfinished rounds after caller deadline.",
+    "Generation wall time confounded by provider/host load, order and stochastic work.",
+    "Batch merge broad docs search returned two historical benchmark-report lines; descriptive comparison only.",
+    "Final focused activity index was added after measured Selective run; its overhead is unbenchmarked.",
+    "Filesystem hashes are not OS read isolation; no frontier implementation control."
+  ],
+  "observed_read_audit": [
+    {
+      "lane": "baseline-v2",
+      "task": "runs",
+      "reads": 9,
+      "outside": [],
+      "shell_calls": 2
+    },
+    {
+      "lane": "baseline-v2",
+      "task": "frequencies",
+      "reads": 5,
+      "outside": [],
+      "shell_calls": 1
+    },
+    {
+      "lane": "baseline-v2",
+      "task": "merge",
+      "reads": 8,
+      "outside": [],
+      "shell_calls": 26
+    },
+    {
+      "lane": "compact-v2",
+      "task": "runs",
+      "reads": 3,
+      "outside": [],
+      "shell_calls": 4
+    },
+    {
+      "lane": "compact-v2",
+      "task": "frequencies",
+      "reads": 3,
+      "outside": [],
+      "shell_calls": 3
+    },
+    {
+      "lane": "compact-v2",
+      "task": "merge",
+      "reads": 3,
+      "outside": [],
+      "shell_calls": 7
+    },
+    {
+      "lane": "batch-v2",
+      "task": "runs",
+      "reads": 3,
+      "outside": [],
+      "shell_calls": 2
+    },
+    {
+      "lane": "batch-v2",
+      "task": "frequencies",
+      "reads": 2,
+      "outside": [],
+      "shell_calls": 2
+    },
+    {
+      "lane": "batch-v2",
+      "task": "merge",
+      "reads": 1,
+      "outside": [
+        {
+          "root_id": "workspace_0",
+          "path": "Kujolang/kujo-repos/ai-chat/docs/KUJO_EXECUTION_SETUP.md"
+        }
+      ],
+      "shell_calls": 3
+    },
+    {
+      "lane": "selective-v2",
+      "task": "runs",
+      "reads": 5,
+      "outside": [],
+      "shell_calls": 4
+    },
+    {
+      "lane": "selective-v2",
+      "task": "frequencies",
+      "reads": 2,
+      "outside": [],
+      "shell_calls": 1
+    },
+    {
+      "lane": "selective-v2",
+      "task": "merge",
+      "reads": 3,
+      "outside": [],
+      "shell_calls": 3
+    },
+    {
+      "lane": "allocation-v2",
+      "task": "runs",
+      "reads": 3,
+      "outside": [],
+      "shell_calls": 8
+    },
+    {
+      "lane": "allocation-v2",
+      "task": "frequencies",
+      "reads": 4,
+      "outside": [],
+      "shell_calls": 3
+    },
+    {
+      "lane": "allocation-v2",
+      "task": "merge",
+      "reads": 5,
+      "outside": [],
+      "shell_calls": 4
+    },
+    {
+      "lane": "confirmation-v2",
+      "task": "runs",
+      "reads": 4,
+      "outside": [],
+      "shell_calls": 1
+    },
+    {
+      "lane": "confirmation-v2",
+      "task": "frequencies",
+      "reads": 4,
+      "outside": [],
+      "shell_calls": 3
+    },
+    {
+      "lane": "confirmation-v2",
+      "task": "merge",
+      "reads": 2,
+      "outside": [],
+      "shell_calls": 1
+    }
+  ],
+  "code_revision": "d53d998",
+  "verification": {
+    "baseline": {
+      "passed": 649,
+      "failed": 0,
+      "skipped": 1
+    },
+    "final": {
+      "passed": 672,
+      "failed": 0,
+      "skipped": 1,
+      "duration_ms": 119165.271898
+    },
+    "live_smoke": "passed",
+    "profiles_preserved": 7
+  },
+  "durable_records": {
+    "strata": {
+      "id": "ce9c9718-7524-45b6-b201-98c530e7024a",
+      "revision": 1,
+      "title": "AI Chat Kujo code quality and efficiency — qualified allocation workflow",
+      "hub": {
+        "id": "8582f7c4-1408-44d4-b687-b7f5d6818a5d",
+        "revision": 26
+      },
+      "retrieval": {
+        "exact": true,
+        "concept": true,
+        "hub_exact": true,
+        "hub_concept": true
+      }
+    },
+    "signalbox": [
+      {
+        "key": "transport",
+        "capture_id": "cap_7f9e9b50-63ec-45a0-87ed-a4c78458f10e",
+        "signal_id": "sig_3b9ce473-b6fe-472b-85cf-16f2d3f56c6f",
+        "title": "Fix Kujo queued HTTP 408 on reused connections",
+        "verification": {
+          "exact_capture": true,
+          "exact_signal": true,
+          "query": "reused connection",
+          "concept_capture": true,
+          "concept_signal": true
+        }
+      },
+      {
+        "key": "allocation",
+        "capture_id": "cap_dcce8206-7abe-43b9-bbd1-a733fb97694d",
+        "signal_id": "sig_00cfb2c3-f586-4534-9434-1c96feeba232",
+        "title": "Qualify Kujo array-growth recipes and performance fixtures",
+        "verification": {
+          "exact_capture": true,
+          "exact_signal": true,
+          "query": "function-local",
+          "concept_capture": true,
+          "concept_signal": true
+        }
+      }
+    ]
+  }
+}
