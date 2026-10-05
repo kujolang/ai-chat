@@ -157,3 +157,10 @@ for append/indexed construction at global and function scope. Fixed pure workloa
 and a per-process deadline keep the experiment bounded. Model benchmark results
 must be reported separately; a fast hand-written probe is not proof the model will
 apply the pattern or improve its final source.
+
+Focused review also retains a compact index of up to 64 parent tool receipts,
+including failed and custom operations, so omitted historical payloads do not hide
+shell/script mutations. Child case references remain in the parent verification
+result. The reviewer must inspect potentially mutating activity; an incomplete
+activity index forces an inconclusive outcome. This index is not a filesystem
+snapshot or proof that all writes were discovered.

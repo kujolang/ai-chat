@@ -48,3 +48,23 @@ test('append writes and partial reads cannot manufacture final-source diffs',()=
   assert.equal(p.final_changes[0].diff,null);assert.equal(p.final_changes[0].requires_final_read,true);
  }
 });
+
+test('focused review retains earlier execution and failed custom-tool references without their payloads',()=>{
+ const shell={call_id:'shell',tool_name:'local_shell',status:'completed',input:{command:'node',args:['writer.js']},result:{stdout:'large payload'}};
+ const partial={call_id:'partial',tool_name:'custom_mutator',status:'failed',input:{},result:{error:'partial failure'}};
+ const child={call_id:'v:case:1',tool_name:'local_kujo_case',status:'completed',input:{},result:{}};
+ const p=JSON.parse(focusedPacket('task',[shell,partial,child,write,check],'done'));
+ assert.deepEqual(p.activity_index.map(r=>r.result_ref),['shell','partial','w','v']);
+ assert.equal(p.activity_index[0].command,'node');assert.equal(p.omitted_activity,0);
+ assert.equal(JSON.stringify(p).includes('large payload'),false);
+ assert.match(p.selection,/partial failures/);
+});
+test('omitted activity prevents a focused review from certifying complete scope',()=>{
+ const r=createEngineeringReview({enabled:true,mode:'selective',originalMessages});
+ const rs=[...Array.from({length:65},(_,i)=>({call_id:'s'+i,tool_name:'local_shell',status:'completed',input:{command:'node'},result:{exit_code:0}})),write,check];
+ const m=r.onStop([...originalMessages],'done',rs);
+ assert.equal(JSON.parse(m.at(-1).content).omitted_activity,3);
+ r.noteResults([{id:'read',function:{name:'local_file_read'}}],[{ok:true,content:'source'}]);
+ r.onStop(m,JSON.stringify({verdict:'pass',findings:[],checks:[{result_ref:'read',claim:'checked'}]}),rs);
+ assert.equal(r.state.outcome,'inconclusive');assert.match(r.completionNotice(),/complete scope/);
+});
