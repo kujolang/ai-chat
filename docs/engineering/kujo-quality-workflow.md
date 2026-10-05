@@ -164,3 +164,12 @@ shell/script mutations. Child case references remain in the parent verification
 result. The reviewer must inspect potentially mutating activity; an incomplete
 activity index forces an inconclusive outcome. This index is not a filesystem
 snapshot or proof that all writes were discovered.
+
+With engineering contracts enabled, six consecutive successful complete file reads
+that repeat the same contents of at most two files now produce one progress notice
+per execution. The notice asks the worker to use existing evidence or state a
+concrete blocker. Changed content, pagination, intervening activity, and reviewer
+reads do not trigger it. Evidence remains available; the notice does not block
+reads, grant writes, replay operations, or change task budgets. Its emitted state
+survives resume through the existing diagnostic checkpoint. This addresses a
+measured read-only loop; it does not guarantee that a model will follow the notice.
