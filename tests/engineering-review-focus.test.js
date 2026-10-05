@@ -55,7 +55,7 @@ test('focused review retains earlier execution and failed custom-tool references
  const child={call_id:'v:case:1',tool_name:'local_kujo_case',status:'completed',input:{},result:{}};
  const p=JSON.parse(focusedPacket('task',[shell,partial,child,write,check],'done'));
  assert.deepEqual(p.activity_index.map(r=>r.result_ref),['shell','partial','w','v']);
- assert.equal(p.activity_index[0].command,'node');assert.equal(p.omitted_activity,0);
+ assert.equal(p.activity_index[0].tool,'local_shell');assert.equal(p.omitted_activity,0);
  assert.equal(JSON.stringify(p).includes('large payload'),false);
  assert.match(p.selection,/partial failures/);
 });
