@@ -5676,3 +5676,31 @@ test('large completed execution replay streams intact without running the provid
   });
  } finally {destroy();}
 });
+
+test('fresh streaming connections are not pooled even when the server advertises keep-alive',async()=>{
+ const {runtime,destroy}=createIsolatedRuntime();const sockets=new Set();
+ const server=http.createServer((req,res)=>{sockets.add(req.socket);req.resume();req.on('end',()=>{res.writeHead(200,{'Connection':'keep-alive','Content-Length':'2'});res.end('ok');});});
+ server.listen(0,'127.0.0.1');await once(server,'listening');
+ try {
+  for(let i=0;i<4;i++) {
+   const r=await runtime.helpers.fetchStreamingResponseWithoutHeaderDeadline(`http://127.0.0.1:${server.address().port}`,{method:'POST',body:'{}',freshConnection:true});
+   assert.equal(r.status,200);assert.equal(await new Response(r.body).text(),'ok');
+  }
+  assert.equal(sockets.size,4);
+ }finally{server.closeAllConnections();await new Promise(resolve=>server.close(resolve));destroy();}
+});
+test('Watchdog tool continuations use separate sockets without replaying model requests',async()=>{
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'ai-chat-connection-fixture-'));const token=path.join(dir,'token');fs.writeFileSync(token,'fixture');
+ const sockets=new Set();let rounds=0;
+ const proxy=http.createServer((req,res)=>{req.resume();req.on('end',()=>{
+  if(req.url!=='/proxy/v1/chat/completions'){res.writeHead(200,{'Content-Type':'application/json'});res.end('{"ok":true}');return;}
+  rounds++;sockets.add(req.socket);const delta=rounds===1?{tool_calls:[{index:0,id:'read',function:{name:'local_file_read',arguments:'{"root_id":"workspace_0","path":"main.kujo"}'}}]}:{content:'Done'};
+  res.writeHead(200,{'Content-Type':'text/event-stream','Connection':'keep-alive'});
+  res.end('data: '+JSON.stringify({choices:[{delta,finish_reason:rounds===1?'tool_calls':'stop'}]})+'\n\ndata: [DONE]\n\n');
+ });});proxy.listen(0,'127.0.0.1');await once(proxy,'listening');
+ const {runtime,destroy}=createIsolatedRuntime({envMerge:{WATCHDOG_PROXY_URL:`http://127.0.0.1:${proxy.address().port}/proxy/v1`,WATCHDOG_PROXY_TOKEN_FILE:token},localRuntime:{canExecute:()=>true,status:()=>({enabled:true}),readFile:()=>({ok:true,content:'source'})}});
+ try{const profileId=applyProfileMutation(runtime,p=>{p.provider_id='watchdog';p.base_url='';p.api_key='';});await withServer(runtime.app,async base=>{
+  const r=await fetch(base+'/api/chat/stream',{method:'POST',headers:withAuthHeaders({'Content-Type':'application/json'}),body:JSON.stringify({profile_id:profileId,messages:[{role:'user',content:'Read a file'}],tools:[{type:'function',function:{name:'local_file_read'}}],include_saved_runtime_presets:false})});
+  assert.equal(parseSseEvents(await r.text()).at(-1).event,'done');assert.equal(rounds,2);assert.equal(sockets.size,2);
+ });}finally{destroy();proxy.closeAllConnections();await new Promise(resolve=>proxy.close(resolve));fs.rmSync(dir,{recursive:true,force:true});}
+});
