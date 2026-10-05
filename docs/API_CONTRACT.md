@@ -787,3 +787,60 @@ verification.
 ### Kujo verification manifests
 
 `local_kujo` accepts optional `verification_paths`: up to 16 unique readable workspace paths relative to `cwd`. Receipts add `verification_manifest` and `verification_manifest_after` (path/SHA-256 rows). `source_unchanged` and `ok` are false if any declared file changes or disappears during execution. This covers declared files only, not automatic dependency discovery or semantic correctness. Existing calls remain valid. See [Kujo quality workflow](engineering/kujo-quality-workflow.md).
+
+### Optional compact Kujo workflow and CLI case batches
+
+`KUJO_GROUNDING_MODE=legacy|compact|off` defaults to `legacy`. Compact mode performs
+one permitted runtime guide probe for a Kujo request with `local_kujo` authorized,
+saves it as `__kujo_grounding`, and supplies a bounded reference only for a recognized
+runtime version. It does not grant shell access or qualify arbitrary programs.
+Terminal replay reuses saved results. Runtime and permission checks still apply
+to every subsequent execution.
+
+With `KUJO_VERIFICATION_BATCH_ENABLED=1`, `local_kujo` additionally offers:
+
+```json
+{
+  "root_id": "workspace_0", "operation": "verify", "path": "main.kujo",
+  "budget_ms": 120000,
+  "cases": [
+    {"id": "empty", "args": ["[]"], "exit_code": 0, "stdout_json": "[]"},
+    {"id": "invalid", "args": ["bad"], "exit_code": 1, "stderr_error": true}
+  ]
+}
+```
+
+A batch contains 1–32 explicit cases. Each runs the entry point once, after one
+shared version probe. Case arguments retain the normal shell limit (20 literal
+arguments, each at most 1000 UTF-16 code units); the tool inserts the separator.
+`stdout_json` compares decoded JSON; `stdout`/`stderr` compare exact text including
+newlines. Unspecified streams must be empty. `stderr_error:true` requires exactly
+one nonempty `error` string in a JSON object. Every case needs an output assertion.
+Optional `max_duration_ms` asserts process wall time, not algorithmic complexity.
+
+All inputs validate before execution. The shared budget defaults to 120 seconds
+and is bounded by the caller task deadline. Each invocation retains existing
+permissions, workspace, destructive-command policy, runtime pin and timeout.
+A normal assertion mismatch runs remaining explicitly requested cases; abort,
+uncertain termination, source change, or incomplete/truncated execution stops the
+batch. There are no automatic retries. Use owned fixtures: this is not a sandbox
+and does not roll back side effects.
+
+The aggregate receipt succeeds only if all assertions pass and declared source
+hashes remain unchanged. Expected exit 1 can therefore be a successful test.
+Case evidence is encrypted in the execution journal and recoverable with
+`tool_result_read` using returned case `result_ref` values. The model sees compact
+summaries by default. Direct library callers without a receipt sink receive full
+`case_evidence`. These are explicitly caller-authored assertions, not independent
+acceptance evidence. `done` adds `kujo_workflow`, `runtime_preflight_calls`, and
+`verification_cases_executed`; model tool-call counts exclude internal case
+subprocesses. No existing fields or operations are removed.
+
+`ENGINEERING_REVIEW_MODE=always|selective` defaults to `always` and still requires
+`ENGINEERING_REVIEW_ENABLED=1`. Selective mode sends missing/stale deterministic
+evidence directly to bounded repair before spending model-review rounds. Once
+checks are present, a focused read-only review receives original requirements,
+latest write references, bounded change excerpts where an earlier read exists,
+linked/recent checks and prior findings. It must inspect final source and semantic
+coverage. Passing caller-authored tests do **not** skip that review or certify
+quality. Existing checkpoint workflows retain their original mode.

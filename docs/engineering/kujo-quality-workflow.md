@@ -105,3 +105,31 @@ therefore does not fix this program. The `nested_collections` guide demonstrates
 verified whole-row replacement. Guides disclose the limitation; no automatic
 rewrite or replay occurs. This needs a Kujo compiler/runtime follow-up, not an
 AI Chat transport workaround. Requalify exact binaries after upstream changes.
+
+## Controlled efficiency variants
+
+The opt-in compact reference (`KUJO_GROUNDING_MODE=compact`) replaces the legacy
+2,400-character topic guide with at most 2,200 characters of trusted syntax and
+known runtime limitations. One authorized runtime probe supplies the version;
+unrecognized versions receive no trusted examples. Numeric `sort` is now an
+executable corpus example verified on 1.7.0. Longer examples remain on demand.
+
+`KUJO_VERIFICATION_BATCH_ENABLED=1` exposes explicit CLI case batches, including
+expected rejections. Per-case raw evidence stays in the encrypted journal; the
+model sees bounded assertions and result references. Fewer model tool calls do not
+mean fewer child processes. Report both. Argument, output, permissions and total
+execution-budget limits still apply; there is no automatic retry.
+
+`ENGINEERING_REVIEW_MODE=selective` routes deterministic evidence gaps directly to
+the worker before the semantic review. It focuses that review on final changes,
+requirements and decisive evidence. It deliberately retains a semantic review when
+only model-authored tests exist: receipt success cannot establish test adequacy.
+All repairs share the existing two-pass/five-minute review budget.
+
+The fresh collection oracle (`scripts/verify-kujo-collections.js`) checks real CLI
+entry points for consecutive runs, numeric frequencies and sorted union. Its tests
+calibrate it against an independently written reference and defective variants.
+It separately measures 200/800/3200-element inputs, three trials each. Timing
+ratios are diagnostic evidence, not hardware-sensitive CI gates. Inspect final
+source for algorithmic complexity and duplicated production implementations;
+passing behavioral cases alone does not grade maintainability.

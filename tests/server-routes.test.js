@@ -5677,6 +5677,35 @@ test('large completed execution replay streams intact without running the provid
  } finally {destroy();}
 });
 
+for (const providerId of ['openai','ollama']) test(`compact runtime grounding and batched case evidence survive ${providerId} and replay`,async()=>{
+ let calls=0,probes=0,batches=0;let caseRef;
+ const {runtime,destroy}=createIsolatedRuntime({envMerge:{KUJO_GROUNDING_MODE:'compact',KUJO_VERIFICATION_BATCH_ENABLED:'1',ALLOWED_CUSTOM_PROVIDER_HOSTS:'ollama.com'},
+  localRuntime:{canExecute:()=>true,status:()=>({enabled:true}),listWorkspaces:()=>({workspaces:[{id:'workspace_0'}]}),runKujo:async(input,context)=>{
+   if(input.operation==='guide'){probes++;return{ok:true,runtime:{version:'kujo 1.7.0',backend:'default'}};}
+   batches++;caseRef=await context.saveVerificationCase(0,{assessment:{passed:true},execution:{exit_code:1,stderr:'{"error":"invalid"}',stdout:''},expected:{id:'reject',args:['bad'],exit_code:1,stderr_error:true}});
+   return{ok:true,exit_code:0,verification:{total:1,passed:1,cases:[{id:'reject',passed:true,result_ref:caseRef}]}};
+  }},fetchFn:async(_url,options)=>{
+   calls++;const body=JSON.parse(options.body);assert.match(JSON.stringify(body.messages),/Kujo runtime snapshot: 1.7.0/);
+   const name=calls===1?'local_kujo':calls===2?'tool_result_read':null;
+   const args=calls===1?{root_id:'workspace_0',operation:'verify',path:'main.kujo',cases:[{id:'reject',args:['bad'],exit_code:1,stderr_error:true}]}:{result_ref:caseRef};
+   if(calls===2){const texts=JSON.stringify(body.messages.filter(m=>m.role==='tool'));assert.match(texts,/result_ref/);assert.ok(!texts.includes('invalid'));}
+   if(calls===3)assert.match(JSON.stringify(body.messages),/execution/);
+   if(providerId==='ollama')return mockChunkedResponse([JSON.stringify({message:name?{tool_calls:[{function:{name,arguments:args}}]}:{content:'Verified'},done:true,done_reason:'stop'})+'\n']);
+   return mockSseResponse([{choices:[{delta:name?{tool_calls:[{index:0,id:'call'+calls,function:{name,arguments:JSON.stringify(args)}}]}:{content:'Verified'},finish_reason:name?'tool_calls':'stop'}]}]);
+  }});
+ try{
+  const id=applyProfileMutation(runtime,p=>{p.provider_id=providerId==='ollama'?'custom':providerId;p.base_url=providerId==='ollama'?'https://ollama.com':'';p.api_key='fixture';});
+  await withServer(runtime.app,async base=>{
+   const response=await fetch(base+'/api/chat/stream',{method:'POST',headers:withAuthHeaders({'Content-Type':'application/json'}),body:JSON.stringify({request_id:'batch-'+providerId,profile_id:id,messages:[{role:'user',content:'Test main.kujo'}],tools:[{type:'function',function:{name:'local_kujo'}}],include_saved_runtime_presets:false})});
+   const last=parseSseEvents(await response.text()).at(-1);assert.equal(last.event,'done',JSON.stringify(last));assert.equal(probes,1);assert.equal(batches,1);assert.equal(calls,3);assert.equal(last.data.runtime_preflight_calls,1);assert.equal(last.data.verification_cases_executed,1);
+   const journal=require('../lib/execution-journal').createExecutionJournal(runtime.db,{masterKey:require('crypto').scryptSync('route-test-secret','kujo-ai-chat-salt-v1',32)});
+   assert.equal(journal.readResult('batch-'+providerId,caseRef).result.execution.exit_code,1);
+   const replay=await fetch(base+'/api/executions/batch-'+providerId+'/resume',{method:'POST',headers:withAuthHeaders({'Content-Type':'application/json'}),body:'{}'});
+   assert.equal(parseSseEvents(await replay.text()).at(-1).data.replayed,true);assert.equal(batches,1);assert.equal(probes,1);
+  });
+ }finally{destroy();}
+});
+
 test('fresh streaming connections are not pooled even when the server advertises keep-alive',async()=>{
  const {runtime,destroy}=createIsolatedRuntime();const sockets=new Set();
  const server=http.createServer((req,res)=>{sockets.add(req.socket);req.resume();req.on('end',()=>{res.writeHead(200,{'Connection':'keep-alive','Content-Length':'2'});res.end('ok');});});
