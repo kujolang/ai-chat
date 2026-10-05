@@ -15,8 +15,8 @@ worker request. This is a character budget, not a token claim.
 
 `lib/kujo-development.js` is the authoritative small example corpus: core,
 arguments, collections, timing, JSON, exceptions, atomic persistence, type checks,
-structured validation and CLI errors. `local_kujo guide` probes the actual permitted executable
-before returning a version-qualified example. Type checks, CLI errors and validation currently require
+structured validation, CLI errors and whole-row replacement. `local_kujo guide` probes the actual permitted executable
+before returning a version-qualified example. Type checks, CLI errors, whole-row replacement and validation currently require
 1.7.0; 1.5.0 failed that example's VM execution. Existing examples remain available
 on their previously verified versions. Verification applies to these examples,
 not every program or backend. Use matching documentation for APIs not covered.
@@ -85,3 +85,16 @@ and can encourage overfitting. Frontier comparisons require the same specificati
 independent oracle and run conditions. Never infer parity from compilation or a
 single successful round. Production judgment requires broader unseen tasks and
 human review of design and failure behavior.
+
+
+## Observed runtime limitation
+
+On the pinned 1.7.0 binary with SHA-256
+`2f9242613c497736f77c20fdb669a18b7c815e489e8a2e8cf5047ee75fd2e3e0`,
+[nested index assignment](reproductions/nested-index-assignment.kujo) passes
+`kujo check`, but the default VM exits 4 with `Stack underflow`; the interpreter
+exits 4 with `Complex index assignment not yet supported`. Switching backends
+therefore does not fix this program. The `nested_collections` guide demonstrates
+verified whole-row replacement. Guides disclose the limitation; no automatic
+rewrite or replay occurs. This needs a Kujo compiler/runtime follow-up, not an
+AI Chat transport workaround. Requalify exact binaries after upstream changes.

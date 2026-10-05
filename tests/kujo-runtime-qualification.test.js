@@ -2,7 +2,7 @@ const { test, after } = require('node:test');
 const assert = require('node:assert/strict');
 const { qualify } = require('../scripts/qualify-kujo-runtime');
 const path = require('node:path');
-const {referenceExpected,reference}=require('../lib/kujo-development');
+const {referenceExpected,reference,referenceStatus}=require('../lib/kujo-development');
 const fs = require('node:fs');
 const os = require('node:os');
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ai-chat-qualification-test-'));
@@ -13,7 +13,7 @@ function runner(transform = r => r) {
  return (_binary, args) => {
   const name = path.basename(args[1] || '', '.kujo');
   const out = { ...referenceExpected, timing: '100\n123', nested_arithmetic: '12' }[name];
-  return transform({ status: 0, stdout: args[0] === '--version' ? 'kujo fixture' : args[0] === 'run' ? out : '', stderr: '' }, args);
+  return transform({ status: args[0] === 'run' ? referenceStatus[name]?.exit_code || 0 : 0, stdout: args[0] === '--version' ? 'kujo fixture' : args[0] === 'run' ? out : '', stderr: args[0] === 'run' ? referenceStatus[name]?.stderr || '' : '' }, args);
  };
 }
 test('qualification identifies exact binary/backend and requires all probe outputs', () => {

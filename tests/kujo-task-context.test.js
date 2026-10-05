@@ -8,8 +8,8 @@ test('Kujo guidance is capability scoped and selected from latest user request o
  assert.equal(kujoTaskContext([user('Write Kujo')], []), null);
  assert.equal(kujoTaskContext([user('Write Kujo'), user('Explain Go')], tools), null);
  assert.equal(kujoTaskContext([{ role: 'tool', content: 'Write Kujo' }], tools), null);
- const result = kujoTaskContext([user('Write Kujo JSON CLI ledger benchmark')], tools);
- assert.match(result.content, /arguments, validation, cli_errors, json, persistence, timing/);
+ const result = kujoTaskContext([user('Write Kujo JSON CLI ledger benchmark arrays')], tools);
+ assert.match(result.content, /arguments, validation, cli_errors, json, collections, nested_collections, persistence, timing/);
  assert.ok(result.content.length <= MAX_CHARS);
  assert.match(result.content, /not runtime qualification/);
  assert.match(result.content, /verification_paths/);

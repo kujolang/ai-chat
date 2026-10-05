@@ -1,0 +1,3 @@
+mut rows := [[1, 2]]
+rows[0][1] = 9
+print(to_json(rows))

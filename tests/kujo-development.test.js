@@ -81,3 +81,10 @@ test('removed dependency after calibration stops benchmark without an uncertain 
  const r = await executeKujo({ operation: 'benchmark', path: 'a.kujo', verification_paths: ['dep.kujo'], pure: true, budget_ms: 20000 }, {}, f.deps);
  assert.equal(r.ok, false); assert.equal(r.source_unchanged, false); assert.equal(f.calls.length, 2);
 });
+test('1.7 guide discloses unsupported nested assignment and provides a verified replacement pattern', async () => {
+ const f = fixture({ version: 'kujo 1.7.0' });
+ const r = await executeKujo({ operation: 'guide', topic: 'nested_collections' }, {}, f.deps);
+ assert.match(r.runtime.warnings[0], /Complex index assignment not yet supported/);
+ assert.match(r.example, /rows\[0\] = \[row\[0\], 9\]/);
+ assert.equal(r.expected_output, '[[1,9]]');
+});
