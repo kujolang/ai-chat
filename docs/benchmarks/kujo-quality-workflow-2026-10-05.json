@@ -1,0 +1,269 @@
+{
+  "date": "2026-10-05",
+  "scope": "One task, three generation variants; not pooled with historical multi-task benchmarks",
+  "runtime_sha256": "2f9242613c497736f77c20fdb669a18b7c815e489e8a2e8cf5047ee75fd2e3e0",
+  "model": "glm-5.3-flash:cloud",
+  "runs": [
+    {
+      "variant": "baseline",
+      "runtime_source_revision": "2869afa",
+      "run_id": "kujoquality20261005-baseline",
+      "execution_id": "57dec8ed-e949-49e7-9052-934cac5a3afb",
+      "summary": {
+        "total": 1,
+        "completed": 1,
+        "failed": 0,
+        "retry_count": 0,
+        "tool_calls_executed": 49,
+        "tool_input_repairs": 0,
+        "provider_rounds": 28,
+        "latency_ms_total": 418167,
+        "latency_samples": 1,
+        "token_use": {
+          "input_tokens": 738528,
+          "output_tokens": 44778,
+          "total_tokens": 783306
+        },
+        "transport_completion_rate": 1,
+        "task_completion_rate": null,
+        "repair_rate": 0,
+        "average_latency_ms": 418167
+      },
+      "acceptance": {
+        "passed": 39,
+        "checks": 39
+      },
+      "acceptance_integrity": "unchanged_after_generation",
+      "receipts": {
+        "review": {
+          "enabled": true,
+          "phase": "final",
+          "reviews": 1,
+          "repairs": 0,
+          "outcome": "pass"
+        },
+        "tools": {
+          "local_workspace_list": 1,
+          "local_kujo": 4,
+          "local_file_list": 2,
+          "documentation_query": 5,
+          "local_shell": 17,
+          "local_file_write": 14,
+          "local_file_read": 2,
+          "tool_result_read": 4
+        },
+        "failed_calls": 6
+      },
+      "files": {
+        "p_stderr.kujo": "732d0fc5a657e32954f273f070c2f9531969f94537bbddb73ccb67207b869dbb",
+        "p_assign.kujo": "39af2e729001bbe28105e09f4755383f1492e09ad6ec77e13cc319188692a579",
+        "p_else.kujo": "b9601c6c600143610370471b7e3e79e37d24bf81da74bfb123abc59eb4440489",
+        "p_sort.kujo": "eaa5ff156c8ce8efa7aebed56b16802173821dab47c5efecf4f7608185fcf86d",
+        "main.kujo": "76a2b408dc54c2c9a6515d2e7e22ddbfec3808cf49eb3ad297f278a8bfb78edb",
+        "p_eprint.kujo": "df89b8f0989193638b09ba1cc648d7011d6774fc1196c79dfd13650fee34d5e9",
+        "p_big.kujo": "cb67ac521ee32683b77331cbc52a0282207ba2111da4f32624b2c67e0dab316c",
+        "p_args.kujo": "4d202a17a74f65fdd97eb8877e5de5912f584c7f942ae5d9e62e42c8e0009866",
+        "p_print_err.kujo": "8312807e80063f234080153daaff5959db36a91a075bf3145ef4143f9a95bab6",
+        "probe.kujo": "ebbffef3476c6b1af1365cc36a315759f5ab25c042e4fcad774f552c2fe6a521",
+        "probe2.kujo": "c2abb6ecd058ccee6215b2e0016018b267643d277331bf204c971601dc5f44dc",
+        "p_sortpair.kujo": "0aa20ceaaa4a276c55f53588b90efb98796533e9a2f4f3939d5364c4617bf0be",
+        "p_ops.kujo": "901a808810e97f1d80686f098ea732eea400792df71cf096c1f84566e2145362"
+      },
+      "raw_run": "data/benchmark-runs/kujoquality20261005-baseline.json",
+      "artifact_root": "data/kujoquality20261005-baseline"
+    },
+    {
+      "variant": "upgraded",
+      "runtime_source_revision": "419858c",
+      "run_id": "kujoquality20261005-upgraded",
+      "execution_id": "cb563302-da5f-4f7d-ba60-fb7d8a1c7afb",
+      "summary": {
+        "total": 1,
+        "completed": 1,
+        "failed": 0,
+        "retry_count": 0,
+        "tool_calls_executed": 72,
+        "tool_input_repairs": 2,
+        "provider_rounds": 36,
+        "latency_ms_total": 681824,
+        "latency_samples": 1,
+        "token_use": {
+          "input_tokens": 1930320,
+          "output_tokens": 68197,
+          "total_tokens": 1998517
+        },
+        "transport_completion_rate": 1,
+        "task_completion_rate": null,
+        "repair_rate": 0.0278,
+        "average_latency_ms": 681824
+      },
+      "acceptance": {
+        "passed": 39,
+        "checks": 39
+      },
+      "acceptance_integrity": "unchanged_after_generation",
+      "receipts": {
+        "review": {
+          "enabled": true,
+          "phase": "final",
+          "reviews": 1,
+          "repairs": 0,
+          "outcome": "pass"
+        },
+        "tools": {
+          "local_workspace_list": 1,
+          "local_kujo": 46,
+          "local_file_list": 1,
+          "documentation_query": 4,
+          "local_file_write": 10,
+          "local_file_read": 5,
+          "tool_result_read": 5
+        },
+        "failed_calls": 18
+      },
+      "files": {
+        "tests.kujo": "c81ca3d9bf28012e4dbb50effb46f76bd2ca9d66ff5aa1f4aa53a9c4fe5032aa",
+        "main.kujo": "112af93f8fd6a7d812baf139ab382c12c9ab446db506302d422274c54fbe9c91",
+        "probe3.kujo": "41a0c1657b22a956ecdd1af1e2b054ba24daf394ae38f5086c6f375287eb5c09",
+        "probe.kujo": "457f052ad80d248a8f04a3d008c17d932fd4c9707069f241c95a5c118719db2a",
+        "probe2.kujo": "17c8d10ad4ec281813d035d7b1910a91e06f4b2f6a706a4c607967956be15b3f",
+        "probe5.kujo": "cb9fafdf9c0f35b45b6daf806bf2e74adfbe766d24f84cff93a5d54f63ba75a6",
+        "probe4.kujo": "c191401843a4c44dd64bc8d34c924dfba8d3fef288f9468397299e9ee8f36d55"
+      },
+      "raw_run": "data/benchmark-runs/kujoquality20261005-upgraded.json",
+      "artifact_root": "data/kujoquality20261005-upgraded"
+    },
+    {
+      "variant": "qualified",
+      "runtime_source_revision": "c457ede",
+      "run_id": "kujoquality20261005-qualified",
+      "execution_id": "da8eb482-8806-4604-98fe-8c8c6b5e464b",
+      "summary": {
+        "total": 1,
+        "completed": 1,
+        "failed": 0,
+        "retry_count": 0,
+        "tool_calls_executed": 105,
+        "tool_input_repairs": 2,
+        "provider_rounds": 41,
+        "latency_ms_total": 668439,
+        "latency_samples": 1,
+        "token_use": {
+          "input_tokens": 2305596,
+          "output_tokens": 73240,
+          "total_tokens": 2378836
+        },
+        "transport_completion_rate": 1,
+        "task_completion_rate": null,
+        "repair_rate": 0.019,
+        "average_latency_ms": 668439
+      },
+      "acceptance": {
+        "passed": 39,
+        "checks": 39
+      },
+      "acceptance_integrity": "unchanged_after_generation",
+      "receipts": {
+        "review": {
+          "enabled": true,
+          "phase": "final",
+          "reviews": 1,
+          "repairs": 0,
+          "outcome": "inconclusive"
+        },
+        "tools": {
+          "local_workspace_list": 1,
+          "local_kujo": 68,
+          "documentation_query": 4,
+          "local_shell": 2,
+          "local_file_write": 10,
+          "local_file_read": 8,
+          "tool_result_read": 12
+        },
+        "failed_calls": 35,
+        "manifest_calls": 4
+      },
+      "files": {
+        "intervals.kujo": "2d4af17c8b6f39c2669b32536441d4a0c633ec759321fe89fb7ec19ef134e4e5",
+        "main.kujo": "65b24236a334594e5d2de74177581651b814c93e00624d8c4f13d2008adee016",
+        "probe.kujo": "2238473023871becec33f6a70b671a770f957c950caa339016da33774d6aed9b",
+        "test_main.kujo": "7f107c2fbd178b3bd35aa2d791bf7f001e0f9be54b065c89ff74432cda6cf111"
+      },
+      "raw_run": "data/benchmark-runs/kujoquality20261005-qualified.json",
+      "artifact_root": "data/kujoquality20261005-qualified"
+    }
+  ],
+  "script_timing": [
+    {
+      "lane": "baseline",
+      "descending_intervals": 100,
+      "trials_ms": [
+        49.77064300328493,
+        46.43171303905547,
+        43.17333799554035
+      ],
+      "median_ms": 46.43171303905547,
+      "errors": []
+    },
+    {
+      "lane": "baseline",
+      "descending_intervals": 1000,
+      "trials_ms": [
+        529.676994017791,
+        532.6439769705757,
+        595.5627560033463
+      ],
+      "median_ms": 532.6439769705757,
+      "errors": []
+    },
+    {
+      "lane": "upgraded",
+      "descending_intervals": 100,
+      "trials_ms": [
+        83.5431240266189,
+        77.33461499447003,
+        72.86049897084013
+      ],
+      "median_ms": 77.33461499447003,
+      "errors": []
+    },
+    {
+      "lane": "upgraded",
+      "descending_intervals": 1000,
+      "trials_ms": [
+        2050.7383790099993,
+        2196.4070319663733,
+        2154.9305570079014
+      ],
+      "median_ms": 2154.9305570079014,
+      "errors": []
+    },
+    {
+      "lane": "qualified",
+      "descending_intervals": 100,
+      "trials_ms": [
+        72.30937102576718,
+        73.32925195805728,
+        75.36906597670168
+      ],
+      "median_ms": 73.32925195805728,
+      "errors": []
+    },
+    {
+      "lane": "qualified",
+      "descending_intervals": 1000,
+      "trials_ms": [
+        1733.314600016456,
+        1827.4194640107453,
+        1748.831955017522
+      ],
+      "median_ms": 1748.831955017522,
+      "errors": []
+    }
+  ],
+  "frontier_comparison": false,
+  "final_guidance_generation_unmeasured": [
+    "4697fa9",
+    "67e2b51"
+  ]
+}
