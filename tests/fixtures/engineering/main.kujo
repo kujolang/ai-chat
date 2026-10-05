@@ -1,0 +1,24 @@
+func fail(message) {
+ eprint(to_json({"error": message}))
+ exit(1)
+}
+func validate(values) {
+ if type(values) != "array" { fail("expected array") }
+ if len(values) > 10000 { fail("too many items") }
+ for value in values {
+  if !is_int(value) { fail("expected integer") }
+  if value < -1000 || value > 1000 { fail("out of range") }
+ }
+ return values
+}
+argv := args()
+if len(argv) < 1 || len(argv) > 2 { fail("expected JSON and optional sum") }
+if len(argv) == 2 { if argv[1] != "sum" { fail("unknown mode") } }
+values := []
+try { values := parse_json(argv[0]) } except err { fail("invalid JSON") }
+values := validate(values)
+if len(argv) == 1 { print(to_json({"count": len(values)})) } else {
+ total := 0
+ for value in values { total := total + value }
+ print(to_json({"count": len(values), "sum": total}))
+}
