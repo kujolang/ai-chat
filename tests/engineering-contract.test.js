@@ -57,3 +57,11 @@ test('a final declared custom harness supersedes an earlier static check in the 
  const packet=JSON.parse(evidencePacket('Implement API',rows,'Done',state));
  assert.equal(packet.task_contract.assessment.complete,true);assert.deepEqual(packet.verification.writes_after_last_successful_check,[]);assert.match(packet.verification.checks.at(-1).stdout_tail,/passed=148/);
 });
+test('a later observed dependency edit invalidates an earlier executable check without a file-write receipt', () => {
+ const state = {}; applyContract(state, plan, []);
+ const verified = { ...run, tool_name: 'local_kujo', input: { root_id: 'r', operation: 'run' }, result: { exit_code: 0, verification_manifest: [{ path: 'lib.kujo', sha256: 'old' }] } };
+ applyContract(state, { action: 'evidence', evidence: [{ id: 'failure', result_ref: 'check' }] }, [verified]);
+ const later = { ...verified, call_id: 'later', input: { root_id: 'r', operation: 'check' }, result: { exit_code: 0, source: { path: 'lib.kujo', sha256: 'changed' } } };
+ assert.equal(assessContract(state, [verified, later]).complete, false);
+ assert.equal(assessContract(state, [verified, { ...later, input: { root_id: 'other' } }]).complete, true);
+});

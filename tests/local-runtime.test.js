@@ -793,6 +793,8 @@ test('structured Kujo operations retain shell policy and workspace containment',
   const r=await local.runKujo({root_id:id,path:'a.kujo',operation:'check'});
   assert.equal(r.ok,true);assert.match(r.source.sha256,/^[a-f0-9]{64}$/);assert.equal(spawns,2);
   await assert.rejects(local.runKujo({root_id:id,path:'../outside.kujo',operation:'run'}));assert.equal(spawns,2);
+  await assert.rejects(local.runKujo({root_id:id,path:'a.kujo',operation:'run',verification_paths:['../outside.json']}));assert.equal(spawns,2);
+  await assert.rejects(local.runKujo({root_id:id,path:'a.kujo',operation:'run',verification_paths:['.env']}));assert.equal(spawns,2);
   const blocked=createLocalRuntime({env:{...base,AI_CHAT_LOCAL_SHELL_ALLOWLIST:'git'},spawnFn});
   await assert.rejects(blocked.runKujo({root_id:id,path:'a.kujo',operation:'run'}),e=>e.code==='local_shell_command_blocked');assert.equal(spawns,2);
   const disabled=createLocalRuntime({env:{...base,AI_CHAT_LOCAL_SHELL_ENABLED:'0'},spawnFn});

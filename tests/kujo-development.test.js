@@ -41,3 +41,43 @@ test('guide discloses known default-VM defect without claiming general runtime q
  const old=f.deps.runCommand;f.deps.runCommand=async a=>({...await old(a),kujo_runtime:{backend:'interpreter'}});
  const interpreter=await executeKujo({operation:'guide'},{},f.deps);assert.deepEqual(interpreter.runtime.warnings,[]);
 });
+
+test('declared dependency changes invalidate verification even when entry file is unchanged', async () => {
+ const f = fixture(); let changed = false;
+ f.deps.snapshot = a => ({ path: a.path, absolute_path: '/workspace/' + a.path, sha256: a.path === 'dep.json' && changed ? 'new' : 'old' });
+ const run = f.deps.runCommand;
+ f.deps.runCommand = async a => { const r = await run(a); if (a.args[0] === 'run') changed = true; return r; };
+ const r = await executeKujo({ operation: 'run', path: 'a.kujo', verification_paths: ['dep.json'] }, {}, f.deps);
+ assert.equal(r.ok, false); assert.equal(r.source_unchanged, false);
+ assert.deepEqual(r.verification_manifest.map(s => s.path), ['a.kujo', 'dep.json']);
+ assert.equal(r.verification_manifest_after[1].sha256, 'new');
+});
+test('invalid or unreadable verification paths fail before executing any commands', async () => {
+ for (const verification_paths of [['x', 'x'], [''], Array(17).fill('x'), [null], ['a\0b']]) {
+  const f = fixture(); await assert.rejects(executeKujo({ operation: 'run', verification_paths }, {}, f.deps)); assert.equal(f.calls.length, 0);
+ }
+ const f = fixture(); f.deps.snapshot = a => { if (a.path === 'missing') throw Error('not readable'); return { path: a.path, sha256: 'old' }; };
+ await assert.rejects(executeKujo({ operation: 'run', path: 'a.kujo', verification_paths: ['missing'] }, {}, f.deps), e => e.execution_started === false);
+ assert.equal(f.calls.length, 0);
+});
+test('individual examples cannot inherit verification from an unsupported runtime version', async () => {
+ const f = fixture({ version: 'kujo 1.5.0' });
+ const r = await executeKujo({ operation: 'guide', topic: 'validation' }, {}, f.deps);
+ assert.equal(r.example, null); assert.equal(r.runtime.reference_verified, false);
+ assert.deepEqual(r.tested_versions, ['1.7.0']);
+});
+test('a fully successful benchmark is usable as executable contract evidence', async () => {
+ const f = fixture(); const input = { operation: 'benchmark', path: 'a.kujo', pure: true, budget_ms: 20000, trials: 1 };
+ const result = await executeKujo(input, {}, f.deps);
+ const { applyContract } = require('../lib/engineering-contract'); const state = {};
+ applyContract(state, { action: 'plan', invariants: [{ id: 'repeat', invariant: 'Pure script runs successfully', check: 'Execute bounded trial' }] }, []);
+ const receipt = { call_id: 'trial', tool_name: 'local_kujo', status: 'completed', input, result };
+ assert.equal(applyContract(state, { action: 'evidence', evidence: [{ id: 'repeat', result_ref: 'trial' }] }, [receipt]).complete, true);
+});
+test('removed dependency after calibration stops benchmark without an uncertain thrown execution', async () => {
+ const f = fixture(); let removed = false; const run = f.deps.runCommand;
+ f.deps.snapshot = a => { if (a.path === 'dep.kujo' && removed) throw Error('missing'); return { path: a.path, absolute_path: '/workspace/a.kujo', sha256: 'old' }; };
+ f.deps.runCommand = async a => { const r = await run(a); if (a.args[0] === 'run') removed = true; return r; };
+ const r = await executeKujo({ operation: 'benchmark', path: 'a.kujo', verification_paths: ['dep.kujo'], pure: true, budget_ms: 20000 }, {}, f.deps);
+ assert.equal(r.ok, false); assert.equal(r.source_unchanged, false); assert.equal(f.calls.length, 2);
+});

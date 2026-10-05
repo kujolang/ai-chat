@@ -11,3 +11,11 @@ test('successful calls, old failures, disabled contracts and review cannot trigg
  assert.equal(diagnosticMessage({contract:{},phase:'work'},[failed,failed,...Array(32).fill(good)]),null);
  assert.equal(diagnosticMessage({contract:{},phase:'work'},[good,good]),null);
 });
+test('success resets consecutive failure evidence; persistent failures get one stronger notice',()=>{
+ const state={contract:{},phase:'work'};
+ const good={...failed,result:{exit_code:0}};
+ assert.equal(diagnosticMessage(state,[failed,good,failed]),null);
+ assert.ok(diagnosticMessage(state,[failed,failed]));
+ const next=diagnosticMessage(state,Array(5).fill(failed));assert.match(next.content,/compact working state/);
+ assert.equal(diagnosticMessage(structuredClone(state),Array(8).fill(failed)),null);
+});
