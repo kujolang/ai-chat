@@ -101,3 +101,20 @@ whether the model adopts that general idiom and improves actual program scaling.
 It is exploratory follow-up, not part of the original four-way isolated ablation.
 `KUJO_ALLOCATION_GUIDANCE=0` remains in all four original arms, so their advertised
 schemas and guidance do not gain this hint. Grader assets stay unchanged.
+
+The allocation follow-up uses compact grounding + batches + **always** review,
+so its direct comparator is Batch. This choice was made after Batch completed and
+while Selective was still running: Batch reduced reported token use substantially
+but did not improve delivery beyond 2/3. The additional arm tests a concrete code
+quality mechanism, not a claim that Batch was already a qualified default winner.
+
+## Supplemental sparse-output measurement
+
+After Selective's first task, source inspection found a claim that joining fixed
+64-pair string chunks makes construction linear. The original runs scaling fixture
+is contiguous, so its output is a single run and does not stress that claim.
+`scripts/measure-kujo-sparse-runs.js` is a separate post-hoc measurement for **every**
+configuration: 200/800/3200 even integers produce that many separate output pairs,
+three trials each, full output equality, 20-second per-process bound. It does not
+change the frozen oracle, completion score or original 106-case count. Report it
+separately and do not hide slower variants or treat it as preregistered evidence.
