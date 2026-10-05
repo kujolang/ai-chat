@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+const { assertAcceptanceUnchanged } = require('../lib/acceptance-integrity');
 const { reconcileBenchmarkEvidence } = require('../lib/benchmark-evidence');
 
 const crypto = require("node:crypto");
@@ -23,6 +24,7 @@ const requiredInstanceRole = String(args.requireInstanceRole || process.env.BENC
 const allowUnsafeConcurrency = args.allowUnsafeConcurrency === true || args.allowUnsafeConcurrency === "true";
 const toolPreset = String(args.toolPreset || process.env.BENCHMARK_TOOL_PRESET || "none").trim().toLowerCase();
 let concurrency = requestedConcurrency;
+let acceptanceAssets = null;
 let selection;
 let benchmarkTools = [];
 
@@ -61,6 +63,11 @@ void main();
 
 async function main() {
 	try {
+		if (args.acceptanceManifest) {
+			acceptanceAssets = JSON.parse(await fs.readFile(args.acceptanceManifest, 'utf8'));
+			assertAcceptanceUnchanged(acceptanceAssets);
+			run.acceptance_integrity = { status: 'verified_before_generation', manifest: acceptanceAssets };
+		}
 		const priorRun = await readPriorRun();
 		if (priorRun?.started_at && !priorRun.finished_at) run.started_at = priorRun.started_at;
 		const tests = parseBenchmarkTests(await fs.readFile(testFile, "utf8"));
@@ -102,6 +109,7 @@ async function main() {
 		console.log(`${tests.length} tests × ${selection.lanes.length} lanes = ${run.summary.total} responses (concurrency ${concurrency}, max attempts ${maxAttempts}, stream timeout ${streamTimeoutMs}ms)`);
 
 		for (const benchmark of tests) {
+			if (acceptanceAssets) assertAcceptanceUnchanged(acceptanceAssets);
 			const existingChat = (state.state?.chats || []).find((chat) =>
 				chat.title === benchmarkTitle(benchmark) && chatMatchesLanes(chat, selection.lanes)
 			);
@@ -141,6 +149,10 @@ async function main() {
 		console.error(`Benchmark run stopped: ${run.fatal_error}`);
 		process.exitCode = 1;
 	} finally {
+		if (acceptanceAssets) {
+			try { assertAcceptanceUnchanged(acceptanceAssets); run.acceptance_integrity = { status: 'unchanged_after_generation', manifest: acceptanceAssets }; }
+			catch (error) { run.acceptance_integrity = { status: 'invalid', error: error.message }; run.fatal_error = error.message; process.exitCode = 1; }
+		}
 		run.finished_at = new Date().toISOString();
 		run.duration_ms = Date.parse(run.finished_at) - Date.parse(run.started_at);
 		run.summary.transport_completion_rate = ratio(run.summary.completed, run.summary.total);

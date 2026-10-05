@@ -681,3 +681,5 @@ In **Settings → General → Chat Appearance**, **Show language picker** contro
 ### ChatGPT plan connection (local preview)
 
 Use **Settings → Providers → Continue with ChatGPT** after enabling `CHATGPT_SIGN_IN_ENABLED=1` on a loopback server with a strong encryption secret. Eligible Plus/Pro users can authorize plan-backed text and local function tools through a separate profile; API-key and native Codex profiles stay independent. See [setup, security and limitations](docs/CHATGPT_PLAN.md).
+
+Kujo development tasks receive bounded runtime-grounding guidance when `local_kujo` is authorized. See [Kujo quality workflow](docs/engineering/kujo-quality-workflow.md) for verified examples, dependency manifests, and independent acceptance checks.

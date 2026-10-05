@@ -205,6 +205,7 @@ async function startFixtureServer(initialState, schemas = [], terminal = {}) {
 		if (request.url === "/api/chat/stream" && request.method === "POST") {
 			const body = await readJson(request);
 			streams.push(body);
+			if (terminal.onStream) await terminal.onStream();
 			response.writeHead(200, { "Content-Type": "text/event-stream" });
 			response.end(`event: ${terminal.event || "done"}\ndata: ${JSON.stringify({ ...terminal.payload, output_text: `fixture:${body.model}`, model: body.model, provider: body.profile_id, usage: { input_tokens: 1, output_tokens: 1, total_tokens: 2 } })}\n\n`);
 			return;
@@ -291,3 +292,23 @@ for (const event of ['done','error']) {
   assert.equal(report.summary.task_completion_rate,null);
  });
 }
+
+
+test('benchmark integrity rejects a changed oracle and records invalid rather than acceptance', async t => {
+ const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'ai-chat-integrity-run-'));
+ t.after(() => fs.rm(tempRoot, { recursive: true, force: true }));
+ const oracle = path.join(tempRoot, 'oracle.js'); await fs.writeFile(oracle, 'original');
+ const { acceptanceManifest } = require('../lib/acceptance-integrity');
+ const manifest = path.join(tempRoot, 'manifest.json'); await fs.writeFile(manifest, JSON.stringify(acceptanceManifest([oracle])));
+ const suite = path.join(tempRoot, 'suite.md'); await fs.writeFile(suite, '# TEST 1: Fixture\nReturn output.');
+ const runtime = await startFixtureServer(fixtureState(), [], { onStream: () => fs.writeFile(oracle, 'weakened') });
+ t.after(() => new Promise(resolve => runtime.server.close(resolve)));
+ const args = ['--tests',suite,'--output-dir',tempRoot,'--base-url',runtime.baseUrl,'--api-token','fixture','--require-instance-role','any','--model','glm-5.3-flash','--acceptance-manifest',manifest];
+ const result = await runBenchmark([...args,'--run-id','changed']); assert.equal(result.code, 1);
+ const artifact = JSON.parse(await fs.readFile(path.join(tempRoot,'changed.json'),'utf8'));
+ assert.equal(artifact.acceptance_integrity.status, 'invalid'); assert.match(artifact.fatal_error, /changed/);
+ assert.equal(artifact.summary.task_completion_rate, null);
+ const requests = runtime.streams.length;
+ const rejected = await runBenchmark([...args,'--run-id','already-changed']); assert.equal(rejected.code,1);
+ assert.equal(runtime.streams.length, requests);
+});

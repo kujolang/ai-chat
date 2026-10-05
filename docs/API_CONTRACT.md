@@ -783,3 +783,7 @@ Disconnects still permit journal inspection/replay without rerunning tools.
 Benchmark receipts retain `ok: false` for failed delivery even when the journal
 reports `execution_status: "completed"`; artifact acceptance requires separate
 verification.
+
+### Kujo verification manifests
+
+`local_kujo` accepts optional `verification_paths`: up to 16 unique readable workspace paths relative to `cwd`. Receipts add `verification_manifest` and `verification_manifest_after` (path/SHA-256 rows). `source_unchanged` and `ok` are false if any declared file changes or disappears during execution. This covers declared files only, not automatic dependency discovery or semantic correctness. Existing calls remain valid. See [Kujo quality workflow](engineering/kujo-quality-workflow.md).
