@@ -4,7 +4,7 @@ const {snapshot}=require('../scripts/run-kujo-maintenance-evaluation');
 const binary=process.env.KUJO_REFERENCE_BIN;
 test('development and holdout cases are distinct and the six specifications have matching cases',()=>{
  const tasks=require('../benchmarks/kujo-maintenance-tasks.json');assert.equal(tasks.length,6);
- for(const t of tasks){const c=cases[t.id];assert.ok(c.development.length&&c.holdout.length);const seen=new Set(c.development.map(v=>JSON.stringify(v.input)));assert.ok(c.holdout.every(v=>!seen.has(JSON.stringify(v.input))));}
+ for(const t of tasks){const c=cases[t.id];assert.ok(c.development.length&&c.holdout.length);const signature=v=>JSON.stringify([v.input,v.rawInput,v.missingArgument,v.extraArgument]);const seen=new Set(c.development.map(signature));assert.ok(c.holdout.every(v=>!seen.has(signature(v))));}
 });
 test('maintenance snapshot rejects symlinks and preserves exact candidate bytes',t=>{
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'maintenance-snapshot-'));t.after(()=>fs.rmSync(dir,{recursive:true,force:true}));

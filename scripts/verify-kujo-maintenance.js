@@ -11,6 +11,15 @@ const cases={
  5:{development:[{id:'conflict',state:{revision:1,label:'old',meta:{}},input:{expected:0,label:'new'},reject:true},{id:'blocked-parent',state:{revision:1,label:'old',meta:{}},input:{expected:1,label:'new'},blocked:true,reject:true},{id:'normal-save',state:{revision:1,label:'old',meta:{}},input:{expected:1,label:''},expected:{revision:2,label:'',meta:{}}}],holdout:[{id:'same-file',same:true,state:{revision:999,label:'old',meta:{x:[false,0]}},input:{expected:999,label:'雪'},expected:{revision:1000,label:'雪',meta:{x:[false,0]}}},{id:'bool-expected',state:{revision:0,label:'old',meta:{}},input:{expected:false,label:'x'},reject:true},{id:'unknown-patch',state:{revision:2,label:'old',meta:{}},input:{expected:2,label:'x',extra:1},reject:true},{id:'invalid-source',state:{revision:1000,label:'old',meta:{}},input:{expected:1000,label:'x'},reject:true},{id:'invalid-label',state:{revision:2,label:'old',meta:{}},input:{expected:2,label:0},reject:true},{id:'broken-source',rawState:'{',input:{expected:0,label:'x'},reject:true}]},
  6:{development:[ok('embedded-quote',{rows:[{name:'a"b',note:'x,y'}],header:false},{csv:'"a""b","x,y"\r\n'}),ok('empty-no-header',{rows:[],header:false},{csv:''})],holdout:[ok('unicode-newlines',{rows:[{name:'雪\nline',note:'\r"Q"'},{name:'=1+1',note:''}]},{csv:'"name","note"\r\n"雪\nline","\r""Q"""\r\n"=1+1",""\r\n'}),ok('header-only',{rows:[]},{csv:'"name","note"\r\n'}),bad('false-is-not-string',{rows:[{name:false,note:''}]}),bad('header-not-bool',{rows:[],header:0}),bad('unknown-row',{rows:[{name:'x',note:'y',extra:1}]}),bad('too-many',{rows:Array.from({length:1001},()=>({name:'',note:''}))})]}
 };
+// Interface failures are held out from repair feedback, not silently omitted.
+for (let task=1;task<=6;task++) {
+ const state=task===5?{revision:0,label:'old',meta:{}}:undefined;
+ cases[task].holdout.push(
+  {id:'malformed-json',rawInput:'{',state,reject:true},
+  {id:'missing-argument',missingArgument:true,state,input:{expected:0,label:'x'},reject:true},
+  {id:'extra-argument',extraArgument:true,state,input:task===5?{expected:0,label:'x'}:{},reject:true}
+ );
+}
 function verify(file,task,phase,binary,{deadline=Date.now()+120000}={}){
  if(!['development','holdout'].includes(phase)||!cases[task])throw Error('Choose a known task and phase');
  const failures=[],results=[];let completed=true;
@@ -23,7 +32,10 @@ function verify(file,task,phase,binary,{deadline=Date.now()+120000}={}){
   try{
    const source=path.join(dir,'source.json'),dest=c.same?source:c.blocked?path.join(dir,'blocked','target.json'):path.join(dir,'dest.json');
    const original=c.rawState??JSON.stringify(c.state);if(task===5){fs.writeFileSync(source,original);fs.writeFileSync(path.join(dir,'blocked'),'not a directory');if(!c.same&&!c.blocked)fs.writeFileSync(dest,'previous destination');}
-   const args=task===5?[source,dest,JSON.stringify(c.input)]:[JSON.stringify(c.input)];
+   const payload=c.rawInput??JSON.stringify(c.input);
+   const args=task===5?[source,dest,payload]:[payload];
+   if(c.missingArgument)args.pop();
+   if(c.extraArgument)args.push('extra');
    const r=spawnSync(binary,['run',path.resolve(file),'--',...args],{cwd:dir,encoding:'utf8',timeout:Math.max(1,Math.min(5000,deadline-Date.now())),maxBuffer:256*1024,killSignal:'SIGKILL',detached:process.platform!=='win32'});
    if(process.platform!=='win32'&&r.pid)try{process.kill(-r.pid,'SIGKILL');}catch(e){if(e.code!=='ESRCH')throw e;}
    actual={status:r.status,stdout:(r.stdout||'').slice(0,1800),stderr:(r.stderr||'').slice(0,1000),...(r.error?{process_error:r.error.code}: {})};
@@ -32,7 +44,7 @@ function verify(file,task,phase,binary,{deadline=Date.now()+120000}={}){
    else{assert.equal(r.status,0);assert.equal(r.stderr,'');assert.deepEqual(JSON.parse(r.stdout),c.expected);}
    if(task===5){if(!c.same||c.reject)assert.equal(fs.readFileSync(source,'utf8'),original);if(!c.reject)assert.deepEqual(JSON.parse(fs.readFileSync(dest,'utf8')),c.expected);else if(!c.same&&!c.blocked)assert.equal(fs.readFileSync(dest,'utf8'),'previous destination');}
    assert.equal(hash(),before,'Candidate changed during verification');results.push({id:c.id,passed:true});
-  }catch(e){const failure={id:c.id,input:task===5?{patch:c.input,source:c.rawState??c.state,destination:c.blocked?'parent is a regular file':c.same?'same as source':'existing owned file'}:c.input,expected:c.reject?{exit:1,stdout:'',stderr:{error:'nonempty string'},state:'unchanged'}:c.expected,actual,reason:String(e.message).slice(0,300)};failures.push(failure);results.push({id:c.id,passed:false});}
+  }catch(e){const failure={id:c.id,input:task===5?{patch:c.rawInput??c.input,source:c.rawState??c.state,destination:c.blocked?'parent is a regular file':c.same?'same as source':'existing owned file'}:c.rawInput??c.input,expected:c.reject?{exit:1,stdout:'',stderr:{error:'nonempty string'},state:'unchanged'}:c.expected,actual,reason:String(e.message).slice(0,300)};failures.push(failure);results.push({id:c.id,passed:false});}
   finally{fs.rmSync(dir,{recursive:true,force:true});}
  }
  try{if(hash()!==before)completed=false;}catch{completed=false;}
