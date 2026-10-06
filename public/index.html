@@ -139,6 +139,14 @@
 					<button id="voice-btn" class="btn ghost icon-only" aria-label="Voice" title="Voice">
 						<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mic-icon lucide-mic" aria-hidden="true"><path d="M12 19v3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><rect x="9" y="2" width="6" height="13" rx="3"/></svg>
 					</button>
+					<select id="composer-steering-mode" class="composer-steering-mode hidden" aria-label="Active execution action">
+						<option value="immediate">Steer now</option>
+						<option value="queued">Queue next</option>
+						<option value="cancel_after_action">Stop after action</option>
+					</select>
+					<button id="stop-stream-btn" class="btn ghost icon-only streaming-stop hidden" aria-label="Stop immediately" title="Stop immediately">
+						<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>
+					</button>
 					<button id="send-btn" class="btn primary icon-only" aria-label="Send" title="Send">
 						<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-send-icon lucide-send" aria-hidden="true"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></svg>
 					</button>
@@ -332,6 +340,11 @@
 					<p>Shell opt-in, command deadlines, output limits, credential filtering and file-tool permissions remain in effect. Disabling a switch does not stop commands already running.</p>
 					<button type="button" class="btn danger" disabled>Save command permissions</button>
 					<p role="status" aria-live="polite">Open Tools to load the current server permissions.</p>
+					<div class="approval-grants-settings">
+						<h5>Saved action approvals</h5>
+						<p>Exact chat and workspace grants can be revoked here. Revocation affects future actions, not work already running.</p>
+						<div data-approval-grants-list><span class="muted">Open Tools to load saved grants.</span></div>
+					</div>
 				</div>
 				<div id="tools-list" class="tools-list"></div>
 			</section>

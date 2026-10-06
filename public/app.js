@@ -176,6 +176,8 @@ const nodes = {
 	composerProfileSelect: document.getElementById("composer-profile-select"),
 	retrievalLanguage: document.getElementById("retrieval-language"),
 	sendBtn: document.getElementById("send-btn"),
+	stopStreamBtn: document.getElementById("stop-stream-btn"),
+	composerSteeringMode: document.getElementById("composer-steering-mode"),
 	voiceBtn: document.getElementById("voice-btn"),
 	voiceStatus: document.getElementById("voice-status"),
 	settingsModal: document.getElementById("settings-modal"),
@@ -1369,8 +1371,13 @@ function wireEvents() {
 	});
 
 	nodes.sendBtn.addEventListener("click", () => {
+		if (activeStreamControllers.size > 0 && !String(nodes.composerInput.value || "").trim()) {
+			stopActiveStreams();
+			return;
+		}
 		void sendFromComposer().catch(handleComposerSendError);
 	});
+	nodes.stopStreamBtn?.addEventListener("click", stopActiveStreams);
 
 	nodes.composerInput.addEventListener("keydown", (event) => {
 		if (event.key === "Enter" && !event.shiftKey) {
@@ -1564,6 +1571,12 @@ function wireEvents() {
 			return;
 		}
 
+		const approvalButton = event.target.closest("[data-approval-id][data-approval-decision]");
+		if (approvalButton) {
+			void decideMessageApproval(approvalButton);
+			return;
+		}
+
 		const diffActionButton = event.target.closest("[data-diff-action][data-pane-id][data-message-id]");
 		if (diffActionButton) {
 			const pane = getPaneById(String(diffActionButton.getAttribute("data-pane-id") || ""));
@@ -1585,6 +1598,13 @@ function wireEvents() {
 					showCopiedFeedback(diffActionButton, "Copy patch", "Copy patch");
 				});
 			}
+			if (["review-file", "review-hunk", "comment-file", "comment-hunk"].includes(action)) {
+				void updateMessageDiffReview(message, pane, diffActionButton, action);
+			}
+			if (["revert-file", "revert-hunk", "restore-all", "fork-checkpoint"].includes(action)) {
+				void restoreMessageCheckpoint(message, pane, diffActionButton, action);
+			}
+			if (action === "open-editor") void openMessageDiffInEditor(message, diffActionButton);
 			return;
 		}
 
@@ -3830,6 +3850,8 @@ function renderMessageNodeHtml(message, paneId) {
 	const metaExpanded = Boolean(message.meta_expanded);
 	const meta = metaBits.length > 0 ? `<div class="message-meta${metaExpanded ? " expanded" : ""}">${escapeHtml(metaBits.join(" | "))}</div>` : "";
 	const thinking = renderThinkingBlock(message, paneId);
+	const executionPlan = renderExecutionPlan(message);
+	const approvals = renderMessageApprovals(message, paneId);
 	const toolError = renderMessageErrorBlock(message);
 	const contentBody = renderAssistantMarkdown(message.role === "assistant" ? normalizeAssistantProseSpacing(message.content) : message.content);
 	const content = hasAssistantThinkingOnly ? "" : renderMessageContent(message, paneId, contentBody);
@@ -3850,7 +3872,7 @@ function renderMessageNodeHtml(message, paneId) {
 		const metaFooter = meta || footer
 			? `<div class="message-meta-footer">${footer}<div class="message-runtime-details">${meta}${metaToggle}</div></div>`
 			: "";
-		return `<div class="${messageClasses.join(" ")}" data-message-id="${escapeHtml(message.id)}" data-pane-id="${escapeHtml(paneId)}">${thinking}${content}${codeDiffs}${toolError}${screenshots}${metaFooter}</div>`;
+		return `<div class="${messageClasses.join(" ")}" data-message-id="${escapeHtml(message.id)}" data-pane-id="${escapeHtml(paneId)}">${thinking}${executionPlan}${approvals}${content}${codeDiffs}${toolError}${screenshots}${metaFooter}</div>`;
 	}
 
 	return `<div class="${messageClasses.join(" ")}" data-message-id="${escapeHtml(message.id)}" data-pane-id="${escapeHtml(paneId)}"><div class="message-bubble">${content}${meta}</div>${footer}</div>`;
@@ -3868,6 +3890,25 @@ function renderMessageContent(message, paneId, contentBody) {
 
 function codeDiffsForMessage(message) {
 	return normalizeCodeDiffSet(message && (message.code_diffs || (message.usage && message.usage.code_diffs)));
+}
+
+function renderExecutionPlan(message) {
+	const plan = message.execution_plan || message.usage?.execution_plan;
+	if (!plan || !Array.isArray(plan.steps) || !plan.steps.length) return "";
+	const completed = plan.steps.filter((step) => step.state === "completed").length;
+	const active = plan.steps.find((step) => step.state === "active");
+	const steps = plan.steps.map((step) => `<li class="${escapeHtml(step.state)}"><span class="plan-step-marker" aria-hidden="true"></span><span>${escapeHtml(step.label)}</span><small>${escapeHtml(step.state)}</small></li>`).join("");
+	return `<details class="execution-plan"${message.streaming || active ? " open" : ""}><summary><span>Plan</span><strong>${completed}/${plan.steps.length}</strong>${active ? `<small>${escapeHtml(active.label)}</small>` : ""}</summary><ol>${steps}</ol></details>`;
+}
+
+function messageApprovals(message) {
+	return Array.isArray(message.approvals) ? message.approvals : Array.isArray(message.usage?.approvals) ? message.usage.approvals : [];
+}
+
+function renderMessageApprovals(message, paneId) {
+	const pending = messageApprovals(message).filter((approval) => approval.status === "pending");
+	if (!pending.length) return "";
+	return `<section class="message-approvals" aria-label="Actions awaiting approval">${pending.map((approval) => `<article class="approval-card ${escapeHtml(approval.risk)}"><div><strong>Approval required</strong><span>${escapeHtml(approval.summary)}</span><small>${escapeHtml(approval.tool_name.replaceAll("_", " "))} · ${escapeHtml(approval.risk)} risk</small></div><div class="approval-actions"><button type="button" class="btn" data-approval-id="${escapeHtml(approval.id)}" data-approval-decision="approve" data-approval-scope="once" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}">Allow once</button><button type="button" class="btn ghost" data-approval-id="${escapeHtml(approval.id)}" data-approval-decision="approve" data-approval-scope="chat" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}">Allow for chat</button><button type="button" class="btn ghost" data-approval-id="${escapeHtml(approval.id)}" data-approval-decision="approve" data-approval-scope="workspace" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}">Always this exact action</button><button type="button" class="btn danger" data-approval-id="${escapeHtml(approval.id)}" data-approval-decision="deny" data-approval-scope="once" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}">Deny</button></div></article>`).join("")}</section>`;
 }
 
 function normalizeCodeDiffSet(value) {
@@ -3938,13 +3979,15 @@ function renderCodeDiffViewer(message, paneId) {
 	const summary = `${diffs.files.length} ${diffs.files.length === 1 ? "file" : "files"}`;
 	const messageId = escapeHtml(message.id);
 	const safePaneId = escapeHtml(paneId);
-	const controls = `<div class="code-diff-controls" role="group" aria-label="Diff layout"><button type="button" class="code-diff-mode${mode === "unified" ? " active" : ""}" data-diff-action="mode" data-diff-mode="unified" data-pane-id="${safePaneId}" data-message-id="${messageId}" aria-pressed="${mode === "unified"}">Unified</button><button type="button" class="code-diff-mode${mode === "split" ? " active" : ""}" data-diff-action="mode" data-diff-mode="split" data-pane-id="${safePaneId}" data-message-id="${messageId}" aria-pressed="${mode === "split"}">Split</button><button type="button" class="code-diff-copy" data-diff-action="copy" data-pane-id="${safePaneId}" data-message-id="${messageId}" aria-label="Copy patch" title="Copy patch">${copyCodeButtonSvg}</button></div>`;
-	const files = expanded ? diffs.files.map((file) => renderCodeDiffFile(file, mode)).join("") : "";
+	const checkpointId = String(message.checkpoint_id || message.usage?.checkpoint_id || "");
+	const checkpointControls = checkpointId && !message.streaming ? `<button type="button" class="code-diff-mode" data-diff-action="restore-all" data-pane-id="${safePaneId}" data-message-id="${messageId}">Restore all</button><button type="button" class="code-diff-mode" data-diff-action="fork-checkpoint" data-pane-id="${safePaneId}" data-message-id="${messageId}">Rewind &amp; fork</button>` : "";
+	const controls = `<div class="code-diff-controls" role="group" aria-label="Diff layout"><button type="button" class="code-diff-mode${mode === "unified" ? " active" : ""}" data-diff-action="mode" data-diff-mode="unified" data-pane-id="${safePaneId}" data-message-id="${messageId}" aria-pressed="${mode === "unified"}">Unified</button><button type="button" class="code-diff-mode${mode === "split" ? " active" : ""}" data-diff-action="mode" data-diff-mode="split" data-pane-id="${safePaneId}" data-message-id="${messageId}" aria-pressed="${mode === "split"}">Split</button>${checkpointControls}<button type="button" class="code-diff-copy" data-diff-action="copy" data-pane-id="${safePaneId}" data-message-id="${messageId}" aria-label="Copy patch" title="Copy patch">${copyCodeButtonSvg}</button></div>`;
+	const files = expanded ? diffs.files.map((file) => renderCodeDiffFile(file, mode, message, paneId)).join("") : "";
 	const warning = diffs.truncated ? `<div class="code-diff-notice">Some changes exceeded the live preview limit. Review the workspace before committing.</div>` : "";
 	return `<section class="code-diff-viewer${expanded ? " expanded" : ""}" aria-label="Code changes"><header class="code-diff-summary"><button type="button" class="code-diff-toggle" data-diff-action="toggle" data-pane-id="${safePaneId}" data-message-id="${messageId}" aria-expanded="${expanded}"><span class="code-diff-chevron" aria-hidden="true">›</span><strong>Changes</strong><span>${summary}</span><span class="code-diff-additions">+${additions}</span><span class="code-diff-deletions">−${deletions}</span></button>${expanded ? controls : ""}</header>${expanded ? `<div class="code-diff-files">${files}${warning}</div>` : ""}</section>`;
 }
 
-function renderCodeDiffFile(file, mode) {
+function renderCodeDiffFile(file, mode, message, paneId) {
 	const parts = file.path.split("/");
 	const name = parts.pop() || file.path;
 	const directory = parts.join("/");
@@ -3954,15 +3997,18 @@ function renderCodeDiffFile(file, mode) {
 		: file.truncated && file.hunks.length === 0
 			? `<div class="code-diff-unavailable">This file is too large to preview safely.</div>`
 			: "";
-	const hunks = file.hunks.map((hunk) => mode === "split" ? renderSplitDiffHunk(hunk) : renderUnifiedDiffHunk(hunk)).join("");
-	return `<article class="code-diff-file" data-diff-path="${escapeHtml(file.path)}"><header class="code-diff-file-header"><span class="code-diff-status ${escapeHtml(file.status)}" aria-label="${escapeHtml(file.status)}">${statusLabel}</span><span class="code-diff-file-name" title="${escapeHtml(file.path)}"><strong>${escapeHtml(name)}</strong>${directory ? `<small>${escapeHtml(directory)}/</small>` : ""}</span><span class="code-diff-file-stats"><span class="code-diff-additions">+${file.additions}</span><span class="code-diff-deletions">−${file.deletions}</span></span></header><div class="code-diff-code ${mode}" role="region" aria-label="Diff for ${escapeHtml(file.path)}" tabindex="0">${unavailable}${hunks}</div></article>`;
+	const review = diffReviewFor(message, file.path, -1);
+	const attrs = `data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}" data-diff-path="${escapeHtml(file.path)}"`;
+	const fileActions = `<div class="code-diff-review-actions"><button type="button" class="code-diff-action${review?.status === "accepted" ? " accepted" : ""}" data-diff-action="review-file" ${attrs}>${review?.status === "accepted" ? "Reviewed" : "Mark reviewed"}</button><button type="button" class="code-diff-action" data-diff-action="comment-file" ${attrs}>Comment</button><button type="button" class="code-diff-action" data-diff-action="open-editor" ${attrs}>Open</button>${message.streaming ? "" : `<button type="button" class="code-diff-action danger" data-diff-action="revert-file" ${attrs}>Revert</button>`}</div>`;
+	const hunks = file.hunks.map((hunk, hunkIndex) => mode === "split" ? renderSplitDiffHunk(hunk, { filePath: file.path, hunkIndex, message, paneId }) : renderUnifiedDiffHunk(hunk, { filePath: file.path, hunkIndex, message, paneId })).join("");
+	return `<article class="code-diff-file" data-diff-path="${escapeHtml(file.path)}"><header class="code-diff-file-header"><span class="code-diff-status ${escapeHtml(file.status)}" aria-label="${escapeHtml(file.status)}">${statusLabel}</span><span class="code-diff-file-name" title="${escapeHtml(file.path)}"><strong>${escapeHtml(name)}</strong>${directory ? `<small>${escapeHtml(directory)}/</small>` : ""}</span><span class="code-diff-file-stats"><span class="code-diff-additions">+${file.additions}</span><span class="code-diff-deletions">−${file.deletions}</span></span>${fileActions}</header><div class="code-diff-code ${mode}" role="region" aria-label="Diff for ${escapeHtml(file.path)}" tabindex="0">${unavailable}${hunks}</div></article>`;
 }
 
-function renderUnifiedDiffHunk(hunk) {
+function renderUnifiedDiffHunk(hunk, context) {
 	let oldLine = hunk.old_start;
 	let newLine = hunk.new_start;
 	const counterparts = diffLineCounterparts(hunk.lines);
-	const rows = [`<div class="code-diff-hunk-header">@@ −${hunk.old_start},${hunk.old_lines} +${hunk.new_start},${hunk.new_lines} @@</div>`];
+	const rows = [renderDiffHunkHeader(hunk, context)];
 	for (let index = 0; index < hunk.lines.length; index += 1) {
 		const line = hunk.lines[index];
 		const oldNumber = line.type === "add" ? "" : oldLine++;
@@ -3974,10 +4020,10 @@ function renderUnifiedDiffHunk(hunk) {
 	return `<div class="code-diff-hunk">${rows.join("")}</div>`;
 }
 
-function renderSplitDiffHunk(hunk) {
+function renderSplitDiffHunk(hunk, context) {
 	let oldLine = hunk.old_start;
 	let newLine = hunk.new_start;
-	const rows = [`<div class="code-diff-hunk-header">@@ −${hunk.old_start},${hunk.old_lines} +${hunk.new_start},${hunk.new_lines} @@</div>`];
+	const rows = [renderDiffHunkHeader(hunk, context)];
 	for (let index = 0; index < hunk.lines.length;) {
 		const line = hunk.lines[index];
 		if (line.type === "context") {
@@ -4003,6 +4049,101 @@ function renderSplitDiffHunk(hunk) {
 		}
 	}
 	return `<div class="code-diff-hunk">${rows.join("")}</div>`;
+}
+
+function renderDiffHunkHeader(hunk, { filePath, hunkIndex, message, paneId }) {
+	const review = diffReviewFor(message, filePath, hunkIndex);
+	const attrs = `data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}" data-diff-path="${escapeHtml(filePath)}" data-diff-hunk="${hunkIndex}"`;
+	return `<div class="code-diff-hunk-header"><span>@@ −${hunk.old_start},${hunk.old_lines} +${hunk.new_start},${hunk.new_lines} @@</span><span class="code-diff-hunk-actions"><button type="button" class="code-diff-action${review?.status === "accepted" ? " accepted" : ""}" data-diff-action="review-hunk" ${attrs}>${review?.status === "accepted" ? "Reviewed" : "Review"}</button><button type="button" class="code-diff-action" data-diff-action="comment-hunk" ${attrs}>Comment</button>${message.streaming ? "" : `<button type="button" class="code-diff-action danger" data-diff-action="revert-hunk" ${attrs}>Revert hunk</button>`}</span></div>`;
+}
+
+function diffReviewFor(message, filePath, hunkIndex) {
+	const reviews = Array.isArray(message.diff_reviews) ? message.diff_reviews : Array.isArray(message.usage?.diff_reviews) ? message.usage.diff_reviews : [];
+	return reviews.find((review) => review.path === filePath && Number(review.hunk_index) === Number(hunkIndex)) || null;
+}
+
+async function decideMessageApproval(button) {
+	const pane = getPaneById(String(button.getAttribute("data-pane-id") || ""));
+	const message = pane?.messages.find((entry) => entry.id === String(button.getAttribute("data-message-id") || ""));
+	if (!message) return;
+	for (const action of button.closest(".approval-actions")?.querySelectorAll("button") || []) action.disabled = true;
+	try {
+		const response = await apiFetch(`/api/approvals/${encodeURIComponent(button.getAttribute("data-approval-id"))}/decision`, {
+			method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ decision: button.getAttribute("data-approval-decision"), scope: button.getAttribute("data-approval-scope") })
+		});
+		const payload = await response.json();
+		if (!response.ok) throw new Error(payload.error?.message || "Could not save approval decision.");
+		message.approvals = [...messageApprovals(message).filter((entry) => entry.id !== payload.approval.id), payload.approval];
+		message.usage = { ...(message.usage || {}), approvals: message.approvals };
+		renderWorkspace({ preserveScroll: true });
+		scheduleStreamingPersist(getActiveChat()?.id, pane.id, message.id, { immediate: true });
+	} catch (error) {
+		if (nodes.voiceStatus) nodes.voiceStatus.textContent = error.message;
+		for (const action of button.closest(".approval-actions")?.querySelectorAll("button") || []) action.disabled = false;
+	}
+}
+
+async function updateMessageDiffReview(message, pane, button, action) {
+	if (!message.execution_id) return;
+	const filePath = String(button.getAttribute("data-diff-path") || "");
+	const hunk = button.hasAttribute("data-diff-hunk") ? Number(button.getAttribute("data-diff-hunk")) : null;
+	const existing = diffReviewFor(message, filePath, hunk === null ? -1 : hunk);
+	const comment = action.startsWith("comment") ? window.prompt("Review comment", existing?.comment || "") : existing?.comment || "";
+	if (comment === null) return;
+	const status = action.startsWith("review") ? (existing?.status === "accepted" ? "unreviewed" : "accepted") : existing?.status || "unreviewed";
+	button.disabled = true;
+	try {
+		const response = await apiFetch(`/api/executions/${encodeURIComponent(message.execution_id)}/diff-reviews`, {
+			method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path: filePath, hunk_index: hunk, status, comment })
+		});
+		const payload = await response.json();
+		if (!response.ok) throw new Error(payload.error?.message || "Could not save diff review.");
+		message.diff_reviews = payload.reviews;
+		message.usage = { ...(message.usage || {}), diff_reviews: payload.reviews };
+		renderWorkspace({ preserveScroll: true });
+		scheduleStreamingPersist(getActiveChat()?.id, pane.id, message.id, { immediate: true });
+	} catch (error) { if (nodes.voiceStatus) nodes.voiceStatus.textContent = error.message; button.disabled = false; }
+}
+
+async function restoreMessageCheckpoint(message, pane, button, action) {
+	const checkpointId = String(message.checkpoint_id || message.usage?.checkpoint_id || "");
+	if (!checkpointId) return;
+	const filePath = String(button.getAttribute("data-diff-path") || "");
+	const hunk = button.hasAttribute("data-diff-hunk") ? Number(button.getAttribute("data-diff-hunk")) : null;
+	const description = action === "restore-all" || action === "fork-checkpoint" ? "all files changed by this turn" : hunk === null ? filePath : `hunk ${hunk + 1} in ${filePath}`;
+	if (!window.confirm(`Restore ${description}? Later manual edits will be protected by a conflict check.`)) return;
+	button.disabled = true;
+	try {
+		const response = await apiFetch(`/api/checkpoints/${encodeURIComponent(checkpointId)}/restore`, {
+			method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...(filePath ? { path: filePath } : {}), ...(hunk !== null ? { hunk_index: hunk } : {}) })
+		});
+		const payload = await response.json();
+		if (!response.ok) throw new Error(payload.error?.message || "Could not restore checkpoint.");
+		message.code_diffs = normalizeCodeDiffSet(payload.diffs);
+		message.usage = { ...(message.usage || {}), code_diffs: message.code_diffs };
+		if (filePath) {
+			const reviewResponse = await apiFetch(`/api/executions/${encodeURIComponent(message.execution_id)}/diff-reviews`, {
+				method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path: filePath, hunk_index: hunk, status: "rejected", comment: "Reverted from checkpoint." })
+			});
+			if (reviewResponse.ok) message.diff_reviews = (await reviewResponse.json()).reviews;
+		}
+		renderWorkspace({ preserveScroll: true });
+		scheduleStreamingPersist(getActiveChat()?.id, pane.id, message.id, { immediate: true });
+		if (action === "fork-checkpoint") branchMessageIntoNewChat(getActiveChat(), pane.id, message.id);
+	} catch (error) { if (nodes.voiceStatus) nodes.voiceStatus.textContent = error.message; button.disabled = false; }
+}
+
+async function openMessageDiffInEditor(message, button) {
+	const checkpointId = String(message.checkpoint_id || message.usage?.checkpoint_id || "");
+	if (!checkpointId) return;
+	try {
+		const response = await apiFetch(`/api/checkpoints/${encodeURIComponent(checkpointId)}/editor`, {
+			method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path: button.getAttribute("data-diff-path") })
+		});
+		const payload = await response.json();
+		if (!response.ok) throw new Error(payload.error?.message || "Could not open the file.");
+		window.location.href = payload.uri;
+	} catch (error) { if (nodes.voiceStatus) nodes.voiceStatus.textContent = error.message; }
 }
 
 function renderSplitDiffRow(left, right) {
@@ -6333,7 +6474,11 @@ async function validateApiAuthTokenCandidate(token) {
 
 async function sendFromComposer() {
 	if (activeStreamCount > 0 || activeStreamControllers.size > 0) {
-		stopActiveStreams();
+		const mode = String(nodes.composerSteeringMode?.value || "immediate");
+		const prompt = nodes.composerInput.value.trim();
+		if (mode !== "cancel_after_action" && !prompt) return;
+		await steerActiveExecutions(mode, prompt);
+		nodes.composerInput.value = "";
 		return;
 	}
 
@@ -6405,6 +6550,10 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 	assistantMessage.trace_id = assistantMessage.id;
 	assistantMessage.tool_activity = [];
 	assistantMessage.code_diffs = null;
+	assistantMessage.approvals = [];
+	assistantMessage.execution_plan = null;
+	assistantMessage.diff_reviews = [];
+	assistantMessage.checkpoint_id = "";
 	assistantMessage.live_narration = "";
 
 	if (!existingUserMessage) {
@@ -6436,6 +6585,7 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 	activeStreamCount += 1;
 	updateStreamingControls();
 
+	const queuedFollowups = [];
 	try {
 		const maxContinuationPasses = 12;
 		const maxStreamErrorRecoveryPasses = 4;
@@ -6519,6 +6669,8 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 				messages: chatHistory,
 				tools: buildEnabledToolDefinitions(),
 				tool_discovery: true,
+				interactive_approvals: profile.provider_id !== "codex",
+				plan_events: true,
 				disable_thinking: forceFinalAnswer
 			};
 
@@ -6632,6 +6784,25 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 					return;
 				}
 
+				if (eventName === "plan") {
+					assistantMessage.execution_plan = payloadObj.plan || null;
+					assistantMessage.usage = { ...(assistantMessage.usage || {}), execution_plan: assistantMessage.execution_plan };
+					scheduleStreamingMessagePatch(chat.id, pane.id, assistantMessage.id);
+					scheduleStreamingPersist(chat.id, pane.id, assistantMessage.id);
+					return;
+				}
+
+				if (eventName === "approval") {
+					const approval = payloadObj.approval;
+					if (approval?.id) {
+						assistantMessage.approvals = [...(assistantMessage.approvals || []).filter((entry) => entry.id !== approval.id), approval].slice(-32);
+						assistantMessage.usage = { ...(assistantMessage.usage || {}), approvals: assistantMessage.approvals };
+						scheduleStreamingMessagePatch(chat.id, pane.id, assistantMessage.id);
+						scheduleStreamingPersist(chat.id, pane.id, assistantMessage.id);
+					}
+					return;
+				}
+
 				if (eventName === "tool") {
 					if (payloadObj.phase === "started") {
 						streamUsedTools = true;
@@ -6670,6 +6841,10 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 					assistantMessage.usage = { ...(assistantMessage.usage || {}) };
 					if (normalizedDiffs.files.length > 0) assistantMessage.usage.code_diffs = normalizedDiffs;
 					else delete assistantMessage.usage.code_diffs;
+					if (payloadObj.checkpoint_id) {
+						assistantMessage.checkpoint_id = String(payloadObj.checkpoint_id);
+						assistantMessage.usage.checkpoint_id = assistantMessage.checkpoint_id;
+					}
 					scheduleStreamingMessagePatch(chat.id, pane.id, assistantMessage.id);
 					scheduleStreamingPersist(chat.id, pane.id, assistantMessage.id);
 					return;
@@ -6776,6 +6951,9 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 			updateStreamingControls();
 
 			if (streamDonePayload) {
+				if (streamDonePayload.plan) assistantMessage.execution_plan = streamDonePayload.plan;
+				if (streamDonePayload.checkpoint_id) assistantMessage.checkpoint_id = String(streamDonePayload.checkpoint_id);
+				if (Array.isArray(streamDonePayload.queued_followups)) queuedFollowups.push(...streamDonePayload.queued_followups.map((entry) => String(entry.prompt || "").trim()).filter(Boolean));
 				watchdogTraceRecorded = watchdogTraceRecorded || Boolean(streamDonePayload.watchdog_trace);
 				assistantMessage.provider = streamDonePayload.provider || assistantMessage.provider;
 				assistantMessage.model = streamDonePayload.model || assistantMessage.model;
@@ -6816,6 +6994,7 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 				}
 				const completedDiffs = normalizeCodeDiffSet(streamDonePayload.code_diffs);
 				if (completedDiffs.files.length > 0) assistantMessage.code_diffs = completedDiffs;
+				assistantMessage.usage = { ...(assistantMessage.usage || {}), ...(assistantMessage.execution_plan ? { execution_plan: assistantMessage.execution_plan } : {}), ...(assistantMessage.checkpoint_id ? { checkpoint_id: assistantMessage.checkpoint_id } : {}), ...(assistantMessage.approvals.length ? { approvals: assistantMessage.approvals } : {}) };
 			}
 
 			const streamErrored = Boolean(streamErrorPayload) && !streamDonePayload;
@@ -7132,6 +7311,23 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 		stopStreamingRequested = false;
 	}
 	updateStreamingControls();
+	if (queuedFollowups.length && !stopStreamingRequested) {
+		for (const followup of queuedFollowups) await sendMessageToPaneStream(chat, pane, followup, { preserveInitialScroll: true });
+	}
+}
+
+async function steerActiveExecutions(mode, prompt) {
+	const controllers = [...activeStreamControllers].filter((controller) => controller.streamRequestId);
+	if (!controllers.length) return;
+	const results = await Promise.all(controllers.map(async (controller) => {
+		const response = await apiFetch(`/api/executions/${encodeURIComponent(controller.streamRequestId)}/steer`, {
+			method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode, prompt })
+		});
+		const payload = await response.json();
+		if (!response.ok) throw new Error(payload.error?.message || "Could not steer the active execution.");
+		return payload;
+	}));
+	if (nodes.voiceStatus) nodes.voiceStatus.textContent = mode === "queued" ? `Queued for ${results.length} active execution${results.length === 1 ? "" : "s"}.` : mode === "cancel_after_action" ? "The active execution will stop after its current action." : "Steering will apply at the next execution boundary.";
 }
 
 async function retryFailedPaneMessage(chat, paneId, messageId) {
@@ -7316,10 +7512,12 @@ function updateStreamingControls() {
 	}
 
 	const streaming = activeStreamCount > 0 || activeStreamControllers.size > 0;
-	nodes.sendBtn.innerHTML = streaming ? stopButtonSvg : sendButtonSvg;
-	nodes.sendBtn.setAttribute("aria-label", streaming ? "Stop streaming" : "Send");
-	nodes.sendBtn.title = streaming ? "Stop streaming" : "Send message";
-	nodes.sendBtn.classList.toggle("streaming-stop", streaming);
+	nodes.sendBtn.innerHTML = sendButtonSvg;
+	nodes.sendBtn.setAttribute("aria-label", streaming ? "Send steering instruction" : "Send");
+	nodes.sendBtn.title = streaming ? "Send steering instruction" : "Send message";
+	nodes.sendBtn.classList.remove("streaming-stop");
+	nodes.stopStreamBtn?.classList.toggle("hidden", !streaming);
+	nodes.composerSteeringMode?.classList.toggle("hidden", !streaming);
 	nodes.sendBtn.disabled = false;
 	syncStreamingUiTicker(streaming);
 }
