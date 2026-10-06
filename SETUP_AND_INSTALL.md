@@ -588,3 +588,21 @@ second look from the same model, with at most two repair passes. This adds model
 usage and latency; it is experimental and off by default. Existing provider
 profiles, permissions and native Codex behavior stay intact. See the
 [review workflow and limits](docs/LOCAL_AGENT_CAPABILITIES.md#independent-engineering-review-experimental).
+
+### Watchdog request-body limits
+
+A model's context window does not override its proxy's HTTP body limits.
+`WATCHDOG_MAX_REQUEST_BYTES` defaults to `524288`, matching the smaller of
+Watchdog's default `WDG_MAX_PARSE_BODY_BYTES` and `WDG_MAX_PROXY_BODY_BYTES`.
+Set it to the smaller **actual configured** Watchdog limit when those differ.
+`BENCHMARK_WATCHDOG_MAX_REQUEST_BYTES` optionally overrides the benchmark route;
+otherwise it inherits the interactive limit. Both accept integers from 1024 to
+67108864. Do not increase these just to conceal oversized requests.
+
+Managed Watchdog JSON and streaming requests compact recoverable history before
+reaching that byte limit. Saved tool receipts remain available, and protected
+instructions cannot be silently dropped. An unfit protected request fails locally
+with `request_body_budget_exceeded`; it is not dispatched or automatically retried.
+Model context and output allowances remain separate. Direct Ollama connections
+with Watchdog telemetry do not inherit the proxy byte cap. These settings do not
+change Watchdog's configuration or any other repository.

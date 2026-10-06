@@ -1911,6 +1911,7 @@ test("POST /api/chat/stream keeps direct Watchdog transport with stale model sug
 			WATCHDOG_PROXY_TOKEN_FILE: tokenFile,
 			WATCHDOG_API_TOKEN_FILE: apiTokenFile,
 			WATCHDOG_DIRECT_STREAMING: "1",
+			WATCHDOG_MAX_REQUEST_BYTES: "1024",
 			ALLOWED_CUSTOM_PROVIDER_HOSTS: "ollama.com",
 			CODEX_MODEL_CACHE_PATH: modelCachePath
 		},
@@ -1967,6 +1968,7 @@ test("POST /api/chat/stream keeps direct Watchdog transport with stale model sug
 			const events = parseSseEvents(await response.text());
 			assert.equal(events.filter((entry) => entry.event === "token").map((entry) => entry.data.delta).join(""), "live stream");
 			assert.equal(events.find((entry) => entry.event === "done").data.transport, "direct");
+			assert.equal(events.find((entry) => entry.event === "done").data.context_budget.max_request_bytes, undefined);
 		});
 
 		await new Promise((resolve) => setImmediate(resolve));
@@ -5078,7 +5080,7 @@ for (const started of [false, true]) {
  });
 }
 
-for (const status of [408,410]) {
+for (const status of [408,410,413]) {
  test(`provider HTTP ${status} exposes actionable retry semantics`,async()=>{
   const {runtime,env,destroy}=createIsolatedRuntime({fetchFn:async()=>({ok:false,status,text:async()=>status===408?'Request Timeout':'private provider detail',headers:{get:()=> 'text/plain'}})});
   try {
@@ -5087,7 +5089,7 @@ for (const status of [408,410]) {
     const response=await fetch(base+'/api/chat/stream',{method:'POST',headers:withAuthHeaders({'Content-Type':'application/json'}),body:JSON.stringify({profile_id:id,messages:[{role:'user',content:'Hi'}],tools:[],include_saved_runtime_presets:false})});
     const error=parseSseEvents(await response.text()).find(e=>e.event==='error').data;
     assert.equal(error.status,status);assert.equal(error.retryable,status===408);
-    assert.match(error.message,status===408?/request timeout/:/no longer available/);
+    assert.match(error.message,status===408?/request timeout/:status===413?/request-size limit/:/no longer available/);
     const auditText=fs.readFileSync(env.AUDIT_LOG_PATH,'utf8');
     assert.match(auditText,/provider_http_failure/);
     if(status===408) assert.match(auditText,/plain_request_timeout/);
@@ -5732,4 +5734,26 @@ test('Watchdog tool continuations use separate sockets without replaying model r
   const r=await fetch(base+'/api/chat/stream',{method:'POST',headers:withAuthHeaders({'Content-Type':'application/json'}),body:JSON.stringify({profile_id:profileId,messages:[{role:'user',content:'Read a file'}],tools:[{type:'function',function:{name:'local_file_read'}}],include_saved_runtime_presets:false})});
   assert.equal(parseSseEvents(await r.text()).at(-1).event,'done');assert.equal(rounds,2);assert.equal(sockets.size,2);
  });}finally{destroy();proxy.closeAllConnections();await new Promise(resolve=>proxy.close(resolve));fs.rmSync(dir,{recursive:true,force:true});}
+});
+
+test('Watchdog stream and JSON routes enforce body bytes independently of a large model context window',async()=>{
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'ai-chat-body-budget-')),token=path.join(dir,'token');fs.writeFileSync(token,'fixture');
+ let sent,dispatches=0;
+ const {runtime,destroy}=createIsolatedRuntime({envMerge:{WATCHDOG_PROXY_TOKEN_FILE:token,WATCHDOG_MAX_REQUEST_BYTES:'8192',MODEL_CONTEXT_LIMITS_JSON:'{"watchdog:budget-fixture":1048576}'},
+ fetchFn:async(_url,options)=>{if(!_url.endsWith('/chat/completions'))return new Response('{}',{headers:{'Content-Type':'application/json'}});dispatches++;sent=JSON.parse(options.body);return new Response('data: {"choices":[{"delta":{"content":"Done"},"finish_reason":"stop"}]}\n\ndata: [DONE]\n\n',{headers:{'Content-Type':'text/event-stream'}});},
+ spawnSyncFn:(_bin,args)=>{dispatches++;const p=JSON.parse(args[args.indexOf('--payload')+1]);sent={model:p.model,messages:p.messages,temperature:p.temperature,max_tokens:p.max_tokens,stream:false,...(p.tools.length?{tools:p.tools}:{})};return {status:0,stdout:JSON.stringify({ok:true,output_text:'Done',usage:{input_tokens:1,output_tokens:1}}),stderr:''};}});
+ try{const profileId=applyProfileMutation(runtime,p=>{p.provider_id='watchdog';p.base_url='';p.api_key='';});await withServer(runtime.app,async base=>{
+  for(const route of ['/api/chat/stream','/api/chat']){
+   const payload={profile_id:profileId,model:'budget-fixture',max_tokens:12000,tools:[],include_saved_runtime_presets:false,messages:[{role:'user',content:'Original contract'},{role:'assistant',content:'雪\\"'.repeat(8000)},{role:'user',content:'Continue'}]};
+   const response=await fetch(base+route,{method:'POST',headers:withAuthHeaders({'Content-Type':'application/json'}),body:JSON.stringify(payload)});
+   const text=await response.text(),done=route.endsWith('/stream')?parseSseEvents(text).find(e=>e.event==='done')?.data:JSON.parse(text);
+   assert.ok(done?.context_budget,text);const budget=done.context_budget;
+   assert.equal(budget.context_window_tokens,1048576);assert.equal(budget.max_request_bytes,8192);assert.ok(budget.before_request_bytes>8192);assert.ok(budget.removed_messages>0);
+   assert.equal(budget.after_request_bytes,Buffer.byteLength(JSON.stringify(sent)));assert.ok(budget.after_request_bytes<=8192);assert.equal(sent.max_tokens,12000);assert.deepEqual(sent.messages.filter(m=>m.role==='user').map(m=>m.content),['Original contract','Continue']);
+   const before=dispatches;payload.messages=[{role:'user',content:'protected '.repeat(2000)}];
+   const rejected=await fetch(base+route,{method:'POST',headers:withAuthHeaders({'Content-Type':'application/json'}),body:JSON.stringify(payload)});const rejectedText=await rejected.text();
+   const error=route.endsWith('/stream')?parseSseEvents(rejectedText).find(e=>e.event==='error')?.data:JSON.parse(rejectedText).error;
+   assert.equal(error?.code,'request_body_budget_exceeded',rejectedText);assert.equal(dispatches,before,'cannot dispatch or replay an oversized protected request');
+  }
+ });}finally{destroy();fs.rmSync(dir,{recursive:true,force:true});}
 });

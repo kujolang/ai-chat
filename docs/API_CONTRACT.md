@@ -855,3 +855,20 @@ are explicitly unqualified for that speed claim. Guide receipts expose
 `performance_qualified` and `performance_guidance`. It never changes permissions,
 executes generated code automatically, or rewrites the candidate. Health and
 stream receipts add `kujo_workflow.allocation_guidance`.
+
+### Provider request bytes versus model context
+
+For managed Watchdog routes, `context_budget` additionally reports
+`max_request_bytes`, `before_request_bytes` and `after_request_bytes`.
+These describe serialized provider request bodies, independently of
+`context_window_tokens` and `output_reservation`. The JSON bridge is budgeted
+against its documented OpenAI-compatible envelope; streaming measures the exact
+body that will be dispatched, including schemas and escaped strings.
+`GET /api/health` includes `max_request_bytes` in each Watchdog runtime summary.
+
+If protected content cannot fit, `/api/chat` returns HTTP 400 with
+`request_body_budget_exceeded`; `/api/chat/stream` emits that nonretryable error
+before provider dispatch. Recoverable history is compacted using existing saved
+receipt references. Upstream HTTP 413 retains the `provider_http_error` code and
+status but explains the separate request-size limit. No failed request or tool
+work is automatically replayed.

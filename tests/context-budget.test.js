@@ -152,3 +152,34 @@ test('long receipt history stays intact at verified 1M capacity instead of exhau
  const report=budgetContext(messages,[],{window_tokens:1048576,output_tokens:24000});
  assert.equal(report.removed_messages,0);assert.equal(report.output_reservation,24000);assert.deepEqual(messages,original);
 });
+
+test('proxy byte limits compact recoverable evidence without pretending the model window is smaller', () => {
+ const messages=[{role:'user',content:'Preserve the contract'},{role:'assistant',content:'',tool_calls:[{id:'saved-write',function:{name:'local_file_write',arguments:JSON.stringify({content:'雪\\"'.repeat(3000)})}}]},{role:'tool',tool_call_id:'saved-write',content:JSON.stringify({ok:true,saved_result_ref:'receipt-1'})},{role:'user',content:'Continue without repeating the write'}];
+ const tools=[{type:'function',function:{name:'local_file_read',description:'Read saved evidence'}}];
+ const measure=(messages,tools)=>Buffer.byteLength(JSON.stringify({model:'large-window',messages,tools,max_tokens:12000,stream:true}));
+ const report=budgetContext(messages,tools,{window_tokens:1048576,output_tokens:12000,max_request_bytes:8192,measure_request_bytes:measure});
+ assert.equal(report.input_allowance,1048576-12000);
+ assert.equal(report.output_reservation,12000);
+ assert.ok(report.before_request_bytes>8192);assert.equal(report.after_request_bytes,measure(messages,tools));assert.ok(report.after_request_bytes<=8192);
+ assert.equal(report.compacted_calls,1);assert.match(messages[1].content,/saved-write/);assert.match(messages[1].content,/receipt-1/);
+ assert.equal(messages[0].content,'Preserve the contract');assert.equal(messages.at(-1).content,'Continue without repeating the write');
+});
+test('request byte boundary includes escaped Unicode, schemas and envelope; fixed oversized content fails before dispatch', () => {
+ const messages=[{role:'system',content:'\\"雪'.repeat(250)},{role:'user',content:'Keep me'}];
+ const tools=[{function:{name:'example',description:'schema'.repeat(200)}}];
+ const measure=(messages,tools)=>Buffer.byteLength(JSON.stringify({model:'fixture',messages,tools,stream_options:{include_usage:true}}));
+ const limit=measure(messages,tools);
+ const options={window_tokens:1048576,output_tokens:12000,max_request_bytes:limit,measure_request_bytes:measure};
+ assert.equal(budgetContext(structuredClone(messages),tools,options).after_request_bytes,limit);
+ assert.throws(()=>budgetContext(structuredClone(messages),tools,{...options,max_request_bytes:limit-1}),{code:'request_body_budget_exceeded',retryable:false});
+ assert.throws(()=>budgetContext(messages,tools,{...options,max_request_bytes:NaN}),{code:'request_body_budget_exceeded'});
+ assert.throws(()=>budgetContext(messages,tools,{...options,measure_request_bytes:()=>-1}),{code:'request_body_budget_exceeded'});
+});
+test('the measured 530495-byte proxy failure fits its token window but is compacted below 524288 bytes',()=>{
+ const messages=[{role:'user',content:'Keep the task'},{role:'assistant',tool_calls:[{id:'write-1',function:{name:'local_file_write',arguments:''}}]},{role:'tool',tool_call_id:'write-1',content:'{"ok":true,"saved_result_ref":"saved-1"}'},{role:'user',content:'Continue'}];
+ const measure=messages=>Buffer.byteLength(JSON.stringify({model:'glm-5.3-flash:cloud',messages,max_tokens:12000,stream:true}));
+ messages[1].tool_calls[0].function.arguments='x'.repeat(530495-measure(messages));
+ assert.equal(measure(messages),530495);assert.ok(estimateContext(messages,[])<1048576-12000);
+ const report=budgetContext(messages,[],{window_tokens:1048576,output_tokens:12000,max_request_bytes:524288,measure_request_bytes:measure});
+ assert.ok(report.after_request_bytes<=524288);assert.equal(report.compacted_calls,1);assert.match(JSON.stringify(messages),/saved-1/);
+});
