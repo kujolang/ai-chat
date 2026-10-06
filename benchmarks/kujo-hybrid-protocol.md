@@ -157,3 +157,15 @@ out-of-scope reads before treating a run as valid.
 Each stage uses `--fresh-chats` and a distinct title prefix. Existing benchmark
 chat reuse is disabled for this comparison; a reused response is rejected before
 grading. Ordinary benchmark resumptions keep their existing behavior.
+
+## Live pilot and runtime inheritance
+
+The [October 6 live pilot](../docs/benchmarks/kujo-hybrid-2026-10-06.md)
+completed at commit `2ae8029`: six direct deliveries, five hybrid deliveries,
+and one timed-out builder. Read its limitations before interpreting savings.
+
+After that pilot, isolated native Codex subprocesses also receive `KUJO_BIN`
+from `AI_CHAT_AGENT_KUJO_BIN`. This prevents generated harnesses with environment
+overrides from accidentally selecting the app's bridge runtime. It does not
+change the bridge runtime or interactive Codex environment. The pilot was not
+rerun after this correction; its original runtime-inheritance caveat remains.

@@ -5353,9 +5353,9 @@ test('discovered model windows reach JSON and streaming requests without changin
 
 for (const isolation of ["benchmark", "interactive", "off"])
 for (const usageReported of [true, false]) test(`${isolation}: unknown native Codex model keeps explicit sandbox and honest usage metadata (${usageReported})`,async()=>{
- let argsSeen;
- const {runtime,destroy}=createIsolatedRuntime({envMerge:{AI_CHAT_INSTANCE_ROLE:isolation === 'off' ? 'benchmark' : isolation,AI_CHAT_BENCHMARK_ISOLATE_CODEX_INSTRUCTIONS:isolation === 'off' ? '0' : '1',CODEX_MODEL_CACHE_PATH:'/nonexistent-context-fixture.json',CODEX_SANDBOX_MODE:usageReported ? 'workspace-write' : 'read-only'},spawnFn:(_command,args)=>{
-  argsSeen=args;const child=new(require('events').EventEmitter)();child.stdout=new PassThrough();child.stderr=new PassThrough();child.kill=()=>{};
+ let argsSeen, envSeen;
+ const {runtime,destroy}=createIsolatedRuntime({envMerge:{KUJO_BIN:'/bridge-runtime',AI_CHAT_AGENT_KUJO_BIN:'/qualified-agent-runtime',AI_CHAT_INSTANCE_ROLE:isolation === 'off' ? 'benchmark' : isolation,AI_CHAT_BENCHMARK_ISOLATE_CODEX_INSTRUCTIONS:isolation === 'off' ? '0' : '1',CODEX_MODEL_CACHE_PATH:'/nonexistent-context-fixture.json',CODEX_SANDBOX_MODE:usageReported ? 'workspace-write' : 'read-only'},spawnFn:(_command,args,options)=>{
+  argsSeen=args;envSeen=options.env;const child=new(require('events').EventEmitter)();child.stdout=new PassThrough();child.stderr=new PassThrough();child.kill=()=>{};
   process.nextTick(()=>{child.stdout.write(JSON.stringify({type:'thread.started',thread_id:'fixture-native'})+'\n'+JSON.stringify({type:'item.completed',item:{type:'agent_message',text:'Done'}})+'\n'+JSON.stringify({type:'turn.completed',...(usageReported ? {usage:{input_tokens:1,output_tokens:1}} : {})})+'\n');child.stdout.end();child.stderr.end();child.emit('close',0);});return child;
  }});
  try{
@@ -5363,6 +5363,8 @@ for (const usageReported of [true, false]) test(`${isolation}: unknown native Co
   await withServer(runtime.app,async base=>{
    const r=await fetch(base+'/api/chat/stream',{method:'POST',headers:withAuthHeaders({'Content-Type':'application/json'}),body:JSON.stringify({profile_id:profileId,model:'unknown-native',messages:[{role:'user',content:'Hello'}]})});
    const done=parseSseEvents(await r.text()).find(e=>e.event==='done');assert.ok(done);assert.equal(done.data.context_budget.context_limit_known,false);assert.equal(done.data.context_budget.context_scope,'codex_initial_transcript');
+   assert.equal(envSeen.KUJO_BIN,isolation === 'benchmark' ? '/qualified-agent-runtime' : '/bridge-runtime');
+   assert.equal(runtime.config.kujoBin,'/bridge-runtime');
    assert.equal(argsSeen.includes('project_doc_max_bytes=0'),isolation === 'benchmark');
    assert.equal(argsSeen.includes('skills.include_instructions=false'),isolation === 'benchmark');
    assert.equal(argsSeen.some(a=>a.startsWith('developer_instructions=')),isolation === 'benchmark');
