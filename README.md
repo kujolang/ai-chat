@@ -61,6 +61,10 @@ This project is for end users and teams who want one local web app to:
 	- Live assistant text streaming via SSE
 	- Thinking/reasoning deltas shown when available
 	- Live, per-pane code diffs for native Codex file changes and provider-neutral local file writes, with responsive unified/split review, line numbers, intraline emphasis, file statistics, and patch copy
+- Multi-chat workspace tabs
+	- Keep up to 16 active chats immediately available above the workspace, including while the sidebar is collapsed
+	- Switch with mouse or standard arrow/Home/End tab keys, close with the pointer, middle click, or Delete, and retain each chat in history when its tab closes
+	- See per-chat working, partial, and error status without leaving the active conversation
 - Agent instructions
 	- Keep explicit chat constraints and decisions in Saved notes, independent of transcript compaction and shared by the chat's panes
 	- Apply the repository-owned, non-editable system prompt from `SYSTEM_PROMPT.md` to every model request; change it only by editing that Markdown file and restarting the server
