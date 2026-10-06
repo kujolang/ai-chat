@@ -1,0 +1,1840 @@
+{
+  "model": "glm-5.3-flash:cloud",
+  "profile": "Watchdog / Ollama Cloud",
+  "comparison_server_commit": "4d28a5b",
+  "transport_fix_commit": "6909cf6",
+  "protocol_commit": "1bf7154",
+  "task_count": 6,
+  "development_groups": 13,
+  "holdout_groups": 59,
+  "calibration": {
+    "examples": 16,
+    "checks": 32
+  },
+  "scope": "Two single-sample six-task arms; guided initial/final candidates are paired, not independent rounds. Transport follow-up is separate.",
+  "arms": {
+    "baseline": {
+      "tasks_measured": 6,
+      "initial_deliveries": 5,
+      "verified_tasks": 5,
+      "repair_requests": 0,
+      "model_attempts": 6,
+      "tool_calls": 305,
+      "provider_rounds": 226,
+      "latency_ms_total": 4111693,
+      "input_tokens": 12543603,
+      "output_tokens": 520099,
+      "reported_tokens": 13063702,
+      "cached_input_tokens": 9479680,
+      "usage_complete_attempts": 5,
+      "source_score_initial_4": 2.625,
+      "source_scored_tasks": 6,
+      "initial_development_passed": 11,
+      "initial_holdout_passed": 49,
+      "incomplete_initial_holdout_passed": 10,
+      "posthoc_incomplete_development_passed": 2
+    },
+    "feedback": {
+      "tasks_measured": 6,
+      "initial_deliveries": 4,
+      "verified_tasks": 4,
+      "repair_requests": 0,
+      "model_attempts": 6,
+      "tool_calls": 570,
+      "provider_rounds": 365,
+      "latency_ms_total": 3836959,
+      "input_tokens": 21406785,
+      "output_tokens": 473276,
+      "reported_tokens": 21880061,
+      "cached_input_tokens": 17449600,
+      "usage_complete_attempts": 4,
+      "source_score_initial_4": 2.25,
+      "source_scored_tasks": 6,
+      "initial_development_passed": 9,
+      "initial_holdout_passed": 39,
+      "incomplete_initial_holdout_passed": 12,
+      "posthoc_incomplete_development_passed": 2
+    }
+  },
+  "source_review": {
+    "rubric": "0 missing/broken, 1 serious defects, 2 material gaps, 3 appropriate and adequately verified, 4 exceptionally clear, complete and proportionate. Unblinded manual source assessment; not certification.",
+    "reviews": [
+      {
+        "arm": "baseline",
+        "task": 1,
+        "pass": 0,
+        "compatibility": 3,
+        "maintainability": 3,
+        "failure_handling": 3,
+        "test_adequacy": 3,
+        "evidence": [
+          "resolve centralizes defaults/type/range/unknown-key checks; CLI parsing is separate. Explicit false, zero and empty string preserved.",
+          "35 schema-compatible CLI cases retained in tests.json; completed tool receipts record 70 case executions across verification batches. DECISIONS documents runtime boolean/integer assumptions.",
+          "Two tool failures used main.kujo without its owned candidate path; corrected by the model. No independent case failed.",
+          "Small contract-specific implementation with static errors; not evidence of architecture judgment in a large system."
+        ]
+      },
+      {
+        "arm": "baseline",
+        "task": 2,
+        "pass": 0,
+        "compatibility": 3,
+        "maintainability": 2,
+        "failure_handling": 2,
+        "test_adequacy": 2,
+        "evidence": [
+          "All 2 development and 10 holdout groups pass, including the oversized array that the model did not CLI-test itself.",
+          "main.kujo preserves page and response shape, validates fields/ranges and avoids append-by-copy. Broad catch maps unexpected page failures to invalid JSON.",
+          "Unused page/probe files remain as stubs. tests.kujo reads an absolute workspace path and validates the 31-case manifest rather than executing the CLI. Cases are reusable through local_kujo verify but not a standalone end-to-end test command.",
+          "DECISIONS explicitly admits the 5000-item CLI coverage gap and misleading error classification; disclosure is good, but does not remove either limitation."
+        ]
+      },
+      {
+        "arm": "baseline",
+        "task": 3,
+        "pass": 0,
+        "partial_artifact": true,
+        "compatibility": 3,
+        "maintainability": 2,
+        "failure_handling": 3,
+        "test_adequacy": 2,
+        "evidence": [
+          "Saved main.kujo passes 10 holdout checks and 2 posthoc frozen development checks; delivery interrupted by confirmed proxy byte limit, not a code check failure.",
+          "adjust validates each ordered transition into a fresh stock dictionary before printing; untouched keys survive. Parse failure uses an explicit invalid sentinel; IO-free CLI failure contract is preserved.",
+          "tests.kujo retains a custom matrix and only checks its own size; it is not a standalone behavioral runner. The saved matrix requires translation to the verify schema. No DECISIONS.md was delivered before interruption.",
+          "Artifact rating is provisional and distinct from failed delivery; do not attribute the transport failure to Kujo reasoning."
+        ]
+      },
+      {
+        "arm": "baseline",
+        "task": 4,
+        "pass": 0,
+        "compatibility": 3,
+        "maintainability": 3,
+        "failure_handling": 3,
+        "test_adequacy": 3,
+        "evidence": [
+          "All 12 independent groups pass. migrate validates v1/v2 shape, uniqueness, explicit false, nested metadata and row order; preallocated output avoids append-copy work.",
+          "Row-indexed errors are actionable, parsing failures remain separate, and missing keys are checked before access. Implementation is long but keeps one authoritative migration function.",
+          "Retained standard-library Go harness executes the real CLI and covers 1000/1001 limits plus a two-step idempotency check. DECISIONS provides a runnable command and accurately scopes behavior.",
+          "Three disposable probe files remain, and the small CLI harness has no per-process timeout. These limit polish but do not negate the tested behavior."
+        ]
+      },
+      {
+        "arm": "baseline",
+        "task": 5,
+        "pass": 0,
+        "compatibility": 3,
+        "maintainability": 2,
+        "failure_handling": 2,
+        "test_adequacy": 2,
+        "evidence": [
+          "All 12 independent groups pass, including SOURCE=DEST, blocked-parent IO failure and preservation of existing files on rejected input. Uses write_file_atomic before success output.",
+          "Unknown-key validation serializes and compares complete reconstructed objects, including nested metadata, relying on canonical key sorting instead of inspecting keys. This is avoidable coupling and work; no runtime speed claim is made.",
+          "The broad revise catch labels every internal exception malformed JSON. Read/write failures keep the error contract but discard diagnostic cause.",
+          "Tests retain post-run state assertions and a chmod helper, but not a complete replayable CLI case manifest/runner. DECISIONS requires manual fixture restoration; the suite is explicitly single-run. Atomicity and durability claims are correctly limited."
+        ]
+      },
+      {
+        "arm": "baseline",
+        "task": 6,
+        "pass": 0,
+        "compatibility": 3,
+        "maintainability": 3,
+        "failure_handling": 3,
+        "test_adequacy": 2,
+        "evidence": [
+          "All 11 independent groups pass, including control characters, Unicode, literal formula-looking strings, malformed input and the oversized rows case.",
+          "Separate quoted helper and authoritative export_csv keep escaping and validation understandable. Validation finishes before any success is printed; parse errors are caught separately.",
+          "Retained tests.kujo checks that a stored table is well formed rather than exercising main.kujo. CLI runs did occur, but the delivered suite lacks a direct replay command and its table needs translation.",
+          "The model admits not exercising the 1000/1001 boundary itself because of the verify tool argument bound; it did not use an alternative CLI harness. Repeated string concatenation is present, but no runtime-performance claim is made."
+        ]
+      },
+      {
+        "arm": "feedback",
+        "task": 1,
+        "pass": 0,
+        "compatibility": 3,
+        "maintainability": 3,
+        "failure_handling": 3,
+        "test_adequacy": 3,
+        "evidence": [
+          "All 13 independent groups pass before repair; no repair triggered. Presence checks preserve false/zero/empty and is_bool replaces serialization-based boolean recognition.",
+          "Object-shape validation sits at the CLI boundary, with field validation/defaults in resolve and one failure writer; structure is appropriate for this contract.",
+          "26 reusable CLI cases are retained in tests.json, with a separate explicitly labeled schema-only validator. The case-table approach is essentially equivalent to baseline, not a new self-contained CLI test runner.",
+          "No meaningful artifact-quality improvement over baseline task 1; provider rounds rise 26\u219242, calls 33\u219255, reported tokens 947177\u21922152873."
+        ]
+      },
+      {
+        "arm": "feedback",
+        "task": 2,
+        "pass": 0,
+        "partial_artifact": true,
+        "compatibility": 3,
+        "maintainability": 3,
+        "failure_handling": 2,
+        "test_adequacy": 2,
+        "evidence": [
+          "Saved code passes 10 holdout and 2 posthoc development groups, but the initial request exceeds 15 minutes and is cancelled; no controller repair was allowed for an incomplete delivery.",
+          "Main implementation is shorter than baseline and uses slice directly without leaving duplicate helper stubs. len(input) works for parsed JSON dictionaries on the pinned runtime; a separate literal-dictionary runtime defect must not be misattributed to this CLI.",
+          "The broad catch still reports helper runtime failures as invalid JSON. Test scripts remain coupled to absolute or workspace-specific paths.",
+          "A Go CLI harness adds 5000/5001 boundary executions, but checks successful JSON with prefixes/substrings rather than decoding and verifying selected item counts. It also asserts exact function counts, a brittle implementation-detail constraint. This is partial coverage progress, not a high-quality portable suite."
+        ]
+      },
+      {
+        "arm": "feedback",
+        "task": 3,
+        "pass": 0,
+        "compatibility": 3,
+        "maintainability": 2,
+        "failure_handling": 3,
+        "test_adequacy": 2,
+        "evidence": [
+          "All 12 independent groups pass without repair; delivered successfully unlike the baseline transport failure.",
+          "Per-transition validation prevents partial publication, but JSON roundtrip deep-copy of a flat integer dictionary adds unnecessary work.",
+          "test_main.kujo prints an unsupported notice rather than testing behavior; TESTS.md retains 32 manual cases and test_runtime.kujo tests language assumptions. Import probe files remain.",
+          "No model-authored 1000/1001 boundary coverage. No demonstrated source-quality improvement over baseline partial artifact."
+        ]
+      },
+      {
+        "arm": "feedback",
+        "task": 4,
+        "pass": 0,
+        "partial_artifact": true,
+        "compatibility": 0,
+        "maintainability": 0,
+        "failure_handling": 0,
+        "test_adequacy": 0,
+        "evidence": [
+          "HTTP 413 after 150 provider rounds and 297 executed tools; initial seed remains byte-identical. No implementation or tests delivered.",
+          "Receipts show repeated successful complete reads of the same main.kujo and README.md, not missing/truncated responses. Saved seed fails both development cases and eight of ten holdouts; two seed cases pass, but no implementation work earns credit."
+        ]
+      },
+      {
+        "arm": "feedback",
+        "task": 5,
+        "pass": 0,
+        "compatibility": 3,
+        "maintainability": 3,
+        "failure_handling": 3,
+        "test_adequacy": 2,
+        "evidence": [
+          "Delivered; all 12 independent development/holdout groups pass with no controller repair.",
+          "Enumerating allowed keys replaces baseline serialization-dependent shape checks. Parsing, source IO, schema, conflict and write errors are distinguished; the authoritative revise helper remains small. This is a concrete maintainability/failure-handling improvement.",
+          "Retained reset/post Kujo harness verifies disk outcomes and now overwrites fixtures for repeatability; 24 CLI cases ran. The verify case payload itself is not retained as an executable manifest, so replay still requires reconstructing the documented intermediate step.",
+          "Explicitly avoids unsupported crash-durability/concurrent-writer claims. Two exploratory probes and one stray file remain; no performance improvement is claimed."
+        ]
+      },
+      {
+        "arm": "feedback",
+        "task": 6,
+        "pass": 0,
+        "compatibility": 3,
+        "maintainability": 2,
+        "failure_handling": 3,
+        "test_adequacy": 3,
+        "evidence": [
+          "Delivered and passes all 11 independent groups without controller repair. Correct quoted helper, separate parse boundary, row-indexed validation errors, and no output before full validation.",
+          "Retains 28 schema-compatible CLI cases plus a Go real-CLI harness covering 1000/1001 rows, headers, quoting, Unicode and errors. This materially improves replayable boundary coverage over baseline.",
+          "DECISIONS incorrectly claims is_bool is unavailable: independent print(is_bool(true)) on the exact pinned binary prints true, exit 0; guided configuration also uses it successfully. The cited probe file was overwritten with a different dictionary enumeration probe.",
+          "The blanket len(dict) claim also overgeneralizes the separately verified literal/parsed representation discrepancy. Runtime claims are not as reliable as the correct CSV implementation; no frontier-quality conclusion."
+        ]
+      }
+    ]
+  },
+  "tasks": [
+    {
+      "mode": "baseline",
+      "task": 1,
+      "delivered": true,
+      "stopped": "development_passed",
+      "repairs": 0,
+      "verified": true,
+      "duration_ms": 475482,
+      "calls": [
+        {
+          "run_id": "baseline-t1-p0",
+          "completed": true,
+          "summary": {
+            "total": 1,
+            "completed": 1,
+            "failed": 0,
+            "retry_count": 0,
+            "tool_calls_executed": 33,
+            "tool_input_repairs": 4,
+            "provider_rounds": 26,
+            "latency_ms_total": 473869,
+            "latency_samples": 1,
+            "token_use": {
+              "input_tokens": 886283,
+              "output_tokens": 60894,
+              "total_tokens": 947177
+            },
+            "transport_completion_rate": 1,
+            "task_completion_rate": null,
+            "repair_rate": 0.1212,
+            "average_latency_ms": 473869
+          },
+          "usage_complete": true,
+          "cached_input_tokens": 524160,
+          "execution_ids": [
+            "54393689-4328-4bfd-9bf2-3eabb66cfa5a"
+          ],
+          "errors": []
+        }
+      ],
+      "grades": [
+        {
+          "pass": 0,
+          "development": {
+            "completed": true,
+            "checks": 2,
+            "passed": 2,
+            "results": [
+              {
+                "id": "explicit-values",
+                "passed": true
+              },
+              {
+                "id": "reject-unknown",
+                "passed": true
+              }
+            ],
+            "source_sha256": "1054e31537ecd82df42ed0fc5c805f1dd41bec0628984406d0dd3a016c9beb0d"
+          },
+          "holdout": {
+            "completed": true,
+            "checks": 11,
+            "passed": 11,
+            "results": [
+              {
+                "id": "defaults",
+                "passed": true
+              },
+              {
+                "id": "partial",
+                "passed": true
+              },
+              {
+                "id": "null-enabled",
+                "passed": true
+              },
+              {
+                "id": "null-retries",
+                "passed": true
+              },
+              {
+                "id": "null-label",
+                "passed": true
+              },
+              {
+                "id": "bool-count",
+                "passed": true
+              },
+              {
+                "id": "fraction",
+                "passed": true
+              },
+              {
+                "id": "too-many",
+                "passed": true
+              },
+              {
+                "id": "malformed-json",
+                "passed": true
+              },
+              {
+                "id": "missing-argument",
+                "passed": true
+              },
+              {
+                "id": "extra-argument",
+                "passed": true
+              }
+            ],
+            "source_sha256": "1054e31537ecd82df42ed0fc5c805f1dd41bec0628984406d0dd3a016c9beb0d"
+          },
+          "failures": [],
+          "source": {
+            "hashes": {
+              "DECISIONS.md": "a9085b0a847ec2fb4d61a2564705876fec257cea6cd136d2aecdbfff94daa456",
+              "README.md": "e83e465545dd236e1ed5fab8e99ca40986b606193f334873a6c161af551eec35",
+              "main.kujo": "1054e31537ecd82df42ed0fc5c805f1dd41bec0628984406d0dd3a016c9beb0d",
+              "tests.json": "a9351e70435e68bd012ad807eee6be8e6399706a1c7d40c9f98f8f302132ffb8"
+            },
+            "bytes": 9580,
+            "files": 4
+          }
+        }
+      ]
+    },
+    {
+      "mode": "baseline",
+      "task": 2,
+      "delivered": true,
+      "stopped": "development_passed",
+      "repairs": 0,
+      "verified": true,
+      "duration_ms": 783068,
+      "calls": [
+        {
+          "run_id": "baseline-t2-p0",
+          "completed": true,
+          "summary": {
+            "total": 1,
+            "completed": 1,
+            "failed": 0,
+            "retry_count": 0,
+            "tool_calls_executed": 66,
+            "tool_input_repairs": 7,
+            "provider_rounds": 43,
+            "latency_ms_total": 781156,
+            "latency_samples": 1,
+            "token_use": {
+              "input_tokens": 2560102,
+              "output_tokens": 92494,
+              "total_tokens": 2652596
+            },
+            "transport_completion_rate": 1,
+            "task_completion_rate": null,
+            "repair_rate": 0.1061,
+            "average_latency_ms": 781156
+          },
+          "usage_complete": true,
+          "cached_input_tokens": 1953280,
+          "execution_ids": [
+            "2e740226-3a62-4275-9cd5-c75a9accd22b"
+          ],
+          "errors": []
+        }
+      ],
+      "grades": [
+        {
+          "pass": 0,
+          "development": {
+            "completed": true,
+            "checks": 2,
+            "passed": 2,
+            "results": [
+              {
+                "id": "last-page",
+                "passed": true
+              },
+              {
+                "id": "zero-limit",
+                "passed": true
+              }
+            ],
+            "source_sha256": "5fa487730fa3e5c27e8ebf44012e5b642fe634fec977b9ef677bdfb4f84253d6"
+          },
+          "holdout": {
+            "completed": true,
+            "checks": 10,
+            "passed": 10,
+            "results": [
+              {
+                "id": "empty",
+                "passed": true
+              },
+              {
+                "id": "middle",
+                "passed": true
+              },
+              {
+                "id": "end-offset",
+                "passed": true
+              },
+              {
+                "id": "offset-past-end",
+                "passed": true
+              },
+              {
+                "id": "bool-offset",
+                "passed": true
+              },
+              {
+                "id": "invalid-item",
+                "passed": true
+              },
+              {
+                "id": "over-bound",
+                "passed": true
+              },
+              {
+                "id": "malformed-json",
+                "passed": true
+              },
+              {
+                "id": "missing-argument",
+                "passed": true
+              },
+              {
+                "id": "extra-argument",
+                "passed": true
+              }
+            ],
+            "source_sha256": "5fa487730fa3e5c27e8ebf44012e5b642fe634fec977b9ef677bdfb4f84253d6"
+          },
+          "failures": [],
+          "source": {
+            "hashes": {
+              "DECISIONS.md": "3da2a1b649850cabc2077c105f0a6b59c967f77ec23ed02354b1ef085b14fad7",
+              "README.md": "ff1a69dda88ac0fd9ef0b22992b113c48c374c993db5666aa1fc99fa56323378",
+              "cli_cases.json": "36c4345a7eff50da5aa4ddb211961017c5596ed6d582e0b45a956399fa03256b",
+              "main.kujo": "5fa487730fa3e5c27e8ebf44012e5b642fe634fec977b9ef677bdfb4f84253d6",
+              "page.kujo": "54a35fb3e26347f3019fd33532551674b15b02631c5ed2a0f6e03738dd8780bf",
+              "probe2.kujo": "41ad0e6898f62d3e8b7d86ab02d4eae6b62e8185fbd1938b0c9ce1e1d8f16b5e",
+              "probe_import.kujo": "164a34c0ec4bcda437d54b835371d7ef4573278b9575a2f641a87f9742627cb4",
+              "tests.kujo": "b873b8c43f5ab704e22500b2ce77574d2c8b0b18a96e0baf589256bfdd1460e7"
+            },
+            "bytes": 15546,
+            "files": 8
+          }
+        }
+      ]
+    },
+    {
+      "mode": "baseline",
+      "task": 3,
+      "delivered": false,
+      "stopped": "initial_incomplete",
+      "repairs": 0,
+      "verified": false,
+      "duration_ms": null,
+      "calls": [
+        {
+          "run_id": "baseline-t3-p0",
+          "completed": false,
+          "summary": {
+            "total": 1,
+            "completed": 0,
+            "failed": 1,
+            "retry_count": 0,
+            "tool_calls_executed": 51,
+            "tool_input_repairs": 0,
+            "provider_rounds": 41,
+            "latency_ms_total": 760500,
+            "latency_samples": 1,
+            "token_use": {
+              "input_tokens": 2605923,
+              "output_tokens": 93184,
+              "total_tokens": 2699107
+            },
+            "transport_completion_rate": 0,
+            "task_completion_rate": null,
+            "repair_rate": 0,
+            "average_latency_ms": 760500
+          },
+          "usage_complete": false,
+          "cached_input_tokens": 2172800,
+          "execution_ids": [
+            "fa895b99-8e0b-4c6f-8db7-63d6ca8f7c75"
+          ],
+          "errors": [
+            "Provider returned HTTP 413"
+          ]
+        }
+      ],
+      "grades": [],
+      "incomplete_holdout": {
+        "completed": true,
+        "checks": 10,
+        "passed": 10,
+        "results": [
+          {
+            "id": "late-failure",
+            "passed": true
+          },
+          {
+            "id": "unknown-sku",
+            "passed": true
+          },
+          {
+            "id": "boolean-delta",
+            "passed": true
+          },
+          {
+            "id": "upper-bound",
+            "passed": true
+          },
+          {
+            "id": "edges",
+            "passed": true
+          },
+          {
+            "id": "unknown-change-field",
+            "passed": true
+          },
+          {
+            "id": "empty-batch",
+            "passed": true
+          },
+          {
+            "id": "malformed-json",
+            "passed": true
+          },
+          {
+            "id": "missing-argument",
+            "passed": true
+          },
+          {
+            "id": "extra-argument",
+            "passed": true
+          }
+        ],
+        "source_sha256": "a9f1ad51d295309172532795473126b2c7fe832f021c01d3c20e6fa3aa18a416"
+      },
+      "posthoc_development": {
+        "completed": true,
+        "checks": 2,
+        "passed": 2,
+        "results": [
+          {
+            "id": "transient-underflow",
+            "passed": true
+          },
+          {
+            "id": "ordered",
+            "passed": true
+          }
+        ],
+        "source_sha256": "a9f1ad51d295309172532795473126b2c7fe832f021c01d3c20e6fa3aa18a416"
+      },
+      "posthoc_source": {
+        "hashes": {
+          "DECISIONS.md": "4c7fd5594b2e9e6a8343d12233f27028e86997f5931673c028bfb5cc2d7d9c7b",
+          "README.md": "7bc26ff02bdec911fbf6be7d2714752dfd894a30f081d83fec2bf5d61fbf0ac4",
+          "main.kujo": "a9f1ad51d295309172532795473126b2c7fe832f021c01d3c20e6fa3aa18a416",
+          "tests.kujo": "97d2c05f1ffa725f387fc159d9d721abbea06e7ab7816883b8fe88a65f3f5f65"
+        },
+        "bytes": 11084,
+        "files": 4
+      }
+    },
+    {
+      "mode": "baseline",
+      "task": 4,
+      "delivered": true,
+      "stopped": "development_passed",
+      "repairs": 0,
+      "verified": true,
+      "duration_ms": 723686,
+      "calls": [
+        {
+          "run_id": "baseline-t4-p0",
+          "completed": true,
+          "summary": {
+            "total": 1,
+            "completed": 1,
+            "failed": 0,
+            "retry_count": 0,
+            "tool_calls_executed": 41,
+            "tool_input_repairs": 3,
+            "provider_rounds": 36,
+            "latency_ms_total": 722025,
+            "latency_samples": 1,
+            "token_use": {
+              "input_tokens": 2014438,
+              "output_tokens": 102044,
+              "total_tokens": 2116482
+            },
+            "transport_completion_rate": 1,
+            "task_completion_rate": null,
+            "repair_rate": 0.0732,
+            "average_latency_ms": 722025
+          },
+          "usage_complete": true,
+          "cached_input_tokens": 1447040,
+          "execution_ids": [
+            "df9b7384-3e9e-4931-a32d-5e9554155f2b"
+          ],
+          "errors": []
+        }
+      ],
+      "grades": [
+        {
+          "pass": 0,
+          "development": {
+            "completed": true,
+            "checks": 2,
+            "passed": 2,
+            "results": [
+              {
+                "id": "false-and-empty",
+                "passed": true
+              },
+              {
+                "id": "duplicate-id",
+                "passed": true
+              }
+            ],
+            "source_sha256": "61ec3174fc7f8b7cf4a1d6f1959d22c17f0ca6bced2bd7126e22b76f8a9e4c83"
+          },
+          "holdout": {
+            "completed": true,
+            "checks": 10,
+            "passed": 10,
+            "results": [
+              {
+                "id": "defaults",
+                "passed": true
+              },
+              {
+                "id": "idempotent-v2",
+                "passed": true
+              },
+              {
+                "id": "v2-missing-active",
+                "passed": true
+              },
+              {
+                "id": "boolean-version",
+                "passed": true
+              },
+              {
+                "id": "row-unknown",
+                "passed": true
+              },
+              {
+                "id": "invalid-meta",
+                "passed": true
+              },
+              {
+                "id": "empty",
+                "passed": true
+              },
+              {
+                "id": "malformed-json",
+                "passed": true
+              },
+              {
+                "id": "missing-argument",
+                "passed": true
+              },
+              {
+                "id": "extra-argument",
+                "passed": true
+              }
+            ],
+            "source_sha256": "61ec3174fc7f8b7cf4a1d6f1959d22c17f0ca6bced2bd7126e22b76f8a9e4c83"
+          },
+          "failures": [],
+          "source": {
+            "hashes": {
+              "DECISIONS.md": "971c88b5376026351860ca26f43234a515cd3a1f747460d99d70ce1566f74397",
+              "README.md": "afdede738fdf9dc54f036a2bc5eeb4479a27c27f6bc38f547ef41f569fc37faa",
+              "main.kujo": "61ec3174fc7f8b7cf4a1d6f1959d22c17f0ca6bced2bd7126e22b76f8a9e4c83",
+              "tests/harness.go": "d895c6af7a025431c30ad5332e93233c0ff40a1624e9f75a9d22207429de2ffa",
+              "tmp_probe2.kujo": "7cff84c6d2ca97f1aa8064325acf7ba8fd3778cfe5a5f9f5d2902b085202908c",
+              "tmp_probe_core.kujo": "45ccb9d9cfdf2a8d94cd046caf559afc63c2bc0c2e1090c1a2ca405376be77a8",
+              "tmp_probe_maybe.kujo": "429e2914280b2480b843309fc08582b6a9e205091cc8122796094b74c8549492"
+            },
+            "bytes": 19987,
+            "files": 7
+          }
+        }
+      ]
+    },
+    {
+      "mode": "baseline",
+      "task": 5,
+      "delivered": true,
+      "stopped": "development_passed",
+      "repairs": 0,
+      "verified": true,
+      "duration_ms": 529452,
+      "calls": [
+        {
+          "run_id": "baseline-t5-p0",
+          "completed": true,
+          "summary": {
+            "total": 1,
+            "completed": 1,
+            "failed": 0,
+            "retry_count": 0,
+            "tool_calls_executed": 61,
+            "tool_input_repairs": 4,
+            "provider_rounds": 33,
+            "latency_ms_total": 527657,
+            "latency_samples": 1,
+            "token_use": {
+              "input_tokens": 1324993,
+              "output_tokens": 69491,
+              "total_tokens": 1394484
+            },
+            "transport_completion_rate": 1,
+            "task_completion_rate": null,
+            "repair_rate": 0.0656,
+            "average_latency_ms": 527657
+          },
+          "usage_complete": true,
+          "cached_input_tokens": 882560,
+          "execution_ids": [
+            "ef60112d-7efc-446a-9a2d-af59273ec7a1"
+          ],
+          "errors": []
+        }
+      ],
+      "grades": [
+        {
+          "pass": 0,
+          "development": {
+            "completed": true,
+            "checks": 3,
+            "passed": 3,
+            "results": [
+              {
+                "id": "conflict",
+                "passed": true
+              },
+              {
+                "id": "blocked-parent",
+                "passed": true
+              },
+              {
+                "id": "normal-save",
+                "passed": true
+              }
+            ],
+            "source_sha256": "6531d4707e0d55082ad0169536d47b6eafd88b33a381d2e2e1b55d84c759f8d8"
+          },
+          "holdout": {
+            "completed": true,
+            "checks": 9,
+            "passed": 9,
+            "results": [
+              {
+                "id": "same-file",
+                "passed": true
+              },
+              {
+                "id": "bool-expected",
+                "passed": true
+              },
+              {
+                "id": "unknown-patch",
+                "passed": true
+              },
+              {
+                "id": "invalid-source",
+                "passed": true
+              },
+              {
+                "id": "invalid-label",
+                "passed": true
+              },
+              {
+                "id": "broken-source",
+                "passed": true
+              },
+              {
+                "id": "malformed-json",
+                "passed": true
+              },
+              {
+                "id": "missing-argument",
+                "passed": true
+              },
+              {
+                "id": "extra-argument",
+                "passed": true
+              }
+            ],
+            "source_sha256": "6531d4707e0d55082ad0169536d47b6eafd88b33a381d2e2e1b55d84c759f8d8"
+          },
+          "failures": [],
+          "source": {
+            "hashes": {
+              "DECISIONS.md": "410757baf6f7ee899fd95b9a35e13f29303dd9a4ea50bcbf6eabdc5dbb251971",
+              "README.md": "18b5e28a68e580121b18370a7d6e1614095e19476addca4586f17876ae2d5d80",
+              "main.kujo": "6531d4707e0d55082ad0169536d47b6eafd88b33a381d2e2e1b55d84c759f8d8",
+              "tests/check_state.kujo": "a415e2e088cc884ff8d2fc5f4255f87ec78cd724a43ba0e2b5db3be5135097f8",
+              "tests/fixtures/dest_empty.json": "d3fb850a2d3f7d2543eb3a5e41fcca495fcba2eb12300085e42d27b276c158e4",
+              "tests/fixtures/dest_escape.json": "e0be185d7f1816e162e7abc5871d72575c832fd3925c45d162356e59cc6ac586",
+              "tests/fixtures/dest_fail.json": "079cf3c1075975753d7ddd359dd20721ebee81e6c6559ff1ca5af75ece25a00f",
+              "tests/fixtures/dest_max.json": "8b672bdfa6d412e32eccfd75f11b3f906fc4caaab7255db21a653952d4f55e3e",
+              "tests/fixtures/dest_ok.json": "71668f2397004ebadd520a165bc2997cd3c99ccca9d974c5b6dd821bb1042842",
+              "tests/fixtures/dir_dest/keep.txt": "d230d246f40568a94540a6e2fe197b0e3cabeb3c162382727c2347e67051c32e",
+              "tests/fixtures/ro_dir/out.json": "d1a069cf0fd7bf3736bea0adace2aae2f20758ec034ed6894bd2fe390a9ed017",
+              "tests/fixtures/source_array.json": "49a64717d5d4cb19952e6eac2946415cf6879adacf9908e7d872332d32c6e684",
+              "tests/fixtures/source_badtype.json": "7a9a8d1451eb61b04d937421e3037ea4c0456e5b670b15fe68729630c5bc03da",
+              "tests/fixtures/source_broken.json": "b403c084980485b52b7bae460640b08085bfacef5bd37ce69dbe634b2dfe7434",
+              "tests/fixtures/source_extra.json": "e92fabf6a3b0357f45c9fe12a5bd8b53349d6f9c789c39dca8894421c931d025",
+              "tests/fixtures/source_float.json": "564d6bbb8141430a8ff2c3cfda1d27e6ef0fb15b94e13a30bc9282fb15a86d80",
+              "tests/fixtures/source_max.json": "e1b34c8fe03cf5c8d5da6d001b5353740c7a934df40e6307a4d237ca94484db4",
+              "tests/fixtures/source_missing.json": "abb969360b8e27befddd96068dcce8c460892e4910b3d595a05023175f1a8f15",
+              "tests/fixtures/source_neg.json": "c0c414f14f45b9810af4a63dba134aa9756b23b5c259d5590ac602b1c87a736e",
+              "tests/fixtures/source_ok.json": "e5345f11bdea29d4e39e05cf49f9e4fef2ceac8ffcdcd7b7f8d1779dcae08d1c",
+              "tests/fixtures/source_range.json": "1cdf4ae55acad3a0faf49a16852682f2ae499c64e0e33deef59f56f35e9d8e06",
+              "tests/fixtures/source_same.json": "a45a9ce3ca1f5035a75906564c3910c171ffd507ed380af82e855460d28164f5",
+              "tests/mkro.go": "078d3f108cc0745a450bba242c62f483379fb87d3247cd778d0efde5fc0fc335",
+              "tests/probe.kujo": "e4cc19617382a087dd640ed3cfd294a3c6be7bfada02a98a4750368b3708583b"
+            },
+            "bytes": 14785,
+            "files": 24
+          }
+        }
+      ]
+    },
+    {
+      "mode": "baseline",
+      "task": 6,
+      "delivered": true,
+      "stopped": "development_passed",
+      "repairs": 0,
+      "verified": true,
+      "duration_ms": 848157,
+      "calls": [
+        {
+          "run_id": "baseline-t6-p0",
+          "completed": true,
+          "summary": {
+            "total": 1,
+            "completed": 1,
+            "failed": 0,
+            "retry_count": 0,
+            "tool_calls_executed": 53,
+            "tool_input_repairs": 4,
+            "provider_rounds": 47,
+            "latency_ms_total": 846486,
+            "latency_samples": 1,
+            "token_use": {
+              "input_tokens": 3151864,
+              "output_tokens": 101992,
+              "total_tokens": 3253856
+            },
+            "transport_completion_rate": 1,
+            "task_completion_rate": null,
+            "repair_rate": 0.0755,
+            "average_latency_ms": 846486
+          },
+          "usage_complete": true,
+          "cached_input_tokens": 2499840,
+          "execution_ids": [
+            "c0d49273-6623-4698-9915-86e5c6c81833"
+          ],
+          "errors": []
+        }
+      ],
+      "grades": [
+        {
+          "pass": 0,
+          "development": {
+            "completed": true,
+            "checks": 2,
+            "passed": 2,
+            "results": [
+              {
+                "id": "embedded-quote",
+                "passed": true
+              },
+              {
+                "id": "empty-no-header",
+                "passed": true
+              }
+            ],
+            "source_sha256": "6aa7ee9f7df4939c9b0e8a030eda8cd5c099992ebaa067f6b66b9990f269e353"
+          },
+          "holdout": {
+            "completed": true,
+            "checks": 9,
+            "passed": 9,
+            "results": [
+              {
+                "id": "unicode-newlines",
+                "passed": true
+              },
+              {
+                "id": "header-only",
+                "passed": true
+              },
+              {
+                "id": "false-is-not-string",
+                "passed": true
+              },
+              {
+                "id": "header-not-bool",
+                "passed": true
+              },
+              {
+                "id": "unknown-row",
+                "passed": true
+              },
+              {
+                "id": "too-many",
+                "passed": true
+              },
+              {
+                "id": "malformed-json",
+                "passed": true
+              },
+              {
+                "id": "missing-argument",
+                "passed": true
+              },
+              {
+                "id": "extra-argument",
+                "passed": true
+              }
+            ],
+            "source_sha256": "6aa7ee9f7df4939c9b0e8a030eda8cd5c099992ebaa067f6b66b9990f269e353"
+          },
+          "failures": [],
+          "source": {
+            "hashes": {
+              "DECISIONS.md": "34755ebb4f976f7cc7feac3e77fd009e4ff23ec4326884a4f6ab64ea3e312525",
+              "README.md": "ea11d812ecf50f7074582d8b729e1a2f240dfd19a2b754c0714ef8827997d1fa",
+              "main.kujo": "6aa7ee9f7df4939c9b0e8a030eda8cd5c099992ebaa067f6b66b9990f269e353",
+              "tests.kujo": "c1b0f5df67d8291e6e34e16c20c6efc5da4c283089912dfa4af90e6d190d566c"
+            },
+            "bytes": 13227,
+            "files": 4
+          }
+        }
+      ]
+    },
+    {
+      "mode": "feedback",
+      "task": 1,
+      "delivered": true,
+      "stopped": "development_passed",
+      "repairs": 0,
+      "verified": true,
+      "duration_ms": 653609,
+      "calls": [
+        {
+          "run_id": "feedback-t1-p0",
+          "completed": true,
+          "summary": {
+            "total": 1,
+            "completed": 1,
+            "failed": 0,
+            "retry_count": 0,
+            "tool_calls_executed": 55,
+            "tool_input_repairs": 5,
+            "provider_rounds": 42,
+            "latency_ms_total": 651859,
+            "latency_samples": 1,
+            "token_use": {
+              "input_tokens": 2072610,
+              "output_tokens": 80263,
+              "total_tokens": 2152873
+            },
+            "transport_completion_rate": 1,
+            "task_completion_rate": null,
+            "repair_rate": 0.0909,
+            "average_latency_ms": 651859
+          },
+          "usage_complete": true,
+          "cached_input_tokens": 1523200,
+          "execution_ids": [
+            "f9be5af5-2e58-4a1e-ba64-bedb9dbb32c2"
+          ],
+          "errors": []
+        }
+      ],
+      "grades": [
+        {
+          "pass": 0,
+          "development": {
+            "completed": true,
+            "checks": 2,
+            "passed": 2,
+            "results": [
+              {
+                "id": "explicit-values",
+                "passed": true
+              },
+              {
+                "id": "reject-unknown",
+                "passed": true
+              }
+            ],
+            "source_sha256": "16dab2ed78c6642ee4aba6ea8e1433535d8a2d2a6169d3e750ea4ba167b5fa01"
+          },
+          "holdout": {
+            "completed": true,
+            "checks": 11,
+            "passed": 11,
+            "results": [
+              {
+                "id": "defaults",
+                "passed": true
+              },
+              {
+                "id": "partial",
+                "passed": true
+              },
+              {
+                "id": "null-enabled",
+                "passed": true
+              },
+              {
+                "id": "null-retries",
+                "passed": true
+              },
+              {
+                "id": "null-label",
+                "passed": true
+              },
+              {
+                "id": "bool-count",
+                "passed": true
+              },
+              {
+                "id": "fraction",
+                "passed": true
+              },
+              {
+                "id": "too-many",
+                "passed": true
+              },
+              {
+                "id": "malformed-json",
+                "passed": true
+              },
+              {
+                "id": "missing-argument",
+                "passed": true
+              },
+              {
+                "id": "extra-argument",
+                "passed": true
+              }
+            ],
+            "source_sha256": "16dab2ed78c6642ee4aba6ea8e1433535d8a2d2a6169d3e750ea4ba167b5fa01"
+          },
+          "failures": [],
+          "source": {
+            "hashes": {
+              "DECISIONS.md": "2d017e27729ea93ae4a1bfa4df4f18b42eb0d42b0748806e882af2700224f4b9",
+              "README.md": "e83e465545dd236e1ed5fab8e99ca40986b606193f334873a6c161af551eec35",
+              "main.kujo": "16dab2ed78c6642ee4aba6ea8e1433535d8a2d2a6169d3e750ea4ba167b5fa01",
+              "tests.json": "d9503987b2610fab2c9fe7f655901fadf8f7cd81aafe3bc23f495269ac3693b7",
+              "tests.kujo": "6bb64b4586daa6da345578f445f7d676ea1c7b26297f02660b1837392fda4439"
+            },
+            "bytes": 10634,
+            "files": 5
+          }
+        }
+      ]
+    },
+    {
+      "mode": "feedback",
+      "task": 2,
+      "delivered": false,
+      "stopped": "initial_incomplete",
+      "repairs": 0,
+      "verified": false,
+      "duration_ms": null,
+      "calls": [
+        {
+          "run_id": "feedback-t2-p0",
+          "completed": false,
+          "summary": {
+            "total": 1,
+            "completed": 0,
+            "failed": 1,
+            "retry_count": 0,
+            "tool_calls_executed": 62,
+            "tool_input_repairs": 0,
+            "provider_rounds": 52,
+            "latency_ms_total": 900047,
+            "latency_samples": 1,
+            "token_use": {
+              "input_tokens": 3461496,
+              "output_tokens": 119264,
+              "total_tokens": 3580760
+            },
+            "transport_completion_rate": 0,
+            "task_completion_rate": null,
+            "repair_rate": 0,
+            "average_latency_ms": 900047
+          },
+          "usage_complete": false,
+          "cached_input_tokens": 2889600,
+          "execution_ids": [
+            "373a2e3c-e75f-4d5f-a2b6-176cc978acc8"
+          ],
+          "errors": [
+            "Stream timed out after 899871ms."
+          ]
+        }
+      ],
+      "grades": [],
+      "incomplete_holdout": {
+        "completed": true,
+        "checks": 10,
+        "passed": 10,
+        "results": [
+          {
+            "id": "empty",
+            "passed": true
+          },
+          {
+            "id": "middle",
+            "passed": true
+          },
+          {
+            "id": "end-offset",
+            "passed": true
+          },
+          {
+            "id": "offset-past-end",
+            "passed": true
+          },
+          {
+            "id": "bool-offset",
+            "passed": true
+          },
+          {
+            "id": "invalid-item",
+            "passed": true
+          },
+          {
+            "id": "over-bound",
+            "passed": true
+          },
+          {
+            "id": "malformed-json",
+            "passed": true
+          },
+          {
+            "id": "missing-argument",
+            "passed": true
+          },
+          {
+            "id": "extra-argument",
+            "passed": true
+          }
+        ],
+        "source_sha256": "06b0b32540c6b74a3dafa8ac0f755dad5aa249f64ce12395226ccb4bc17c1552"
+      },
+      "posthoc_development": {
+        "completed": true,
+        "checks": 2,
+        "passed": 2,
+        "results": [
+          {
+            "id": "last-page",
+            "passed": true
+          },
+          {
+            "id": "zero-limit",
+            "passed": true
+          }
+        ],
+        "source_sha256": "06b0b32540c6b74a3dafa8ac0f755dad5aa249f64ce12395226ccb4bc17c1552"
+      },
+      "posthoc_source": {
+        "hashes": {
+          "DECISIONS.md": "f885f33f7e5c5e48d894e2fe9074c631deee6caded7b9aa910cfa5d597668371",
+          "README.md": "ff1a69dda88ac0fd9ef0b22992b113c48c374c993db5666aa1fc99fa56323378",
+          "cli_tests.json": "89bdf3f520fd336e068192b7c41dbfef7ae07c3af05864dde04d2be5830564e1",
+          "harness.go": "712501533f26819cc0046e86590d3706f99fd5c7d4f2dc8446d55d83d4ffef5f",
+          "main.kujo": "06b0b32540c6b74a3dafa8ac0f755dad5aa249f64ce12395226ccb4bc17c1552",
+          "tests.kujo": "16a2fe165052b1a19c0990ac5358798113fe1325bd5597e5c792b8d6a902143d"
+        },
+        "bytes": 16668,
+        "files": 6
+      }
+    },
+    {
+      "mode": "feedback",
+      "task": 3,
+      "delivered": true,
+      "stopped": "development_passed",
+      "repairs": 0,
+      "verified": true,
+      "duration_ms": 757111,
+      "calls": [
+        {
+          "run_id": "feedback-t3-p0",
+          "completed": true,
+          "summary": {
+            "total": 1,
+            "completed": 1,
+            "failed": 0,
+            "retry_count": 0,
+            "tool_calls_executed": 61,
+            "tool_input_repairs": 5,
+            "provider_rounds": 39,
+            "latency_ms_total": 755396,
+            "latency_samples": 1,
+            "token_use": {
+              "input_tokens": 2348886,
+              "output_tokens": 103452,
+              "total_tokens": 2452338
+            },
+            "transport_completion_rate": 1,
+            "task_completion_rate": null,
+            "repair_rate": 0.082,
+            "average_latency_ms": 755396
+          },
+          "usage_complete": true,
+          "cached_input_tokens": 1769600,
+          "execution_ids": [
+            "002d77f8-96ce-49ad-bdc4-43d898f0d2a4"
+          ],
+          "errors": []
+        }
+      ],
+      "grades": [
+        {
+          "pass": 0,
+          "development": {
+            "completed": true,
+            "checks": 2,
+            "passed": 2,
+            "results": [
+              {
+                "id": "transient-underflow",
+                "passed": true
+              },
+              {
+                "id": "ordered",
+                "passed": true
+              }
+            ],
+            "source_sha256": "19ed348bdb64fd01d61a17c9ee8e7866fd0c4c6ee087d7a89ead7f76cb0f5c39"
+          },
+          "holdout": {
+            "completed": true,
+            "checks": 10,
+            "passed": 10,
+            "results": [
+              {
+                "id": "late-failure",
+                "passed": true
+              },
+              {
+                "id": "unknown-sku",
+                "passed": true
+              },
+              {
+                "id": "boolean-delta",
+                "passed": true
+              },
+              {
+                "id": "upper-bound",
+                "passed": true
+              },
+              {
+                "id": "edges",
+                "passed": true
+              },
+              {
+                "id": "unknown-change-field",
+                "passed": true
+              },
+              {
+                "id": "empty-batch",
+                "passed": true
+              },
+              {
+                "id": "malformed-json",
+                "passed": true
+              },
+              {
+                "id": "missing-argument",
+                "passed": true
+              },
+              {
+                "id": "extra-argument",
+                "passed": true
+              }
+            ],
+            "source_sha256": "19ed348bdb64fd01d61a17c9ee8e7866fd0c4c6ee087d7a89ead7f76cb0f5c39"
+          },
+          "failures": [],
+          "source": {
+            "hashes": {
+              "DECISIONS.md": "bd0f692ca4e75aa3d2d271d3ff73a28683a9f8c1316c65573d265e43c919f4fd",
+              "README.md": "7bc26ff02bdec911fbf6be7d2714752dfd894a30f081d83fec2bf5d61fbf0ac4",
+              "TESTS.md": "6e7d45002ed90a2f2670b6e13e7ca952c99319d6eabe128c5d05632181ecc420",
+              "main.kujo": "19ed348bdb64fd01d61a17c9ee8e7866fd0c4c6ee087d7a89ead7f76cb0f5c39",
+              "probe_import.kujo": "f54f55118af4952d90d3a94b5df8c0bf918221360e6b2c3995a2c1e2f397df3c",
+              "probe_lib.kujo": "f54f55118af4952d90d3a94b5df8c0bf918221360e6b2c3995a2c1e2f397df3c",
+              "test_main.kujo": "248d37c5e09ffa19fd94480543755bfc6d0ea035f673d838978bcd344760096a",
+              "test_runtime.kujo": "78c98f9068e919a7d52fe2788978aa187e83ac53d5e946fdb3f61a5000e420fb"
+            },
+            "bytes": 12819,
+            "files": 8
+          }
+        }
+      ]
+    },
+    {
+      "mode": "feedback",
+      "task": 4,
+      "delivered": false,
+      "stopped": "initial_incomplete",
+      "repairs": 0,
+      "verified": false,
+      "duration_ms": null,
+      "calls": [
+        {
+          "run_id": "feedback-t4-p0",
+          "completed": false,
+          "summary": {
+            "total": 1,
+            "completed": 0,
+            "failed": 1,
+            "retry_count": 0,
+            "tool_calls_executed": 297,
+            "tool_input_repairs": 0,
+            "provider_rounds": 150,
+            "latency_ms_total": 317497,
+            "latency_samples": 1,
+            "token_use": {
+              "input_tokens": 9499516,
+              "output_tokens": 18335,
+              "total_tokens": 9517851
+            },
+            "transport_completion_rate": 0,
+            "task_completion_rate": null,
+            "repair_rate": 0,
+            "average_latency_ms": 317497
+          },
+          "usage_complete": false,
+          "cached_input_tokens": 8288000,
+          "execution_ids": [
+            "2e50432b-3894-43d9-8999-731455baeeac"
+          ],
+          "errors": [
+            "Provider returned HTTP 413"
+          ]
+        }
+      ],
+      "grades": [],
+      "incomplete_holdout": {
+        "completed": true,
+        "checks": 10,
+        "passed": 2,
+        "results": [
+          {
+            "id": "defaults",
+            "passed": true
+          },
+          {
+            "id": "idempotent-v2",
+            "passed": false
+          },
+          {
+            "id": "v2-missing-active",
+            "passed": false
+          },
+          {
+            "id": "boolean-version",
+            "passed": false
+          },
+          {
+            "id": "row-unknown",
+            "passed": false
+          },
+          {
+            "id": "invalid-meta",
+            "passed": false
+          },
+          {
+            "id": "empty",
+            "passed": true
+          },
+          {
+            "id": "malformed-json",
+            "passed": false
+          },
+          {
+            "id": "missing-argument",
+            "passed": false
+          },
+          {
+            "id": "extra-argument",
+            "passed": false
+          }
+        ],
+        "source_sha256": "7628f23c83a561b470605ad1404e8ee92a3468fd5d24796e5c83c169dd47e7dc"
+      },
+      "posthoc_development": {
+        "completed": true,
+        "checks": 2,
+        "passed": 0,
+        "results": [
+          {
+            "id": "false-and-empty",
+            "passed": false
+          },
+          {
+            "id": "duplicate-id",
+            "passed": false
+          }
+        ],
+        "source_sha256": "7628f23c83a561b470605ad1404e8ee92a3468fd5d24796e5c83c169dd47e7dc"
+      },
+      "posthoc_source": {
+        "hashes": {
+          "README.md": "afdede738fdf9dc54f036a2bc5eeb4479a27c27f6bc38f547ef41f569fc37faa",
+          "main.kujo": "7628f23c83a561b470605ad1404e8ee92a3468fd5d24796e5c83c169dd47e7dc"
+        },
+        "bytes": 1362,
+        "files": 2
+      }
+    },
+    {
+      "mode": "feedback",
+      "task": 5,
+      "delivered": true,
+      "stopped": "development_passed",
+      "repairs": 0,
+      "verified": true,
+      "duration_ms": 708821,
+      "calls": [
+        {
+          "run_id": "feedback-t5-p0",
+          "completed": true,
+          "summary": {
+            "total": 1,
+            "completed": 1,
+            "failed": 0,
+            "retry_count": 0,
+            "tool_calls_executed": 62,
+            "tool_input_repairs": 8,
+            "provider_rounds": 54,
+            "latency_ms_total": 706988,
+            "latency_samples": 1,
+            "token_use": {
+              "input_tokens": 2948455,
+              "output_tokens": 88238,
+              "total_tokens": 3036693
+            },
+            "transport_completion_rate": 1,
+            "task_completion_rate": null,
+            "repair_rate": 0.129,
+            "average_latency_ms": 706988
+          },
+          "usage_complete": true,
+          "cached_input_tokens": 2257920,
+          "execution_ids": [
+            "2df6bd22-237f-4e4f-a58d-82e09af11078"
+          ],
+          "errors": []
+        }
+      ],
+      "grades": [
+        {
+          "pass": 0,
+          "development": {
+            "completed": true,
+            "checks": 3,
+            "passed": 3,
+            "results": [
+              {
+                "id": "conflict",
+                "passed": true
+              },
+              {
+                "id": "blocked-parent",
+                "passed": true
+              },
+              {
+                "id": "normal-save",
+                "passed": true
+              }
+            ],
+            "source_sha256": "e39ed1a64b0d1da46f5e644cbe74adc84bbdcf982e96466f604646babcc4fb4a"
+          },
+          "holdout": {
+            "completed": true,
+            "checks": 9,
+            "passed": 9,
+            "results": [
+              {
+                "id": "same-file",
+                "passed": true
+              },
+              {
+                "id": "bool-expected",
+                "passed": true
+              },
+              {
+                "id": "unknown-patch",
+                "passed": true
+              },
+              {
+                "id": "invalid-source",
+                "passed": true
+              },
+              {
+                "id": "invalid-label",
+                "passed": true
+              },
+              {
+                "id": "broken-source",
+                "passed": true
+              },
+              {
+                "id": "malformed-json",
+                "passed": true
+              },
+              {
+                "id": "missing-argument",
+                "passed": true
+              },
+              {
+                "id": "extra-argument",
+                "passed": true
+              }
+            ],
+            "source_sha256": "e39ed1a64b0d1da46f5e644cbe74adc84bbdcf982e96466f604646babcc4fb4a"
+          },
+          "failures": [],
+          "source": {
+            "hashes": {
+              "DECISIONS.md": "c36a36b58bd2d5f937db6edeb66ad57ee00cc82e8ff81993c3a6a03d0f5af74f",
+              "README.md": "18b5e28a68e580121b18370a7d6e1614095e19476addca4586f17876ae2d5d80",
+              "main.kujo": "e39ed1a64b0d1da46f5e644cbe74adc84bbdcf982e96466f604646babcc4fb4a",
+              "probe.kujo": "5dcc77e63cbe27cfa16a2fe6e1397eb39d35f2844d2228f38f5488f6400eeed0",
+              "probe2.kujo": "014eedd5545fd1bb601848c5af8fde62b8e3a5d185c991b47d14ea22c13cf3bc",
+              "t/dest_keep.json": "1dd17190a2f261044d8e04d099db4ebe2754ff402e5c2b8b759498176ddd343a",
+              "t/keep.txt": "8569f8d278b12abb1441d10ee31e479c3f7e747a60e1586365dcec5483d91cff",
+              "t/out_a.json": "332011b91ccd9887592cd7072f12da38748e37ee1af81985f9c8e1f066aec6fb",
+              "t/out_b.json": "332011b91ccd9887592cd7072f12da38748e37ee1af81985f9c8e1f066aec6fb",
+              "t/out_max.json": "332011b91ccd9887592cd7072f12da38748e37ee1af81985f9c8e1f066aec6fb",
+              "t/src_a.json": "46a278ce37cc1f2f684e984d93a3d8ea8fea59d1d50caee0db130253a440e3bb",
+              "t/src_array.json": "49a64717d5d4cb19952e6eac2946415cf6879adacf9908e7d872332d32c6e684",
+              "t/src_bad_missing.json": "017c29c72c2a451fdcf394d3e421c399ad05b87913115aea23fb3eced79ded21",
+              "t/src_bad_range.json": "5186481651aa0fa71e4ed222f66783390cd850f356304056eb85f46c00ad0049",
+              "t/src_bad_type.json": "a590262b8cc7b8ccf7587155f2acda2ea3152bfb819b769b32ad2cc3cc51780a",
+              "t/src_bad_unknown.json": "cb59b6d5881b2925e91514c2dde422cd56de739e22104544a057f9d3c789eb5e",
+              "t/src_malformed.json": "901cf92ee391a6b0b984a3a0da2062ab999a43cd4c3e53e6bc171423dead3abd",
+              "t/src_max.json": "ebb498389f8d44c8624acf49ef766fc21a0ada7a92301e1ba8adf5732645ce42",
+              "t/src_self.json": "c85893d9af5347d77750c9a52adfe1fd2ec07cd80c6098f68727239312ad71a9",
+              "tests.kujo": "dd67c27b0b29027be36dfa90bc54278beaf9f3c429b9d2a0b0edce3fcdf28a6e",
+              "tmp": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+            },
+            "bytes": 12493,
+            "files": 21
+          }
+        }
+      ]
+    },
+    {
+      "mode": "feedback",
+      "task": 6,
+      "delivered": true,
+      "stopped": "development_passed",
+      "repairs": 0,
+      "verified": true,
+      "duration_ms": 506862,
+      "calls": [
+        {
+          "run_id": "feedback-t6-p0",
+          "completed": true,
+          "summary": {
+            "total": 1,
+            "completed": 1,
+            "failed": 0,
+            "retry_count": 0,
+            "tool_calls_executed": 33,
+            "tool_input_repairs": 4,
+            "provider_rounds": 28,
+            "latency_ms_total": 505172,
+            "latency_samples": 1,
+            "token_use": {
+              "input_tokens": 1075822,
+              "output_tokens": 63724,
+              "total_tokens": 1139546
+            },
+            "transport_completion_rate": 1,
+            "task_completion_rate": null,
+            "repair_rate": 0.1212,
+            "average_latency_ms": 505172
+          },
+          "usage_complete": true,
+          "cached_input_tokens": 721280,
+          "execution_ids": [
+            "93cb49a4-2f1e-4d27-b000-c5719f9342e5"
+          ],
+          "errors": []
+        }
+      ],
+      "grades": [
+        {
+          "pass": 0,
+          "development": {
+            "completed": true,
+            "checks": 2,
+            "passed": 2,
+            "results": [
+              {
+                "id": "embedded-quote",
+                "passed": true
+              },
+              {
+                "id": "empty-no-header",
+                "passed": true
+              }
+            ],
+            "source_sha256": "79c4c98f1afc52dbfec5700419838eac3e9562af9ea223ff2b450d7484dae235"
+          },
+          "holdout": {
+            "completed": true,
+            "checks": 9,
+            "passed": 9,
+            "results": [
+              {
+                "id": "unicode-newlines",
+                "passed": true
+              },
+              {
+                "id": "header-only",
+                "passed": true
+              },
+              {
+                "id": "false-is-not-string",
+                "passed": true
+              },
+              {
+                "id": "header-not-bool",
+                "passed": true
+              },
+              {
+                "id": "unknown-row",
+                "passed": true
+              },
+              {
+                "id": "too-many",
+                "passed": true
+              },
+              {
+                "id": "malformed-json",
+                "passed": true
+              },
+              {
+                "id": "missing-argument",
+                "passed": true
+              },
+              {
+                "id": "extra-argument",
+                "passed": true
+              }
+            ],
+            "source_sha256": "79c4c98f1afc52dbfec5700419838eac3e9562af9ea223ff2b450d7484dae235"
+          },
+          "failures": [],
+          "source": {
+            "hashes": {
+              "DECISIONS.md": "fb29b4f996dad5da84a4de5fed5a58cbe53ccc92c6e0496d62bb38217b2dacac",
+              "README.md": "ea11d812ecf50f7074582d8b729e1a2f240dfd19a2b754c0714ef8827997d1fa",
+              "main.kujo": "79c4c98f1afc52dbfec5700419838eac3e9562af9ea223ff2b450d7484dae235",
+              "tests/api_probe.kujo": "e8c1e1d6572b56480b2b4e50533636e6cc7fb334c2c8f10eae1d846c1157c1ec",
+              "tests/cli_cases.json": "6919e2a133db8b98c5a20d772eb2fe021cf61b7625d2d63aa377801f5965fd8a",
+              "tests/large_harness.go": "685dcec3a04be935632f11d59ef7fab859c5f1b0997b594b4b958aba5125ad80"
+            },
+            "bytes": 18212,
+            "files": 6
+          }
+        }
+      ]
+    }
+  ],
+  "transport_failure": {
+    "baseline_task": 3,
+    "http_status": 413,
+    "request_bytes": 530495,
+    "watchdog_max_parse_bytes": 524288,
+    "watchdog_request_row": 8149,
+    "client_rejection_latency_ms": 95,
+    "model_context_window_tokens": 1048576
+  },
+  "verification": {
+    "full_tests": 703,
+    "passed": 702,
+    "failed": 0,
+    "skipped": 1,
+    "duration_ms": 60379.00678,
+    "focused_byte_tests": 6,
+    "live_smoke": "passed",
+    "profiles": 7,
+    "profiles_unchanged": true
+  },
+  "review_outcomes": {
+    "baseline": [
+      {
+        "run_id": "baseline-t1-p0",
+        "outcome": "pass",
+        "existing_review_repairs": 0
+      },
+      {
+        "run_id": "baseline-t2-p0",
+        "outcome": "pass",
+        "existing_review_repairs": 0
+      },
+      {
+        "run_id": "baseline-t3-p0",
+        "outcome": "not_requested",
+        "existing_review_repairs": 0
+      },
+      {
+        "run_id": "baseline-t4-p0",
+        "outcome": "inconclusive",
+        "existing_review_repairs": 0
+      },
+      {
+        "run_id": "baseline-t5-p0",
+        "outcome": "pass",
+        "existing_review_repairs": 0
+      },
+      {
+        "run_id": "baseline-t6-p0",
+        "outcome": "pass",
+        "existing_review_repairs": 0
+      }
+    ],
+    "feedback": [
+      {
+        "run_id": "feedback-t1-p0",
+        "outcome": "inconclusive",
+        "existing_review_repairs": 0
+      },
+      {
+        "run_id": "feedback-t2-p0",
+        "outcome": "pending",
+        "existing_review_repairs": 1
+      },
+      {
+        "run_id": "feedback-t3-p0",
+        "outcome": "pass",
+        "existing_review_repairs": 0
+      },
+      {
+        "run_id": "feedback-t4-p0",
+        "outcome": "not_requested",
+        "existing_review_repairs": 0
+      },
+      {
+        "run_id": "feedback-t5-p0",
+        "outcome": "inconclusive",
+        "existing_review_repairs": 1
+      },
+      {
+        "run_id": "feedback-t6-p0",
+        "outcome": "pass",
+        "existing_review_repairs": 0
+      }
+    ]
+  },
+  "decision": "No global guidance promotion: no overall improvement demonstrated; keep qualified patterns and development-repair controller opt-in. Byte-budget fix remains active.",
+  "runtime_claim_check": {
+    "source": "print(is_bool(true))",
+    "binary_sha256": "2f9242613c497736f77c20fdb669a18b7c815e489e8a2e8cf5047ee75fd2e3e0",
+    "backend": "default",
+    "exit_code": 0,
+    "stdout": "true\n",
+    "stderr": ""
+  },
+  "generated_csv_harness_recheck": {
+    "passed_assertions": 15,
+    "exit_code": 0
+  }
+}

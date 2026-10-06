@@ -1,0 +1,108 @@
+{
+  "runtime_sha256": "2f9242613c497736f77c20fdb669a18b7c815e489e8a2e8cf5047ee75fd2e3e0",
+  "kujo_checkout_head": "0d22cc0ec18785a3bb13aad85a3a4528e6f17adf",
+  "reproduction": [
+    {
+      "binary": "pinned",
+      "sha256": "2f9242613c497736f77c20fdb669a18b7c815e489e8a2e8cf5047ee75fd2e3e0",
+      "case": "literal",
+      "backend": "default",
+      "exit": 4,
+      "stdout": "true\n",
+      "stderr": "[KUJOVM001] [vm] Runtime Error: len() requires an array, dict, bytes, set, queue, stack, or string\n  --> 0:0\n\n"
+    },
+    {
+      "binary": "pinned",
+      "sha256": "2f9242613c497736f77c20fdb669a18b7c815e489e8a2e8cf5047ee75fd2e3e0",
+      "case": "literal",
+      "backend": "interpreter",
+      "exit": 0,
+      "stdout": "true\n1\n",
+      "stderr": ""
+    },
+    {
+      "binary": "pinned",
+      "sha256": "2f9242613c497736f77c20fdb669a18b7c815e489e8a2e8cf5047ee75fd2e3e0",
+      "case": "parsed",
+      "backend": "default",
+      "exit": 0,
+      "stdout": "true\n1\n",
+      "stderr": ""
+    },
+    {
+      "binary": "pinned",
+      "sha256": "2f9242613c497736f77c20fdb669a18b7c815e489e8a2e8cf5047ee75fd2e3e0",
+      "case": "parsed",
+      "backend": "interpreter",
+      "exit": 0,
+      "stdout": "true\n1\n",
+      "stderr": ""
+    },
+    {
+      "binary": "current-kujo",
+      "sha256": "2f9242613c497736f77c20fdb669a18b7c815e489e8a2e8cf5047ee75fd2e3e0",
+      "case": "literal",
+      "backend": "default",
+      "exit": 4,
+      "stdout": "true\n",
+      "stderr": "[KUJOVM001] [vm] Runtime Error: len() requires an array, dict, bytes, set, queue, stack, or string\n  --> 0:0\n\n"
+    },
+    {
+      "binary": "current-kujo",
+      "sha256": "2f9242613c497736f77c20fdb669a18b7c815e489e8a2e8cf5047ee75fd2e3e0",
+      "case": "literal",
+      "backend": "interpreter",
+      "exit": 0,
+      "stdout": "true\n1\n",
+      "stderr": ""
+    },
+    {
+      "binary": "current-kujo",
+      "sha256": "2f9242613c497736f77c20fdb669a18b7c815e489e8a2e8cf5047ee75fd2e3e0",
+      "case": "parsed",
+      "backend": "default",
+      "exit": 0,
+      "stdout": "true\n1\n",
+      "stderr": ""
+    },
+    {
+      "binary": "current-kujo",
+      "sha256": "2f9242613c497736f77c20fdb669a18b7c815e489e8a2e8cf5047ee75fd2e3e0",
+      "case": "parsed",
+      "backend": "interpreter",
+      "exit": 0,
+      "stdout": "true\n1\n",
+      "stderr": ""
+    }
+  ],
+  "workaround": [
+    {
+      "case": "literal",
+      "backend": "default",
+      "exit": 0,
+      "stdout": "true\n1\n",
+      "stderr": ""
+    },
+    {
+      "case": "literal",
+      "backend": "interpreter",
+      "exit": 0,
+      "stdout": "true\n1\n",
+      "stderr": ""
+    },
+    {
+      "case": "parsed",
+      "backend": "default",
+      "exit": 0,
+      "stdout": "true\n1\n",
+      "stderr": ""
+    },
+    {
+      "case": "parsed",
+      "backend": "interpreter",
+      "exit": 0,
+      "stdout": "true\n1\n",
+      "stderr": ""
+    }
+  ]
+}

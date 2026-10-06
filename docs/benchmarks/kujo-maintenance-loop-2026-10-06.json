@@ -1,0 +1,14 @@
+{
+  "execution_id": "2e50432b-3894-43d9-8999-731455baeeac",
+  "loaded_server_commit": "4d28a5b",
+  "task": "feedback-t4-p0",
+  "successful_complete_file_reads": 294,
+  "distinct_read_paths": 2,
+  "unchanged_read_advisories": 1,
+  "provider_rounds": 150,
+  "tool_calls": 297,
+  "reported_tokens": 9517851,
+  "usage_complete": false,
+  "outcome": "HTTP 413; candidate seed unchanged",
+  "interpretation": "Advisory fired but did not interrupt this repeated-read loop; underlying model cause is not established."
+}
