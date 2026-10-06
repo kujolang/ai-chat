@@ -56,3 +56,11 @@ test('no deduplication without the newest complete result; empty files still hav
  assert.equal(compactRepeatedReads(messages,p.tail),0);
  assert.equal(inspectReadProgress({},Array.from({length:12},(_,i)=>read(i,'empty',''))).action,'stop');
 });
+
+test('bounded review and final-answer phases cannot turn completed work into a loop error',()=>{
+ const {developmentProgressEnabled}=require('../lib/read-progress');
+ const tools=[{function:{name:'local_file_write'}}];
+ for(const phase of ['review','final'])assert.equal(developmentProgressEnabled(tools,phase),false);
+ for(const phase of ['work','repair'])assert.equal(developmentProgressEnabled(tools,phase),true);
+ assert.equal(developmentProgressEnabled([{function:{name:'local_file_read'}}],'work'),false);
+});

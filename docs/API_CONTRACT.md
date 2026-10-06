@@ -882,7 +882,9 @@ provider-facing result bodies. The newest full contents and every original
 journal result remain available; call identities and assistant text are preserved.
 File content/mtime changes, new ranges, errors, partial reads and other tools
 interrupt or reset the matching streak. Read-only requests are not subject to
-this development guard. Native external harnesses manage their own execution.
+this development guard. The independently bounded review and final-answer phases
+are excluded, so review repetition cannot invalidate an otherwise completed
+implementation. Native external harnesses manage their own execution.
 
 At twelve matching reads, SSE emits `error` with code `execution_no_progress`,
 `retryable: false`; it does not emit a successful `done` or dispatch another model
@@ -890,3 +892,12 @@ request. Partial output, files, usage and completed receipts remain inspectable.
 An explicit execution resume starts another bounded window after the saved stop
 marker, without replaying the previous tool calls. This is a no-progress cost
 bound, not proof that the task is impossible or a replacement for permissions.
+
+When a request supplies `task_deadline_ms`, optional engineering review/repair
+is bounded by the earlier of its five-minute allowance and the task deadline
+minus a 60-second delivery reserve. This also clamps restored review checkpoints.
+A worker that finishes inside that reserve is delivered directly with an explicit
+inconclusive-review notice, rather than starting optional review or a redundant
+summary request. The parent deadline is never enlarged. An in-flight provider
+round still depends on provider responsiveness and the overall request deadline;
+the reserve is not a guaranteed completion latency.

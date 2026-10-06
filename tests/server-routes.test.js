@@ -5799,3 +5799,23 @@ for (const scenario of ['stop','recover','read-only']) test(`development read pr
   });
  }finally{destroy();fs.rmSync(dir,{recursive:true,force:true});}
 });
+
+test('a late completed worker answer is delivered without optional review inference',async()=>{
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'ai-chat-review-reserve-'));let calls=0;
+ const {runtime,destroy}=createIsolatedRuntime({envMerge:{AI_CHAT_LOCAL_TOOLS_ENABLED:'1',AI_CHAT_LOCAL_WRITE_ENABLED:'1',AI_CHAT_LOCAL_WORKSPACE_ROOTS:dir,ENGINEERING_REVIEW_ENABLED:'1',ENGINEERING_REVIEW_MODE:'always',ENGINEERING_CONTRACT_ENABLED:'0',KUJO_GROUNDING_MODE:'off'},localRuntimeOptions:{homeDir:dir,projectRoot:dir},fetchFn:async()=>{
+  calls++;
+  if(calls===1)return mockSseResponse([{choices:[{delta:{tool_calls:[{index:0,id:'create',function:{name:'local_file_write',arguments:JSON.stringify({root_id:'workspace_0',path:'result.txt',mode:'create',content:'result'})}}]},finish_reason:'tool_calls'}]}]);
+  return mockSseResponse([{choices:[{delta:{content:'Created result.txt.'},finish_reason:'stop'}]}]);
+ }});
+ try{
+  const profileId=applyProfileMutation(runtime,p=>{p.api_key='fixture-key';});
+  await withServer(runtime.app,async base=>{
+   const response=await fetch(base+'/api/chat/stream',{method:'POST',headers:withAuthHeaders({'Content-Type':'application/json'}),body:JSON.stringify({profile_id:profileId,task_deadline_ms:Date.now()+45000,messages:[{role:'user',content:'Create result.txt'}],tools:[{type:'function',function:{name:'local_file_write'}}],include_saved_runtime_presets:false})});
+   const events=parseSseEvents(await response.text()),done=events.find(e=>e.event==='done');
+   assert.equal(calls,2);assert.equal(events.some(e=>e.event==='error'),false);
+   assert.equal(done.data.engineering_review.outcome,'inconclusive');assert.equal(done.data.engineering_review.reviews,0);
+   assert.match(done.data.output_text,/Created result.txt/);assert.match(done.data.output_text,/reserved for delivery/);
+   assert.equal(fs.readFileSync(path.join(dir,'result.txt'),'utf8'),'result');
+  });
+ }finally{destroy();fs.rmSync(dir,{recursive:true,force:true});}
+});

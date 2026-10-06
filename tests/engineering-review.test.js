@@ -190,3 +190,21 @@ test('review schema offers only successfully inspected references without leakin
  const other=createEngineeringReview({enabled:true,originalMessages});other.onStop([...originalMessages],'candidate',receipts);
  assert.equal(checkSchema(other).maxItems,0);
 });
+
+test('review and repair never receive a deadline beyond the parent delivery reserve',()=>{
+ let now=100000;
+ const r=createEngineeringReview({enabled:true,originalMessages,taskDeadline:now+180000,now:()=>now});
+ let messages=r.onStop([...originalMessages],'candidate',receipts);
+ assert.equal(r.state.deadline,220000);
+ now=220001;messages=r.beforeRound(messages);
+ assert.equal(r.state.phase,'final');assert.equal(r.state.outcome,'inconclusive');
+ assert.match(r.completionNotice(),/budget was exhausted/);
+ const resumed=createEngineeringReview({enabled:true,originalMessages,taskDeadline:200000,checkpoint:{engineering_review:{...r.state,phase:'review',deadline:999999,actor:[...originalMessages]}},now:()=>now});
+ assert.equal(resumed.state.deadline,140000,'resume cannot enlarge the parent budget');
+});
+test('late completed work is delivered with an inconclusive notice without another inference',()=>{
+ const r=createEngineeringReview({enabled:true,originalMessages,taskDeadline:150000,now:()=>100000});
+ assert.equal(r.onStop([...originalMessages],'candidate',receipts),null);
+ assert.equal(r.state.phase,'final');assert.equal(r.state.reviews,0);assert.equal(r.state.repairs,0);
+ assert.equal(r.state.outcome,'inconclusive');assert.match(r.completionNotice(),/reserved for delivery/);
+});
