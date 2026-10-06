@@ -65,6 +65,9 @@ This project is for end users and teams who want one local web app to:
 	- Restore encrypted pre-turn checkpoints or rewind into a forked chat without presenting checkpoints as Git commits
 	- Approve consequential provider-neutral tool actions once or by exact chat/workspace rule, with saved-grant revocation in Settings
 	- Follow durable execution plans and send immediate, queued, or cancel-after-action steering while a turn runs
+	- Isolate coding chats in managed Git worktrees, choose read-only mode, inspect branch/dirty/ahead state, and explicitly commit, prepare, or clean up
+	- Attach bounded text, JSON, CSV, and images by picker, folder, paste, or drop with explicit typed context chips and provider-delivery disclosure
+	- Inspect chat-scoped command, test, browser, file, source, and error evidence in a filterable execution artifact rail
 - Multi-chat workspace tabs
 	- Keep up to 16 active chats immediately available above the workspace, including while the sidebar is collapsed
 	- Switch with mouse or standard arrow/Home/End tab keys, close with the pointer, middle click, or Delete, and retain each chat in history when its tab closes
@@ -105,7 +108,7 @@ interactive approvals, actionable diff review, checkpoints, plan/steering UI,
 worktree isolation, attachments, structured execution artifacts, native
 MCP/plugin management, attention notifications, and a command palette.
 
-HR-01 through HR-04 are shipped; later entries remain planned. The roadmap keeps
+HR-01 through HR-07 are shipped; later entries remain planned. The roadmap keeps
 dependencies, safety constraints, and acceptance evidence with each item.
 
 ## Requirements

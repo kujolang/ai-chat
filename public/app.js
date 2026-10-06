@@ -59,6 +59,8 @@ const hydratingChatIds = new Set();
 let codeHighlightScheduled = false;
 const pendingCodeHighlightRoots = new Set();
 const browserArtifactImageUrls = new Map();
+const composerAttachmentsByChat = new Map();
+let artifactRailFilter = "all";
 let screenshotGalleryArtifacts = [];
 let screenshotGalleryIndex = 0;
 const apiTokenStorageKey = "ai_chat_api_token";
@@ -162,6 +164,12 @@ const nodes = {
 	chatWatchdogBtn: document.getElementById("chat-watchdog-btn"),
 	exportChatBtn: document.getElementById("export-chat-btn"),
 	openPaneProfilesBtn: document.getElementById("open-pane-profiles-btn"),
+	chatWorkspaceMode: document.getElementById("chat-workspace-mode"),
+	chatWorkspaceActionsBtn: document.getElementById("chat-workspace-actions-btn"),
+	openArtifactRailBtn: document.getElementById("open-artifact-rail-btn"),
+	artifactRail: document.getElementById("artifact-rail"),
+	closeArtifactRailBtn: document.getElementById("close-artifact-rail-btn"),
+	artifactRailContent: document.getElementById("artifact-rail-content"),
 	paneControls: document.getElementById("pane-controls"),
 	togglePaneInfoBtn: document.getElementById("toggle-pane-info-btn"),
 	toggleSidebarBtn: document.getElementById("toggle-sidebar-btn"),
@@ -169,6 +177,11 @@ const nodes = {
 	openSettingsBtn: document.getElementById("open-settings-btn"),
 	paneGrid: document.getElementById("pane-grid"),
 	composerInput: document.getElementById("composer-input"),
+	composerAttachmentInput: document.getElementById("composer-attachment-input"),
+	composerFolderInput: document.getElementById("composer-folder-input"),
+	composerAttachmentBtn: document.getElementById("composer-attachment-btn"),
+	composerFolderBtn: document.getElementById("composer-folder-btn"),
+	composerAttachmentChips: document.getElementById("composer-attachment-chips"),
 	composerTokenSummary: document.getElementById("composer-token-summary"),
 	toggleUsageSummaryBtn: document.getElementById("toggle-usage-summary-btn"),
 	usageSummaryDetails: document.getElementById("usage-summary-details"),
@@ -1378,6 +1391,29 @@ function wireEvents() {
 		void sendFromComposer().catch(handleComposerSendError);
 	});
 	nodes.stopStreamBtn?.addEventListener("click", stopActiveStreams);
+	nodes.composerAttachmentBtn?.addEventListener("click", () => nodes.composerAttachmentInput?.click());
+	nodes.composerAttachmentInput?.addEventListener("change", () => void uploadComposerAttachments(nodes.composerAttachmentInput.files));
+	nodes.composerFolderBtn?.addEventListener("click", () => nodes.composerFolderInput?.click());
+	nodes.composerFolderInput?.addEventListener("change", () => void uploadComposerAttachments(nodes.composerFolderInput.files));
+	nodes.composerInput?.addEventListener("paste", (event) => {
+		const files = event.clipboardData?.files; if (files?.length) { event.preventDefault(); void uploadComposerAttachments(files); }
+	});
+	nodes.composerInput?.addEventListener("dragover", (event) => { if (event.dataTransfer?.types.includes("Files")) event.preventDefault(); });
+	nodes.composerInput?.addEventListener("drop", (event) => { if (event.dataTransfer?.files?.length) { event.preventDefault(); void uploadComposerAttachments(event.dataTransfer.files); } });
+	nodes.composerAttachmentChips?.addEventListener("click", (event) => {
+		const button = event.target.closest("[data-remove-attachment]");
+		if (button) void removeComposerAttachment(String(button.getAttribute("data-remove-attachment") || ""));
+	});
+	nodes.chatWorkspaceMode?.addEventListener("change", () => void configureActiveChatWorkspace(nodes.chatWorkspaceMode.value));
+	nodes.chatWorkspaceActionsBtn?.addEventListener("click", () => void runActiveWorkspaceAction());
+	nodes.openArtifactRailBtn?.addEventListener("click", () => void openArtifactRail());
+	nodes.closeArtifactRailBtn?.addEventListener("click", () => nodes.artifactRail?.classList.add("hidden"));
+	nodes.artifactRail?.addEventListener("click", (event) => {
+		const filter = event.target.closest("[data-artifact-filter]");
+		if (filter) { artifactRailFilter = String(filter.getAttribute("data-artifact-filter") || "all"); void openArtifactRail(); }
+		const open = event.target.closest("[data-artifact-action]");
+		if (open) void openExecutionArtifact(open);
+	});
 
 	nodes.composerInput.addEventListener("keydown", (event) => {
 		if (event.key === "Enter" && !event.shiftKey) {
@@ -2900,6 +2936,8 @@ function renderAll(options = {}) {
 	renderPaneInfoToggle();
 	renderUsageSummaryToggle();
 	updateStreamingControls();
+	renderComposerAttachments();
+	void refreshActiveWorkspaceStatus();
 
 	if (isUsageModalOpen()) {
 		renderUsageModalContent();
@@ -3855,6 +3893,7 @@ function renderMessageNodeHtml(message, paneId) {
 	const toolError = renderMessageErrorBlock(message);
 	const contentBody = renderAssistantMarkdown(message.role === "assistant" ? normalizeAssistantProseSpacing(message.content) : message.content);
 	const content = hasAssistantThinkingOnly ? "" : renderMessageContent(message, paneId, contentBody);
+	const attachmentParts = renderMessageAttachmentParts(message);
 	const screenshots = renderBrowserScreenshotArtifacts(message);
 	const codeDiffs = renderCodeDiffViewer(message, paneId);
 	const timestamp = formatMessageTime(message.createdAt);
@@ -3875,7 +3914,13 @@ function renderMessageNodeHtml(message, paneId) {
 		return `<div class="${messageClasses.join(" ")}" data-message-id="${escapeHtml(message.id)}" data-pane-id="${escapeHtml(paneId)}">${thinking}${executionPlan}${approvals}${content}${codeDiffs}${toolError}${screenshots}${metaFooter}</div>`;
 	}
 
-	return `<div class="${messageClasses.join(" ")}" data-message-id="${escapeHtml(message.id)}" data-pane-id="${escapeHtml(paneId)}"><div class="message-bubble">${content}${meta}</div>${footer}</div>`;
+	return `<div class="${messageClasses.join(" ")}" data-message-id="${escapeHtml(message.id)}" data-pane-id="${escapeHtml(paneId)}"><div class="message-bubble">${attachmentParts}${content}${meta}</div>${footer}</div>`;
+}
+
+function renderMessageAttachmentParts(message) {
+	const parts = Array.isArray(message.usage?.message_parts) ? message.usage.message_parts : [];
+	if (!parts.length) return "";
+	return `<div class="message-attachment-parts" aria-label="Attached context">${parts.map((part) => `<span class="message-attachment"><strong>${escapeHtml(part.name)}</strong><small>${escapeHtml(part.mime_type)} · ${formatNumber(part.size)} bytes · ${escapeHtml(part.extraction)} · ${part.leaves_machine ? "sent to provider" : "local only"}</small></span>`).join("")}</div>`;
 }
 
 function renderMessageContent(message, paneId, contentBody) {
@@ -6472,6 +6517,109 @@ async function validateApiAuthTokenCandidate(token) {
 	}
 }
 
+function activeComposerAttachments() {
+	const chat = getActiveChat();
+	return chat ? composerAttachmentsByChat.get(chat.id) || [] : [];
+}
+
+function renderComposerAttachments() {
+	if (!nodes.composerAttachmentChips) return;
+	const attachments = activeComposerAttachments();
+	nodes.composerAttachmentChips.innerHTML = attachments.map((item) => `<span class="attachment-chip"><span><strong>${escapeHtml(item.name)}</strong><small>${escapeHtml(item.mime_type)} · ${formatNumber(item.size)} bytes · ${escapeHtml(item.extraction)} · sent to provider</small></span><button type="button" data-remove-attachment="${escapeHtml(item.id)}" aria-label="Remove ${escapeHtml(item.name)}">×</button></span>`).join("");
+}
+
+async function uploadComposerAttachments(fileList) {
+	const chat = getActiveChat();
+	const files = Array.from(fileList || []);
+	if (!chat || !files.length) return;
+	const existing = activeComposerAttachments();
+	if (existing.length + files.length > 8) { nodes.voiceStatus.textContent = "A message can include at most 8 attachments."; return; }
+	const form = new FormData();
+	for (const file of files) form.append("files", file, file.name);
+	const response = await apiFetch(`/api/chats/${encodeURIComponent(chat.id)}/attachments`, { method: "POST", body: form });
+	const payload = await response.json();
+	if (!response.ok) { nodes.voiceStatus.textContent = payload.error?.message || "Attachment upload failed."; return; }
+	composerAttachmentsByChat.set(chat.id, [...existing, ...payload.attachments]);
+	nodes.composerAttachmentInput.value = "";
+	if (nodes.composerFolderInput) nodes.composerFolderInput.value = "";
+	renderComposerAttachments();
+}
+
+async function removeComposerAttachment(id) {
+	const chat = getActiveChat(); if (!chat) return;
+	await apiFetch(`/api/chats/${encodeURIComponent(chat.id)}/attachments/${encodeURIComponent(id)}`, { method: "DELETE" });
+	composerAttachmentsByChat.set(chat.id, activeComposerAttachments().filter((item) => item.id !== id));
+	renderComposerAttachments();
+}
+
+async function configureActiveChatWorkspace(mode) {
+	const chat = getActiveChat(); if (!chat) return;
+	await persistStateToServer();
+	const response = await apiFetch(`/api/chats/${encodeURIComponent(chat.id)}/workspace`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode }) });
+	const payload = await response.json();
+	if (!response.ok) { nodes.voiceStatus.textContent = payload.error?.message || "Workspace setup failed."; await refreshActiveWorkspaceStatus(); return; }
+	chat.workspace = payload.workspace;
+	nodes.voiceStatus.textContent = `${payload.workspace.repository}: ${payload.workspace.worktree_label} · ${payload.workspace.branch || "non-Git"}`;
+}
+
+async function refreshActiveWorkspaceStatus() {
+	const chat = getActiveChat(); if (!chat || !nodes.chatWorkspaceMode) return;
+	try {
+		const response = await apiFetch(`/api/chats/${encodeURIComponent(chat.id)}/workspace`);
+		if (!response.ok) return;
+		const payload = await response.json();
+		chat.workspace = payload.workspace;
+		nodes.chatWorkspaceMode.value = payload.workspace?.mode || "current";
+		nodes.chatWorkspaceMode.title = payload.workspace ? `${payload.workspace.repository} · ${payload.workspace.branch || "non-Git"} · ${payload.workspace.dirty ? "dirty" : "clean"} · ↑${payload.workspace.ahead} ↓${payload.workspace.behind}` : "Chat workspace mode";
+	} catch {}
+}
+
+async function runActiveWorkspaceAction() {
+	const chat = getActiveChat(); if (!chat?.workspace) { nodes.voiceStatus.textContent = "Configure a chat workspace first."; return; }
+	const action = String(window.prompt("Workspace action: commit, prepare, or cleanup", "prepare") || "").trim().toLowerCase();
+	if (!action) return;
+	let url = `/api/chats/${encodeURIComponent(chat.id)}/workspace`;
+	let method = "POST"; let body;
+	if (action === "commit") { url += "/commit"; const message = window.prompt("Commit message", "Save agent changes"); if (!message) return; body = JSON.stringify({ message }); }
+	else if (action === "prepare") url += "/prepare-merge";
+	else if (action === "cleanup") { method = "DELETE"; if (!window.confirm("Clean up this managed worktree? Dirty or unmerged work will be refused.")) return; }
+	else { nodes.voiceStatus.textContent = "Choose commit, prepare, or cleanup."; return; }
+	const response = await apiFetch(url, { method, ...(body ? { headers: { "Content-Type": "application/json" }, body } : {}) });
+	const payload = await response.json();
+	if (!response.ok) { nodes.voiceStatus.textContent = payload.error?.message || "Workspace action failed."; return; }
+	nodes.voiceStatus.textContent = action === "prepare" ? `Merge-ready: ${(payload.preparation?.commits || []).length} commit(s).` : action === "cleanup" ? "Managed worktree cleaned up." : "Workspace committed.";
+	await refreshActiveWorkspaceStatus();
+}
+
+async function openArtifactRail() {
+	const chat = getActiveChat(); if (!chat) return;
+	nodes.artifactRail.classList.remove("hidden");
+	for (const button of nodes.artifactRail.querySelectorAll("[data-artifact-filter]")) button.classList.toggle("active", button.getAttribute("data-artifact-filter") === artifactRailFilter);
+	const response = await apiFetch(`/api/chats/${encodeURIComponent(chat.id)}/execution-artifacts`);
+	const payload = await response.json();
+	if (!response.ok) { nodes.artifactRailContent.textContent = payload.error?.message || "Could not load artifacts."; return; }
+	const cards = [];
+	for (const execution of payload.executions || []) for (const artifact of execution.artifacts || []) {
+		if (artifactRailFilter !== "all" && artifact.category !== artifactRailFilter) continue;
+		cards.push(`<article class="artifact-card ${escapeHtml(artifact.status)}"><header><strong>${escapeHtml(artifact.tool_name)}</strong><span>${escapeHtml(artifact.status)}</span></header><pre>${escapeHtml(artifact.preview)}</pre><div class="artifact-actions"><button type="button" data-artifact-action="open" data-execution-id="${escapeHtml(execution.execution_id)}" data-call-id="${escapeHtml(artifact.call_id)}">Open</button><button type="button" data-artifact-action="copy" data-execution-id="${escapeHtml(execution.execution_id)}" data-call-id="${escapeHtml(artifact.call_id)}">Copy</button><button type="button" data-artifact-action="download" data-execution-id="${escapeHtml(execution.execution_id)}" data-call-id="${escapeHtml(artifact.call_id)}">Download</button></div></article>`);
+	}
+	nodes.artifactRailContent.innerHTML = cards.join("") || `<p class="muted">No ${escapeHtml(artifactRailFilter === "all" ? "" : artifactRailFilter + " ")}artifacts for this chat.</p>`;
+}
+
+async function openExecutionArtifact(button) {
+	const chat = getActiveChat(); if (!chat) return;
+	const response = await apiFetch(`/api/chats/${encodeURIComponent(chat.id)}/execution-artifacts/${encodeURIComponent(button.dataset.executionId)}/${encodeURIComponent(button.dataset.callId)}`);
+	const payload = await response.json();
+	if (!response.ok) { nodes.voiceStatus.textContent = payload.error?.message || "Artifact unavailable."; return; }
+	const action = String(button.dataset.artifactAction || "open");
+	if (action === "copy") { await navigator.clipboard.writeText(payload.artifact.result); nodes.voiceStatus.textContent = "Artifact copied."; return; }
+	const blob = new Blob([payload.artifact.result], { type: "text/plain" });
+	const url = URL.createObjectURL(blob);
+	if (action === "download") { const link = document.createElement("a"); link.href = url; link.download = `${payload.artifact.tool_name}-${payload.artifact.call_id}.txt`; link.click(); }
+	else window.open(url, "_blank", "noopener");
+	window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
 async function sendFromComposer() {
 	if (activeStreamCount > 0 || activeStreamControllers.size > 0) {
 		const mode = String(nodes.composerSteeringMode?.value || "immediate");
@@ -6492,7 +6640,8 @@ async function sendFromComposer() {
 	}
 
 	const text = nodes.composerInput.value.trim();
-	if (!text) {
+	const attachments = activeComposerAttachments();
+	if (!text && !attachments.length) {
 		return;
 	}
 	if (text.length > composerPasteSoftLimitChars && nodes.voiceStatus) {
@@ -6503,7 +6652,9 @@ async function sendFromComposer() {
 	chat.updatedAt = Date.now();
 
 	const targetPanes = chat.panes.slice();
-	await Promise.all(targetPanes.map((pane) => sendMessageToPaneStream(chat, pane, text)));
+	await Promise.all(targetPanes.map((pane) => sendMessageToPaneStream(chat, pane, text || "Review the attached context.", { attachments })));
+	composerAttachmentsByChat.set(chat.id, []);
+	renderComposerAttachments();
 	schedulePersist();
 	renderWorkspace();
 	renderComposerUsageSummary();
@@ -6535,6 +6686,9 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 		? pane.messages.find((message) => message.id === options.reuseUserMessageId && message.role === "user")
 		: null;
 	const userMessage = existingUserMessage || makeMessage("user", text);
+	if (!existingUserMessage && Array.isArray(options.attachments) && options.attachments.length) {
+		userMessage.usage = { message_parts: options.attachments.map((item) => ({ type: "artifact_ref", artifact_id: item.id, name: item.name, mime_type: item.mime_type, size: item.size, extraction: item.extraction, provider_compatibility: item.provider_compatibility, leaves_machine: item.leaves_machine })) };
+	}
 	const assistantMessage = makeMessage("assistant", "");
 	assistantMessage.thinking = "";
 	assistantMessage.provider = profile.provider_id;
@@ -6671,6 +6825,7 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 				tool_discovery: true,
 				interactive_approvals: profile.provider_id !== "codex",
 				plan_events: true,
+				attachment_ids: (userMessage.usage?.message_parts || []).map((part) => part.artifact_id),
 				disable_thinking: forceFinalAnswer
 			};
 

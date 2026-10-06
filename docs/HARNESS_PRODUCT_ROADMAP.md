@@ -1,6 +1,6 @@
 # Agent Harness Product Roadmap
 
-Status: HR-01 through HR-04 implemented; remaining items are planned work.
+Status: HR-01 through HR-07 implemented; remaining items are planned work.
 
 Baseline reviewed: 2026-10-06 on `codex/diff-viewer` at `730dcff`.
 
@@ -212,7 +212,7 @@ consume-once tests in `tests/harness-controls.test.js`.
 ## HR-05 — Per-chat worktree and branch isolation
 
 **Priority:** 5  
-**Status:** Planned  
+**Status:** Implemented
 **Depends on:** repository discovery, Git capability checks, lifecycle cleanup
 
 ### Outcome
@@ -239,10 +239,14 @@ mutable checkout unless the user deliberately chooses that mode.
 - Cleanup refuses unmerged or user-modified work unless explicitly confirmed.
 - Non-Git workspaces continue to function without fake branch controls.
 
+**Implementation evidence:** `lib/worktree-store.js`, authenticated per-chat
+workspace routes, native/provider-neutral execution scoping, workspace controls,
+and isolation/dirty-state fixtures in `tests/harness-rounds.test.js`.
+
 ## HR-06 — Attachments and explicit context chips
 
 **Priority:** 6  
-**Status:** Planned  
+**Status:** Implemented
 **Depends on:** artifact storage and message-parts contract in
 `docs/ARTIFACT_AND_AGENT_DESIGN.md`
 
@@ -271,10 +275,15 @@ seeing exactly which context will be sent to which pane/provider.
 - Private-path, symlink, stale-reference, deletion, and retention tests pass.
 - Image and text attachments remain keyboard accessible on narrow screens.
 
+**Implementation evidence:** encrypted bounded storage in
+`lib/attachment-store.js`, authenticated multi-file upload/removal routes, typed
+persisted message parts, picker/folder/paste/drop context chips, and MIME,
+encryption, expiry, and UI fixtures in `tests/harness-rounds.test.js`.
+
 ## HR-07 — Structured execution and artifact rail
 
 **Priority:** 7  
-**Status:** Planned  
+**Status:** Implemented
 **Depends on:** existing tool events, receipts, browser artifacts, test metadata
 
 ### Outcome
@@ -299,6 +308,11 @@ grouped by execution instead of being discoverable only through chat prose.
 - Large output truncates predictably with continuation or download metadata.
 - Reload reconstructs the same execution grouping from durable records.
 - Secret redaction and artifact authorization tests cover every renderer.
+
+**Implementation evidence:** `lib/execution-artifacts.js`, chat-scoped retained
+result routes, filterable status-aware artifact rail with open/copy/download,
+and cross-chat authorization/redaction fixtures in
+`tests/harness-rounds.test.js`.
 
 ## HR-08 — Native MCP and plugin management
 
