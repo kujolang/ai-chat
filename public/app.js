@@ -1513,6 +1513,30 @@ function wireEvents() {
 			return;
 		}
 
+		const diffActionButton = event.target.closest("[data-diff-action][data-pane-id][data-message-id]");
+		if (diffActionButton) {
+			const pane = getPaneById(String(diffActionButton.getAttribute("data-pane-id") || ""));
+			const message = pane && pane.messages.find((candidate) => candidate.id === String(diffActionButton.getAttribute("data-message-id") || ""));
+			if (!message) return;
+			const action = String(diffActionButton.getAttribute("data-diff-action") || "");
+			if (action === "toggle") {
+				message.diff_expanded = message.diff_expanded === false;
+				scheduleStreamingMessagePatch(getActiveChat()?.id, pane.id, message.id);
+				return;
+			}
+			if (action === "mode") {
+				message.diff_view_mode = diffActionButton.getAttribute("data-diff-mode") === "split" ? "split" : "unified";
+				scheduleStreamingMessagePatch(getActiveChat()?.id, pane.id, message.id);
+				return;
+			}
+			if (action === "copy" && navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+				void navigator.clipboard.writeText(formatCodeDiffPatch(codeDiffsForMessage(message))).then(() => {
+					showCopiedFeedback(diffActionButton, "Copy patch", "Copy patch");
+				});
+			}
+			return;
+		}
+
 		const thinkingToggleButton = event.target.closest("[data-action='toggle-thinking']");
 		if (thinkingToggleButton) {
 			const paneId = String(thinkingToggleButton.getAttribute("data-pane-id") || "");
@@ -3642,6 +3666,7 @@ function renderMessageNodeHtml(message, paneId) {
 	const contentBody = renderAssistantMarkdown(message.role === "assistant" ? normalizeAssistantProseSpacing(message.content) : message.content);
 	const content = hasAssistantThinkingOnly ? "" : renderMessageContent(message, paneId, contentBody);
 	const screenshots = renderBrowserScreenshotArtifacts(message);
+	const codeDiffs = renderCodeDiffViewer(message, paneId);
 	const timestamp = formatMessageTime(message.createdAt);
 	const copyAction = `<button type="button" class="message-copy-btn" data-action="copy-message" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}" aria-label="Copy message" title="Copy message">${copyCodeButtonSvg}</button>`;
 	const branchAction = renderBranchAction(message, paneId);
@@ -3657,7 +3682,7 @@ function renderMessageNodeHtml(message, paneId) {
 		const metaFooter = meta || footer
 			? `<div class="message-meta-footer">${footer}<div class="message-runtime-details">${meta}${metaToggle}</div></div>`
 			: "";
-		return `<div class="${messageClasses.join(" ")}" data-message-id="${escapeHtml(message.id)}" data-pane-id="${escapeHtml(paneId)}">${thinking}${content}${toolError}${screenshots}${metaFooter}</div>`;
+		return `<div class="${messageClasses.join(" ")}" data-message-id="${escapeHtml(message.id)}" data-pane-id="${escapeHtml(paneId)}">${thinking}${content}${codeDiffs}${toolError}${screenshots}${metaFooter}</div>`;
 	}
 
 	return `<div class="${messageClasses.join(" ")}" data-message-id="${escapeHtml(message.id)}" data-pane-id="${escapeHtml(paneId)}"><div class="message-bubble">${content}${meta}</div>${footer}</div>`;
@@ -3671,6 +3696,205 @@ function renderMessageContent(message, paneId, contentBody) {
 		? `<button type="button" class="message-disclosure-btn" data-action="toggle-message-disclosure" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}" aria-expanded="${expanded ? "true" : "false"}">${expanded ? "Show less" : "Show more"}</button>`
 		: "";
 	return `<div class="message-content-block${collapseClass}">${contentBody}</div>${disclosure}`;
+}
+
+function codeDiffsForMessage(message) {
+	return normalizeCodeDiffSet(message && (message.code_diffs || (message.usage && message.usage.code_diffs)));
+}
+
+function normalizeCodeDiffSet(value) {
+	const source = value && typeof value === "object" ? value : {};
+	let remainingLines = 4000;
+	let clientTruncated = false;
+	const files = (Array.isArray(source.files) ? source.files : []).slice(0, 48).map((file) => {
+		if (!file || typeof file !== "object") return null;
+		const filePath = String(file.path || "").slice(0, 1000);
+		if (!filePath) return null;
+		const rawHunks = Array.isArray(file.hunks) ? file.hunks : [];
+		if (rawHunks.length > 200) clientTruncated = true;
+		const hunks = rawHunks.slice(0, 200).map((hunk) => {
+			const rawLines = Array.isArray(hunk && hunk.lines) ? hunk.lines : [];
+			const lineLimit = Math.min(remainingLines, rawLines.length);
+			if (lineLimit < rawLines.length) clientTruncated = true;
+			remainingLines -= lineLimit;
+			return {
+				old_start: boundedDiffNumber(hunk && hunk.old_start),
+				old_lines: boundedDiffNumber(hunk && hunk.old_lines),
+				new_start: boundedDiffNumber(hunk && hunk.new_start),
+				new_lines: boundedDiffNumber(hunk && hunk.new_lines),
+				lines: rawLines.slice(0, lineLimit).map((line) => ({
+					type: ["add", "delete", "context"].includes(line && line.type) ? line.type : "context",
+					content: String(line && line.content || "").slice(0, 20000)
+				}))
+			};
+		});
+		return {
+			path: filePath,
+			status: ["added", "deleted", "modified"].includes(file.status) ? file.status : "modified",
+			source: String(file.source || "agent").slice(0, 80),
+			additions: boundedDiffNumber(file.additions),
+			deletions: boundedDiffNumber(file.deletions),
+			hunks,
+			binary: Boolean(file.binary),
+			truncated: Boolean(file.truncated)
+		};
+	}).filter(Boolean);
+	return {
+		version: 1,
+		files,
+		totals: {
+			files: files.length,
+			additions: files.reduce((sum, file) => sum + file.additions, 0),
+			deletions: files.reduce((sum, file) => sum + file.deletions, 0)
+		},
+		truncated: Boolean(source.truncated) || clientTruncated || (Array.isArray(source.files) && source.files.length > 48)
+	};
+}
+
+function boundedDiffNumber(value) {
+	const number = Number(value);
+	return Number.isFinite(number) ? Math.max(0, Math.min(1000000, Math.floor(number))) : 0;
+}
+
+function renderCodeDiffViewer(message, paneId) {
+	const diffs = codeDiffsForMessage(message);
+	if (diffs.files.length === 0) return "";
+	const expanded = message.diff_expanded !== false;
+	const activeChat = getActiveChat();
+	const supportsSplit = Boolean(activeChat && activeChat.panes.length === 1 && window.innerWidth >= 901);
+	const defaultMode = supportsSplit && window.innerWidth >= 1100 ? "split" : "unified";
+	const requestedMode = message.diff_view_mode === "split" || message.diff_view_mode === "unified" ? message.diff_view_mode : defaultMode;
+	const mode = requestedMode === "split" && !supportsSplit ? "unified" : requestedMode;
+	const additions = diffs.totals.additions;
+	const deletions = diffs.totals.deletions;
+	const summary = `${diffs.files.length} ${diffs.files.length === 1 ? "file" : "files"}`;
+	const messageId = escapeHtml(message.id);
+	const safePaneId = escapeHtml(paneId);
+	const controls = `<div class="code-diff-controls" role="group" aria-label="Diff layout"><button type="button" class="code-diff-mode${mode === "unified" ? " active" : ""}" data-diff-action="mode" data-diff-mode="unified" data-pane-id="${safePaneId}" data-message-id="${messageId}" aria-pressed="${mode === "unified"}">Unified</button><button type="button" class="code-diff-mode${mode === "split" ? " active" : ""}" data-diff-action="mode" data-diff-mode="split" data-pane-id="${safePaneId}" data-message-id="${messageId}" aria-pressed="${mode === "split"}">Split</button><button type="button" class="code-diff-copy" data-diff-action="copy" data-pane-id="${safePaneId}" data-message-id="${messageId}" aria-label="Copy patch" title="Copy patch">${copyCodeButtonSvg}</button></div>`;
+	const files = expanded ? diffs.files.map((file) => renderCodeDiffFile(file, mode)).join("") : "";
+	const warning = diffs.truncated ? `<div class="code-diff-notice">Some changes exceeded the live preview limit. Review the workspace before committing.</div>` : "";
+	return `<section class="code-diff-viewer${expanded ? " expanded" : ""}" aria-label="Code changes"><header class="code-diff-summary"><button type="button" class="code-diff-toggle" data-diff-action="toggle" data-pane-id="${safePaneId}" data-message-id="${messageId}" aria-expanded="${expanded}"><span class="code-diff-chevron" aria-hidden="true">›</span><strong>Changes</strong><span>${summary}</span><span class="code-diff-additions">+${additions}</span><span class="code-diff-deletions">−${deletions}</span></button>${expanded ? controls : ""}</header>${expanded ? `<div class="code-diff-files">${files}${warning}</div>` : ""}</section>`;
+}
+
+function renderCodeDiffFile(file, mode) {
+	const parts = file.path.split("/");
+	const name = parts.pop() || file.path;
+	const directory = parts.join("/");
+	const statusLabel = file.status === "added" ? "A" : file.status === "deleted" ? "D" : "M";
+	const unavailable = file.binary
+		? `<div class="code-diff-unavailable">Binary file changed. Preview is unavailable.</div>`
+		: file.truncated && file.hunks.length === 0
+			? `<div class="code-diff-unavailable">This file is too large to preview safely.</div>`
+			: "";
+	const hunks = file.hunks.map((hunk) => mode === "split" ? renderSplitDiffHunk(hunk) : renderUnifiedDiffHunk(hunk)).join("");
+	return `<article class="code-diff-file" data-diff-path="${escapeHtml(file.path)}"><header class="code-diff-file-header"><span class="code-diff-status ${escapeHtml(file.status)}" aria-label="${escapeHtml(file.status)}">${statusLabel}</span><span class="code-diff-file-name" title="${escapeHtml(file.path)}"><strong>${escapeHtml(name)}</strong>${directory ? `<small>${escapeHtml(directory)}/</small>` : ""}</span><span class="code-diff-file-stats"><span class="code-diff-additions">+${file.additions}</span><span class="code-diff-deletions">−${file.deletions}</span></span></header><div class="code-diff-code ${mode}" role="region" aria-label="Diff for ${escapeHtml(file.path)}" tabindex="0">${unavailable}${hunks}</div></article>`;
+}
+
+function renderUnifiedDiffHunk(hunk) {
+	let oldLine = hunk.old_start;
+	let newLine = hunk.new_start;
+	const counterparts = diffLineCounterparts(hunk.lines);
+	const rows = [`<div class="code-diff-hunk-header">@@ −${hunk.old_start},${hunk.old_lines} +${hunk.new_start},${hunk.new_lines} @@</div>`];
+	for (let index = 0; index < hunk.lines.length; index += 1) {
+		const line = hunk.lines[index];
+		const oldNumber = line.type === "add" ? "" : oldLine++;
+		const newNumber = line.type === "delete" ? "" : newLine++;
+		const marker = line.type === "add" ? "+" : line.type === "delete" ? "−" : " ";
+		const counterpart = counterparts.get(index);
+		rows.push(`<div class="code-diff-row ${line.type}"><span class="code-diff-line-number" aria-hidden="true">${oldNumber}</span><span class="code-diff-line-number" aria-hidden="true">${newNumber}</span><span class="code-diff-marker" aria-hidden="true">${marker}</span><code>${renderInlineDiff(line.content, counterpart && counterpart.content)}</code></div>`);
+	}
+	return `<div class="code-diff-hunk">${rows.join("")}</div>`;
+}
+
+function renderSplitDiffHunk(hunk) {
+	let oldLine = hunk.old_start;
+	let newLine = hunk.new_start;
+	const rows = [`<div class="code-diff-hunk-header">@@ −${hunk.old_start},${hunk.old_lines} +${hunk.new_start},${hunk.new_lines} @@</div>`];
+	for (let index = 0; index < hunk.lines.length;) {
+		const line = hunk.lines[index];
+		if (line.type === "context") {
+			rows.push(renderSplitDiffRow({ type: "context", content: line.content, number: oldLine++ }, { type: "context", content: line.content, number: newLine++ }));
+			index += 1;
+			continue;
+		}
+		const deletes = [];
+		const adds = [];
+		while (index < hunk.lines.length && hunk.lines[index].type === "delete") deletes.push(hunk.lines[index++]);
+		while (index < hunk.lines.length && hunk.lines[index].type === "add") adds.push(hunk.lines[index++]);
+		if (deletes.length === 0 && adds.length === 0) {
+			index += 1;
+			continue;
+		}
+		for (let pair = 0; pair < Math.max(deletes.length, adds.length); pair += 1) {
+			const deleted = deletes[pair];
+			const added = adds[pair];
+			rows.push(renderSplitDiffRow(
+				deleted ? { type: "delete", content: deleted.content, counterpart: added && added.content, number: oldLine++ } : null,
+				added ? { type: "add", content: added.content, counterpart: deleted && deleted.content, number: newLine++ } : null
+			));
+		}
+	}
+	return `<div class="code-diff-hunk">${rows.join("")}</div>`;
+}
+
+function renderSplitDiffRow(left, right) {
+	return `<div class="code-diff-split-row">${renderSplitDiffCell(left, "old")}${renderSplitDiffCell(right, "new")}</div>`;
+}
+
+function renderSplitDiffCell(line, side) {
+	if (!line) return `<div class="code-diff-split-cell empty ${side}"><span class="code-diff-line-number"></span><span class="code-diff-marker"></span><code></code></div>`;
+	const marker = line.type === "add" ? "+" : line.type === "delete" ? "−" : " ";
+	return `<div class="code-diff-split-cell ${line.type} ${side}"><span class="code-diff-line-number" aria-hidden="true">${line.number}</span><span class="code-diff-marker" aria-hidden="true">${marker}</span><code>${renderInlineDiff(line.content, line.counterpart)}</code></div>`;
+}
+
+function diffLineCounterparts(lines) {
+	const pairs = new Map();
+	for (let index = 0; index < lines.length;) {
+		if (lines[index].type !== "delete") {
+			index += 1;
+			continue;
+		}
+		const deletes = [];
+		const adds = [];
+		while (index < lines.length && lines[index].type === "delete") deletes.push(index++);
+		while (index < lines.length && lines[index].type === "add") adds.push(index++);
+		for (let pair = 0; pair < Math.min(deletes.length, adds.length); pair += 1) {
+			pairs.set(deletes[pair], lines[adds[pair]]);
+			pairs.set(adds[pair], lines[deletes[pair]]);
+		}
+	}
+	return pairs;
+}
+
+function renderInlineDiff(content, counterpart) {
+	const value = String(content || "");
+	if (counterpart === undefined || counterpart === null || value === String(counterpart)) return escapeHtml(value || " ");
+	const valuePoints = Array.from(value);
+	const otherPoints = Array.from(String(counterpart));
+	let prefix = 0;
+	while (prefix < valuePoints.length && prefix < otherPoints.length && valuePoints[prefix] === otherPoints[prefix]) prefix += 1;
+	let suffix = 0;
+	while (suffix < valuePoints.length - prefix && suffix < otherPoints.length - prefix && valuePoints[valuePoints.length - 1 - suffix] === otherPoints[otherPoints.length - 1 - suffix]) suffix += 1;
+	const before = valuePoints.slice(0, prefix).join("");
+	const changed = valuePoints.slice(prefix, suffix ? valuePoints.length - suffix : valuePoints.length).join("");
+	const after = suffix ? valuePoints.slice(valuePoints.length - suffix).join("") : "";
+	return `${escapeHtml(before)}${changed ? `<mark>${escapeHtml(changed)}</mark>` : ""}${escapeHtml(after)}` || " ";
+}
+
+function formatCodeDiffPatch(diffs) {
+	const output = [];
+	for (const file of diffs.files) {
+		output.push(`diff --git a/${file.path} b/${file.path}`);
+		if (file.status === "added") output.push("new file mode 100644");
+		if (file.status === "deleted") output.push("deleted file mode 100644");
+		output.push(`--- ${file.status === "added" ? "/dev/null" : `a/${file.path}`}`);
+		output.push(`+++ ${file.status === "deleted" ? "/dev/null" : `b/${file.path}`}`);
+		for (const hunk of file.hunks) {
+			output.push(`@@ -${hunk.old_start},${hunk.old_lines} +${hunk.new_start},${hunk.new_lines} @@`);
+			for (const line of hunk.lines) output.push(`${line.type === "add" ? "+" : line.type === "delete" ? "-" : " "}${line.content}`);
+		}
+	}
+	return `${output.join("\n")}\n`;
 }
 
 function normalizeAssistantProseSpacing(value) {
@@ -6006,6 +6230,7 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 	assistantMessage.retry_count = Math.max(0, Number(options.retryCount) || 0);
 	assistantMessage.trace_id = assistantMessage.id;
 	assistantMessage.tool_activity = [];
+	assistantMessage.code_diffs = null;
 	assistantMessage.live_narration = "";
 
 	if (!existingUserMessage) {
@@ -6264,6 +6489,17 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 					return;
 				}
 
+				if (eventName === "diff") {
+					const normalizedDiffs = normalizeCodeDiffSet(payloadObj.diffs || payloadObj);
+					assistantMessage.code_diffs = normalizedDiffs.files.length > 0 ? normalizedDiffs : null;
+					assistantMessage.usage = { ...(assistantMessage.usage || {}) };
+					if (normalizedDiffs.files.length > 0) assistantMessage.usage.code_diffs = normalizedDiffs;
+					else delete assistantMessage.usage.code_diffs;
+					scheduleStreamingMessagePatch(chat.id, pane.id, assistantMessage.id);
+					scheduleStreamingPersist(chat.id, pane.id, assistantMessage.id);
+					return;
+				}
+
 				if (eventName === "error") {
 					streamErrorPayload = payloadObj;
 					return;
@@ -6403,6 +6639,8 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 						...streamDonePayload.tool_artifacts
 					]);
 				}
+				const completedDiffs = normalizeCodeDiffSet(streamDonePayload.code_diffs);
+				if (completedDiffs.files.length > 0) assistantMessage.code_diffs = completedDiffs;
 			}
 
 			const streamErrored = Boolean(streamErrorPayload) && !streamDonePayload;
@@ -6578,6 +6816,9 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 		}
 		if (assistantMessage.usage && Array.isArray(assistantMessage.tool_artifacts) && assistantMessage.tool_artifacts.length > 0) {
 			assistantMessage.usage.tool_artifacts = assistantMessage.tool_artifacts;
+		}
+		if (assistantMessage.usage && assistantMessage.code_diffs && assistantMessage.code_diffs.files.length > 0) {
+			assistantMessage.usage.code_diffs = assistantMessage.code_diffs;
 		}
 		assistantMessage.continuation_passes = continuationPass;
 		const continuationReasons = uniqueSorted(
@@ -9389,7 +9630,9 @@ async function continueSavedExecution(chat,pane,message,inspection) {
  const controller=new AbortController();controller.streamRequestId=id;
  const restore=payload=>{
   message.content=String(payload.output_text||'');message.thinking=String(payload.thinking_text||message.thinking||'');
-  message.usage={...(payload.usage||{}),trace_id:payload.trace_id,tool_artifacts:payload.tool_artifacts||[]};
+  const restoredDiffs=normalizeCodeDiffSet(payload.code_diffs||(payload.usage&&payload.usage.code_diffs));
+  message.code_diffs=restoredDiffs.files.length?restoredDiffs:null;
+  message.usage={...(payload.usage||{}),trace_id:payload.trace_id,tool_artifacts:payload.tool_artifacts||[],...(restoredDiffs.files.length?{code_diffs:restoredDiffs}:{})};
   message.provider=payload.provider||message.provider;message.model=payload.model||message.model;
   pane.status='idle';message.streaming=false;
  };
@@ -9401,6 +9644,7 @@ async function continueSavedExecution(chat,pane,message,inspection) {
   if(event.event==='token')message.content+=String(payload.delta||'');
   if(event.event==='thinking')message.thinking=String(message.thinking||'')+String(payload.delta||'');
   if(event.event==='tool')message.tool_activity=[...(message.tool_activity||[]),{tool_name:payload.tool_name,phase:payload.phase,label:payload.label||`${payload.tool_name} · ${payload.phase}`,command:payload.command||''}].slice(-32);
+  if(event.event==='diff'){const diffs=normalizeCodeDiffSet(payload.diffs||payload);message.code_diffs=diffs.files.length?diffs:null;message.usage={...(message.usage||{})};if(diffs.files.length)message.usage.code_diffs=diffs;else delete message.usage.code_diffs;}
   if(event.event==='done'){restore(payload);terminal='done';}
   if(event.event==='error'){message.usage={...(payload.usage||message.usage||{}),error:payload};pane.status=message.content||message.thinking?'partial':'error';terminal='error';}
   scheduleStreamingMessagePatch(chat.id,pane.id,message.id);scheduleStreamingPersist(chat.id,pane.id,message.id);

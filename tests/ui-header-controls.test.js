@@ -154,7 +154,7 @@ test("sidebar chat actions fade without shifting titles and archived chats leave
 	assert.match(cssSource, /\.chat-item:hover \.chat-item-top,[\s\S]*?grid-template-columns: minmax\(0, 1fr\) 65px;/s);
 	assert.match(cssSource, /\.chat-action-more\s*\{[^}]*font: 700 16px\/12px var\(--display\);/s);
 	assert.match(appSource, /class="chat-action chat-action-more" data-action="rename"/);
-	assert.match(htmlSource, /app\.css\?v=20260930-responsive-gutters/);
+	assert.match(htmlSource, /app\.css\?v=20261006-code-diffs/);
 	assert.match(appSource, /function sidebarChatMatchesCurrentView\(chat\)/);
 	assert.match(appSource, /if \(state\.activeChatId === chat\.id && !sidebarChatMatchesCurrentView\(chat\)\)/);
 	assert.match(appSource, /state\.activeChatId = nextVisibleChat \? nextVisibleChat\.id : null;/);
