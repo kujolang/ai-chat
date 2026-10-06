@@ -508,6 +508,15 @@ If your service requires a bearer token, supply `AI_CHAT_RAG_TOKEN` through serv
 
 For a slower local corpus, set `AI_CHAT_RAG_TIMEOUT_MS` (1,000–60,000 ms; default 10,000). The docs.kujolang.ai dogfood service uses 60,000 ms. RAG citations retain local snapshot line ranges and expose a valid public `source_url` when the corpus records one.
 
+## Upgrading to 1.3.0
+
+1. Stop AI Chat and back up its SQLite database, environment configuration, encryption secret, local action manifests, and any managed worktrees that contain uncommitted work.
+2. Check out `v1.3.0`, run `nvm use`, then `npm ci`. If using browser tools, run `npm run browser:install` and retain the documented platform containment dependency.
+3. Review `.env.example` and the harness roadmap before enabling local writes, shell access, MCP servers, desktop notifications, managed worktrees, or ChatGPT plan access. Existing installations do not receive those permissions automatically.
+4. Restart AI Chat, verify authenticated health and a standard streamed chat, then exercise diff review, checkpoint restore, and any configured MCP connection in a non-production workspace.
+
+For rollback, stop 1.3.0 and restore the matching pre-upgrade database, configuration, encryption secret, and worktree state before starting the prior release. Do not point an older release at state already migrated or modified by 1.3.0.
+
 ## Upgrading to 1.2.0
 
 1. Stop the AI Chat instance and back up its SQLite database, environment configuration, and encryption secret using the existing backup procedure. Keep the secret with the backup in secure storage; encrypted records require the same key.

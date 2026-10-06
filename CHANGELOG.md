@@ -2,12 +2,20 @@
 
 ## Unreleased
 
+## [1.3.0] - 2026-10-06
+
+- Add live, per-pane code diffs for native Codex changes and provider-neutral writes, with responsive unified and split views, line and file statistics, intraline emphasis, patch copy, review comments, editor links, and conflict-aware revert controls.
+- Add durable agent supervision through explicit execution plans, immediate and queued steering, approval grants, encrypted pre-turn checkpoints, rewind-to-fork, and reviewable execution receipts.
+- Add managed Git worktree isolation, read-only coding mode, repository status, explicit commit and preparation actions, bounded text/image attachments, and a filterable execution-artifact rail.
 - Add server-side MCP/plugin connections over validated local stdio and authenticated HTTP, with encrypted bearer credentials, bounded lazy tool/resource discovery, per-chat authorization, health status, and normal interactive approvals for external tool calls.
-- Add a durable cross-chat attention inbox for approvals, questions, failures, completions, and reconciliation conflicts, plus generic optional desktop notifications with event controls and quiet hours.
-- Add a searchable keyboard-first command palette for common chat, model, plan, permission, checkpoint, context, review, artifact, and inbox actions, including configurable shortcuts, reserved-key/conflict feedback, and reset defaults.
+- Add a durable cross-chat attention inbox for approvals, questions, failures, completions, and reconciliation conflicts, plus optional desktop notifications with event controls and quiet hours.
+- Add a searchable keyboard-first command palette for common chat, model, plan, permission, checkpoint, context, review, artifact, and inbox actions, including configurable shortcuts and conflict feedback.
+- Add persistent multi-chat workspace tabs, per-chat running/error state, and a compact line-by-line token-usage popover beside the language selector.
+- Add local ChatGPT plan connections, native Codex profiles, managed Hermes / Nous and xAI OAuth routes, and hardened provider/session failure handling.
 - Finalize failed read-only tool receipts so interrupted runs do not demand false reconciliation; halt when an action may have succeeded before its result was lost instead of letting the model claim failure.
-- Keep authorized local file listing directly callable when request-scoped tool discovery is enabled, avoiding terminal authorization errors during ordinary workspace browsing.
-- Reduce excessive output reservations when needed to fit protected requests or completed tool receipts; keep impossible requests rejected before provider dispatch.
+- Keep authorized local file listing directly callable when request-scoped tool discovery is enabled, and reduce oversized output reservations without dropping protected requests or completed tool receipts.
+- Pin remote MCP transport destinations after validation, overwrite untrusted forwarded-IP chains in the documented Nginx topology, and update `proxy-addr` to 2.0.8 for GHSA-jqcg-44mw-7w3h.
+- Complete harness roadmap items HR-01 through HR-10 with deterministic contract and browser coverage. The historical eight-hour mixed-provider soak remains incomplete, so this release is not a deployed production-readiness certification.
 
 ## [1.2.0] - 2026-09-07
 

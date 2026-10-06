@@ -1,6 +1,6 @@
 # AI Chat
 
-[![Version](https://img.shields.io/badge/version-1.2.0-black)](https://github.com/kujolang/ai-chat)
+[![Version](https://img.shields.io/badge/version-1.3.0-black)](https://github.com/kujolang/ai-chat/releases/tag/v1.3.0)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
 [![built with Kujo](https://img.shields.io/badge/built%20with-Kujo-white.svg)](https://github.com/kujolang/kujo)
 
@@ -12,11 +12,11 @@ It is intentionally small enough to clone, inspect, and extend without losing th
 
 For agent and contributor guidance, including canonical examples and search exclusions, see `AGENTS.md`.
 
-## Version 1.2.0
+## Version 1.3.0
 
-This release adds saved execution review and resume, durable user constraints, bounded streaming and context budgets, static page reading, search failover, browser network containment, and manual-aware agent guidance. It also includes configured RAG documentation lookup and saved code-example language preferences. See [the changelog](CHANGELOG.md#120---2026-09-07) and [upgrade instructions](SETUP_AND_INSTALL.md#upgrading-to-120).
+This release turns AI Chat into a first-class agent workspace: live per-pane code diffs, actionable review comments, encrypted checkpoints and rewind, plans and steering, managed Git worktrees, typed attachments, execution artifacts, scoped MCP connections, an attention inbox, a command palette, and persistent multi-chat tabs. See [the changelog](CHANGELOG.md#130---2026-10-06) and [upgrade instructions](SETUP_AND_INSTALL.md#upgrading-to-130).
 
-The full eight-hour mixed-provider soak remains incomplete: the recorded run stopped after about 2 hours 14 minutes with no known termination reason. This release does not claim all-day or deployed production readiness. See the [acceptance record](docs/RELIABILITY_ROADMAP_IMPLEMENTATION.md#september-7-soak-b-review--incomplete).
+Version 1.3.0 also adds local ChatGPT plan connection support, native Codex profiles, managed Hermes and xAI OAuth routes, and security fixes for remote MCP destination pinning and `proxy-addr`. The historical eight-hour mixed-provider soak remains incomplete, so this release does not claim deployed production readiness. See the [acceptance record](docs/RELIABILITY_ROADMAP_IMPLEMENTATION.md#september-7-soak-b-review--incomplete).
 
 ## Who This Is For
 
