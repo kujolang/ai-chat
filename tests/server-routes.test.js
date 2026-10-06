@@ -1185,6 +1185,61 @@ test("in-app chat tabs switch, close, persist, and remain usable with the sideba
 	}
 });
 
+test("composer token usage opens in a line-by-line popover beside the language picker", { timeout: 30000 }, async () => {
+	const { chromium } = require("playwright");
+	const { runtime, destroy } = createIsolatedRuntime();
+	let browser;
+	try {
+		await withServer(runtime.app, async (baseUrl) => {
+			browser = await chromium.launch({ headless: true });
+			const context = await browser.newContext();
+			await context.addInitScript((token) => {
+				localStorage.setItem("ai_chat_api_token", token);
+				localStorage.setItem("ai_chat_api_token_expires_at", String(Date.now() + 86400000));
+			}, API_TOKEN);
+			const page = await context.newPage({ viewport: { width: 1280, height: 900 } });
+			await page.goto(baseUrl);
+			await page.waitForFunction(() => stateLoadedFromServer);
+			await page.locator("#new-chat-tab-btn").click();
+			await page.evaluate(() => {
+				const message = makeMessage("assistant", "Done");
+				message.usage = { total_tokens: 150, input_tokens: 100, output_tokens: 50 };
+				message.response_time_ms = 1200;
+				getActiveChat().panes[0].messages.push(message);
+				renderComposerUsageSummary();
+			});
+
+			const usageButton = page.locator("#toggle-usage-summary-btn");
+			const languagePicker = page.locator(".composer-language-picker");
+			const [usageBox, languageBox] = await Promise.all([usageButton.boundingBox(), languagePicker.boundingBox()]);
+			assert.ok(usageBox.x + usageBox.width <= languageBox.x);
+			await usageButton.click();
+			assert.equal(await usageButton.getAttribute("aria-expanded"), "true");
+			assert.equal(await page.locator("#usage-summary-details").isVisible(), true);
+			assert.deepEqual(await page.locator("#usage-summary-details .usage-summary-row").allTextContents(), [
+				"Total tokens150",
+				"Input100",
+				"Output50",
+				"Responses1",
+				"Average tokens150",
+				"Average response1.2s",
+				"Slowest response1.2s"
+			]);
+
+			await page.locator("#composer-input").click();
+			assert.equal(await page.locator("#usage-summary-details").isHidden(), true);
+			await usageButton.click();
+			await page.keyboard.press("Escape");
+			assert.equal(await page.locator("#usage-summary-details").isHidden(), true);
+			assert.equal(await usageButton.evaluate((node) => document.activeElement === node), true);
+		});
+	} finally {
+		await browser?.close();
+		await runtime.close();
+		destroy();
+	}
+});
+
 test("GET / serves local vendor assets without CDN script or style dependencies", async () => {
 	const { runtime, destroy } = createIsolatedRuntime();
 	try {

@@ -73,7 +73,6 @@ const sidebarCollapsedStorageKey = "ai_chat_sidebar_collapsed_v1";
 const sidebarSectionsStorageKey = "ai_chat_sidebar_sections_v1";
 const paneInfoVisibleStorageKey = "ai_chat_pane_info_visible_v3";
 const languagePickerVisibleStorageKey = "ai_chat_language_picker_visible_v1";
-const usageSummaryVisibleStorageKey = "ai_chat_usage_summary_visible_v1";
 const collapsedProvidersStorageKey = "ai_chat_collapsed_providers_v1";
 const collapsedToolsStorageKey = "ai_chat_collapsed_tools_v1";
 const collapsedAgentInstructionsStorageKey = "ai_chat_collapsed_agent_instructions_v1";
@@ -93,7 +92,7 @@ let sidebarCollapsed = loadSidebarCollapsedPreference();
 let sidebarSectionVisibility = loadSidebarSectionVisibilityPreference();
 let paneInfoVisible = loadBooleanPreference(paneInfoVisibleStorageKey, false);
 let languagePickerVisible = loadBooleanPreference(languagePickerVisibleStorageKey, true);
-let usageSummaryVisible = loadBooleanPreference(usageSummaryVisibleStorageKey, false);
+let usageSummaryVisible = false;
 const sendButtonSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z\"/><path d=\"m21.854 2.147-10.94 10.939\"/></svg>";
 const stopButtonSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect width=\"14\" height=\"14\" x=\"5\" y=\"5\" rx=\"2\"/></svg>";
 const collapseSidebarSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect width=\"18\" height=\"18\" x=\"3\" y=\"3\" rx=\"2\"/><path d=\"M9 3v18\"/><path d=\"m15 9-3 3 3 3\"/></svg>";
@@ -1050,7 +1049,6 @@ function wireEvents() {
 
 	nodes.toggleUsageSummaryBtn.addEventListener("click", () => {
 		usageSummaryVisible = !usageSummaryVisible;
-		storeBooleanPreference(usageSummaryVisibleStorageKey, usageSummaryVisible);
 		renderUsageSummaryToggle();
 	});
 
@@ -1728,6 +1726,11 @@ function wireEvents() {
 		if (!toolPresetMenuOpen || event.composedPath().includes(nodes.toggleToolPresetsBtn) || event.composedPath().includes(nodes.toolPresetDropdown)) return;
 		setToolPresetMenuOpen(false);
 	});
+	document.addEventListener("click", (event) => {
+		if (!usageSummaryVisible || event.composedPath().includes(nodes.toggleUsageSummaryBtn) || event.composedPath().includes(nodes.usageSummaryDetails)) return;
+		usageSummaryVisible = false;
+		renderUsageSummaryToggle();
+	});
 
 	document.addEventListener("keydown", (event) => {
 		if (event.key !== "Escape") return;
@@ -1737,6 +1740,11 @@ function wireEvents() {
 			if (chat) renderPaneControls(chat);
 		}
 		if (toolPresetMenuOpen) setToolPresetMenuOpen(false);
+		if (usageSummaryVisible) {
+			usageSummaryVisible = false;
+			renderUsageSummaryToggle();
+			nodes.toggleUsageSummaryBtn.focus();
+		}
 	});
 
 	nodes.paneGrid.addEventListener("change", (event) => {
@@ -2932,11 +2940,10 @@ function renderPaneInfoToggle() {
 
 function renderUsageSummaryToggle() {
 	nodes.usageSummaryDetails.classList.toggle("hidden", !usageSummaryVisible);
-	nodes.toggleUsageSummaryBtn.innerHTML = usageSummaryVisible ? chevronLeftSvg : chevronRightSvg;
 	const label = usageSummaryVisible ? "Hide token usage summary" : "Show token usage summary";
 	nodes.toggleUsageSummaryBtn.setAttribute("aria-label", label);
 	nodes.toggleUsageSummaryBtn.setAttribute("aria-expanded", usageSummaryVisible ? "true" : "false");
-	nodes.toggleUsageSummaryBtn.title = label;
+	nodes.toggleUsageSummaryBtn.classList.toggle("active", usageSummaryVisible);
 }
 
 function renderSidebarToggle() {
@@ -4795,25 +4802,30 @@ function nullableUsageValue(value) {
 
 function renderComposerUsageSummary() {
 	const chat = getActiveChat();
-	if (!chat) {
-		nodes.composerTokenSummary.textContent = "0 tokens";
-		return;
-	}
-
-	const records = collectUsageRecords().filter((record) => record.chat_id === chat.id);
+	const records = chat ? collectUsageRecords().filter((record) => record.chat_id === chat.id) : [];
 	const totalTokens = records.reduce((sum, record) => sum + record.tokens, 0);
 	const inputTokens = records.reduce((sum, record) => sum + record.input_tokens, 0);
 	const outputTokens = records.reduce((sum, record) => sum + record.output_tokens, 0);
 	const responseCount = records.length;
 	const average = responseCount > 0 ? Math.round(totalTokens / responseCount) : 0;
-	const responseLabel = responseCount === 1 ? "response" : "responses";
 	const responseTimes = records.map((record) => record.response_time_ms).filter((value) => value > 0);
 	const averageResponseTime = responseTimes.length > 0 ? responseTimes.reduce((sum, value) => sum + value, 0) / responseTimes.length : 0;
 	const slowestResponseTime = responseTimes.length > 0 ? Math.max(...responseTimes) : 0;
-	const timingLabel = responseTimes.length > 0
-		? ` · avg ${formatDurationMs(averageResponseTime)} · slowest ${formatDurationMs(slowestResponseTime)}`
-		: "";
-	nodes.composerTokenSummary.textContent = `${formatNumber(totalTokens)} tokens (in ${formatNumber(inputTokens)} · out ${formatNumber(outputTokens)}) · ${formatNumber(responseCount)} ${responseLabel}${timingLabel}`;
+	const rows = [
+		["Total tokens", formatNumber(totalTokens)],
+		["Input", formatNumber(inputTokens)],
+		["Output", formatNumber(outputTokens)],
+		["Responses", formatNumber(responseCount)],
+		["Average tokens", responseCount > 0 ? formatNumber(average) : "—"],
+		["Average response", responseTimes.length > 0 ? formatDurationMs(averageResponseTime) : "—"],
+		["Slowest response", responseTimes.length > 0 ? formatDurationMs(slowestResponseTime) : "—"]
+	];
+	nodes.composerTokenSummary.innerHTML = rows.map(([label, value]) => `<div class="usage-summary-row"><dt>${label}</dt><dd>${value}</dd></div>`).join("");
+	nodes.toggleUsageSummaryBtn.disabled = !chat;
+	if (!chat && usageSummaryVisible) {
+		usageSummaryVisible = false;
+		renderUsageSummaryToggle();
+	}
 }
 
 function collectUsageRecords() {

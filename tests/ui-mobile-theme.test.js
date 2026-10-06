@@ -23,6 +23,8 @@ test('language and model stay side by side without a save dot on mobile and desk
    assert.ok(Math.abs(language.y - model.y) < 2, `${width}: selectors share a row`);
    assert.ok(language.x + language.width <= model.x, `${width}: language left of model`);
    assert.ok(await page.locator('#toggle-usage-summary-btn').isVisible());
+   const usage = await page.locator('#toggle-usage-summary-btn').boundingBox();
+   assert.ok(usage.x + usage.width <= language.x, `${width}: usage icon left of language selector`);
    await page.locator('#usage-summary-details').evaluate(node => node.classList.remove('hidden'));
    assert.ok(await page.locator('#usage-summary-details').isVisible());
    await page.locator('#usage-summary-details').evaluate(node => node.classList.add('hidden'));
