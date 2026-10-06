@@ -1134,6 +1134,57 @@ test("sidebar chats and New Chat support opening independent browser tabs", { ti
 	}
 });
 
+test("in-app chat tabs switch, close, persist, and remain usable with the sidebar collapsed", { timeout: 30000 }, async () => {
+	const { chromium } = require("playwright");
+	const { runtime, destroy } = createIsolatedRuntime();
+	let browser;
+	try {
+		await withServer(runtime.app, async (baseUrl) => {
+			browser = await chromium.launch({ headless: true });
+			const context = await browser.newContext();
+			await context.addInitScript((token) => {
+				localStorage.setItem("ai_chat_api_token", token);
+				localStorage.setItem("ai_chat_api_token_expires_at", String(Date.now() + 86400000));
+			}, API_TOKEN);
+			const page = await context.newPage();
+			await page.goto(baseUrl);
+			await page.waitForFunction(() => stateLoadedFromServer);
+			const initialChatCount = await page.evaluate(() => state.chats.length);
+
+			await page.locator("#new-chat-btn").click();
+			await page.waitForURL("**/c/*");
+			const firstChatId = await page.evaluate(() => getActiveChat().id);
+			await page.locator("#new-chat-tab-btn").click();
+			const secondChatId = await page.evaluate(() => getActiveChat().id);
+			assert.notEqual(firstChatId, secondChatId);
+			assert.equal(await page.locator("#chat-tabs [role='tab']").count(), 2);
+
+			await page.locator("#toggle-sidebar-btn").click();
+			assert.equal(await page.locator("#app").evaluate((node) => node.classList.contains("sidebar-collapsed")), true);
+			assert.equal(await page.locator("#chat-tab-bar").isVisible(), true);
+
+			const firstTab = page.locator(`[data-chat-tab-id="${firstChatId}"]`);
+			await firstTab.click();
+			await page.waitForFunction((chatId) => getActiveChat()?.id === chatId, firstChatId);
+			await firstTab.press("ArrowRight");
+			await page.waitForFunction((chatId) => getActiveChat()?.id === chatId, secondChatId);
+			assert.equal(await page.locator(`[data-chat-tab-id="${secondChatId}"]`).getAttribute("aria-selected"), "true");
+
+			await page.locator(`[data-close-chat-tab="${firstChatId}"]`).click();
+			assert.equal(await page.locator("#chat-tabs [role='tab']").count(), 1);
+			assert.equal(await page.evaluate(() => state.chats.length), initialChatCount + 2, "closing a tab must not delete its chat");
+			await page.reload();
+			await page.waitForFunction(() => stateLoadedFromServer && Boolean(getActiveChat()));
+			assert.equal(await page.locator("#chat-tabs [role='tab']").count(), 1);
+			assert.equal(await page.locator("#chat-tabs [role='tab']").getAttribute("data-chat-tab-id"), secondChatId);
+		});
+	} finally {
+		await browser?.close();
+		await runtime.close();
+		destroy();
+	}
+});
+
 test("GET / serves local vendor assets without CDN script or style dependencies", async () => {
 	const { runtime, destroy } = createIsolatedRuntime();
 	try {

@@ -948,7 +948,7 @@ input[type="checkbox"]:disabled {
 
 .workspace {
 	display: grid;
-	grid-template-rows: auto 1fr auto;
+	grid-template-rows: auto auto 1fr auto;
 	min-height: 0;
 	min-width: 0;
 }
@@ -1047,6 +1047,181 @@ input[type="checkbox"]:disabled {
 	border-color: transparent;
 	background: transparent;
 	box-shadow: none;
+}
+
+.chat-tab-bar {
+	display: flex;
+	align-items: stretch;
+	min-width: 0;
+	height: 38px;
+	padding: 0 7px;
+	border-bottom: 1px solid var(--line-soft);
+	background: #0b0d10;
+}
+
+.chat-tabs {
+	display: flex;
+	align-items: stretch;
+	flex: 1;
+	min-width: 0;
+	overflow-x: auto;
+	overflow-y: hidden;
+	scrollbar-width: none;
+	overscroll-behavior-x: contain;
+}
+
+.chat-tabs::-webkit-scrollbar {
+	display: none;
+}
+
+.chat-tab-shell {
+	position: relative;
+	display: flex;
+	align-items: stretch;
+	flex: 0 1 230px;
+	min-width: 128px;
+	max-width: 230px;
+	border-right: 1px solid #20252b;
+	background: #0d1013;
+}
+
+.chat-tab-shell:first-child {
+	border-left: 1px solid #20252b;
+}
+
+.chat-tab-shell:hover {
+	background: #12161b;
+}
+
+.chat-tab-shell.active {
+	background: #161b21;
+	box-shadow: inset 0 2px 0 #69a9df;
+}
+
+.chat-tab {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex: 1;
+	min-width: 0;
+	padding: 0 31px 0 11px;
+	border: 0;
+	background: transparent;
+	color: #929da9;
+	font: 11px/1 var(--display);
+	text-align: left;
+	cursor: pointer;
+}
+
+.chat-tab-shell.active .chat-tab {
+	color: #ecf1f6;
+}
+
+.chat-tab:focus-visible {
+	outline: 1px solid #75b5ea;
+	outline-offset: -2px;
+}
+
+.chat-tab-icon {
+	position: relative;
+	display: inline-flex;
+	flex: 0 0 auto;
+	color: #707c88;
+}
+
+.chat-tab-shell.active .chat-tab-icon {
+	color: #a8c7e2;
+}
+
+.chat-tab-icon svg {
+	width: 13px;
+	height: 13px;
+}
+
+.chat-tab-status {
+	position: absolute;
+	right: -3px;
+	bottom: -2px;
+	display: block;
+	width: 5px;
+	height: 5px;
+	border: 1px solid #0d1013;
+	background: transparent;
+}
+
+.chat-tab-status.idle { display: none; }
+.chat-tab-status.running { background: #64b5f6; animation: chat-tab-pulse 1.4s ease-in-out infinite; }
+.chat-tab-status.partial { background: #d6a84b; }
+.chat-tab-status.error { background: #f06b73; }
+
+@keyframes chat-tab-pulse {
+	0%, 100% { opacity: .45; }
+	50% { opacity: 1; }
+}
+
+.chat-tab-title {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.chat-tab-close {
+	position: absolute;
+	top: 7px;
+	right: 7px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 23px;
+	height: 23px;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: #7c8792;
+	opacity: 0;
+	cursor: pointer;
+	transition: opacity 120ms ease, color 120ms ease, background 120ms ease;
+}
+
+.chat-tab-shell:hover .chat-tab-close,
+.chat-tab-shell.active .chat-tab-close,
+.chat-tab-shell:focus-within .chat-tab-close {
+	opacity: 1;
+}
+
+.chat-tab-close:hover {
+	background: #293039;
+	color: #fff;
+}
+
+.chat-tab-close svg {
+	width: 12px;
+	height: 12px;
+}
+
+.chat-tab-new {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 38px;
+	width: 38px;
+	border: 0;
+	border-right: 1px solid #20252b;
+	background: transparent;
+	color: #87929e;
+	cursor: pointer;
+}
+
+.chat-tab-new:hover,
+.chat-tab-new:focus-visible {
+	background: #171c22;
+	color: #f1f5f9;
+}
+
+.chat-tab-new svg {
+	width: 14px;
+	height: 14px;
 }
 
 .app-tooltip {
@@ -5300,3 +5475,15 @@ textarea {
 .local-command-permissions label { display: block; margin: 12px 0; }
 .local-command-permissions label[hidden] { display: none; }
 .local-command-permissions input[type=text] { display: block; width: 100%; margin-top: 8px; padding: 8px; background: var(--bg-elev); color: var(--text); border: 1px solid var(--line); }
+
+@media (max-width: 720px) {
+	.chat-tab-bar { padding: 0; }
+	.chat-tab-shell { flex-basis: 180px; min-width: 108px; max-width: 180px; }
+	.chat-tab { padding-left: 9px; }
+	.chat-tab-new { flex-basis: 36px; width: 36px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.chat-tab-status.running { animation: none; }
+	.chat-tabs { scroll-behavior: auto; }
+}

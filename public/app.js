@@ -77,12 +77,14 @@ const usageSummaryVisibleStorageKey = "ai_chat_usage_summary_visible_v1";
 const collapsedProvidersStorageKey = "ai_chat_collapsed_providers_v1";
 const collapsedToolsStorageKey = "ai_chat_collapsed_tools_v1";
 const collapsedAgentInstructionsStorageKey = "ai_chat_collapsed_agent_instructions_v1";
+const openChatTabsStorageKey = "ai_chat_open_chat_tabs_v1";
 const stateChangesBatchBytes = 512 * 1024;
 const streamingPersistDebounceMs = 1500;
 const streamingPersistCharThreshold = 4096;
 const streamInactivityTimeoutMs = 90000;
 const composerPasteSoftLimitChars = 120000;
 const maxVisibleProjectFolders = 5;
+const maxOpenChatTabs = 16;
 const sidebarChatPageSize = 20;
 const defaultApiTokenTtlDays = 3650;
 const maxApiTokenTtlDays = 36500;
@@ -103,6 +105,8 @@ const chevronLeftSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" h
 const chevronRightSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m9 18 6-6-6-6\"/></svg>";
 const chevronDownSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m6 9 6 6 6-6\"/></svg>";
 const copyCodeButtonSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"code-copy-icon\" aria-hidden=\"true\"><rect width=\"14\" height=\"14\" x=\"8\" y=\"8\" rx=\"2\" ry=\"2\"/><path d=\"M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2\"/></svg>";
+const chatTabIconSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z\"/></svg>";
+const chatTabCloseSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m18 6-12 12\"/><path d=\"m6 6 12 12\"/></svg>";
 let apiAuthToken = "";
 let apiAuthTokenExpiresAt = 0;
 let usageLedger = loadUsageLedgerFromStorage();
@@ -135,6 +139,7 @@ let activeSettingsPointerDrag = null;
 let collapsedProviderIds = loadCollapsedProviderIds();
 let collapsedToolIds = loadCollapsedToolIds();
 let collapsedAgentInstructionIds = loadCollapsedAgentInstructionIds();
+let openChatTabIds = loadOpenChatTabIds();
 loadApiAuthTokenFromStorage();
 
 const nodes = {
@@ -151,6 +156,9 @@ const nodes = {
 	chatList: document.getElementById("chat-list"),
 	mobileSidebarToggleBtn: document.getElementById("mobile-sidebar-toggle-btn"),
 	chatTitleInput: document.getElementById("chat-title-input"),
+	chatTabBar: document.getElementById("chat-tab-bar"),
+	chatTabs: document.getElementById("chat-tabs"),
+	newChatTabBtn: document.getElementById("new-chat-tab-btn"),
 	copyChatIdBtn: document.getElementById("copy-chat-id-btn"),
 	chatWatchdogBtn: document.getElementById("chat-watchdog-btn"),
 	exportChatBtn: document.getElementById("export-chat-btn"),
@@ -724,6 +732,50 @@ function wireEvents() {
 		event.preventDefault();
 		createAndActivateChat();
 	});
+	nodes.newChatTabBtn.addEventListener("click", () => createAndActivateChat());
+	nodes.chatTabs.addEventListener("click", (event) => {
+		const closeButton = event.target.closest("[data-close-chat-tab]");
+		if (closeButton) {
+			event.stopPropagation();
+			void closeChatTab(closeButton.getAttribute("data-close-chat-tab"));
+			return;
+		}
+		const tab = event.target.closest("[role='tab'][data-chat-tab-id]");
+		if (tab) void activateChat(tab.getAttribute("data-chat-tab-id"), { persist: false, focusTab: true });
+	});
+	nodes.chatTabs.addEventListener("auxclick", (event) => {
+		if (event.button !== 1) return;
+		const tab = event.target.closest("[role='tab'][data-chat-tab-id]");
+		if (!tab) return;
+		event.preventDefault();
+		void closeChatTab(tab.getAttribute("data-chat-tab-id"));
+	});
+	nodes.chatTabs.addEventListener("keydown", (event) => {
+		const tab = event.target.closest("[role='tab'][data-chat-tab-id]");
+		if (!tab) return;
+		const tabs = Array.from(nodes.chatTabs.querySelectorAll("[role='tab'][data-chat-tab-id]"));
+		const index = tabs.indexOf(tab);
+		if (index < 0) return;
+		if (event.key === "Delete") {
+			event.preventDefault();
+			void closeChatTab(tab.getAttribute("data-chat-tab-id"), { focusTabs: true });
+			return;
+		}
+		let nextIndex = null;
+		if (event.key === "ArrowLeft") nextIndex = (index - 1 + tabs.length) % tabs.length;
+		if (event.key === "ArrowRight") nextIndex = (index + 1) % tabs.length;
+		if (event.key === "Home") nextIndex = 0;
+		if (event.key === "End") nextIndex = tabs.length - 1;
+		if (nextIndex === null) return;
+		event.preventDefault();
+		const chatId = tabs[nextIndex].getAttribute("data-chat-tab-id");
+		void activateChat(chatId, { persist: false, focusTab: true });
+	});
+	nodes.chatTabs.addEventListener("wheel", (event) => {
+		if (Math.abs(event.deltaY) <= Math.abs(event.deltaX) || nodes.chatTabs.scrollWidth <= nodes.chatTabs.clientWidth) return;
+		event.preventDefault();
+		nodes.chatTabs.scrollLeft += event.deltaY;
+	}, { passive: false });
 
 	nodes.sidebarMain.addEventListener("scroll", maybeLoadMoreSidebarChats, { passive: true });
 
@@ -961,6 +1013,7 @@ function wireEvents() {
 		chat.updatedAt = Date.now();
 		schedulePersist();
 		renderSidebar();
+		renderChatTabs();
 	});
 
 	nodes.copyChatIdBtn.addEventListener("click", () => {
@@ -2135,18 +2188,20 @@ function createAndActivateChat({ replaceUrl = false } = {}) {
 	const chat = createChat("New Chat");
 	state.chats.push(chat);
 	state.activeChatId = chat.id;
+	rememberOpenChatTab(chat.id);
 	syncActiveChatUrl({ replace: replaceUrl });
 	schedulePersist({ immediate: true });
 	renderAll();
 	focusComposerInput();
 }
 
-async function activateChat(chatId, { persist = false, updateUrl = true } = {}) {
+async function activateChat(chatId, { persist = false, updateUrl = true, focusTab = false } = {}) {
 	const chat = getChatById(chatId);
 	if (!chat) {
 		return;
 	}
 	state.activeChatId = chat.id;
+	rememberOpenChatTab(chat.id);
 	if (window.matchMedia(mobileSidebarMediaQuery).matches && !sidebarCollapsed) {
 		setSidebarCollapsed(true);
 	}
@@ -2155,9 +2210,54 @@ async function activateChat(chatId, { persist = false, updateUrl = true } = {}) 
 		schedulePersist();
 	}
 	renderAll();
+	if (focusTab) focusOpenChatTab(chat.id);
 	await hydrateChatMessages(chat.id);
 	renderAll();
-	focusComposerInput();
+	if (focusTab) focusOpenChatTab(chat.id);
+	if (!focusTab) focusComposerInput();
+}
+
+function rememberOpenChatTab(chatId) {
+	const normalized = String(chatId || "").trim();
+	if (!normalized || !getChatById(normalized)) return;
+	openChatTabIds = openChatTabIds.filter((id) => getChatById(id));
+	if (!openChatTabIds.includes(normalized)) openChatTabIds.push(normalized);
+	if (openChatTabIds.length > maxOpenChatTabs) {
+		const activeId = String(state.activeChatId || "");
+		while (openChatTabIds.length > maxOpenChatTabs) {
+			const removableIndex = openChatTabIds.findIndex((id) => id !== activeId);
+			openChatTabIds.splice(removableIndex >= 0 ? removableIndex : 0, 1);
+		}
+	}
+	storeOpenChatTabIds();
+}
+
+async function closeChatTab(chatId, options = {}) {
+	const normalized = String(chatId || "").trim();
+	const index = openChatTabIds.indexOf(normalized);
+	if (index < 0) return;
+	openChatTabIds.splice(index, 1);
+	storeOpenChatTabIds();
+	if (state.activeChatId !== normalized) {
+		renderChatTabs();
+		return;
+	}
+	const nextId = openChatTabIds[Math.min(index, openChatTabIds.length - 1)] || "";
+	if (nextId && getChatById(nextId)) {
+		await activateChat(nextId, { persist: false, focusTab: Boolean(options.focusTabs) });
+		return;
+	}
+	state.activeChatId = null;
+	resetToWelcomeUrl();
+	renderAll();
+	if (options.focusTabs) nodes.newChatTabBtn.focus();
+}
+
+function focusOpenChatTab(chatId) {
+	window.requestAnimationFrame(() => {
+		const tab = nodes.chatTabs.querySelector(`[data-chat-tab-id="${cssEscape(String(chatId || ""))}"]`);
+		if (tab) tab.focus({ preventScroll: true });
+	});
 }
 
 async function hydrateChatMessages(chatId, options = {}) {
@@ -2602,6 +2702,25 @@ function loadSidebarCollapsedPreference() {
 	}
 }
 
+function loadOpenChatTabIds() {
+	try {
+		const parsed = JSON.parse(window.localStorage.getItem(openChatTabsStorageKey) || "[]");
+		return Array.isArray(parsed)
+			? Array.from(new Set(parsed.map((id) => String(id || "").trim()).filter(Boolean))).slice(0, maxOpenChatTabs)
+			: [];
+	} catch (error) {
+		return [];
+	}
+}
+
+function storeOpenChatTabIds() {
+	try {
+		window.localStorage.setItem(openChatTabsStorageKey, JSON.stringify(openChatTabIds));
+	} catch (error) {
+		// Tabs remain available for the current session when storage is unavailable.
+	}
+}
+
 function defaultSidebarSectionVisibility() {
 	return {
 		projects: true,
@@ -2747,6 +2866,7 @@ function renderAll(options = {}) {
 	renderComposerProfileSelect();
 	renderComposerUsageSummary();
 	renderSidebar();
+	renderChatTabs();
 	renderWorkspace({ preserveScroll: Boolean(options.preserveWorkspaceScroll) });
 	renderSidebarToggle();
 	renderPaneInfoToggle();
@@ -2756,6 +2876,45 @@ function renderAll(options = {}) {
 	if (isUsageModalOpen()) {
 		renderUsageModalContent();
 	}
+}
+
+function renderChatTabs() {
+	openChatTabIds = Array.from(new Set(openChatTabIds)).filter((id) => getChatById(id));
+	const activeChat = getActiveChat();
+	if (activeChat && !openChatTabIds.includes(activeChat.id)) openChatTabIds.push(activeChat.id);
+	while (openChatTabIds.length > maxOpenChatTabs) {
+		const removableIndex = openChatTabIds.findIndex((id) => id !== activeChat?.id);
+		openChatTabIds.splice(removableIndex >= 0 ? removableIndex : 0, 1);
+	}
+	storeOpenChatTabIds();
+
+	const focusableId = activeChat?.id || openChatTabIds[0] || "";
+	nodes.chatTabs.innerHTML = openChatTabIds.map((chatId) => {
+		const chat = getChatById(chatId);
+		if (!chat) return "";
+		const active = chat.id === state.activeChatId;
+		const status = chatTabStatus(chat);
+		const title = cleanTitle(chat.title, "Untitled chat");
+		return `<div class="chat-tab-shell${active ? " active" : ""}" role="presentation"><button id="${chatTabDomId(chat.id)}" class="chat-tab" type="button" role="tab" data-chat-tab-id="${escapeHtml(chat.id)}" aria-selected="${active}" aria-controls="pane-grid" tabindex="${chat.id === focusableId ? "0" : "-1"}" title="${escapeHtml(title)}"><span class="chat-tab-icon" aria-hidden="true">${chatTabIconSvg}<span class="chat-tab-status ${status}"></span></span><span class="chat-tab-title">${escapeHtml(title)}</span></button><button class="chat-tab-close" type="button" data-close-chat-tab="${escapeHtml(chat.id)}" tabindex="-1" aria-label="Close ${escapeHtml(title)} tab" title="Close tab">${chatTabCloseSvg}</button></div>`;
+	}).join("");
+
+	nodes.chatTabBar.classList.toggle("empty", openChatTabIds.length === 0);
+	window.requestAnimationFrame(() => {
+		const activeTab = nodes.chatTabs.querySelector("[role='tab'][aria-selected='true']");
+		if (activeTab) activeTab.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
+	});
+}
+
+function chatTabDomId(chatId) {
+	return `chat-tab-${String(chatId || "").replace(/[^A-Za-z0-9_-]/g, "_").slice(0, 160)}`;
+}
+
+function chatTabStatus(chat) {
+	const statuses = Array.isArray(chat?.panes) ? chat.panes.map((pane) => String(pane?.status || "idle")) : [];
+	if (statuses.includes("waiting")) return "running";
+	if (statuses.includes("error")) return "error";
+	if (statuses.includes("partial")) return "partial";
+	return "idle";
 }
 
 function renderPaneInfoToggle() {
@@ -3440,6 +3599,7 @@ function renderWorkspace(options = {}) {
 	nodes.appShell.classList.toggle("welcome-mode", !chat);
 	nodes.appShell.classList.toggle("chat-open", Boolean(chat));
 	if (!chat) {
+		nodes.paneGrid.removeAttribute("aria-labelledby");
 		const userName = normalizeUserName(state.settings.userName);
 		const welcomeGreeting = userName ? `Hello, ${userName}` : "Hello there";
 		nodes.chatTitleInput.value = "";
@@ -3459,6 +3619,7 @@ function renderWorkspace(options = {}) {
 		return;
 	}
 
+	nodes.paneGrid.setAttribute("aria-labelledby", chatTabDomId(chat.id));
 	nodes.chatTitleInput.value = chat.title;
 	nodes.copyChatIdBtn.disabled = false;
 	nodes.exportChatBtn.disabled = false;
@@ -6203,7 +6364,8 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 	const profile = reconcilePaneProfileSelection(pane) || getProfileById(pane.profile_id);
 	if (!profile) {
 		pane.status = "error";
-	const errorMessage = makeMessage("assistant", "");
+		renderChatTabs();
+		const errorMessage = makeMessage("assistant", "");
 		errorMessage.usage = { error: { message: "This pane has no valid provider profile selected.", retryable: true } };
 		pane.messages.push(errorMessage);
 		updatePaneMessageCount(pane);
@@ -6240,6 +6402,7 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 	updatePaneMessageCount(pane);
 	pane.status = "waiting";
 	chat.updatedAt = Date.now();
+	renderChatTabs();
 	renderWorkspace({ preserveScroll: Boolean(options.preserveInitialScroll) });
 	schedulePersist({ immediate: true });
 	await persistStateToServer();
@@ -6868,6 +7031,7 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 			});
 		}
 		if (!terminalStreamError) void maybeAutoTitleChat(chat, pane, profile, selectedModel);
+		renderChatTabs();
 		renderComposerUsageSummary();
 		if (isUsageModalOpen()) {
 			renderUsageModalContent();
@@ -6938,6 +7102,7 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 		}
 	}
 
+	renderChatTabs();
 	chat.updatedAt = Date.now();
 	completeThinkingTiming();
 	scheduleStreamingPersist(chat.id, pane.id, assistantMessage.id, { immediate: true });
