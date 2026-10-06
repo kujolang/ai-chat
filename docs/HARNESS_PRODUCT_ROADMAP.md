@@ -63,9 +63,9 @@ technical dependencies.
 
 ## HR-01 — Interactive approvals
 
-**Priority:** 1  
+**Priority:** 1
 **Status:** Implemented
-**Depends on:** existing execution journal, tool receipts, browser approval model  
+**Depends on:** existing execution journal, tool receipts, browser approval model
 **Unblocks:** safe write/shell adoption, HR-08
 
 ### Outcome
@@ -105,9 +105,9 @@ Settings grant manager, plus `tests/harness-controls.test.js`.
 
 ## HR-02 — Actionable diff review
 
-**Priority:** 2  
+**Priority:** 2
 **Status:** Implemented
-**Depends on:** HR-03 for safe revert; HR-05 for isolated workspace ownership  
+**Depends on:** HR-03 for safe revert; HR-05 for isolated workspace ownership
 **Can begin early:** open-in-editor, inline comments, reviewed/unreviewed state
 
 ### Outcome
@@ -142,9 +142,9 @@ checkpoint operations, persistent review state/comments, and diff controls in
 
 ## HR-03 — Checkpoints, rewind, and fork
 
-**Priority:** 3  
+**Priority:** 3
 **Status:** Implemented
-**Depends on:** workspace identity and the existing execution/message journal  
+**Depends on:** workspace identity and the existing execution/message journal
 **Unblocks:** HR-02 reject/revert
 
 ### Outcome
@@ -177,7 +177,7 @@ restore, hunk-revert, and conflict fixtures in `tests/harness-controls.test.js`.
 
 ## HR-04 — Plan, task progress, and mid-run steering
 
-**Priority:** 4  
+**Priority:** 4
 **Status:** Implemented
 **Depends on:** durable execution identity and message ordering
 
@@ -211,7 +211,7 @@ consume-once tests in `tests/harness-controls.test.js`.
 
 ## HR-05 — Per-chat worktree and branch isolation
 
-**Priority:** 5  
+**Priority:** 5
 **Status:** Implemented
 **Depends on:** repository discovery, Git capability checks, lifecycle cleanup
 
@@ -245,7 +245,7 @@ and isolation/dirty-state fixtures in `tests/harness-rounds.test.js`.
 
 ## HR-06 — Attachments and explicit context chips
 
-**Priority:** 6  
+**Priority:** 6
 **Status:** Implemented
 **Depends on:** artifact storage and message-parts contract in
 `docs/ARTIFACT_AND_AGENT_DESIGN.md`
@@ -282,7 +282,7 @@ encryption, expiry, and UI fixtures in `tests/harness-rounds.test.js`.
 
 ## HR-07 — Structured execution and artifact rail
 
-**Priority:** 7  
+**Priority:** 7
 **Status:** Implemented
 **Depends on:** existing tool events, receipts, browser artifacts, test metadata
 
@@ -316,7 +316,7 @@ and cross-chat authorization/redaction fixtures in
 
 ## HR-08 — Native MCP and plugin management
 
-**Priority:** 8  
+**Priority:** 8
 **Status:** Implemented
 **Depends on:** HR-01 approvals, tool discovery, encrypted connection storage
 
@@ -355,7 +355,7 @@ and plugins without hand-writing one action adapter per capability.
 
 ## HR-09 — Attention inbox and notifications
 
-**Priority:** 9  
+**Priority:** 9
 **Status:** Implemented
 **Depends on:** normalized attention events from HR-01 and HR-04
 
@@ -391,7 +391,7 @@ Users can find every chat that needs attention without opening tabs one by one.
 
 ## HR-10 — Command palette and configurable shortcuts
 
-**Priority:** 10  
+**Priority:** 10
 **Status:** Implemented
 **Depends on:** stable commands from the preceding features
 
