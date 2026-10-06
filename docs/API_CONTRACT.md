@@ -813,8 +813,11 @@ servers and entries outside that exact chat scope are absent from
 External tool calls use the generic interactive approval contract. Results and
 transport responses are limited to 256 KiB and 15 seconds. Deleting a server
 removes its chat grants. Action adapters remain an independent compatibility
-path. HTTP bearer authentication is supported; interactive OAuth and resource
-templates are not part of this contract.
+path. Remote HTTP connections resolve and pin public addresses for each request;
+private, link-local, metadata, redirect, and DNS-rebinding destinations fail
+closed, while explicitly configured loopback HTTP remains available for local
+servers. HTTP bearer authentication is supported; interactive OAuth and
+resource templates are not part of this contract.
 
 ### Attention events
 

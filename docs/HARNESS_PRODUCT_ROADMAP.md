@@ -348,7 +348,7 @@ and plugins without hand-writing one action adapter per capability.
 - Commits: `30c41b6`, `6599378`
 - Data/API contract: encrypted `mcp_servers` records, per-chat `mcp_chat_scopes`, authenticated management routes, and bounded provider-neutral list/call/read tools.
 - Unit/route/browser verification: `tests/harness-rounds.test.js` and focused route coverage in `tests/server-routes.test.js`.
-- Security and failure-path verification: unenabled and unscoped entries fail closed; credentials are never projected; stdio executables, HTTPS/loopback URLs, cancellation, timeouts, and result bytes are bounded.
+- Security and failure-path verification: unenabled and unscoped entries fail closed; credentials are never projected; stdio executables, pinned public HTTPS/explicit loopback destinations, cancellation, timeouts, and result bytes are bounded.
 - Migration/rollback verification: additive SQLite tables/columns initialize existing databases; deleting a connection revokes its chat scopes; code rollback leaves inert extension tables.
 - Documentation updated: README, changelog, setup, API contract, capability and production-hardening manuals.
 - Known limits: HTTP authentication is bearer-token based; interactive OAuth authorization and MCP resource templates are not exposed in this slice.

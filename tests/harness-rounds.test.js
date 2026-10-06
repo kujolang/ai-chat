@@ -1,10 +1,12 @@
 const assert = require("node:assert/strict");
 const crypto = require("node:crypto");
 const fs = require("node:fs");
+const http = require("node:http");
 const os = require("node:os");
 const path = require("node:path");
 const { execFileSync } = require("node:child_process");
 const { test } = require("node:test");
+const { once } = require("node:events");
 const Database = require("better-sqlite3");
 const { createWorktreeStore } = require("../lib/worktree-store");
 const { createAttachmentStore } = require("../lib/attachment-store");
@@ -113,6 +115,31 @@ test("MCP management encrypts credentials and enforces global and per-chat tool 
 	const resource = await manager.readResource("chat-a", { server_id: server.id, uri: "kb://release" });
 	assert.equal(resource.result.contents[0].text, "Release evidence");
 	db.close();
+});
+
+test("MCP HTTP transport pins loopback resolution and blocks private remote destinations", async () => {
+	const endpoint = http.createServer((req, res) => {
+		const chunks = [];
+		req.on("data", (chunk) => chunks.push(chunk));
+		req.on("end", () => {
+			const call = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+			if (!Object.hasOwn(call, "id")) { res.writeHead(202); res.end(); return; }
+			const result = call.method === "tools/list" ? { tools: [{ name: "local_tool", inputSchema: { type: "object" } }] } : call.method === "resources/list" ? { resources: [] } : {};
+			res.writeHead(200, { "Content-Type": "application/json", "Mcp-Session-Id": "fixture-session" });
+			res.end(JSON.stringify({ jsonrpc: "2.0", id: call.id, result }));
+		});
+	});
+	endpoint.listen(0, "127.0.0.1"); await once(endpoint, "listening");
+	const db = new Database(":memory:");
+	try {
+		const manager = createMcpManager(db, { masterKey: crypto.randomBytes(32) });
+		const local = manager.save({ name: "Local", transport: "http", url: `http://127.0.0.1:${endpoint.address().port}/mcp` });
+		assert.deepEqual((await manager.discover(local.id)).tools.map((tool) => tool.name), ["local_tool"]);
+		const blocked = manager.save({ name: "Metadata", transport: "http", url: "https://169.254.169.254/mcp" });
+		await assert.rejects(manager.discover(blocked.id), (error) => error.code === "mcp_url_blocked");
+	} finally {
+		db.close(); endpoint.closeAllConnections(); await new Promise((resolve) => endpoint.close(resolve));
+	}
 });
 
 test("attention events deduplicate, persist unread state, and resolve from authoritative sources", () => {
