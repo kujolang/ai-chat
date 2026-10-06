@@ -1836,5 +1836,171 @@
   "generated_csv_harness_recheck": {
     "passed_assertions": 15,
     "exit_code": 0
+  },
+  "guide_topics_requested": {
+    "baseline": {
+      "types": 2,
+      "collections": 6,
+      "errors": 2,
+      "arguments": 1,
+      "nested_collections": 4,
+      "json": 3,
+      "ordering": 1,
+      "validation": 1,
+      "persistence": 1,
+      "allocation": 1,
+      "staged_validation": 2,
+      "core": 1,
+      "quoted_text": 1
+    },
+    "feedback": {
+      "collections": 3,
+      "types": 2,
+      "cli_errors": 1,
+      "allocation": 1,
+      "validation": 3,
+      "json": 4,
+      "nested_collections": 1,
+      "staged_validation": 1,
+      "core": 1,
+      "persistence": 1
+    }
+  },
+  "transport_followup": {
+    "purpose": "Separate stock-task follow-up for the confirmed proxy body-size defect; does not replace or merge into baseline/guidance results.",
+    "server_commit": "6909cf6",
+    "completed": true,
+    "summary": {
+      "total": 1,
+      "completed": 1,
+      "failed": 0,
+      "retry_count": 0,
+      "tool_calls_executed": 42,
+      "tool_input_repairs": 5,
+      "provider_rounds": 34,
+      "latency_ms_total": 532338,
+      "latency_samples": 1,
+      "token_use": {
+        "input_tokens": 1399292,
+        "output_tokens": 69189,
+        "total_tokens": 1468481
+      },
+      "transport_completion_rate": 1,
+      "task_completion_rate": null,
+      "repair_rate": 0.119,
+      "average_latency_ms": 532338
+    },
+    "source": {
+      "hashes": {
+        "DECISIONS.md": "6d7c7b0722210b111adcd9761ded7cfc3b7193a7902b3a9dd9730b08f31a1518",
+        "README.md": "7bc26ff02bdec911fbf6be7d2714752dfd894a30f081d83fec2bf5d61fbf0ac4",
+        "harness.go": "08feec3b443112a7b919d4b9d7f0527ba083fe0a52dda761fc3e7faa8f7aeb66",
+        "main.kujo": "82e3e37c79307db5cadcee3771ecbd2ca08ba209802f372f2425ca10d12d2003",
+        "probe.kujo": "787f49960bad87cf4e5d7fb428f6d5264ee290ef26063c96a6a1dc64b793ab85",
+        "tests.json": "6b15a5ba8b466172e67bf5ca80d30a000dee20226cda7db917b6b93f2267a994"
+      },
+      "bytes": 14941,
+      "files": 6
+    },
+    "development": {
+      "completed": true,
+      "checks": 2,
+      "passed": 2,
+      "failures": [],
+      "results": [
+        {
+          "id": "transient-underflow",
+          "passed": true
+        },
+        {
+          "id": "ordered",
+          "passed": true
+        }
+      ],
+      "source_sha256": "82e3e37c79307db5cadcee3771ecbd2ca08ba209802f372f2425ca10d12d2003"
+    },
+    "holdout": {
+      "completed": true,
+      "checks": 10,
+      "passed": 10,
+      "failures": [],
+      "results": [
+        {
+          "id": "late-failure",
+          "passed": true
+        },
+        {
+          "id": "unknown-sku",
+          "passed": true
+        },
+        {
+          "id": "boolean-delta",
+          "passed": true
+        },
+        {
+          "id": "upper-bound",
+          "passed": true
+        },
+        {
+          "id": "edges",
+          "passed": true
+        },
+        {
+          "id": "unknown-change-field",
+          "passed": true
+        },
+        {
+          "id": "empty-batch",
+          "passed": true
+        },
+        {
+          "id": "malformed-json",
+          "passed": true
+        },
+        {
+          "id": "missing-argument",
+          "passed": true
+        },
+        {
+          "id": "extra-argument",
+          "passed": true
+        }
+      ],
+      "source_sha256": "82e3e37c79307db5cadcee3771ecbd2ca08ba209802f372f2425ca10d12d2003"
+    },
+    "usage": {
+      "input_tokens": 1399292,
+      "output_tokens": 69189,
+      "total_tokens": 1468481,
+      "cached_input_tokens": 954240,
+      "cache_write_input_tokens": null,
+      "cache_details_reported": true
+    },
+    "usage_complete": true,
+    "execution_id": "fe56e9fd-c9d9-4c57-ac4d-b73571a84e85",
+    "byte_budget": {
+      "events": 34,
+      "limit": 524288,
+      "max_before": 336132,
+      "max_after": 336132,
+      "compacted_requests": 0,
+      "oversized_dispatches": 0
+    },
+    "review_outcome": "inconclusive",
+    "manual_source_review": {
+      "compatibility": 3,
+      "maintainability": 3,
+      "failure_handling": 3,
+      "test_adequacy": 3,
+      "evidence": [
+        "Correct CLI with validation before output and per-transition bounds; parsed dictionary len works on the pinned binary.",
+        "Retains a portable explicit-binary Go harness and JSON manifest; independently rerun all 34 cases including 1000/1001 changes.",
+        "No new-controller repair or new guidance; single task variation cannot prove general source-quality improvement or a byte-cap causal effect."
+      ]
+    },
+    "harness_recheck": {
+      "passed_cases": 34,
+      "exit_code": 0
+    }
   }
 }

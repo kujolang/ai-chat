@@ -1,7 +1,7 @@
 # Kujo maintenance quality experiment — October 5, 2026
 
-Status: six-task baseline and guided comparison complete; separate bounded
-transport follow-up running. Repository verification passed.
+Status: complete October 6, 2026. Both six-task arms and the separate transport
+follow-up finished. Repository verification passed; changes committed and pushed.
 
 ## Comparison result and assessment
 
@@ -123,7 +123,11 @@ guided arms use GLM 5.3 Flash through the same Watchdog / Ollama Cloud profile.
 Both retain compact grounding, allocation guidance, batch verification and the
 existing engineering review. Only the guided arm receives selected pattern text
 and up to two development-driven repairs. New guide topics are available to both
-arms; this measures supplied context, not exclusive tool access.
+arms; this measures supplied context, not exclusive tool access. Baseline actually
+requested the new `staged_validation` topic twice and `quoted_text` once. Thus
+this is not a before/after test of removing all new reference tools: the negative
+result concerns eager supplied guidance plus conditional repair over the same
+tool-capable baseline, and does not prove on-demand patterns are useless.
 
 There are 13 development cases and 59 distinct holdout cases, calibrated against
 independent correct implementations and defective legacy seeds. These are 72
@@ -257,6 +261,32 @@ a triggered guard is not live evidence that the guard caused success; determinis
 regression coverage still proves the boundary. Report its cost and outcome
 separately, never as a replacement baseline pass or a new six-task round.
 
+### Transport follow-up result
+
+The one stock request completed in **8m 52.338s**, with **42 tool calls**, **34
+provider rounds**, **1,468,481 reported tokens** (1,399,292 input, 69,189 output;
+954,240 cached input), and complete usage accounting. Both development cases and
+all ten holdouts passed. The generated explicit-binary Go CLI harness and JSON
+manifest were independently rerun: **34/34 cases passed**, including 1000/1001
+changes. Its artifact scores 3/4 in each source-quality dimension, but this single
+additional stock sample is not another comparative arm. Its in-app review ended
+inconclusive, not passed.
+
+The largest measured request was **336,132 bytes**;
+**0 requests required byte-driven compaction** and none exceeded 524,288 bytes
+after budgeting. Therefore this is live normal-operation verification, not a
+live demonstration that compaction rescued this run. Six deterministic boundary
+regressions include the originally observed 530,495-byte case. No replacement
+pass is credited to either comparison arm.
+
+Both isolated benchmark servers (4198 and 4199) shut down. Final authenticated
+interactive health is healthy, reports the 524,288-byte cap, and confirms all
+seven provider profiles still match the experiment-start hash. No DeepSeek run
+was dispatched. This session executed **13 initial model attempts total**:
+12 comparison attempts and this separately reported follow-up, with zero new
+controller repair requests. Existing in-app review work is included in each
+request's usage and tool totals.
+
 ## Cross-repository finding: dictionary length parity
 
 During source review, contradictory generated notes prompted a separate runtime
@@ -314,3 +344,31 @@ report. New counterevidence is stored as SignalBox capture
 A future non-progress control needs explicit bounds, changed-file/range exceptions,
 transparent termination, and a held-out live test. Another advisory alone is not
 an evidence-backed remedy.
+
+## Durable handoff and final receipt
+
+Strata CONSOLIDATE stored two distinct notes in `Agent Notes`:
+
+- `f3f6e4fe-8a30-41ff-9414-a168f61dceee`: proxy-byte budget lesson and verified fix.
+- `d49994fc-6fa0-4768-9d9e-5cabb128024d`: experiment outcome, non-promotion
+  decision, open review homes and next cross-model comparison prerequisites.
+
+Both passed exact retrieval and conceptual search. Project hub
+`8582f7c4-1408-44d4-b687-b7f5d6818a5d` was updated from revision 27 to 28 and its
+handoff link verified. No memory writes failed or remain pending. Historical
+benchmark claims were not overwritten.
+
+SignalBox stored two admitted Captures and one new Signal: the Kujo runtime bug
+and new counterevidence for the existing repeated-read Signal, with IDs above.
+Each new Capture and Signal passed exact and concept retrieval. The existing
+read-loop Signal was reused; existing isolation work was not duplicated.
+Resolved byte-limit work, normal verification, implementation recaps and
+model-generated documentation mistakes were rejected as new SignalBox items.
+
+The final full-suite log is `/tmp/ai-chat-maintenance-byte-cap-full-tests.log`;
+live restart smoke is `/tmp/ai-chat-maintenance-live-smoke.log`. Independent CSV
+and stock harness runs passed; the latter log is
+`/tmp/maintenance-followup-harness.log`. All 12 comparison source hashes, check
+totals and reported-token totals were reconciled against the saved receipts.
+`git diff --check` and all report JSON parse checks passed. No production code
+changed after the successful 703-test verification run.
