@@ -95,3 +95,10 @@ test('maintenance patterns stay unavailable on unqualified language versions',as
   const current=fixture({version:'kujo 1.7.0'});const supported=await executeKujo({operation:'guide',topic},{},current.deps);assert.ok(supported.example);assert.equal(supported.expected_exit_code,0);
  }
 });
+
+test('maintenance examples do not claim qualification on an untested interpreter backend',async()=>{
+ const f=fixture({version:'kujo 1.7.0'}),run=f.deps.runCommand;
+ f.deps.runCommand=async a=>({...await run(a),kujo_runtime:{backend:'interpreter'}});
+ const r=await executeKujo({operation:'guide',topic:'presence'},{},f.deps);
+ assert.equal(r.example,null);assert.equal(r.runtime.reference_verified,false);
+});
