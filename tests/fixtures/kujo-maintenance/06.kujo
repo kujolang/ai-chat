@@ -1,0 +1,49 @@
+func fail(message) { eprint(to_json({"error": message})); exit(1) }
+func obj(value, allowed) {
+ if !is_dict(value) { fail("expected object") }
+ for key in keys(value) {
+  mut found := false
+  for name in allowed { if key == name { found = true } }
+  if !found { fail("unknown field") }
+ }
+}
+func integer(value, low, high) {
+ if !is_int(value) { fail("expected integer") }
+ if value < low || value > high { fail("out of range") }
+}
+func text(value) { if !is_string(value) { fail("expected string") } }
+func pick(value, key, fallback) {
+ if has_key(value, key) == 1 { return value[key] }
+ return fallback
+}
+func parse(text) {
+ mut value := null
+ try { value = parse_json(text) } except e { fail("invalid JSON") }
+ return value
+}
+func required(value, fields) {
+ for field in fields { if has_key(value, field) != 1 { fail("missing field") } }
+}
+func cell(value) { return "\"" + replace(value, "\"", "\"\"") + "\"" }
+func export_csv(input) {
+ obj(input, ["rows", "header"])
+ required(input, ["rows"])
+ let rows := input["rows"]
+ if !is_array(rows) { fail("rows") }
+ if len(rows) > 1000 { fail("too many") }
+ let header := pick(input, "header", true)
+ if !is_bool(header) { fail("header") }
+ mut csv := ""
+ if header { csv = cell("name") + "," + cell("note") + "\r\n" }
+ for row in rows {
+  obj(row, ["name", "note"])
+  required(row, ["name", "note"])
+  text(row["name"])
+  text(row["note"])
+  csv += cell(row["name"]) + "," + cell(row["note"]) + "\r\n"
+ }
+ return {"csv": csv}
+}
+let argv := args()
+if len(argv) != 1 { fail("expected one JSON argument") }
+print(to_json(export_csv(parse(argv[0]))))

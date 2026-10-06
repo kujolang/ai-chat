@@ -1,0 +1,46 @@
+func fail(message) { eprint(to_json({"error": message})); exit(1) }
+func obj(value, allowed) {
+ if !is_dict(value) { fail("expected object") }
+ for key in keys(value) {
+  mut found := false
+  for name in allowed { if key == name { found = true } }
+  if !found { fail("unknown field") }
+ }
+}
+func integer(value, low, high) {
+ if !is_int(value) { fail("expected integer") }
+ if value < low || value > high { fail("out of range") }
+}
+func text(value) { if !is_string(value) { fail("expected string") } }
+func pick(value, key, fallback) {
+ if has_key(value, key) == 1 { return value[key] }
+ return fallback
+}
+func parse(text) {
+ mut value := null
+ try { value = parse_json(text) } except e { fail("invalid JSON") }
+ return value
+}
+func required(value, fields) {
+ for field in fields { if has_key(value, field) != 1 { fail("missing field") } }
+}
+func revise(source, patch) {
+ obj(source, ["revision", "label", "meta"])
+ required(source, ["revision", "label", "meta"])
+ integer(source["revision"], 0, 999)
+ text(source["label"])
+ if !is_dict(source["meta"]) { fail("meta") }
+ obj(patch, ["expected", "label"])
+ required(patch, ["expected", "label"])
+ integer(patch["expected"], 0, 999)
+ text(patch["label"])
+ if patch["expected"] != source["revision"] { fail("revision conflict") }
+ return {"revision": source["revision"] + 1, "label": patch["label"], "meta": source["meta"]}
+}
+let argv := args()
+if len(argv) != 3 { fail("expected SOURCE DEST PATCH") }
+mut raw := ""
+try { raw = read_file(argv[0]) } except e { fail("read failed") }
+let next := revise(parse(raw), parse(argv[2]))
+try { write_file_atomic(argv[1], to_json(next), true) } except e { fail("save failed") }
+print(to_json(next))

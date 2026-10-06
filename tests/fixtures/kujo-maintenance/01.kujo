@@ -1,0 +1,39 @@
+func fail(message) { eprint(to_json({"error": message})); exit(1) }
+func obj(value, allowed) {
+ if !is_dict(value) { fail("expected object") }
+ for key in keys(value) {
+  mut found := false
+  for name in allowed { if key == name { found = true } }
+  if !found { fail("unknown field") }
+ }
+}
+func integer(value, low, high) {
+ if !is_int(value) { fail("expected integer") }
+ if value < low || value > high { fail("out of range") }
+}
+func text(value) { if !is_string(value) { fail("expected string") } }
+func pick(value, key, fallback) {
+ if has_key(value, key) == 1 { return value[key] }
+ return fallback
+}
+func parse(text) {
+ mut value := null
+ try { value = parse_json(text) } except e { fail("invalid JSON") }
+ return value
+}
+func required(value, fields) {
+ for field in fields { if has_key(value, field) != 1 { fail("missing field") } }
+}
+func resolve(patch) {
+ obj(patch, ["enabled", "retries", "label"])
+ let enabled := pick(patch, "enabled", true)
+ let retries := pick(patch, "retries", 3)
+ let label := pick(patch, "label", "default")
+ if !is_bool(enabled) { fail("enabled") }
+ integer(retries, 0, 10)
+ text(label)
+ return {"enabled": enabled, "retries": retries, "label": label}
+}
+let argv := args()
+if len(argv) != 1 { fail("expected one JSON argument") }
+print(to_json(resolve(parse(argv[0]))))

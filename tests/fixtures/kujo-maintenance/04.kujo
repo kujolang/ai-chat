@@ -1,0 +1,62 @@
+func fail(message) { eprint(to_json({"error": message})); exit(1) }
+func obj(value, allowed) {
+ if !is_dict(value) { fail("expected object") }
+ for key in keys(value) {
+  mut found := false
+  for name in allowed { if key == name { found = true } }
+  if !found { fail("unknown field") }
+ }
+}
+func integer(value, low, high) {
+ if !is_int(value) { fail("expected integer") }
+ if value < low || value > high { fail("out of range") }
+}
+func text(value) { if !is_string(value) { fail("expected string") } }
+func pick(value, key, fallback) {
+ if has_key(value, key) == 1 { return value[key] }
+ return fallback
+}
+func parse(text) {
+ mut value := null
+ try { value = parse_json(text) } except e { fail("invalid JSON") }
+ return value
+}
+func required(value, fields) {
+ for field in fields { if has_key(value, field) != 1 { fail("missing field") } }
+}
+func migrate(input) {
+ obj(input, ["version", "rows"])
+ required(input, ["version", "rows"])
+ let version := input["version"]
+ integer(version, 1, 2)
+ let rows := input["rows"]
+ if !is_array(rows) { fail("rows") }
+ if len(rows) > 1000 { fail("too many") }
+ mut output := []
+ mut seen := {}
+ for row in rows {
+  if version == 1 { obj(row, ["id", "name", "active", "meta"]) }
+  else { obj(row, ["id", "label", "active", "meta"]) }
+  if version == 1 { required(row, ["id", "name"]) }
+  else { required(row, ["id", "label", "active", "meta"]) }
+  let id := row["id"]
+  text(id)
+  if len(id) == 0 || has_key(seen, id) == 1 { fail("duplicate or empty id") }
+  seen[id] = true
+  mut label := ""
+  if version == 1 { label = row["name"] }
+  else { label = row["label"] }
+  text(label)
+  let active := pick(row, "active", true)
+  let meta := pick(row, "meta", {})
+  if !is_bool(active) || !is_dict(meta) { fail("row types") }
+  if version == 2 {
+   if has_key(row, "active") != 1 || has_key(row, "meta") != 1 { fail("v2 fields") }
+  }
+  output = push(output, {"id": id, "label": label, "active": active, "meta": meta})
+ }
+ return {"version": 2, "rows": output}
+}
+let argv := args()
+if len(argv) != 1 { fail("expected one JSON argument") }
+print(to_json(migrate(parse(argv[0]))))

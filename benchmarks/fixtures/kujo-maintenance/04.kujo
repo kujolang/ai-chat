@@ -1,0 +1,10 @@
+// Legacy evaluation fixture, intentionally incomplete; not a teaching example.
+func migrate(input) {
+ mut output := []
+ for row in input["rows"] {
+  output = push(output, {"id": row["id"], "label": row["name"], "active": true, "meta": {}})
+ }
+ return {"version": 2, "rows": output}
+}
+let argv := args()
+print(to_json(migrate(parse_json(argv[0]))))

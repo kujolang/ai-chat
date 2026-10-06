@@ -1,0 +1,49 @@
+func fail(message) { eprint(to_json({"error": message})); exit(1) }
+func obj(value, allowed) {
+ if !is_dict(value) { fail("expected object") }
+ for key in keys(value) {
+  mut found := false
+  for name in allowed { if key == name { found = true } }
+  if !found { fail("unknown field") }
+ }
+}
+func integer(value, low, high) {
+ if !is_int(value) { fail("expected integer") }
+ if value < low || value > high { fail("out of range") }
+}
+func text(value) { if !is_string(value) { fail("expected string") } }
+func pick(value, key, fallback) {
+ if has_key(value, key) == 1 { return value[key] }
+ return fallback
+}
+func parse(text) {
+ mut value := null
+ try { value = parse_json(text) } except e { fail("invalid JSON") }
+ return value
+}
+func required(value, fields) {
+ for field in fields { if has_key(value, field) != 1 { fail("missing field") } }
+}
+func page(input) {
+ obj(input, ["items", "offset", "limit"])
+ required(input, ["items"])
+ let items := input["items"]
+ if !is_array(items) { fail("items") }
+ if len(items) > 5000 { fail("too many") }
+ for item in items { integer(item, -1000, 1000) }
+ let offset := pick(input, "offset", 0)
+ let limit := pick(input, "limit", 20)
+ integer(offset, 0, len(items))
+ integer(limit, 0, 5000)
+ mut end := offset + limit
+ if end > len(items) { end = len(items) }
+ mut selected := []
+ mut i := offset
+ while i < end { selected = push(selected, items[i]); i += 1 }
+ mut next := -1
+ if end < len(items) { next = end }
+ return {"items": selected, "total": len(items), "next": next}
+}
+let argv := args()
+if len(argv) != 1 { fail("expected one JSON argument") }
+print(to_json(page(parse(argv[0]))))

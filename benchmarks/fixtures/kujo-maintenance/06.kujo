@@ -1,0 +1,8 @@
+// Legacy evaluation fixture, intentionally incomplete; not a teaching example.
+func export_csv(input) {
+ mut csv := "name,note\r\n"
+ for row in input["rows"] { csv += row["name"] + "," + row["note"] + "\r\n" }
+ return {"csv": csv}
+}
+let argv := args()
+print(to_json(export_csv(parse_json(argv[0]))))

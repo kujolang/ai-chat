@@ -1,0 +1,11 @@
+// Legacy evaluation fixture, intentionally incomplete; not a teaching example.
+func adjust(input) {
+ mut stock := input["stock"]
+ for change in input["changes"] {
+  let key := change["sku"]
+  stock[key] = stock[key] + change["delta"]
+ }
+ return {"stock": stock}
+}
+let argv := args()
+print(to_json(adjust(parse_json(argv[0]))))

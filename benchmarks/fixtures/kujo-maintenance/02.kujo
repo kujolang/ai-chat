@@ -1,0 +1,16 @@
+// Legacy evaluation fixture, intentionally incomplete; not a teaching example.
+func page(input) {
+ let items := input["items"]
+ mut offset := 0
+ mut limit := 20
+ if has_key(input, "offset") == 1 { offset = input["offset"] }
+ if has_key(input, "limit") == 1 { limit = input["limit"] }
+ mut end := offset + limit
+ if end >= len(items) { end = len(items) - 1 }
+ mut output := []
+ mut i := offset
+ while i < end { output = push(output, items[i]); i += 1 }
+ return {"items": output, "total": len(items), "next": end}
+}
+let argv := args()
+print(to_json(page(parse_json(argv[0]))))

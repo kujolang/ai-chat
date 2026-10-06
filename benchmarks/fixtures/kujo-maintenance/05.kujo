@@ -1,0 +1,8 @@
+// Legacy evaluation fixture, intentionally incomplete; not a teaching example.
+func revise(source, patch) {
+ return {"revision": source["revision"] + 1, "label": patch["label"], "meta": source["meta"]}
+}
+let argv := args()
+let next := revise(parse_json(read_file(argv[0])), parse_json(argv[2]))
+write_file(argv[1], to_json(next))
+print(to_json(next))

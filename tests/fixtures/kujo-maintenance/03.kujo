@@ -1,0 +1,56 @@
+func fail(message) { eprint(to_json({"error": message})); exit(1) }
+func obj(value, allowed) {
+ if !is_dict(value) { fail("expected object") }
+ for key in keys(value) {
+  mut found := false
+  for name in allowed { if key == name { found = true } }
+  if !found { fail("unknown field") }
+ }
+}
+func integer(value, low, high) {
+ if !is_int(value) { fail("expected integer") }
+ if value < low || value > high { fail("out of range") }
+}
+func text(value) { if !is_string(value) { fail("expected string") } }
+func pick(value, key, fallback) {
+ if has_key(value, key) == 1 { return value[key] }
+ return fallback
+}
+func parse(text) {
+ mut value := null
+ try { value = parse_json(text) } except e { fail("invalid JSON") }
+ return value
+}
+func required(value, fields) {
+ for field in fields { if has_key(value, field) != 1 { fail("missing field") } }
+}
+func adjust(input) {
+ obj(input, ["stock", "changes"])
+ required(input, ["stock", "changes"])
+ let original := input["stock"]
+ if !is_dict(original) { fail("stock") }
+ for key in keys(original) {
+  if len(key) == 0 { fail("sku") }
+  integer(original[key], 0, 1000)
+ }
+ let changes := input["changes"]
+ if !is_array(changes) { fail("changes") }
+ if len(changes) > 1000 { fail("too many") }
+ mut stock := parse_json(to_json(original))
+ for change in changes {
+  obj(change, ["sku", "delta"])
+  required(change, ["sku", "delta"])
+  let sku := change["sku"]
+  text(sku)
+  if has_key(stock, sku) != 1 { fail("unknown sku") }
+  let delta := change["delta"]
+  integer(delta, -1000, 1000)
+  let next := stock[sku] + delta
+  integer(next, 0, 1000)
+  stock[sku] = next
+ }
+ return {"stock": stock}
+}
+let argv := args()
+if len(argv) != 1 { fail("expected one JSON argument") }
+print(to_json(adjust(parse(argv[0]))))

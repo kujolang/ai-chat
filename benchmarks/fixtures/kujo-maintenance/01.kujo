@@ -1,0 +1,12 @@
+// Legacy evaluation fixture, intentionally incomplete; not a teaching example.
+func resolve(patch) {
+ mut enabled := true
+ mut retries := 3
+ mut label := "default"
+ if has_key(patch, "enabled") == 1 && patch["enabled"] { enabled = patch["enabled"] }
+ if has_key(patch, "retries") == 1 && patch["retries"] { retries = patch["retries"] }
+ if has_key(patch, "label") == 1 && patch["label"] { label = patch["label"] }
+ return {"enabled": enabled, "retries": retries, "label": label}
+}
+let argv := args()
+print(to_json(resolve(parse_json(argv[0]))))
