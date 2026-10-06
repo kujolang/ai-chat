@@ -872,3 +872,21 @@ before provider dispatch. Recoverable history is compacted using existing saved
 receipt references. Upstream HTTP 413 retains the `provider_http_error` code and
 status but explains the separate request-size limit. No failed request or tool
 work is automatically replayed.
+
+### Repeated-read progress guard
+
+AI Chat's managed tool loop checks development requests exposing `local_file_write`,
+`local_shell` or `local_kujo`. Six consecutive successful, complete reads of at
+most two unchanged views trigger a recovery notice and deduplication of older
+provider-facing result bodies. The newest full contents and every original
+journal result remain available; call identities and assistant text are preserved.
+File content/mtime changes, new ranges, errors, partial reads and other tools
+interrupt or reset the matching streak. Read-only requests are not subject to
+this development guard. Native external harnesses manage their own execution.
+
+At twelve matching reads, SSE emits `error` with code `execution_no_progress`,
+`retryable: false`; it does not emit a successful `done` or dispatch another model
+request. Partial output, files, usage and completed receipts remain inspectable.
+An explicit execution resume starts another bounded window after the saved stop
+marker, without replaying the previous tool calls. This is a no-progress cost
+bound, not proof that the task is impossible or a replacement for permissions.

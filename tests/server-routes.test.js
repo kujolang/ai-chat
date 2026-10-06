@@ -5757,3 +5757,45 @@ test('Watchdog stream and JSON routes enforce body bytes independently of a larg
   }
  });}finally{destroy();fs.rmSync(dir,{recursive:true,force:true});}
 });
+
+for (const scenario of ['stop','recover','read-only']) test(`development read progress: ${scenario}`,async()=>{
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'ai-chat-read-progress-'));
+ fs.writeFileSync(path.join(dir,'a.txt'),'stable evidence\n'.repeat(200));
+ let calls=0;const bodies=[];
+ const {runtime,destroy}=createIsolatedRuntime({envMerge:{
+  AI_CHAT_LOCAL_TOOLS_ENABLED:'1',AI_CHAT_LOCAL_WRITE_ENABLED:'1',AI_CHAT_LOCAL_WORKSPACE_ROOTS:dir,
+  ENGINEERING_REVIEW_ENABLED:'0',ENGINEERING_CONTRACT_ENABLED:'0',KUJO_GROUNDING_MODE:'off',MAX_TOOL_ROUNDS:'30'
+ },localRuntimeOptions:{homeDir:dir,projectRoot:dir},fetchFn:async(url,options)=>{
+  bodies.push(JSON.parse(options.body));calls++;
+  if ((scenario==='recover'&&calls===8)||(scenario==='read-only'&&calls===15)) return mockSseResponse([{choices:[{delta:{content:'Finished'},finish_reason:'stop'}]}]);
+  if(scenario==='recover'&&calls===7) return mockSseResponse([{choices:[{delta:{tool_calls:[{index:0,id:'write',function:{name:'local_file_write',arguments:JSON.stringify({root_id:'workspace_0',path:'a.txt',mode:'overwrite',content:'updated'})}}]},finish_reason:'tool_calls'}]}]);
+  return mockSseResponse([{choices:[{delta:{tool_calls:[{index:0,id:'read-'+calls,function:{name:'local_file_read',arguments:JSON.stringify({root_id:'workspace_0',path:'a.txt'})}}]},finish_reason:'tool_calls'}]}]);
+ }});
+ try{
+  const profileId=applyProfileMutation(runtime,p=>{p.api_key='fixture-key';});
+  await withServer(runtime.app,async base=>{
+   const response=await fetch(base+'/api/chat/stream',{method:'POST',headers:withAuthHeaders({'Content-Type':'application/json'}),body:JSON.stringify({request_id:'read-progress-'+scenario,include_saved_runtime_presets:false,profile_id:profileId,messages:[{role:'user',content:'Edit a.txt after inspecting it.'}],tools:(scenario==='read-only'?['local_file_read']:['local_file_read','local_file_write']).map(name=>({type:'function',function:{name,parameters:{type:'object'}}}))})});
+   const events=parseSseEvents(await response.text());
+   assert.equal(calls,scenario==='stop'?12:scenario==='recover'?8:15);
+   const error=events.find(e=>e.event==='error');if(scenario==='stop'){
+    assert.equal(error?.data.code,'execution_no_progress');assert.equal(error.data.retryable,false);
+    const saved=await (await fetch(base+'/api/executions/read-progress-stop',{headers:withAuthHeaders()})).json();
+    assert.equal(saved.receipts.length,12);
+    assert.ok(saved.receipts.every(r=>r.result.content.includes('stable evidence')&&r.result.complete));
+    assert.equal(saved.execution.checkpoint.read_progress.stopped_at,'read-12');
+    const resumed=await fetch(base+'/api/executions/read-progress-stop/resume',{method:'POST',headers:withAuthHeaders({'Content-Type':'application/json'}),body:'{}'});
+    const again=parseSseEvents(await resumed.text());
+    assert.equal(calls,24,'only explicit resume permits another bounded attempt');
+    assert.equal(again.find(e=>e.event==='error')?.data.code,'execution_no_progress');
+   }
+   else assert.equal(error,undefined);
+   assert.equal(events.some(e=>e.event==='done'),scenario!=='stop');
+   if(scenario==='read-only') return;
+   assert.ok(bodies.some(b=>b.messages.some(m=>m.role==='system'&&String(m.content).startsWith('Read progress recovery:'))));
+   const tools=bodies[6].messages.filter(m=>m.role==='tool');
+   assert.ok(tools.some(m=>JSON.parse(m.content).duplicate_read));
+   assert.ok(tools.some(m=>JSON.parse(m.content).content?.includes('stable evidence')));
+   assert.equal(fs.readFileSync(path.join(dir,'a.txt'),'utf8'),scenario==='recover'?'updated':'stable evidence\n'.repeat(200));
+  });
+ }finally{destroy();fs.rmSync(dir,{recursive:true,force:true});}
+});
