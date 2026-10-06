@@ -886,9 +886,12 @@ this development guard. The independently bounded review and final-answer phases
 are excluded, so review repetition cannot invalidate an otherwise completed
 implementation. Native external harnesses manage their own execution.
 
-At twelve matching reads, SSE emits `error` with code `execution_no_progress`,
+At a provider-round boundary after at least twelve matching reads, SSE emits
+`error` with code `execution_no_progress`,
 `retryable: false`; it does not emit a successful `done` or dispatch another model
-request. Partial output, files, usage and completed receipts remain inspectable.
+request. A just-finished tool batch can cross the threshold before that check;
+existing per-round tool-call limits still apply. Partial output, files, usage and
+completed receipts remain inspectable.
 An explicit execution resume starts another bounded window after the saved stop
 marker, without replaying the previous tool calls. This is a no-progress cost
 bound, not proof that the task is impossible or a replacement for permissions.

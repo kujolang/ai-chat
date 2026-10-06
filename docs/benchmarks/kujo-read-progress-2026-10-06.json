@@ -1,0 +1,526 @@
+{
+  "starting_commit": "3cac387a0a568bdf85ff05b91777cc9f4e404245",
+  "loaded_benchmark_commit": "79ae579",
+  "runtime_sha256": "2f9242613c497736f77c20fdb669a18b7c815e489e8a2e8cf5047ee75fd2e3e0",
+  "status": "complete",
+  "model": "glm-5.3-flash:cloud",
+  "protocol": "One new six-task guided arm; historical comparison, not randomized causal attribution. No retries or DeepSeek calls.",
+  "verification": {
+    "tests": 715,
+    "passed": 714,
+    "failed": 0,
+    "skipped": 1,
+    "duration_ms": 52717.430719,
+    "runtime_examples": 16,
+    "runtime_checks": 32,
+    "live_smoke": "passed after startup readiness",
+    "initial_smoke": "probe before restarted listener was ready; retained separately",
+    "final_live_smoke": "passed",
+    "profiles_unchanged": true,
+    "benchmark_listener_stopped": true,
+    "generated_migration_harness": "six assertions pass",
+    "generated_csv_harness": {
+      "1000": "pass",
+      "1001": "pass",
+      "0": "fails incorrectly; candidate defect retained for grading"
+    }
+  },
+  "saved_failure_replay": {
+    "offline_replay": true,
+    "stopped": true,
+    "provider_responses_before_stop": 8,
+    "completed_tool_calls": 15,
+    "unchanged_reads_before_stop": 12,
+    "compacted_results": 8,
+    "first_recovery_context_bytes": {
+      "before": 26697,
+      "after": 23043
+    },
+    "limitations": "Recorded continuation only; does not predict model recovery or billable-token savings."
+  },
+  "prior_excess_tokens": 8816359,
+  "migration_excess_tokens": 7401369,
+  "source_reviews": [
+    {
+      "task": 1,
+      "scores": [
+        3,
+        3,
+        3,
+        3
+      ],
+      "evidence": "Clear presence-based defaults, strict predicates, single resolve helper, 32 recorded real-CLI cases. TESTS.md is a case table rather than an executable regression runner. Comparable to earlier configuration artifacts."
+    },
+    {
+      "task": 2,
+      "scores": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "evidence": "Interrupted provider stream before any source write; legacy seed unchanged. Inherited passing cases are not delivered implementation."
+    },
+    {
+      "task": 3,
+      "scores": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "evidence": "Interrupted provider stream before any source write; legacy seed unchanged. Inherited passing cases are not delivered implementation."
+    },
+    {
+      "task": 4,
+      "scores": [
+        3,
+        3,
+        3,
+        3
+      ],
+      "evidence": "One authoritative migrate entry point with separate v1 conversion/v2 validation, strict keys and types, preserved metadata/order and real CLI idempotence/1000-row boundary harness. Harness independently reran: six assertions passed. Bounded quadratic duplicate scan, hardcoded test paths and leftover probe limit polish; no exceptional-score claim."
+    },
+    {
+      "task": 5,
+      "scores": [
+        3,
+        3,
+        3,
+        2
+      ],
+      "evidence": "One revise builder, exact parsed-object key validation, validation before write_file_atomic, encode once and print only after publication. Documents concurrency/crash durability limits and preserves failure fixtures. Twenty-two CLI case descriptions and disk postconditions are retained, but no executable assertion runner; CASES.md working-directory instruction is ambiguous. Comparable to previous guided atomic-save code."
+    },
+    {
+      "task": 6,
+      "scores": [
+        3,
+        3,
+        3,
+        2
+      ],
+      "evidence": "Saved partial artifact is complete and passes frozen checks despite HTTP 502 preventing delivery. Single exporter, strict is_bool, qualified dictionary cardinality, centralized quoting, retained JSON cases. Boundary harness checks first/last presence rather than actual order and incorrectly rejects n=0 despite advertising n<=1000; test assertions need strengthening. No frontier-level claim."
+    }
+  ],
+  "started_at": "2026-10-06T17:32:43.821Z",
+  "finished_at": "2026-10-06T18:05:44.894Z",
+  "tasks": [
+    {
+      "task": 1,
+      "delivered": true,
+      "repairs": 0,
+      "development": {
+        "checks": 2,
+        "passed": 2
+      },
+      "holdout": {
+        "checks": 11,
+        "passed": 11
+      },
+      "calls": [
+        {
+          "run_id": "feedback-t1-p0",
+          "summary": {
+            "total": 1,
+            "completed": 1,
+            "failed": 0,
+            "retry_count": 0,
+            "tool_calls_executed": 43,
+            "tool_input_repairs": 4,
+            "provider_rounds": 39,
+            "latency_ms_total": 538264,
+            "latency_samples": 1,
+            "token_use": {
+              "input_tokens": 1116022,
+              "output_tokens": 53779,
+              "total_tokens": 1169801
+            },
+            "transport_completion_rate": 1,
+            "task_completion_rate": null,
+            "repair_rate": 0.093,
+            "average_latency_ms": 538264
+          },
+          "usage_complete": true,
+          "cached_input_tokens": 667520,
+          "errors": []
+        }
+      ],
+      "review": {
+        "phase": "final",
+        "outcome": "inconclusive",
+        "reviews": 2,
+        "repairs": 1,
+        "deadline": 1791308509115,
+        "lastVerdict": {
+          "verdict": "inconclusive",
+          "findings": [
+            "Review submission rejected: invalid_verdict at verdict."
+          ],
+          "checks": [],
+          "diagnostic": {
+            "code": "invalid_verdict",
+            "field": "verdict"
+          }
+        }
+      }
+    },
+    {
+      "task": 2,
+      "delivered": false,
+      "repairs": 0,
+      "development": {
+        "checks": 2,
+        "passed": 1
+      },
+      "holdout": {
+        "checks": 10,
+        "passed": 2
+      },
+      "calls": [
+        {
+          "run_id": "feedback-t2-p0",
+          "summary": {
+            "total": 1,
+            "completed": 0,
+            "failed": 1,
+            "retry_count": 0,
+            "tool_calls_executed": 11,
+            "tool_input_repairs": 0,
+            "provider_rounds": 10,
+            "latency_ms_total": 179640,
+            "latency_samples": 1,
+            "token_use": {
+              "input_tokens": 136417,
+              "output_tokens": 16368,
+              "total_tokens": 152785
+            },
+            "transport_completion_rate": 0,
+            "task_completion_rate": null,
+            "repair_rate": 0,
+            "average_latency_ms": 179640
+          },
+          "usage_complete": false,
+          "cached_input_tokens": 53760,
+          "errors": [
+            "The provider connection ended without a completion marker. Partial output was preserved."
+          ]
+        }
+      ],
+      "review": {
+        "phase": "work",
+        "outcome": "not_requested",
+        "reviews": 0,
+        "repairs": 0,
+        "deadline": 0,
+        "lastVerdict": null
+      }
+    },
+    {
+      "task": 3,
+      "delivered": false,
+      "repairs": 0,
+      "development": {
+        "checks": 2,
+        "passed": 1
+      },
+      "holdout": {
+        "checks": 10,
+        "passed": 2
+      },
+      "calls": [
+        {
+          "run_id": "feedback-t3-p0",
+          "summary": {
+            "total": 1,
+            "completed": 0,
+            "failed": 1,
+            "retry_count": 0,
+            "tool_calls_executed": 5,
+            "tool_input_repairs": 0,
+            "provider_rounds": 4,
+            "latency_ms_total": 75436,
+            "latency_samples": 1,
+            "token_use": {
+              "input_tokens": 19965,
+              "output_tokens": 4391,
+              "total_tokens": 24356
+            },
+            "transport_completion_rate": 0,
+            "task_completion_rate": null,
+            "repair_rate": 0,
+            "average_latency_ms": 75436
+          },
+          "usage_complete": false,
+          "cached_input_tokens": 0,
+          "errors": [
+            "The provider connection ended without a completion marker. Partial output was preserved."
+          ]
+        }
+      ],
+      "review": {
+        "phase": "work",
+        "outcome": "not_requested",
+        "reviews": 0,
+        "repairs": 0,
+        "deadline": 0,
+        "lastVerdict": null
+      }
+    },
+    {
+      "task": 4,
+      "delivered": true,
+      "repairs": 0,
+      "development": {
+        "checks": 2,
+        "passed": 2
+      },
+      "holdout": {
+        "checks": 10,
+        "passed": 10
+      },
+      "calls": [
+        {
+          "run_id": "feedback-t4-p0",
+          "summary": {
+            "total": 1,
+            "completed": 1,
+            "failed": 0,
+            "retry_count": 0,
+            "tool_calls_executed": 39,
+            "tool_input_repairs": 4,
+            "provider_rounds": 29,
+            "latency_ms_total": 465855,
+            "latency_samples": 1,
+            "token_use": {
+              "input_tokens": 991142,
+              "output_tokens": 54475,
+              "total_tokens": 1045617
+            },
+            "transport_completion_rate": 1,
+            "task_completion_rate": null,
+            "repair_rate": 0.1026,
+            "average_latency_ms": 465855
+          },
+          "usage_complete": true,
+          "cached_input_tokens": 622720,
+          "errors": []
+        }
+      ],
+      "review": {
+        "phase": "final",
+        "outcome": "inconclusive",
+        "reviews": 1,
+        "repairs": 0,
+        "deadline": 1791309435862,
+        "lastVerdict": {
+          "verdict": "inconclusive",
+          "findings": [
+            "Review submission rejected: expected_array_max_12 at findings."
+          ],
+          "checks": [],
+          "diagnostic": {
+            "code": "expected_array_max_12",
+            "field": "findings"
+          }
+        }
+      }
+    },
+    {
+      "task": 5,
+      "delivered": true,
+      "repairs": 0,
+      "development": {
+        "checks": 3,
+        "passed": 3
+      },
+      "holdout": {
+        "checks": 9,
+        "passed": 9
+      },
+      "calls": [
+        {
+          "run_id": "feedback-t5-p0",
+          "summary": {
+            "total": 1,
+            "completed": 1,
+            "failed": 0,
+            "retry_count": 0,
+            "tool_calls_executed": 59,
+            "tool_input_repairs": 4,
+            "provider_rounds": 33,
+            "latency_ms_total": 368060,
+            "latency_samples": 1,
+            "token_use": {
+              "input_tokens": 1029160,
+              "output_tokens": 44181,
+              "total_tokens": 1073341
+            },
+            "transport_completion_rate": 1,
+            "task_completion_rate": null,
+            "repair_rate": 0.0678,
+            "average_latency_ms": 368060
+          },
+          "usage_complete": true,
+          "cached_input_tokens": 654080,
+          "errors": []
+        }
+      ],
+      "review": {
+        "phase": "final",
+        "outcome": "pass",
+        "reviews": 1,
+        "repairs": 0,
+        "deadline": 1791309840462,
+        "lastVerdict": {
+          "verdict": "pass",
+          "findings": [],
+          "checks": [
+            {
+              "result_ref": "call_bezlgo1l",
+              "claim": "Complete read of final main.kujo (92 lines): revise is the sole record builder; exact-key/type/range validation of SOURCE and PATCH_JSON plus conflict check all precede write_file_atomic(argv[1], encoded, true); print occurs only on ok; errors eprint {\"error\":NONEMPTY} and exit(1) with empty stdout."
+            },
+            {
+              "result_ref": "call_40zktts0",
+              "claim": "Final 22-case CLI run on source sha256 9842634c... with source_unchanged true: 22/22 passed, covering argc, source/patch key+type+range rejections (1000/-1/7.5), conflict, bad JSON, unwritable DEST (directory), missing parent, and SOURCE=DEST."
+            },
+            {
+              "result_ref": "call_4cb9rtli",
+              "claim": "Case-detail page of the final run confirms per-case exit codes match expectations (0 for 4 success cases, 1 for 18 error cases) with empty failures arrays."
+            },
+            {
+              "result_ref": "call_9e44b0lo",
+              "claim": "Post-run read shows tests/fixtures/dest_keep.json still contains KEEP-ME, so existing DEST bytes survived all 12 failure-case write attempts."
+            },
+            {
+              "result_ref": "call_216m2jbr",
+              "claim": "Post-run read shows source_same.json equals {\"label\":\"inplace\",\"meta\":{},\"revision\":4}, the ok_same_path output, confirming SOURCE=DEST publishes the correct record from pre-write bytes."
+            },
+            {
+              "result_ref": "call_2uj7kdo2",
+              "claim": "DECISIONS.md records compatibility, validation rules, atomicity and failure assumptions including the no-fsync claim, is_int integrality caveat, and fixture-reset note; CASES.md lists all 22 cases with expected outcomes."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "task": 6,
+      "delivered": false,
+      "repairs": 0,
+      "development": {
+        "checks": 2,
+        "passed": 2
+      },
+      "holdout": {
+        "checks": 9,
+        "passed": 9
+      },
+      "calls": [
+        {
+          "run_id": "feedback-t6-p0",
+          "summary": {
+            "total": 1,
+            "completed": 0,
+            "failed": 1,
+            "retry_count": 0,
+            "tool_calls_executed": 18,
+            "tool_input_repairs": 0,
+            "provider_rounds": 13,
+            "latency_ms_total": 343813,
+            "latency_samples": 1,
+            "token_use": {
+              "input_tokens": 326368,
+              "output_tokens": 37000,
+              "total_tokens": 363368
+            },
+            "transport_completion_rate": 0,
+            "task_completion_rate": null,
+            "repair_rate": 0,
+            "average_latency_ms": 343813
+          },
+          "usage_complete": false,
+          "cached_input_tokens": 201600,
+          "errors": [
+            "Provider returned HTTP 502"
+          ]
+        }
+      ],
+      "review": {
+        "phase": "work",
+        "outcome": "not_requested",
+        "reviews": 0,
+        "repairs": 0,
+        "deadline": 0,
+        "lastVerdict": null
+      }
+    }
+  ],
+  "audit_events": {
+    "state_write": 1,
+    "state_read": 6,
+    "state_changes_applied": 12,
+    "model_context_budget": 128,
+    "tool_completed": 164,
+    "tool_failed": 11,
+    "tool_input_repaired": 14,
+    "provider_http_failure": 1
+  },
+  "upstream_observations": [
+    {
+      "id": 8714,
+      "created_at": "1791308684306",
+      "model": "glm-5.3-flash:cloud",
+      "request_id": "chatcmpl-752",
+      "status": "success",
+      "latency_ms": 5502,
+      "finish_reason": "null",
+      "error_code": ""
+    },
+    {
+      "id": 8718,
+      "created_at": "1791308761084",
+      "model": "glm-5.3-flash:cloud",
+      "request_id": "chatcmpl-403",
+      "status": "success",
+      "latency_ms": 38322,
+      "finish_reason": "null",
+      "error_code": ""
+    },
+    {
+      "temporary_proxy": true,
+      "id": 1,
+      "created_at": "1791309944190",
+      "model": "glm-5.3-flash:cloud",
+      "request_id": "",
+      "status": "error",
+      "latency_ms": 30025,
+      "finish_reason": "",
+      "error_code": "network_error",
+      "error_message": "HTTP request failed to resolve network destination 'api.openai.com:443': failed to lookup address information: nodename nor servname provided, or not known"
+    }
+  ],
+  "totals": {
+    "deliveries": 3,
+    "tasks": 6,
+    "development_passed": 11,
+    "holdout_passed": 43,
+    "tokens": 3829268,
+    "input_tokens": 3619074,
+    "output_tokens": 210194,
+    "cached_input_tokens": 2199680,
+    "tools": 175,
+    "rounds": 128,
+    "elapsed_ms": 1971068,
+    "complete_usage_attempts": 3
+  },
+  "proxy_interference": {
+    "existing_pid": 1244,
+    "temporary_pid": 11301,
+    "temporary_started_at": "2026-10-06T18:04:58Z",
+    "port": 7700,
+    "temporary_database": "temporary kujo-cmd-watchdog runtime, distinct from live Watchdog database",
+    "matched_failure": "temporary DB request 1 at 1791309944190; 30025ms; network_error resolving api.openai.com:443",
+    "action": "SIGTERM temporary orphan PID 11301; existing PID 1244 retained; only original listener verified",
+    "limit": "Two earlier interruptions predate the temporary process and remain unexplained at transport-source level."
+  }
+}
