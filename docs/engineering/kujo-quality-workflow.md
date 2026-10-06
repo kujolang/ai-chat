@@ -192,3 +192,27 @@ examples, not full task solutions or a guarantee of correctness. The selected
 binary must still be qualified; no global prompt growth/default promotion is made.
 See [maintenance workflow](../../benchmarks/DEVELOPMENT.md#kujo-maintenance-with-independent-repair-feedback)
 for the provider-neutral experiment and calibration commands.
+
+### Repeated-read recovery and runtime facts
+
+The local-development tool loop now deduplicates unchanged complete read results
+at six consecutive reads and stops at twelve if no other tool progress occurs.
+This applies independently of optional engineering contracts/review. The latest
+full evidence remains in provider context; immutable originals remain accessible
+through `tool_result_read`. A stopped attempt is incomplete, not successful, and
+requires explicit operator resume. See the API contract for exclusions and state.
+
+Offline replay of a saved execution is available without inference:
+
+```sh
+node scripts/replay-read-progress.js /path/to/saved-execution.json
+```
+
+The file must contain `execution.checkpoint.messages` and `receipts`. Output is
+counts only; it does not print private model reasoning or predict token savings.
+
+The on-demand `types` guide now demonstrates `is_bool` and `len(keys(value))`.
+The known literal-dictionary length warning is scoped to the exact reproduced
+binary SHA and default backend, and only to relevant requested guide topics.
+This mitigates a runtime pitfall; it does not patch the sibling Kujo runtime or
+justify claims that all dictionaries lack `len` or booleans lack a predicate.

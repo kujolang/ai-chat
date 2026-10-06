@@ -102,3 +102,16 @@ test('maintenance examples do not claim qualification on an untested interpreter
  const r=await executeKujo({operation:'guide',topic:'presence'},{},f.deps);
  assert.equal(r.example,null);assert.equal(r.runtime.reference_verified,false);
 });
+
+test('dictionary parity guidance is scoped to the reproduced binary and requested topic',async()=>{
+ for(const [sha,backend,topic,warn] of [
+  ['2f9242613c497736f77c20fdb669a18b7c815e489e8a2e8cf5047ee75fd2e3e0','default','types',true],
+  ['other','default','types',false],
+  ['2f9242613c497736f77c20fdb669a18b7c815e489e8a2e8cf5047ee75fd2e3e0','interpreter','types',false],
+  ['2f9242613c497736f77c20fdb669a18b7c815e489e8a2e8cf5047ee75fd2e3e0','default','core',false]]) {
+  const f=fixture({version:'kujo 1.7.0'}),run=f.deps.runCommand;
+  f.deps.runCommand=async a=>({...await run(a),kujo_runtime:{sha256:sha,backend}});
+  const r=await executeKujo({operation:'guide',topic},{},f.deps);
+  assert.equal(r.runtime.warnings.some(w=>w.includes('representation-specific')),warn);
+ }
+});
