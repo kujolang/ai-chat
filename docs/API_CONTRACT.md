@@ -645,6 +645,7 @@ these deltas if they archive the complete multi-phase output; ordinary `token` a
 review/repair status and leaves detailed review content in the execution journal.
 `done.engineering_review` reports the final advisory status;
 `done.review_text` and `done.review_thinking_text` contain complete review deltas.
+
 Usage and provider-round counters include reviewer and repair requests. Older
 clients can ignore the additive event and metadata. Worker output is never
 retroactively deleted or replaced. Unresolved/inconclusive review status is also
@@ -655,6 +656,47 @@ Review state is checkpointed for explicit resume. Completed execution replay
 returns the saved result without starting another review. Detailed events remain
 available through the existing execution event API, including if a reviewer is
 cancelled before producing a verdict.
+
+### Live code-diff events
+
+When an authorized `local_file_write` completes, or native Codex reports a
+`file_change`, the stream emits an additive `diff` event. Its `diffs` object is
+the current turn-scoped change set relative to the first observed contents of
+each file:
+
+```json
+{
+  "version": 1,
+  "files": [{
+    "path": "public/app.js",
+    "status": "modified",
+    "source": "local_file_write",
+    "additions": 2,
+    "deletions": 1,
+    "hunks": [{
+      "old_start": 10,
+      "old_lines": 4,
+      "new_start": 10,
+      "new_lines": 5,
+      "lines": [{ "type": "context", "content": "..." }]
+    }],
+    "binary": false,
+    "truncated": false
+  }],
+  "totals": { "files": 1, "additions": 2, "deletions": 1 },
+  "truncated": false
+}
+```
+
+The event may contain an empty `files` array when later work reverts every
+observed change; clients must clear their prior preview in that case. The final
+`done.code_diffs` repeats the latest bounded snapshot. The browser stores a
+non-empty snapshot in the assistant message's `usage.code_diffs`, so each pane
+retains its own review surface after reload. Preview capture is limited to 48
+files, 512 KiB per text version, 2 MiB retained text, and 4,000 rendered lines.
+Binary, oversized, symlink-escaping, and sensitive-path content is never placed
+in the preview. Diff presentation is observational: it does not alter tool
+authorization, execution receipts, reconciliation requirements, or the files.
 
 ### Engineering verification and task budgets
 

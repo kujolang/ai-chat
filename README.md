@@ -60,6 +60,7 @@ This project is for end users and teams who want one local web app to:
 - Streaming and thinking UI
 	- Live assistant text streaming via SSE
 	- Thinking/reasoning deltas shown when available
+	- Live, per-pane code diffs for native Codex file changes and provider-neutral local file writes, with responsive unified/split review, line numbers, intraline emphasis, file statistics, and patch copy
 - Agent instructions
 	- Keep explicit chat constraints and decisions in Saved notes, independent of transcript compaction and shared by the chat's panes
 	- Apply the repository-owned, non-editable system prompt from `SYSTEM_PROMPT.md` to every model request; change it only by editing that Markdown file and restarting the server
