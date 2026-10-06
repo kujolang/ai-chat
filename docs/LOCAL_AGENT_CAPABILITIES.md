@@ -96,15 +96,15 @@ Use this list when adding additional action classes:
 
 ## Current Limitations
 
-- There is no arbitrary MCP or plugin bridge yet. Add each connector as a separate server-side adapter with the checklist above.
-- Action adapters are the supported bridge for MCP/plugin/document actions. AI Chat does not broker OAuth, secrets, or plugin credentials; the local adapter service owns those concerns.
+- Native MCP supports validated executable stdio servers and HTTPS or loopback HTTP endpoints with encrypted bearer credentials. Interactive OAuth authorization, resource templates, prompts, and subscriptions are not yet exposed.
+- Action adapters remain the supported narrow compatibility path for custom document/workflow services and connector-specific authentication.
 - Shell commands are intentionally allowlisted. Add `kujo`, `go` (and any other required executable such as `npm`) to `AI_CHAT_LOCAL_SHELL_ALLOWLIST` only for a trusted workspace.
 - The Kujo interpreter is resolved through `KUJO_BIN` (absolute path to the compiled binary) and `AI_SDK_PATH` (directory containing `ai_sdk.kujo` and `providers.kujo`). See `docs/KUJO_EXECUTION_SETUP.md` for build, wiring, and smoke-test steps.
 - Native provider harnesses retain their own approval policy. AI Chat's approval
   cards govern actions dispatched by its provider-neutral tool runtime.
 
-Native MCP/plugin management remains specified as HR-08 in
-`docs/HARNESS_PRODUCT_ROADMAP.md`.
+Native MCP/plugin management is documented in the API contract and tracked as
+implemented under HR-08 in `docs/HARNESS_PRODUCT_ROADMAP.md`.
 
 ## Read Continuation Contract
 

@@ -1,14 +1,14 @@
 # Agent Harness Product Roadmap
 
-Status: HR-01 through HR-07 implemented; remaining items are planned work.
+Status: HR-01 through HR-10 implemented.
 
-Baseline reviewed: 2026-10-06 on `codex/diff-viewer` at `730dcff`.
+Baseline reviewed: 2026-10-06 on `codex/diff-viewer` at `6599378`.
 
 AI Chat already has durable chats, multi-pane model comparison, multi-chat tabs,
 streaming, saved execution review and resume, bounded provider-neutral tools,
-live code diffs, scheduled automations, and usage reporting. The next product
-round should focus on supervising, redirecting, isolating, inspecting, and
-recovering agent work.
+live code diffs, scheduled automations, usage reporting, scoped extensions, an
+attention inbox, and a command palette. This record preserves the delivery
+contract and acceptance evidence for all ten completed harness rounds.
 
 ## How to use this roadmap
 
@@ -317,7 +317,7 @@ and cross-chat authorization/redaction fixtures in
 ## HR-08 — Native MCP and plugin management
 
 **Priority:** 8  
-**Status:** Planned  
+**Status:** Implemented
 **Depends on:** HR-01 approvals, tool discovery, encrypted connection storage
 
 ### Outcome
@@ -343,10 +343,20 @@ and plugins without hand-writing one action adapter per capability.
 - Approval rules apply equally to built-in, MCP, plugin, and adapter actions.
 - Secrets never enter chat state, audit arguments, exported chats, or browser JS.
 
+### Completion evidence — 2026-10-06
+
+- Commits: `30c41b6`, `6599378`
+- Data/API contract: encrypted `mcp_servers` records, per-chat `mcp_chat_scopes`, authenticated management routes, and bounded provider-neutral list/call/read tools.
+- Unit/route/browser verification: `tests/harness-rounds.test.js` and focused route coverage in `tests/server-routes.test.js`.
+- Security and failure-path verification: unenabled and unscoped entries fail closed; credentials are never projected; stdio executables, HTTPS/loopback URLs, cancellation, timeouts, and result bytes are bounded.
+- Migration/rollback verification: additive SQLite tables/columns initialize existing databases; deleting a connection revokes its chat scopes; code rollback leaves inert extension tables.
+- Documentation updated: README, changelog, setup, API contract, capability and production-hardening manuals.
+- Known limits: HTTP authentication is bearer-token based; interactive OAuth authorization and MCP resource templates are not exposed in this slice.
+
 ## HR-09 — Attention inbox and notifications
 
 **Priority:** 9  
-**Status:** Planned  
+**Status:** Implemented
 **Depends on:** normalized attention events from HR-01 and HR-04
 
 ### Outcome
@@ -369,10 +379,20 @@ Users can find every chat that needs attention without opening tabs one by one.
 - Notification denial leaves the in-app inbox fully usable.
 - No notification body includes secrets, command arguments, or hidden content.
 
+### Completion evidence — 2026-10-06
+
+- Commits: `30c41b6`, `6599378`
+- Data/API contract: durable deduplicated `attention_events` plus authenticated list/read/resolve routes.
+- Unit/route/browser verification: store lifecycle coverage, route-contract coverage, and app UI assertions.
+- Security and failure-path verification: notification copy is generic; notification denial does not affect the inbox; reconnect/replay dedupes by stable source identity.
+- Migration/rollback verification: the additive table is safe on existing databases and can remain inert after code rollback.
+- Documentation updated: README, changelog, setup and API contract.
+- Known limits: completion/question classification uses terminal provider output when no structured provider signal exists.
+
 ## HR-10 — Command palette and configurable shortcuts
 
 **Priority:** 10  
-**Status:** Planned  
+**Status:** Implemented
 **Depends on:** stable commands from the preceding features
 
 ### Outcome
@@ -396,6 +416,16 @@ not available.
 - Shortcut conflicts and reserved browser/OS combinations are reported.
 - Keyboard-only browser tests cover open, search, execute, dismiss, and focus
   restoration at desktop and narrow widths.
+
+### Completion evidence — 2026-10-06
+
+- Commit: `6599378`
+- Data/API contract: browser-local shortcut preferences only; commands call existing application actions and server contracts.
+- Unit/route/browser verification: actual Chromium coverage opens, searches, executes, dismisses, and restores focus at desktop and narrow widths.
+- Security and failure-path verification: disabled reasons are visible, conflicts/reserved combinations fail validation, and destructive commands retain their normal confirmation flow.
+- Migration/rollback verification: shortcut storage is optional and resettable; removing the UI leaves server state unchanged.
+- Documentation updated: README, changelog and setup guide.
+- Known limits: shortcut preferences are browser-local rather than synchronized app settings.
 
 ## Implementation contract checklist
 

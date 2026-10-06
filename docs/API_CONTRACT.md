@@ -36,6 +36,14 @@ Current endpoints:
 - `DELETE /api/chats/:chatId/attachments/:attachmentId`
 - `GET /api/chats/:chatId/execution-artifacts`
 - `GET /api/chats/:chatId/execution-artifacts/:executionId/:callId`
+- `GET|POST /api/mcp/servers`
+- `PUT|DELETE /api/mcp/servers/:serverId`
+- `POST /api/mcp/servers/:serverId/enabled`
+- `POST /api/mcp/servers/:serverId/discover`
+- `PUT /api/chats/:chatId/mcp/:serverId`
+- `GET /api/attention`
+- `POST /api/attention/:eventId/read`
+- `POST /api/attention/:eventId/resolve`
 
 ## 2. Authentication Contract
 
@@ -782,6 +790,47 @@ common credential shapes. `GET
 retained result only when the execution belongs to that chat. Clients may offer
 open, copy, and download for that returned text; unavailable or expired evidence
 remains visibly unavailable and is not re-executed automatically.
+
+### Native MCP and plugin connections
+
+`POST /api/mcp/servers` creates and `PUT /api/mcp/servers/:serverId` updates a
+validated server record. `transport` is `stdio` or `http`: stdio requires an
+existing absolute executable plus a bounded string `args` array; HTTP requires
+HTTPS or loopback HTTP and accepts an optional `auth_token` bearer credential.
+Credentials are encrypted server-side. Responses expose only safe endpoint
+labels, publisher/source, declared scopes, credential presence, tool/resource
+metadata, last check time, and sanitized last error. Raw commands, arguments,
+URLs, and tokens are not returned.
+
+New connections are disabled unless explicitly enabled through `POST
+/api/mcp/servers/:serverId/enabled`. `POST
+/api/mcp/servers/:serverId/discover` performs bounded `tools/list` and optional
+`resources/list` discovery with cancellation and health recording. `PUT
+/api/chats/:chatId/mcp/:serverId` stores an `enabled` flag plus allowlisted
+`tool_names` and `resource_uris`; undiscovered names are discarded. Disabled
+servers and entries outside that exact chat scope are absent from
+`mcp_server_list` and fail closed in `mcp_tool_call` or `mcp_resource_read`.
+External tool calls use the generic interactive approval contract. Results and
+transport responses are limited to 256 KiB and 15 seconds. Deleting a server
+removes its chat grants. Action adapters remain an independent compatibility
+path. HTTP bearer authentication is supported; interactive OAuth and resource
+templates are not part of this contract.
+
+### Attention events
+
+`GET /api/attention` lists durable normalized events with optional `status` and
+`kind` filters and returns the global open unread count. Supported kinds are
+`approval_needed`, `question_asked`, `task_failed`, `task_completed`, and
+`conflict_required`. Records contain opaque IDs, source chat/pane/source IDs,
+generic titles, status, unread state, and timestamps—not provider bodies,
+arguments, credentials, or hidden reasoning.
+
+`POST /api/attention/:eventId/read` sets read state (`{"read": false}` marks it
+unread); `POST /api/attention/:eventId/resolve` resolves it. Stable source keys
+deduplicate reconnect/reload updates. Approval decisions and a new response to
+an agent question resolve their matching authoritative attention state. Desktop
+notification preferences and command shortcuts are browser-local UI state and
+are not API contract fields.
 
 ### Engineering verification and task budgets
 

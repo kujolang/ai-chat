@@ -346,6 +346,20 @@ The Action Adapter presets bridge document, MCP, plugin, or workflow actions thr
 
 Set `AI_CHAT_ACTIONS_ENABLED=1` and `AI_CHAT_ACTION_MANIFEST_PATH=/absolute/path/to/actions.json`. Adapter URLs must be loopback `http://127.0.0.1`, `http://localhost`, or equivalent IPv6 loopback URLs; AI Chat does not forward credentials or arbitrary headers. The adapter service owns its own authentication, OAuth, plugin credentials, MCP sessions, document libraries, and side-effect policy.
 
+For native MCP, open **MCP & Plugins** in the app header. Add either an existing
+absolute executable for local stdio or an HTTPS endpoint (loopback HTTP is also
+accepted), plus an optional bearer token. Save, refresh discovery, enable the
+connection, then select the exact tools and resources authorized for the active
+chat. Tokens are encrypted in SQLite and never returned to the browser. Removing
+or disabling the connection revokes execution; per-chat selections are deny-by-
+default. External MCP tool calls use the normal interactive approval flow.
+
+The header also exposes the durable **Attention inbox** and **Command palette**.
+Desktop notifications are optional and keep generic copy; their event filters,
+quiet hours, and command shortcuts are browser-local preferences. `Ctrl/Cmd+K`
+opens the palette by default, and the shortcut editor detects conflicts and
+reserved browser/OS combinations.
+
 Set `BROWSER_ENABLED=1` after installing Chromium to enable `browser_open`, `browser_snapshot`, `browser_act`, `browser_close`, and the saved-chat compatibility adapter `browser_use`. Health and Settings show browser presets as unavailable when the executable is missing, rather than forwarding a schema that cannot run. If startup can find Playwright but a tool call cannot launch Chromium, the tool returns `browser_not_configured` with the installation command.
 
 Browser sessions use a fresh context without the user's browser profile and are scoped to the requesting pane (or chat when no pane is supplied). The runtime limits sessions, actions, lifetime, navigation time, extracted text, result payloads, screenshots, approval lifetime, and cached snapshot reuse; expired/abandoned sessions and shutdown resources are closed automatically. Only HTTP/HTTPS public destinations are allowed. DNS results are pinned for each intercepted request, redirects are revalidated, and localhost, private/link-local/multicast, metadata, unsafe-scheme, download, file, arbitrary-JavaScript, and network-write paths fail closed. `BROWSER_ALLOWED_HOSTS` can optionally restrict navigation to specific public domains/subdomains without creating a private-network bypass.

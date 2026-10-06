@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Add server-side MCP/plugin connections over validated local stdio and authenticated HTTP, with encrypted bearer credentials, bounded lazy tool/resource discovery, per-chat authorization, health status, and normal interactive approvals for external tool calls.
+- Add a durable cross-chat attention inbox for approvals, questions, failures, completions, and reconciliation conflicts, plus generic optional desktop notifications with event controls and quiet hours.
+- Add a searchable keyboard-first command palette for common chat, model, plan, permission, checkpoint, context, review, artifact, and inbox actions, including configurable shortcuts, reserved-key/conflict feedback, and reset defaults.
 - Finalize failed read-only tool receipts so interrupted runs do not demand false reconciliation; halt when an action may have succeeded before its result was lost instead of letting the model claim failure.
 - Keep authorized local file listing directly callable when request-scoped tool discovery is enabled, avoiding terminal authorization errors during ordinary workspace browsing.
 - Reduce excessive output reservations when needed to fit protected requests or completed tool receipts; keep impossible requests rejected before provider dispatch.
