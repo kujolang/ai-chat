@@ -11,6 +11,9 @@ identity/access controls, and operational monitoring.
 - [ ] Bump version in `package.json`.
 - [ ] Add release entry in `CHANGELOG.md`.
 - [ ] Identify contract-impacting changes and confirm docs were updated.
+- [ ] For a shipped roadmap item, add completion evidence to
+      `docs/HARNESS_PRODUCT_ROADMAP.md` and update its status without presenting
+      incomplete slices as finished features.
 
 ## 2. Quality Gates
 

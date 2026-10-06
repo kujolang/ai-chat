@@ -93,6 +93,18 @@ This project is for end users and teams who want one local web app to:
 
 Use the app as a clear boundary for chat workflows, not as a promise of correctness.
 
+## Product Roadmap
+
+The next harness round is defined in
+[`docs/HARNESS_PRODUCT_ROADMAP.md`](docs/HARNESS_PRODUCT_ROADMAP.md). It covers
+interactive approvals, actionable diff review, checkpoints, plan/steering UI,
+worktree isolation, attachments, structured execution artifacts, native
+MCP/plugin management, attention notifications, and a command palette.
+
+Roadmap entries are planned work, not shipped behavior. The roadmap includes
+dependencies, safety constraints, acceptance evidence, and the documentation
+updates required before any item can be marked complete.
+
 ## Requirements
 
 - Node.js 22.17.0 (use `nvm use`; this repo includes `.nvmrc`)
@@ -123,6 +135,7 @@ Use the app as a clear boundary for chat workflows, not as a promise of correctn
 	- `scripts/smoke-test.js`
 - Review and release references
 	- `docs/API_CONTRACT.md`
+	- `docs/HARNESS_PRODUCT_ROADMAP.md`
 	- `docs/RELEASE_CHECKLIST.md`
 	- `docs/SECURITY_HARDENING_CHECKLIST.md`
 	- `docs/SECURITY_OPERATIONS.md`

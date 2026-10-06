@@ -98,6 +98,10 @@ Use this list when adding additional action classes:
 - The Kujo interpreter is resolved through `KUJO_BIN` (absolute path to the compiled binary) and `AI_SDK_PATH` (directory containing `ai_sdk.kujo` and `providers.kujo`). See `docs/KUJO_EXECUTION_SETUP.md` for build, wiring, and smoke-test steps.
 - The tool runtime does not perform interactive command approval prompts yet. Keep write and shell switches off except in workspaces where model-initiated local actions are acceptable.
 
+Planned interactive approvals and native MCP/plugin management are specified as
+HR-01 and HR-08 in `docs/HARNESS_PRODUCT_ROADMAP.md`. Those roadmap entries do
+not change the current limitations above.
+
 ## Read Continuation Contract
 
 Start at `offset=1`, `column=1`. When `truncated=true`, pass the returned `next_offset` and `next_column` unchanged to the next call. `complete=true` means the entire file was returned from its beginning; per-line clamping sets `truncated=true` and returns the exact line/column continuation both at the top level and in `meta.clamped_lines`. Empty files and offsets beyond EOF return notes rather than ambiguous silence. A repeated unchanged window may return a short consume-on-hit dedup note; retrying once returns the content again.

@@ -1,5 +1,9 @@
 # Artifact, Agent, and Rendering Design
 
+Roadmap relationship: attachment/context delivery is tracked as HR-06 and the
+structured artifact rail as HR-07 in `docs/HARNESS_PRODUCT_ROADMAP.md`. This
+document defines the current design constraints those roadmap items must retain.
+
 ## Large research input and uploads
 
 Chat accepts a single pasted message up to the server's aggregate request limit
@@ -8,8 +12,8 @@ currently receives the same text-only `messages` contract, so silently replacing
 paste with a server-only attachment would make the model lose the supplied
 context.
 
-A future upload feature must introduce an `artifacts` table and explicit message
-parts rather than overload `content`:
+A future upload feature under HR-06 must introduce an `artifacts` table and
+explicit message parts rather than overload `content`:
 
 ```json
 {"type":"artifact_ref","artifact_id":"...","name":"research.md","mime_type":"text/markdown","text_excerpt":"..."}
