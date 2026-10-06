@@ -33,7 +33,9 @@ server {
     location / {
         proxy_pass http://127.0.0.1:4173;
         proxy_set_header Host $host;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        # Overwrite any client-supplied chain; AI Chat's documented topology
+        # has exactly one trusted reverse-proxy hop.
+        proxy_set_header X-Forwarded-For $remote_addr;
         proxy_set_header X-Forwarded-Proto $scheme;
 
         proxy_connect_timeout 10s;
@@ -86,7 +88,7 @@ TRUST_PROXY=1
 
 If traffic is fully internal, still set explicit allowlists rather than leaving defaults broad.
 
-Leave `TRUST_PROXY=0` when serving AI Chat directly. Enable it only behind a trusted reverse proxy so HSTS detection, origin fallback checks, audit IPs, and rate-limit keys can safely use `X-Forwarded-*` headers.
+Leave `TRUST_PROXY=0` when serving AI Chat directly. Enable it only behind a trusted reverse proxy that overwrites inbound `X-Forwarded-*` values. The example above uses `$remote_addr` instead of `$proxy_add_x_forwarded_for` so an attacker cannot prepend an address that becomes an audit identity or rate-limit key.
 
 ## 5. SIEM Forwarding Example
 
