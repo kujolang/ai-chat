@@ -558,6 +558,12 @@ unavailable.
 Use `--title-prefix` when benchmark chats need a sortable run identifier; the
 runner appends a three-digit test number, for example `RND005TST001`.
 
+For a lower-budget builder followed by an OpenAI review versus OpenAI-only
+implementation, use the [hybrid Kujo comparison protocol](benchmarks/kujo-hybrid-protocol.md).
+Its preflight makes no model requests; live runs use a separate database and
+ephemeral server port, preserve draft/final artifacts, and report frontier usage
+separately from total workflow usage.
+
 Run smoke tests (server must already be running):
 
 ```bash
