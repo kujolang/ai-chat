@@ -144,3 +144,12 @@ independent review support it.
   one existing platform skip. Log: `/tmp/hybrid-full-final.log`.
 - Live model comparison and independent source grading have **not** run. This
   receipt verifies the experiment setup, not a savings or quality result.
+
+The isolated child also opts into benchmark-only Codex instruction overrides:
+`project_doc_max_bytes=0`, `skills.include_instructions=false`, and a scoped
+`developer_instructions` value. These prevent personal AGENTS/skill instructions
+from adding memory, publishing, or unrelated work to the measurement. They do
+not replace Codex's base instructions or sandbox. Interactive instances ignore
+the opt-in flag. These are documented in the [official Codex config schema](https://learn.chatgpt.com/docs/config-schema.json).
+Prompt boundaries still are not OS isolation; inspect execution evidence for
+out-of-scope reads before treating a run as valid.

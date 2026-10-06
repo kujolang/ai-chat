@@ -49,6 +49,7 @@ function startInstance(root, binary, sha) {
   DB_PATH:path.join(root,'benchmark.db'),DB_BACKUP_DIR:path.join(root,'backups'),AUDIT_LOG_PATH:path.join(root,'audit.log'),
   AI_CHAT_AGENT_KUJO_BIN:binary,AI_CHAT_AGENT_KUJO_SHA256:sha,
   CODEX_SANDBOX_MODE:'workspace-write',
+  AI_CHAT_BENCHMARK_ISOLATE_CODEX_INSTRUCTIONS:'1',
   // The explicit frontier stage is the review treatment. Avoid a hidden second
   // in-app model reviewer on one route but not the native Codex route.
   ENGINEERING_REVIEW_ENABLED:'0',ENGINEERING_CONTRACT_ENABLED:'0',KUJO_GROUNDING_MODE:'compact',
