@@ -59,6 +59,13 @@ const hydratingChatIds = new Set();
 let codeHighlightScheduled = false;
 const pendingCodeHighlightRoots = new Set();
 const browserArtifactImageUrls = new Map();
+const composerAttachmentsByChat = new Map();
+let artifactRailFilter = "all";
+let attentionFilter = "";
+let attentionEvents = [];
+let mcpServers = [];
+let commandPaletteReturnFocus = null;
+const notifiedAttentionIds = new Set();
 let screenshotGalleryArtifacts = [];
 let screenshotGalleryIndex = 0;
 const apiTokenStorageKey = "ai_chat_api_token";
@@ -73,16 +80,19 @@ const sidebarCollapsedStorageKey = "ai_chat_sidebar_collapsed_v1";
 const sidebarSectionsStorageKey = "ai_chat_sidebar_sections_v1";
 const paneInfoVisibleStorageKey = "ai_chat_pane_info_visible_v3";
 const languagePickerVisibleStorageKey = "ai_chat_language_picker_visible_v1";
-const usageSummaryVisibleStorageKey = "ai_chat_usage_summary_visible_v1";
 const collapsedProvidersStorageKey = "ai_chat_collapsed_providers_v1";
 const collapsedToolsStorageKey = "ai_chat_collapsed_tools_v1";
 const collapsedAgentInstructionsStorageKey = "ai_chat_collapsed_agent_instructions_v1";
+const openChatTabsStorageKey = "ai_chat_open_chat_tabs_v1";
+const commandShortcutsStorageKey = "ai_chat_command_shortcuts_v1";
+const notificationSettingsStorageKey = "ai_chat_notification_settings_v1";
 const stateChangesBatchBytes = 512 * 1024;
 const streamingPersistDebounceMs = 1500;
 const streamingPersistCharThreshold = 4096;
 const streamInactivityTimeoutMs = 90000;
 const composerPasteSoftLimitChars = 120000;
 const maxVisibleProjectFolders = 5;
+const maxOpenChatTabs = 16;
 const sidebarChatPageSize = 20;
 const defaultApiTokenTtlDays = 3650;
 const maxApiTokenTtlDays = 36500;
@@ -91,7 +101,7 @@ let sidebarCollapsed = loadSidebarCollapsedPreference();
 let sidebarSectionVisibility = loadSidebarSectionVisibilityPreference();
 let paneInfoVisible = loadBooleanPreference(paneInfoVisibleStorageKey, false);
 let languagePickerVisible = loadBooleanPreference(languagePickerVisibleStorageKey, true);
-let usageSummaryVisible = loadBooleanPreference(usageSummaryVisibleStorageKey, false);
+let usageSummaryVisible = false;
 const sendButtonSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z\"/><path d=\"m21.854 2.147-10.94 10.939\"/></svg>";
 const stopButtonSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect width=\"14\" height=\"14\" x=\"5\" y=\"5\" rx=\"2\"/></svg>";
 const collapseSidebarSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect width=\"18\" height=\"18\" x=\"3\" y=\"3\" rx=\"2\"/><path d=\"M9 3v18\"/><path d=\"m15 9-3 3 3 3\"/></svg>";
@@ -103,6 +113,8 @@ const chevronLeftSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" h
 const chevronRightSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m9 18 6-6-6-6\"/></svg>";
 const chevronDownSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m6 9 6 6 6-6\"/></svg>";
 const copyCodeButtonSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"code-copy-icon\" aria-hidden=\"true\"><rect width=\"14\" height=\"14\" x=\"8\" y=\"8\" rx=\"2\" ry=\"2\"/><path d=\"M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2\"/></svg>";
+const chatTabIconSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z\"/></svg>";
+const chatTabCloseSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m18 6-12 12\"/><path d=\"m6 6 12 12\"/></svg>";
 let apiAuthToken = "";
 let apiAuthTokenExpiresAt = 0;
 let usageLedger = loadUsageLedgerFromStorage();
@@ -135,12 +147,16 @@ let activeSettingsPointerDrag = null;
 let collapsedProviderIds = loadCollapsedProviderIds();
 let collapsedToolIds = loadCollapsedToolIds();
 let collapsedAgentInstructionIds = loadCollapsedAgentInstructionIds();
+let openChatTabIds = loadOpenChatTabIds();
 loadApiAuthTokenFromStorage();
 
 const nodes = {
 	newChatBtn: document.getElementById("new-chat-btn"),
 	openSearchBtn: document.getElementById("open-search-btn"),
 	openPluginsBtn: document.getElementById("open-plugins-btn"),
+	openAttentionBtn: document.getElementById("open-attention-btn"),
+	attentionCount: document.getElementById("attention-count"),
+	openCommandPaletteBtn: document.getElementById("open-command-palette-btn"),
 	openAutomationsBtn: document.getElementById("open-automations-btn"),
 	showActiveBtn: document.getElementById("show-active-btn"),
 	showArchivedBtn: document.getElementById("show-archived-btn"),
@@ -151,10 +167,19 @@ const nodes = {
 	chatList: document.getElementById("chat-list"),
 	mobileSidebarToggleBtn: document.getElementById("mobile-sidebar-toggle-btn"),
 	chatTitleInput: document.getElementById("chat-title-input"),
+	chatTabBar: document.getElementById("chat-tab-bar"),
+	chatTabs: document.getElementById("chat-tabs"),
+	newChatTabBtn: document.getElementById("new-chat-tab-btn"),
 	copyChatIdBtn: document.getElementById("copy-chat-id-btn"),
 	chatWatchdogBtn: document.getElementById("chat-watchdog-btn"),
 	exportChatBtn: document.getElementById("export-chat-btn"),
 	openPaneProfilesBtn: document.getElementById("open-pane-profiles-btn"),
+	chatWorkspaceMode: document.getElementById("chat-workspace-mode"),
+	chatWorkspaceActionsBtn: document.getElementById("chat-workspace-actions-btn"),
+	openArtifactRailBtn: document.getElementById("open-artifact-rail-btn"),
+	artifactRail: document.getElementById("artifact-rail"),
+	closeArtifactRailBtn: document.getElementById("close-artifact-rail-btn"),
+	artifactRailContent: document.getElementById("artifact-rail-content"),
 	paneControls: document.getElementById("pane-controls"),
 	togglePaneInfoBtn: document.getElementById("toggle-pane-info-btn"),
 	toggleSidebarBtn: document.getElementById("toggle-sidebar-btn"),
@@ -162,6 +187,11 @@ const nodes = {
 	openSettingsBtn: document.getElementById("open-settings-btn"),
 	paneGrid: document.getElementById("pane-grid"),
 	composerInput: document.getElementById("composer-input"),
+	composerAttachmentInput: document.getElementById("composer-attachment-input"),
+	composerFolderInput: document.getElementById("composer-folder-input"),
+	composerAttachmentBtn: document.getElementById("composer-attachment-btn"),
+	composerFolderBtn: document.getElementById("composer-folder-btn"),
+	composerAttachmentChips: document.getElementById("composer-attachment-chips"),
 	composerTokenSummary: document.getElementById("composer-token-summary"),
 	toggleUsageSummaryBtn: document.getElementById("toggle-usage-summary-btn"),
 	usageSummaryDetails: document.getElementById("usage-summary-details"),
@@ -169,6 +199,8 @@ const nodes = {
 	composerProfileSelect: document.getElementById("composer-profile-select"),
 	retrievalLanguage: document.getElementById("retrieval-language"),
 	sendBtn: document.getElementById("send-btn"),
+	stopStreamBtn: document.getElementById("stop-stream-btn"),
+	composerSteeringMode: document.getElementById("composer-steering-mode"),
 	voiceBtn: document.getElementById("voice-btn"),
 	voiceStatus: document.getElementById("voice-status"),
 	settingsModal: document.getElementById("settings-modal"),
@@ -194,6 +226,32 @@ const nodes = {
 	closePluginsBtn: document.getElementById("close-plugins-btn"),
 	pluginsModalContent: document.getElementById("plugins-modal-content"),
 	pluginsOpenSettingsBtn: document.getElementById("plugins-open-settings-btn"),
+	mcpServerForm: document.getElementById("mcp-server-form"),
+	mcpServerId: document.getElementById("mcp-server-id"),
+	mcpServerName: document.getElementById("mcp-server-name"),
+	mcpServerKind: document.getElementById("mcp-server-kind"),
+	mcpServerTransport: document.getElementById("mcp-server-transport"),
+	mcpServerEndpoint: document.getElementById("mcp-server-endpoint"),
+	mcpServerPublisher: document.getElementById("mcp-server-publisher"),
+	mcpServerSource: document.getElementById("mcp-server-source"),
+	mcpServerScopes: document.getElementById("mcp-server-scopes"),
+	mcpServerArgs: document.getElementById("mcp-server-args"),
+	mcpServerToken: document.getElementById("mcp-server-token"),
+	mcpServerStatus: document.getElementById("mcp-server-status"),
+	attentionModal: document.getElementById("attention-modal"),
+	closeAttentionBtn: document.getElementById("close-attention-btn"),
+	attentionList: document.getElementById("attention-list"),
+	desktopNotificationsEnabled: document.getElementById("desktop-notifications-enabled"),
+	notificationQuietStart: document.getElementById("notification-quiet-start"),
+	notificationQuietEnd: document.getElementById("notification-quiet-end"),
+	notificationEventTypes: document.getElementById("notification-event-types"),
+	commandPalette: document.getElementById("command-palette"),
+	closeCommandPaletteBtn: document.getElementById("close-command-palette-btn"),
+	commandPaletteSearch: document.getElementById("command-palette-search"),
+	commandPaletteResults: document.getElementById("command-palette-results"),
+	shortcutEditorList: document.getElementById("shortcut-editor-list"),
+	resetShortcutsBtn: document.getElementById("reset-shortcuts-btn"),
+	shortcutEditorStatus: document.getElementById("shortcut-editor-status"),
 	projectFolderModal: document.getElementById("project-folder-modal"),
 	confirmationModal: document.getElementById("confirmation-modal"),
 	confirmationModalTitle: document.getElementById("confirmation-modal-title"),
@@ -311,6 +369,9 @@ async function bootstrap() {
 	}
 	setupSpeechRecognition();
 	setupWhisperRecorder();
+	loadNotificationSettings();
+	void loadAttention({ quiet: true });
+	window.setInterval(() => void loadAttention({ quiet: true }), 15000);
 }
 
 async function loadRuntimeCapabilities() {
@@ -724,6 +785,50 @@ function wireEvents() {
 		event.preventDefault();
 		createAndActivateChat();
 	});
+	nodes.newChatTabBtn.addEventListener("click", () => createAndActivateChat());
+	nodes.chatTabs.addEventListener("click", (event) => {
+		const closeButton = event.target.closest("[data-close-chat-tab]");
+		if (closeButton) {
+			event.stopPropagation();
+			void closeChatTab(closeButton.getAttribute("data-close-chat-tab"));
+			return;
+		}
+		const tab = event.target.closest("[role='tab'][data-chat-tab-id]");
+		if (tab) void activateChat(tab.getAttribute("data-chat-tab-id"), { persist: false, focusTab: true });
+	});
+	nodes.chatTabs.addEventListener("auxclick", (event) => {
+		if (event.button !== 1) return;
+		const tab = event.target.closest("[role='tab'][data-chat-tab-id]");
+		if (!tab) return;
+		event.preventDefault();
+		void closeChatTab(tab.getAttribute("data-chat-tab-id"));
+	});
+	nodes.chatTabs.addEventListener("keydown", (event) => {
+		const tab = event.target.closest("[role='tab'][data-chat-tab-id]");
+		if (!tab) return;
+		const tabs = Array.from(nodes.chatTabs.querySelectorAll("[role='tab'][data-chat-tab-id]"));
+		const index = tabs.indexOf(tab);
+		if (index < 0) return;
+		if (event.key === "Delete") {
+			event.preventDefault();
+			void closeChatTab(tab.getAttribute("data-chat-tab-id"), { focusTabs: true });
+			return;
+		}
+		let nextIndex = null;
+		if (event.key === "ArrowLeft") nextIndex = (index - 1 + tabs.length) % tabs.length;
+		if (event.key === "ArrowRight") nextIndex = (index + 1) % tabs.length;
+		if (event.key === "Home") nextIndex = 0;
+		if (event.key === "End") nextIndex = tabs.length - 1;
+		if (nextIndex === null) return;
+		event.preventDefault();
+		const chatId = tabs[nextIndex].getAttribute("data-chat-tab-id");
+		void activateChat(chatId, { persist: false, focusTab: true });
+	});
+	nodes.chatTabs.addEventListener("wheel", (event) => {
+		if (Math.abs(event.deltaY) <= Math.abs(event.deltaX) || nodes.chatTabs.scrollWidth <= nodes.chatTabs.clientWidth) return;
+		event.preventDefault();
+		nodes.chatTabs.scrollLeft += event.deltaY;
+	}, { passive: false });
 
 	nodes.sidebarMain.addEventListener("scroll", maybeLoadMoreSidebarChats, { passive: true });
 
@@ -760,22 +865,17 @@ function wireEvents() {
 	});
 
 	window.addEventListener("keydown", (event) => {
-		if (!event.metaKey || !event.shiftKey || event.ctrlKey || event.altKey) {
-			return;
-		}
-
-		if (String(event.key || "").toLowerCase() !== "n") {
-			return;
-		}
-
-		event.preventDefault();
-		createAndActivateChat();
+		handleGlobalShortcut(event);
 	});
 
 	nodes.openSearchBtn.addEventListener("click", openSearchModal);
 	nodes.closeSearchBtn.addEventListener("click", closeSearchModal);
 	nodes.openPluginsBtn.addEventListener("click", openPluginsModal);
 	nodes.closePluginsBtn.addEventListener("click", closePluginsModal);
+	nodes.openAttentionBtn?.addEventListener("click", () => void openAttentionInbox());
+	nodes.closeAttentionBtn?.addEventListener("click", closeAttentionInbox);
+	nodes.openCommandPaletteBtn?.addEventListener("click", openCommandPalette);
+	nodes.closeCommandPaletteBtn?.addEventListener("click", closeCommandPalette);
 	nodes.openAutomationsBtn.addEventListener("click", openAutomationsModal);
 	nodes.openPaneProfilesBtn.addEventListener("click", openPaneProfilesModal);
 	nodes.closePaneProfilesBtn.addEventListener("click", closePaneProfilesModal);
@@ -817,7 +917,23 @@ function wireEvents() {
 		if (event.target.getAttribute("data-close-plugins") === "true") {
 			closePluginsModal();
 		}
+		const action = event.target.closest("[data-mcp-action]");
+		if (action) void handleMcpAction(action);
 	});
+	nodes.mcpServerForm?.addEventListener("submit", (event) => { event.preventDefault(); void saveMcpServer(); });
+	nodes.mcpServerTransport?.addEventListener("change", syncMcpEndpointPlaceholder);
+	nodes.attentionModal?.addEventListener("click", (event) => {
+		if (event.target.getAttribute("data-close-attention") === "true") return closeAttentionInbox();
+		const filter = event.target.closest("[data-attention-filter]"); if (filter) { attentionFilter = String(filter.dataset.attentionFilter || ""); void loadAttention(); return; }
+		const item = event.target.closest("[data-attention-id]"); if (item) void handleAttentionAction(item, event.target.closest("button")?.dataset.attentionAction || "open");
+	});
+	for (const input of [nodes.desktopNotificationsEnabled, nodes.notificationQuietStart, nodes.notificationQuietEnd]) input?.addEventListener("change", saveNotificationSettings);
+	nodes.notificationEventTypes?.addEventListener("change", saveNotificationSettings);
+	nodes.commandPalette?.addEventListener("click", (event) => { if (event.target.getAttribute("data-close-command-palette") === "true") closeCommandPalette(); const command = event.target.closest("[data-command-id]"); if (command) executeCommand(command.dataset.commandId); });
+	nodes.commandPaletteSearch?.addEventListener("input", renderCommandPalette);
+	nodes.commandPaletteSearch?.addEventListener("keydown", handleCommandPaletteKeydown);
+	nodes.shortcutEditorList?.addEventListener("change", handleShortcutChange);
+	nodes.resetShortcutsBtn?.addEventListener("click", resetCommandShortcuts);
 
 	nodes.automationsModal.addEventListener("click", (event) => {
 		if (event.target.getAttribute("data-close-automations") === "true") {
@@ -961,6 +1077,7 @@ function wireEvents() {
 		chat.updatedAt = Date.now();
 		schedulePersist();
 		renderSidebar();
+		renderChatTabs();
 	});
 
 	nodes.copyChatIdBtn.addEventListener("click", () => {
@@ -997,7 +1114,6 @@ function wireEvents() {
 
 	nodes.toggleUsageSummaryBtn.addEventListener("click", () => {
 		usageSummaryVisible = !usageSummaryVisible;
-		storeBooleanPreference(usageSummaryVisibleStorageKey, usageSummaryVisible);
 		renderUsageSummaryToggle();
 	});
 
@@ -1318,7 +1434,35 @@ function wireEvents() {
 	});
 
 	nodes.sendBtn.addEventListener("click", () => {
+		if (activeStreamControllers.size > 0 && !String(nodes.composerInput.value || "").trim()) {
+			stopActiveStreams();
+			return;
+		}
 		void sendFromComposer().catch(handleComposerSendError);
+	});
+	nodes.stopStreamBtn?.addEventListener("click", stopActiveStreams);
+	nodes.composerAttachmentBtn?.addEventListener("click", () => nodes.composerAttachmentInput?.click());
+	nodes.composerAttachmentInput?.addEventListener("change", () => void uploadComposerAttachments(nodes.composerAttachmentInput.files));
+	nodes.composerFolderBtn?.addEventListener("click", () => nodes.composerFolderInput?.click());
+	nodes.composerFolderInput?.addEventListener("change", () => void uploadComposerAttachments(nodes.composerFolderInput.files));
+	nodes.composerInput?.addEventListener("paste", (event) => {
+		const files = event.clipboardData?.files; if (files?.length) { event.preventDefault(); void uploadComposerAttachments(files); }
+	});
+	nodes.composerInput?.addEventListener("dragover", (event) => { if (event.dataTransfer?.types.includes("Files")) event.preventDefault(); });
+	nodes.composerInput?.addEventListener("drop", (event) => { if (event.dataTransfer?.files?.length) { event.preventDefault(); void uploadComposerAttachments(event.dataTransfer.files); } });
+	nodes.composerAttachmentChips?.addEventListener("click", (event) => {
+		const button = event.target.closest("[data-remove-attachment]");
+		if (button) void removeComposerAttachment(String(button.getAttribute("data-remove-attachment") || ""));
+	});
+	nodes.chatWorkspaceMode?.addEventListener("change", () => void configureActiveChatWorkspace(nodes.chatWorkspaceMode.value));
+	nodes.chatWorkspaceActionsBtn?.addEventListener("click", () => void runActiveWorkspaceAction());
+	nodes.openArtifactRailBtn?.addEventListener("click", () => void openArtifactRail());
+	nodes.closeArtifactRailBtn?.addEventListener("click", () => nodes.artifactRail?.classList.add("hidden"));
+	nodes.artifactRail?.addEventListener("click", (event) => {
+		const filter = event.target.closest("[data-artifact-filter]");
+		if (filter) { artifactRailFilter = String(filter.getAttribute("data-artifact-filter") || "all"); void openArtifactRail(); }
+		const open = event.target.closest("[data-artifact-action]");
+		if (open) void openExecutionArtifact(open);
 	});
 
 	nodes.composerInput.addEventListener("keydown", (event) => {
@@ -1513,6 +1657,43 @@ function wireEvents() {
 			return;
 		}
 
+		const approvalButton = event.target.closest("[data-approval-id][data-approval-decision]");
+		if (approvalButton) {
+			void decideMessageApproval(approvalButton);
+			return;
+		}
+
+		const diffActionButton = event.target.closest("[data-diff-action][data-pane-id][data-message-id]");
+		if (diffActionButton) {
+			const pane = getPaneById(String(diffActionButton.getAttribute("data-pane-id") || ""));
+			const message = pane && pane.messages.find((candidate) => candidate.id === String(diffActionButton.getAttribute("data-message-id") || ""));
+			if (!message) return;
+			const action = String(diffActionButton.getAttribute("data-diff-action") || "");
+			if (action === "toggle") {
+				message.diff_expanded = message.diff_expanded === false;
+				scheduleStreamingMessagePatch(getActiveChat()?.id, pane.id, message.id);
+				return;
+			}
+			if (action === "mode") {
+				message.diff_view_mode = diffActionButton.getAttribute("data-diff-mode") === "split" ? "split" : "unified";
+				scheduleStreamingMessagePatch(getActiveChat()?.id, pane.id, message.id);
+				return;
+			}
+			if (action === "copy" && navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+				void navigator.clipboard.writeText(formatCodeDiffPatch(codeDiffsForMessage(message))).then(() => {
+					showCopiedFeedback(diffActionButton, "Copy patch", "Copy patch");
+				});
+			}
+			if (["review-file", "review-hunk", "comment-file", "comment-hunk"].includes(action)) {
+				void updateMessageDiffReview(message, pane, diffActionButton, action);
+			}
+			if (["revert-file", "revert-hunk", "restore-all", "fork-checkpoint"].includes(action)) {
+				void restoreMessageCheckpoint(message, pane, diffActionButton, action);
+			}
+			if (action === "open-editor") void openMessageDiffInEditor(message, diffActionButton);
+			return;
+		}
+
 		const thinkingToggleButton = event.target.closest("[data-action='toggle-thinking']");
 		if (thinkingToggleButton) {
 			const paneId = String(thinkingToggleButton.getAttribute("data-pane-id") || "");
@@ -1651,6 +1832,11 @@ function wireEvents() {
 		if (!toolPresetMenuOpen || event.composedPath().includes(nodes.toggleToolPresetsBtn) || event.composedPath().includes(nodes.toolPresetDropdown)) return;
 		setToolPresetMenuOpen(false);
 	});
+	document.addEventListener("click", (event) => {
+		if (!usageSummaryVisible || event.composedPath().includes(nodes.toggleUsageSummaryBtn) || event.composedPath().includes(nodes.usageSummaryDetails)) return;
+		usageSummaryVisible = false;
+		renderUsageSummaryToggle();
+	});
 
 	document.addEventListener("keydown", (event) => {
 		if (event.key !== "Escape") return;
@@ -1660,6 +1846,11 @@ function wireEvents() {
 			if (chat) renderPaneControls(chat);
 		}
 		if (toolPresetMenuOpen) setToolPresetMenuOpen(false);
+		if (usageSummaryVisible) {
+			usageSummaryVisible = false;
+			renderUsageSummaryToggle();
+			nodes.toggleUsageSummaryBtn.focus();
+		}
 	});
 
 	nodes.paneGrid.addEventListener("change", (event) => {
@@ -2111,18 +2302,20 @@ function createAndActivateChat({ replaceUrl = false } = {}) {
 	const chat = createChat("New Chat");
 	state.chats.push(chat);
 	state.activeChatId = chat.id;
+	rememberOpenChatTab(chat.id);
 	syncActiveChatUrl({ replace: replaceUrl });
 	schedulePersist({ immediate: true });
 	renderAll();
 	focusComposerInput();
 }
 
-async function activateChat(chatId, { persist = false, updateUrl = true } = {}) {
+async function activateChat(chatId, { persist = false, updateUrl = true, focusTab = false } = {}) {
 	const chat = getChatById(chatId);
 	if (!chat) {
 		return;
 	}
 	state.activeChatId = chat.id;
+	rememberOpenChatTab(chat.id);
 	if (window.matchMedia(mobileSidebarMediaQuery).matches && !sidebarCollapsed) {
 		setSidebarCollapsed(true);
 	}
@@ -2131,9 +2324,54 @@ async function activateChat(chatId, { persist = false, updateUrl = true } = {}) 
 		schedulePersist();
 	}
 	renderAll();
+	if (focusTab) focusOpenChatTab(chat.id);
 	await hydrateChatMessages(chat.id);
 	renderAll();
-	focusComposerInput();
+	if (focusTab) focusOpenChatTab(chat.id);
+	if (!focusTab) focusComposerInput();
+}
+
+function rememberOpenChatTab(chatId) {
+	const normalized = String(chatId || "").trim();
+	if (!normalized || !getChatById(normalized)) return;
+	openChatTabIds = openChatTabIds.filter((id) => getChatById(id));
+	if (!openChatTabIds.includes(normalized)) openChatTabIds.push(normalized);
+	if (openChatTabIds.length > maxOpenChatTabs) {
+		const activeId = String(state.activeChatId || "");
+		while (openChatTabIds.length > maxOpenChatTabs) {
+			const removableIndex = openChatTabIds.findIndex((id) => id !== activeId);
+			openChatTabIds.splice(removableIndex >= 0 ? removableIndex : 0, 1);
+		}
+	}
+	storeOpenChatTabIds();
+}
+
+async function closeChatTab(chatId, options = {}) {
+	const normalized = String(chatId || "").trim();
+	const index = openChatTabIds.indexOf(normalized);
+	if (index < 0) return;
+	openChatTabIds.splice(index, 1);
+	storeOpenChatTabIds();
+	if (state.activeChatId !== normalized) {
+		renderChatTabs();
+		return;
+	}
+	const nextId = openChatTabIds[Math.min(index, openChatTabIds.length - 1)] || "";
+	if (nextId && getChatById(nextId)) {
+		await activateChat(nextId, { persist: false, focusTab: Boolean(options.focusTabs) });
+		return;
+	}
+	state.activeChatId = null;
+	resetToWelcomeUrl();
+	renderAll();
+	if (options.focusTabs) nodes.newChatTabBtn.focus();
+}
+
+function focusOpenChatTab(chatId) {
+	window.requestAnimationFrame(() => {
+		const tab = nodes.chatTabs.querySelector(`[data-chat-tab-id="${cssEscape(String(chatId || ""))}"]`);
+		if (tab) tab.focus({ preventScroll: true });
+	});
 }
 
 async function hydrateChatMessages(chatId, options = {}) {
@@ -2578,6 +2816,25 @@ function loadSidebarCollapsedPreference() {
 	}
 }
 
+function loadOpenChatTabIds() {
+	try {
+		const parsed = JSON.parse(window.localStorage.getItem(openChatTabsStorageKey) || "[]");
+		return Array.isArray(parsed)
+			? Array.from(new Set(parsed.map((id) => String(id || "").trim()).filter(Boolean))).slice(0, maxOpenChatTabs)
+			: [];
+	} catch (error) {
+		return [];
+	}
+}
+
+function storeOpenChatTabIds() {
+	try {
+		window.localStorage.setItem(openChatTabsStorageKey, JSON.stringify(openChatTabIds));
+	} catch (error) {
+		// Tabs remain available for the current session when storage is unavailable.
+	}
+}
+
 function defaultSidebarSectionVisibility() {
 	return {
 		projects: true,
@@ -2723,15 +2980,57 @@ function renderAll(options = {}) {
 	renderComposerProfileSelect();
 	renderComposerUsageSummary();
 	renderSidebar();
+	renderChatTabs();
 	renderWorkspace({ preserveScroll: Boolean(options.preserveWorkspaceScroll) });
 	renderSidebarToggle();
 	renderPaneInfoToggle();
 	renderUsageSummaryToggle();
 	updateStreamingControls();
+	renderComposerAttachments();
+	void refreshActiveWorkspaceStatus();
 
 	if (isUsageModalOpen()) {
 		renderUsageModalContent();
 	}
+}
+
+function renderChatTabs() {
+	openChatTabIds = Array.from(new Set(openChatTabIds)).filter((id) => getChatById(id));
+	const activeChat = getActiveChat();
+	if (activeChat && !openChatTabIds.includes(activeChat.id)) openChatTabIds.push(activeChat.id);
+	while (openChatTabIds.length > maxOpenChatTabs) {
+		const removableIndex = openChatTabIds.findIndex((id) => id !== activeChat?.id);
+		openChatTabIds.splice(removableIndex >= 0 ? removableIndex : 0, 1);
+	}
+	storeOpenChatTabIds();
+
+	const focusableId = activeChat?.id || openChatTabIds[0] || "";
+	nodes.chatTabs.innerHTML = openChatTabIds.map((chatId) => {
+		const chat = getChatById(chatId);
+		if (!chat) return "";
+		const active = chat.id === state.activeChatId;
+		const status = chatTabStatus(chat);
+		const title = cleanTitle(chat.title, "Untitled chat");
+		return `<div class="chat-tab-shell${active ? " active" : ""}" role="presentation"><button id="${chatTabDomId(chat.id)}" class="chat-tab" type="button" role="tab" data-chat-tab-id="${escapeHtml(chat.id)}" aria-selected="${active}" aria-controls="pane-grid" tabindex="${chat.id === focusableId ? "0" : "-1"}" title="${escapeHtml(title)}"><span class="chat-tab-icon" aria-hidden="true">${chatTabIconSvg}<span class="chat-tab-status ${status}"></span></span><span class="chat-tab-title">${escapeHtml(title)}</span></button><button class="chat-tab-close" type="button" data-close-chat-tab="${escapeHtml(chat.id)}" tabindex="-1" aria-label="Close ${escapeHtml(title)} tab" title="Close tab">${chatTabCloseSvg}</button></div>`;
+	}).join("");
+
+	nodes.chatTabBar.classList.toggle("empty", openChatTabIds.length === 0);
+	window.requestAnimationFrame(() => {
+		const activeTab = nodes.chatTabs.querySelector("[role='tab'][aria-selected='true']");
+		if (activeTab) activeTab.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
+	});
+}
+
+function chatTabDomId(chatId) {
+	return `chat-tab-${String(chatId || "").replace(/[^A-Za-z0-9_-]/g, "_").slice(0, 160)}`;
+}
+
+function chatTabStatus(chat) {
+	const statuses = Array.isArray(chat?.panes) ? chat.panes.map((pane) => String(pane?.status || "idle")) : [];
+	if (statuses.includes("waiting")) return "running";
+	if (statuses.includes("error")) return "error";
+	if (statuses.includes("partial")) return "partial";
+	return "idle";
 }
 
 function renderPaneInfoToggle() {
@@ -2749,11 +3048,10 @@ function renderPaneInfoToggle() {
 
 function renderUsageSummaryToggle() {
 	nodes.usageSummaryDetails.classList.toggle("hidden", !usageSummaryVisible);
-	nodes.toggleUsageSummaryBtn.innerHTML = usageSummaryVisible ? chevronLeftSvg : chevronRightSvg;
 	const label = usageSummaryVisible ? "Hide token usage summary" : "Show token usage summary";
 	nodes.toggleUsageSummaryBtn.setAttribute("aria-label", label);
 	nodes.toggleUsageSummaryBtn.setAttribute("aria-expanded", usageSummaryVisible ? "true" : "false");
-	nodes.toggleUsageSummaryBtn.title = label;
+	nodes.toggleUsageSummaryBtn.classList.toggle("active", usageSummaryVisible);
 }
 
 function renderSidebarToggle() {
@@ -3416,6 +3714,7 @@ function renderWorkspace(options = {}) {
 	nodes.appShell.classList.toggle("welcome-mode", !chat);
 	nodes.appShell.classList.toggle("chat-open", Boolean(chat));
 	if (!chat) {
+		nodes.paneGrid.removeAttribute("aria-labelledby");
 		const userName = normalizeUserName(state.settings.userName);
 		const welcomeGreeting = userName ? `Hello, ${userName}` : "Hello there";
 		nodes.chatTitleInput.value = "";
@@ -3435,6 +3734,7 @@ function renderWorkspace(options = {}) {
 		return;
 	}
 
+	nodes.paneGrid.setAttribute("aria-labelledby", chatTabDomId(chat.id));
 	nodes.chatTitleInput.value = chat.title;
 	nodes.copyChatIdBtn.disabled = false;
 	nodes.exportChatBtn.disabled = false;
@@ -3638,10 +3938,14 @@ function renderMessageNodeHtml(message, paneId) {
 	const metaExpanded = Boolean(message.meta_expanded);
 	const meta = metaBits.length > 0 ? `<div class="message-meta${metaExpanded ? " expanded" : ""}">${escapeHtml(metaBits.join(" | "))}</div>` : "";
 	const thinking = renderThinkingBlock(message, paneId);
+	const executionPlan = renderExecutionPlan(message);
+	const approvals = renderMessageApprovals(message, paneId);
 	const toolError = renderMessageErrorBlock(message);
 	const contentBody = renderAssistantMarkdown(message.role === "assistant" ? normalizeAssistantProseSpacing(message.content) : message.content);
 	const content = hasAssistantThinkingOnly ? "" : renderMessageContent(message, paneId, contentBody);
+	const attachmentParts = renderMessageAttachmentParts(message);
 	const screenshots = renderBrowserScreenshotArtifacts(message);
+	const codeDiffs = renderCodeDiffViewer(message, paneId);
 	const timestamp = formatMessageTime(message.createdAt);
 	const copyAction = `<button type="button" class="message-copy-btn" data-action="copy-message" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}" aria-label="Copy message" title="Copy message">${copyCodeButtonSvg}</button>`;
 	const branchAction = renderBranchAction(message, paneId);
@@ -3657,10 +3961,16 @@ function renderMessageNodeHtml(message, paneId) {
 		const metaFooter = meta || footer
 			? `<div class="message-meta-footer">${footer}<div class="message-runtime-details">${meta}${metaToggle}</div></div>`
 			: "";
-		return `<div class="${messageClasses.join(" ")}" data-message-id="${escapeHtml(message.id)}" data-pane-id="${escapeHtml(paneId)}">${thinking}${content}${toolError}${screenshots}${metaFooter}</div>`;
+		return `<div class="${messageClasses.join(" ")}" data-message-id="${escapeHtml(message.id)}" data-pane-id="${escapeHtml(paneId)}">${thinking}${executionPlan}${approvals}${content}${codeDiffs}${toolError}${screenshots}${metaFooter}</div>`;
 	}
 
-	return `<div class="${messageClasses.join(" ")}" data-message-id="${escapeHtml(message.id)}" data-pane-id="${escapeHtml(paneId)}"><div class="message-bubble">${content}${meta}</div>${footer}</div>`;
+	return `<div class="${messageClasses.join(" ")}" data-message-id="${escapeHtml(message.id)}" data-pane-id="${escapeHtml(paneId)}"><div class="message-bubble">${attachmentParts}${content}${meta}</div>${footer}</div>`;
+}
+
+function renderMessageAttachmentParts(message) {
+	const parts = Array.isArray(message.usage?.message_parts) ? message.usage.message_parts : [];
+	if (!parts.length) return "";
+	return `<div class="message-attachment-parts" aria-label="Attached context">${parts.map((part) => `<span class="message-attachment"><strong>${escapeHtml(part.name)}</strong><small>${escapeHtml(part.mime_type)} · ${formatNumber(part.size)} bytes · ${escapeHtml(part.extraction)} · ${part.leaves_machine ? "sent to provider" : "local only"}</small></span>`).join("")}</div>`;
 }
 
 function renderMessageContent(message, paneId, contentBody) {
@@ -3671,6 +3981,324 @@ function renderMessageContent(message, paneId, contentBody) {
 		? `<button type="button" class="message-disclosure-btn" data-action="toggle-message-disclosure" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}" aria-expanded="${expanded ? "true" : "false"}">${expanded ? "Show less" : "Show more"}</button>`
 		: "";
 	return `<div class="message-content-block${collapseClass}">${contentBody}</div>${disclosure}`;
+}
+
+function codeDiffsForMessage(message) {
+	return normalizeCodeDiffSet(message && (message.code_diffs || (message.usage && message.usage.code_diffs)));
+}
+
+function renderExecutionPlan(message) {
+	const plan = message.execution_plan || message.usage?.execution_plan;
+	if (!plan || !Array.isArray(plan.steps) || !plan.steps.length) return "";
+	const completed = plan.steps.filter((step) => step.state === "completed").length;
+	const active = plan.steps.find((step) => step.state === "active");
+	const steps = plan.steps.map((step) => `<li class="${escapeHtml(step.state)}"><span class="plan-step-marker" aria-hidden="true"></span><span>${escapeHtml(step.label)}</span><small>${escapeHtml(step.state)}</small></li>`).join("");
+	return `<details class="execution-plan"${message.streaming || active ? " open" : ""}><summary><span>Plan</span><strong>${completed}/${plan.steps.length}</strong>${active ? `<small>${escapeHtml(active.label)}</small>` : ""}</summary><ol>${steps}</ol></details>`;
+}
+
+function messageApprovals(message) {
+	return Array.isArray(message.approvals) ? message.approvals : Array.isArray(message.usage?.approvals) ? message.usage.approvals : [];
+}
+
+function renderMessageApprovals(message, paneId) {
+	const pending = messageApprovals(message).filter((approval) => approval.status === "pending");
+	if (!pending.length) return "";
+	return `<section class="message-approvals" aria-label="Actions awaiting approval">${pending.map((approval) => `<article class="approval-card ${escapeHtml(approval.risk)}"><div><strong>Approval required</strong><span>${escapeHtml(approval.summary)}</span><small>${escapeHtml(approval.tool_name.replaceAll("_", " "))} · ${escapeHtml(approval.risk)} risk</small></div><div class="approval-actions"><button type="button" class="btn" data-approval-id="${escapeHtml(approval.id)}" data-approval-decision="approve" data-approval-scope="once" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}">Allow once</button><button type="button" class="btn ghost" data-approval-id="${escapeHtml(approval.id)}" data-approval-decision="approve" data-approval-scope="chat" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}">Allow for chat</button><button type="button" class="btn ghost" data-approval-id="${escapeHtml(approval.id)}" data-approval-decision="approve" data-approval-scope="workspace" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}">Always this exact action</button><button type="button" class="btn danger" data-approval-id="${escapeHtml(approval.id)}" data-approval-decision="deny" data-approval-scope="once" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}">Deny</button></div></article>`).join("")}</section>`;
+}
+
+function normalizeCodeDiffSet(value) {
+	const source = value && typeof value === "object" ? value : {};
+	let remainingLines = 4000;
+	let clientTruncated = false;
+	const files = (Array.isArray(source.files) ? source.files : []).slice(0, 48).map((file) => {
+		if (!file || typeof file !== "object") return null;
+		const filePath = String(file.path || "").slice(0, 1000);
+		if (!filePath) return null;
+		const rawHunks = Array.isArray(file.hunks) ? file.hunks : [];
+		if (rawHunks.length > 200) clientTruncated = true;
+		const hunks = rawHunks.slice(0, 200).map((hunk) => {
+			const rawLines = Array.isArray(hunk && hunk.lines) ? hunk.lines : [];
+			const lineLimit = Math.min(remainingLines, rawLines.length);
+			if (lineLimit < rawLines.length) clientTruncated = true;
+			remainingLines -= lineLimit;
+			return {
+				old_start: boundedDiffNumber(hunk && hunk.old_start),
+				old_lines: boundedDiffNumber(hunk && hunk.old_lines),
+				new_start: boundedDiffNumber(hunk && hunk.new_start),
+				new_lines: boundedDiffNumber(hunk && hunk.new_lines),
+				lines: rawLines.slice(0, lineLimit).map((line) => ({
+					type: ["add", "delete", "context"].includes(line && line.type) ? line.type : "context",
+					content: String(line && line.content || "").slice(0, 20000)
+				}))
+			};
+		});
+		return {
+			path: filePath,
+			status: ["added", "deleted", "modified"].includes(file.status) ? file.status : "modified",
+			source: String(file.source || "agent").slice(0, 80),
+			additions: boundedDiffNumber(file.additions),
+			deletions: boundedDiffNumber(file.deletions),
+			hunks,
+			binary: Boolean(file.binary),
+			truncated: Boolean(file.truncated)
+		};
+	}).filter(Boolean);
+	return {
+		version: 1,
+		files,
+		totals: {
+			files: files.length,
+			additions: files.reduce((sum, file) => sum + file.additions, 0),
+			deletions: files.reduce((sum, file) => sum + file.deletions, 0)
+		},
+		truncated: Boolean(source.truncated) || clientTruncated || (Array.isArray(source.files) && source.files.length > 48)
+	};
+}
+
+function boundedDiffNumber(value) {
+	const number = Number(value);
+	return Number.isFinite(number) ? Math.max(0, Math.min(1000000, Math.floor(number))) : 0;
+}
+
+function renderCodeDiffViewer(message, paneId) {
+	const diffs = codeDiffsForMessage(message);
+	if (diffs.files.length === 0) return "";
+	const expanded = message.diff_expanded !== false;
+	const activeChat = getActiveChat();
+	const supportsSplit = Boolean(activeChat && activeChat.panes.length === 1 && window.innerWidth >= 901);
+	const defaultMode = supportsSplit && window.innerWidth >= 1100 ? "split" : "unified";
+	const requestedMode = message.diff_view_mode === "split" || message.diff_view_mode === "unified" ? message.diff_view_mode : defaultMode;
+	const mode = requestedMode === "split" && !supportsSplit ? "unified" : requestedMode;
+	const additions = diffs.totals.additions;
+	const deletions = diffs.totals.deletions;
+	const summary = `${diffs.files.length} ${diffs.files.length === 1 ? "file" : "files"}`;
+	const messageId = escapeHtml(message.id);
+	const safePaneId = escapeHtml(paneId);
+	const checkpointId = String(message.checkpoint_id || message.usage?.checkpoint_id || "");
+	const checkpointControls = checkpointId && !message.streaming ? `<button type="button" class="code-diff-mode" data-diff-action="restore-all" data-pane-id="${safePaneId}" data-message-id="${messageId}">Restore all</button><button type="button" class="code-diff-mode" data-diff-action="fork-checkpoint" data-pane-id="${safePaneId}" data-message-id="${messageId}">Rewind &amp; fork</button>` : "";
+	const controls = `<div class="code-diff-controls" role="group" aria-label="Diff layout"><button type="button" class="code-diff-mode${mode === "unified" ? " active" : ""}" data-diff-action="mode" data-diff-mode="unified" data-pane-id="${safePaneId}" data-message-id="${messageId}" aria-pressed="${mode === "unified"}">Unified</button><button type="button" class="code-diff-mode${mode === "split" ? " active" : ""}" data-diff-action="mode" data-diff-mode="split" data-pane-id="${safePaneId}" data-message-id="${messageId}" aria-pressed="${mode === "split"}">Split</button>${checkpointControls}<button type="button" class="code-diff-copy" data-diff-action="copy" data-pane-id="${safePaneId}" data-message-id="${messageId}" aria-label="Copy patch" title="Copy patch">${copyCodeButtonSvg}</button></div>`;
+	const files = expanded ? diffs.files.map((file) => renderCodeDiffFile(file, mode, message, paneId)).join("") : "";
+	const warning = diffs.truncated ? `<div class="code-diff-notice">Some changes exceeded the live preview limit. Review the workspace before committing.</div>` : "";
+	return `<section class="code-diff-viewer${expanded ? " expanded" : ""}" aria-label="Code changes"><header class="code-diff-summary"><button type="button" class="code-diff-toggle" data-diff-action="toggle" data-pane-id="${safePaneId}" data-message-id="${messageId}" aria-expanded="${expanded}"><span class="code-diff-chevron" aria-hidden="true">›</span><strong>Changes</strong><span>${summary}</span><span class="code-diff-additions">+${additions}</span><span class="code-diff-deletions">−${deletions}</span></button>${expanded ? controls : ""}</header>${expanded ? `<div class="code-diff-files">${files}${warning}</div>` : ""}</section>`;
+}
+
+function renderCodeDiffFile(file, mode, message, paneId) {
+	const parts = file.path.split("/");
+	const name = parts.pop() || file.path;
+	const directory = parts.join("/");
+	const statusLabel = file.status === "added" ? "A" : file.status === "deleted" ? "D" : "M";
+	const unavailable = file.binary
+		? `<div class="code-diff-unavailable">Binary file changed. Preview is unavailable.</div>`
+		: file.truncated && file.hunks.length === 0
+			? `<div class="code-diff-unavailable">This file is too large to preview safely.</div>`
+			: "";
+	const review = diffReviewFor(message, file.path, -1);
+	const attrs = `data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}" data-diff-path="${escapeHtml(file.path)}"`;
+	const fileActions = `<div class="code-diff-review-actions"><button type="button" class="code-diff-action${review?.status === "accepted" ? " accepted" : ""}" data-diff-action="review-file" ${attrs}>${review?.status === "accepted" ? "Reviewed" : "Mark reviewed"}</button><button type="button" class="code-diff-action" data-diff-action="comment-file" ${attrs}>Comment</button><button type="button" class="code-diff-action" data-diff-action="open-editor" ${attrs}>Open</button>${message.streaming ? "" : `<button type="button" class="code-diff-action danger" data-diff-action="revert-file" ${attrs}>Revert</button>`}</div>`;
+	const hunks = file.hunks.map((hunk, hunkIndex) => mode === "split" ? renderSplitDiffHunk(hunk, { filePath: file.path, hunkIndex, message, paneId }) : renderUnifiedDiffHunk(hunk, { filePath: file.path, hunkIndex, message, paneId })).join("");
+	return `<article class="code-diff-file" data-diff-path="${escapeHtml(file.path)}"><header class="code-diff-file-header"><span class="code-diff-status ${escapeHtml(file.status)}" aria-label="${escapeHtml(file.status)}">${statusLabel}</span><span class="code-diff-file-name" title="${escapeHtml(file.path)}"><strong>${escapeHtml(name)}</strong>${directory ? `<small>${escapeHtml(directory)}/</small>` : ""}</span><span class="code-diff-file-stats"><span class="code-diff-additions">+${file.additions}</span><span class="code-diff-deletions">−${file.deletions}</span></span>${fileActions}</header><div class="code-diff-code ${mode}" role="region" aria-label="Diff for ${escapeHtml(file.path)}" tabindex="0">${unavailable}${hunks}</div></article>`;
+}
+
+function renderUnifiedDiffHunk(hunk, context) {
+	let oldLine = hunk.old_start;
+	let newLine = hunk.new_start;
+	const counterparts = diffLineCounterparts(hunk.lines);
+	const rows = [renderDiffHunkHeader(hunk, context)];
+	for (let index = 0; index < hunk.lines.length; index += 1) {
+		const line = hunk.lines[index];
+		const oldNumber = line.type === "add" ? "" : oldLine++;
+		const newNumber = line.type === "delete" ? "" : newLine++;
+		const marker = line.type === "add" ? "+" : line.type === "delete" ? "−" : " ";
+		const counterpart = counterparts.get(index);
+		rows.push(`<div class="code-diff-row ${line.type}"><span class="code-diff-line-number" aria-hidden="true">${oldNumber}</span><span class="code-diff-line-number" aria-hidden="true">${newNumber}</span><span class="code-diff-marker" aria-hidden="true">${marker}</span><code>${renderInlineDiff(line.content, counterpart && counterpart.content)}</code></div>`);
+	}
+	return `<div class="code-diff-hunk">${rows.join("")}</div>`;
+}
+
+function renderSplitDiffHunk(hunk, context) {
+	let oldLine = hunk.old_start;
+	let newLine = hunk.new_start;
+	const rows = [renderDiffHunkHeader(hunk, context)];
+	for (let index = 0; index < hunk.lines.length;) {
+		const line = hunk.lines[index];
+		if (line.type === "context") {
+			rows.push(renderSplitDiffRow({ type: "context", content: line.content, number: oldLine++ }, { type: "context", content: line.content, number: newLine++ }));
+			index += 1;
+			continue;
+		}
+		const deletes = [];
+		const adds = [];
+		while (index < hunk.lines.length && hunk.lines[index].type === "delete") deletes.push(hunk.lines[index++]);
+		while (index < hunk.lines.length && hunk.lines[index].type === "add") adds.push(hunk.lines[index++]);
+		if (deletes.length === 0 && adds.length === 0) {
+			index += 1;
+			continue;
+		}
+		for (let pair = 0; pair < Math.max(deletes.length, adds.length); pair += 1) {
+			const deleted = deletes[pair];
+			const added = adds[pair];
+			rows.push(renderSplitDiffRow(
+				deleted ? { type: "delete", content: deleted.content, counterpart: added && added.content, number: oldLine++ } : null,
+				added ? { type: "add", content: added.content, counterpart: deleted && deleted.content, number: newLine++ } : null
+			));
+		}
+	}
+	return `<div class="code-diff-hunk">${rows.join("")}</div>`;
+}
+
+function renderDiffHunkHeader(hunk, { filePath, hunkIndex, message, paneId }) {
+	const review = diffReviewFor(message, filePath, hunkIndex);
+	const attrs = `data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}" data-diff-path="${escapeHtml(filePath)}" data-diff-hunk="${hunkIndex}"`;
+	return `<div class="code-diff-hunk-header"><span>@@ −${hunk.old_start},${hunk.old_lines} +${hunk.new_start},${hunk.new_lines} @@</span><span class="code-diff-hunk-actions"><button type="button" class="code-diff-action${review?.status === "accepted" ? " accepted" : ""}" data-diff-action="review-hunk" ${attrs}>${review?.status === "accepted" ? "Reviewed" : "Review"}</button><button type="button" class="code-diff-action" data-diff-action="comment-hunk" ${attrs}>Comment</button>${message.streaming ? "" : `<button type="button" class="code-diff-action danger" data-diff-action="revert-hunk" ${attrs}>Revert hunk</button>`}</span></div>`;
+}
+
+function diffReviewFor(message, filePath, hunkIndex) {
+	const reviews = Array.isArray(message.diff_reviews) ? message.diff_reviews : Array.isArray(message.usage?.diff_reviews) ? message.usage.diff_reviews : [];
+	return reviews.find((review) => review.path === filePath && Number(review.hunk_index) === Number(hunkIndex)) || null;
+}
+
+async function decideMessageApproval(button) {
+	const pane = getPaneById(String(button.getAttribute("data-pane-id") || ""));
+	const message = pane?.messages.find((entry) => entry.id === String(button.getAttribute("data-message-id") || ""));
+	if (!message) return;
+	for (const action of button.closest(".approval-actions")?.querySelectorAll("button") || []) action.disabled = true;
+	try {
+		const response = await apiFetch(`/api/approvals/${encodeURIComponent(button.getAttribute("data-approval-id"))}/decision`, {
+			method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ decision: button.getAttribute("data-approval-decision"), scope: button.getAttribute("data-approval-scope") })
+		});
+		const payload = await response.json();
+		if (!response.ok) throw new Error(payload.error?.message || "Could not save approval decision.");
+		message.approvals = [...messageApprovals(message).filter((entry) => entry.id !== payload.approval.id), payload.approval];
+		message.usage = { ...(message.usage || {}), approvals: message.approvals };
+		renderWorkspace({ preserveScroll: true });
+		scheduleStreamingPersist(getActiveChat()?.id, pane.id, message.id, { immediate: true });
+	} catch (error) {
+		if (nodes.voiceStatus) nodes.voiceStatus.textContent = error.message;
+		for (const action of button.closest(".approval-actions")?.querySelectorAll("button") || []) action.disabled = false;
+	}
+}
+
+async function updateMessageDiffReview(message, pane, button, action) {
+	if (!message.execution_id) return;
+	const filePath = String(button.getAttribute("data-diff-path") || "");
+	const hunk = button.hasAttribute("data-diff-hunk") ? Number(button.getAttribute("data-diff-hunk")) : null;
+	const existing = diffReviewFor(message, filePath, hunk === null ? -1 : hunk);
+	const comment = action.startsWith("comment") ? window.prompt("Review comment", existing?.comment || "") : existing?.comment || "";
+	if (comment === null) return;
+	const status = action.startsWith("review") ? (existing?.status === "accepted" ? "unreviewed" : "accepted") : existing?.status || "unreviewed";
+	button.disabled = true;
+	try {
+		const response = await apiFetch(`/api/executions/${encodeURIComponent(message.execution_id)}/diff-reviews`, {
+			method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path: filePath, hunk_index: hunk, status, comment })
+		});
+		const payload = await response.json();
+		if (!response.ok) throw new Error(payload.error?.message || "Could not save diff review.");
+		message.diff_reviews = payload.reviews;
+		message.usage = { ...(message.usage || {}), diff_reviews: payload.reviews };
+		renderWorkspace({ preserveScroll: true });
+		scheduleStreamingPersist(getActiveChat()?.id, pane.id, message.id, { immediate: true });
+	} catch (error) { if (nodes.voiceStatus) nodes.voiceStatus.textContent = error.message; button.disabled = false; }
+}
+
+async function restoreMessageCheckpoint(message, pane, button, action) {
+	const checkpointId = String(message.checkpoint_id || message.usage?.checkpoint_id || "");
+	if (!checkpointId) return;
+	const filePath = String(button.getAttribute("data-diff-path") || "");
+	const hunk = button.hasAttribute("data-diff-hunk") ? Number(button.getAttribute("data-diff-hunk")) : null;
+	const description = action === "restore-all" || action === "fork-checkpoint" ? "all files changed by this turn" : hunk === null ? filePath : `hunk ${hunk + 1} in ${filePath}`;
+	if (!window.confirm(`Restore ${description}? Later manual edits will be protected by a conflict check.`)) return;
+	button.disabled = true;
+	try {
+		const response = await apiFetch(`/api/checkpoints/${encodeURIComponent(checkpointId)}/restore`, {
+			method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...(filePath ? { path: filePath } : {}), ...(hunk !== null ? { hunk_index: hunk } : {}) })
+		});
+		const payload = await response.json();
+		if (!response.ok) throw new Error(payload.error?.message || "Could not restore checkpoint.");
+		message.code_diffs = normalizeCodeDiffSet(payload.diffs);
+		message.usage = { ...(message.usage || {}), code_diffs: message.code_diffs };
+		if (filePath) {
+			const reviewResponse = await apiFetch(`/api/executions/${encodeURIComponent(message.execution_id)}/diff-reviews`, {
+				method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path: filePath, hunk_index: hunk, status: "rejected", comment: "Reverted from checkpoint." })
+			});
+			if (reviewResponse.ok) message.diff_reviews = (await reviewResponse.json()).reviews;
+		}
+		renderWorkspace({ preserveScroll: true });
+		scheduleStreamingPersist(getActiveChat()?.id, pane.id, message.id, { immediate: true });
+		if (action === "fork-checkpoint") branchMessageIntoNewChat(getActiveChat(), pane.id, message.id);
+	} catch (error) { if (nodes.voiceStatus) nodes.voiceStatus.textContent = error.message; button.disabled = false; }
+}
+
+async function openMessageDiffInEditor(message, button) {
+	const checkpointId = String(message.checkpoint_id || message.usage?.checkpoint_id || "");
+	if (!checkpointId) return;
+	try {
+		const response = await apiFetch(`/api/checkpoints/${encodeURIComponent(checkpointId)}/editor`, {
+			method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path: button.getAttribute("data-diff-path") })
+		});
+		const payload = await response.json();
+		if (!response.ok) throw new Error(payload.error?.message || "Could not open the file.");
+		window.location.href = payload.uri;
+	} catch (error) { if (nodes.voiceStatus) nodes.voiceStatus.textContent = error.message; }
+}
+
+function renderSplitDiffRow(left, right) {
+	return `<div class="code-diff-split-row">${renderSplitDiffCell(left, "old")}${renderSplitDiffCell(right, "new")}</div>`;
+}
+
+function renderSplitDiffCell(line, side) {
+	if (!line) return `<div class="code-diff-split-cell empty ${side}"><span class="code-diff-line-number"></span><span class="code-diff-marker"></span><code></code></div>`;
+	const marker = line.type === "add" ? "+" : line.type === "delete" ? "−" : " ";
+	return `<div class="code-diff-split-cell ${line.type} ${side}"><span class="code-diff-line-number" aria-hidden="true">${line.number}</span><span class="code-diff-marker" aria-hidden="true">${marker}</span><code>${renderInlineDiff(line.content, line.counterpart)}</code></div>`;
+}
+
+function diffLineCounterparts(lines) {
+	const pairs = new Map();
+	for (let index = 0; index < lines.length;) {
+		if (lines[index].type !== "delete") {
+			index += 1;
+			continue;
+		}
+		const deletes = [];
+		const adds = [];
+		while (index < lines.length && lines[index].type === "delete") deletes.push(index++);
+		while (index < lines.length && lines[index].type === "add") adds.push(index++);
+		for (let pair = 0; pair < Math.min(deletes.length, adds.length); pair += 1) {
+			pairs.set(deletes[pair], lines[adds[pair]]);
+			pairs.set(adds[pair], lines[deletes[pair]]);
+		}
+	}
+	return pairs;
+}
+
+function renderInlineDiff(content, counterpart) {
+	const value = String(content || "");
+	if (counterpart === undefined || counterpart === null || value === String(counterpart)) return escapeHtml(value || " ");
+	const valuePoints = Array.from(value);
+	const otherPoints = Array.from(String(counterpart));
+	let prefix = 0;
+	while (prefix < valuePoints.length && prefix < otherPoints.length && valuePoints[prefix] === otherPoints[prefix]) prefix += 1;
+	let suffix = 0;
+	while (suffix < valuePoints.length - prefix && suffix < otherPoints.length - prefix && valuePoints[valuePoints.length - 1 - suffix] === otherPoints[otherPoints.length - 1 - suffix]) suffix += 1;
+	const before = valuePoints.slice(0, prefix).join("");
+	const changed = valuePoints.slice(prefix, suffix ? valuePoints.length - suffix : valuePoints.length).join("");
+	const after = suffix ? valuePoints.slice(valuePoints.length - suffix).join("") : "";
+	return `${escapeHtml(before)}${changed ? `<mark>${escapeHtml(changed)}</mark>` : ""}${escapeHtml(after)}` || " ";
+}
+
+function formatCodeDiffPatch(diffs) {
+	const output = [];
+	for (const file of diffs.files) {
+		output.push(`diff --git a/${file.path} b/${file.path}`);
+		if (file.status === "added") output.push("new file mode 100644");
+		if (file.status === "deleted") output.push("deleted file mode 100644");
+		output.push(`--- ${file.status === "added" ? "/dev/null" : `a/${file.path}`}`);
+		output.push(`+++ ${file.status === "deleted" ? "/dev/null" : `b/${file.path}`}`);
+		for (const hunk of file.hunks) {
+			output.push(`@@ -${hunk.old_start},${hunk.old_lines} +${hunk.new_start},${hunk.new_lines} @@`);
+			for (const line of hunk.lines) output.push(`${line.type === "add" ? "+" : line.type === "delete" ? "-" : " "}${line.content}`);
+		}
+	}
+	return `${output.join("\n")}\n`;
 }
 
 function normalizeAssistantProseSpacing(value) {
@@ -4069,8 +4697,9 @@ function openSearchModal() {
 }
 
 function openPluginsModal() {
-	renderPluginsModal();
 	nodes.pluginsModal.classList.remove("hidden");
+	syncMcpEndpointPlaceholder();
+	void loadMcpServers();
 }
 
 function closePluginsModal() {
@@ -4410,25 +5039,30 @@ function nullableUsageValue(value) {
 
 function renderComposerUsageSummary() {
 	const chat = getActiveChat();
-	if (!chat) {
-		nodes.composerTokenSummary.textContent = "0 tokens";
-		return;
-	}
-
-	const records = collectUsageRecords().filter((record) => record.chat_id === chat.id);
+	const records = chat ? collectUsageRecords().filter((record) => record.chat_id === chat.id) : [];
 	const totalTokens = records.reduce((sum, record) => sum + record.tokens, 0);
 	const inputTokens = records.reduce((sum, record) => sum + record.input_tokens, 0);
 	const outputTokens = records.reduce((sum, record) => sum + record.output_tokens, 0);
 	const responseCount = records.length;
 	const average = responseCount > 0 ? Math.round(totalTokens / responseCount) : 0;
-	const responseLabel = responseCount === 1 ? "response" : "responses";
 	const responseTimes = records.map((record) => record.response_time_ms).filter((value) => value > 0);
 	const averageResponseTime = responseTimes.length > 0 ? responseTimes.reduce((sum, value) => sum + value, 0) / responseTimes.length : 0;
 	const slowestResponseTime = responseTimes.length > 0 ? Math.max(...responseTimes) : 0;
-	const timingLabel = responseTimes.length > 0
-		? ` · avg ${formatDurationMs(averageResponseTime)} · slowest ${formatDurationMs(slowestResponseTime)}`
-		: "";
-	nodes.composerTokenSummary.textContent = `${formatNumber(totalTokens)} tokens (in ${formatNumber(inputTokens)} · out ${formatNumber(outputTokens)}) · ${formatNumber(responseCount)} ${responseLabel}${timingLabel}`;
+	const rows = [
+		["Total tokens", formatNumber(totalTokens)],
+		["Input", formatNumber(inputTokens)],
+		["Output", formatNumber(outputTokens)],
+		["Responses", formatNumber(responseCount)],
+		["Average tokens", responseCount > 0 ? formatNumber(average) : "—"],
+		["Average response", responseTimes.length > 0 ? formatDurationMs(averageResponseTime) : "—"],
+		["Slowest response", responseTimes.length > 0 ? formatDurationMs(slowestResponseTime) : "—"]
+	];
+	nodes.composerTokenSummary.innerHTML = rows.map(([label, value]) => `<div class="usage-summary-row"><dt>${label}</dt><dd>${value}</dd></div>`).join("");
+	nodes.toggleUsageSummaryBtn.disabled = !chat;
+	if (!chat && usageSummaryVisible) {
+		usageSummaryVisible = false;
+		renderUsageSummaryToggle();
+	}
 }
 
 function collectUsageRecords() {
@@ -5068,28 +5702,118 @@ function renderSearchResults() {
 }
 
 function renderPluginsModal() {
-	const providerRows = summarizePluginsByProvider();
-	if (providerRows.length === 0) {
-		nodes.pluginsModalContent.innerHTML = "<div class=\"empty-state\">No provider profiles are configured yet.</div>";
+	if (mcpServers.length === 0) {
+		nodes.pluginsModalContent.innerHTML = "<div class=\"empty-state\">No MCP servers or plugins connected.</div>";
 		return;
 	}
-
-	nodes.pluginsModalContent.innerHTML = providerRows
-		.map((provider) => {
-			const configuredLabel = provider.configuredCount === 1 ? "1 profile" : `${provider.configuredCount} profiles`;
-			const keyLabel = provider.profilesWithKeyCount === 1 ? "1 key saved" : `${provider.profilesWithKeyCount} keys saved`;
-			return `
-				<div class="plugin-card">
-					<div class="plugin-card-head">
-						<div class="plugin-card-title">${escapeHtml(provider.label)}</div>
-						<div class="plugin-card-badge">${escapeHtml(configuredLabel)}</div>
-					</div>
-					<div class="plugin-card-meta">${escapeHtml(keyLabel)} | ${escapeHtml(provider.modelsLabel)}</div>
-				</div>
-			`;
-		})
-		.join("");
+	const chat = getActiveChat();
+	nodes.pluginsModalContent.innerHTML = mcpServers.map((server) => `<article class="plugin-card" data-mcp-server-id="${escapeHtml(server.id)}">
+		<div class="plugin-card-head"><div><div class="plugin-card-title">${escapeHtml(server.name)}</div><div class="plugin-card-meta">${escapeHtml(server.kind)} · ${escapeHtml(server.transport)} · ${escapeHtml(server.endpoint_label)}${server.publisher ? ` · ${escapeHtml(server.publisher)}` : ""}${server.source ? ` · ${escapeHtml(server.source)}` : ""}</div></div><div class="plugin-card-badge">${server.enabled ? "Connected" : "Disabled"}</div></div>
+		<div class="plugin-card-meta">${server.tool_count} tools · ${server.resource_count || 0} resources · scopes: ${escapeHtml((server.scopes || []).join(", ") || "none")} · credentials ${server.credential_configured ? "configured" : "not configured"}${server.last_error ? ` · Last error: ${escapeHtml(server.last_error)}` : ""}</div>
+		<div class="mcp-tool-list">${(server.tools || []).map((tool) => `<label title="${escapeHtml(tool.description || "")}"><input type="checkbox" data-mcp-tool="${escapeHtml(tool.name)}" ${server.authorized_tools?.includes(tool.name) ? "checked" : ""} ${!chat ? "disabled" : ""}> ${escapeHtml(tool.name)}</label>`).join("") || "<span>No tools discovered yet.</span>"}</div>
+		<div class="mcp-tool-list">${(server.resources || []).map((resource) => `<label title="${escapeHtml(resource.description || resource.uri)}"><input type="checkbox" data-mcp-resource="${escapeHtml(resource.uri)}" ${server.authorized_resources?.includes(resource.uri) ? "checked" : ""} ${!chat ? "disabled" : ""}> ${escapeHtml(resource.name || resource.uri)}</label>`).join("") || "<span>No resources discovered yet.</span>"}</div>
+		<div class="artifact-actions"><button data-mcp-action="discover">Refresh tools</button><button data-mcp-action="scope" ${!chat ? "disabled" : ""}>${server.chat_enabled ? "Update chat access" : "Enable for chat"}</button><button data-mcp-action="toggle">${server.enabled ? "Disable" : "Enable"}</button><button data-mcp-action="edit">Edit</button><button data-mcp-action="delete" class="danger">Remove</button></div>
+	</article>`).join("");
 }
+
+async function loadMcpServers() {
+	const chat = getActiveChat(); const response = await apiFetch(`/api/mcp/servers${chat ? `?chat_id=${encodeURIComponent(chat.id)}` : ""}`); const payload = await response.json();
+	if (!response.ok) { nodes.mcpServerStatus.textContent = payload.error?.message || "Could not load connections."; return; }
+	mcpServers = payload.servers || []; renderPluginsModal();
+}
+function syncMcpEndpointPlaceholder() { if (nodes.mcpServerEndpoint) nodes.mcpServerEndpoint.placeholder = nodes.mcpServerTransport.value === "stdio" ? "/absolute/path/to/command" : "https://server.example/mcp"; }
+async function saveMcpServer() {
+	const id = nodes.mcpServerId.value; const transport = nodes.mcpServerTransport.value;
+	const endpoint = String(nodes.mcpServerEndpoint.value || "").trim();
+	const argsText = String(nodes.mcpServerArgs.value || "").trim();
+	const body = { name: nodes.mcpServerName.value, kind: nodes.mcpServerKind.value, transport, publisher: nodes.mcpServerPublisher.value, source: nodes.mcpServerSource.value, scopes: String(nodes.mcpServerScopes.value || "").split(",").map((item) => item.trim()).filter(Boolean), ...(transport === "stdio" ? { ...(endpoint ? { command: endpoint } : {}), ...(!id || argsText ? { args: argsText.split("\n").map((item) => item.trim()).filter(Boolean) } : {}) } : (endpoint ? { url: endpoint } : {})), ...(nodes.mcpServerToken.value ? { auth_token: nodes.mcpServerToken.value } : {}) };
+	const response = await apiFetch(id ? `/api/mcp/servers/${encodeURIComponent(id)}` : "/api/mcp/servers", { method: id ? "PUT" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); const payload = await response.json();
+	if (!response.ok) { nodes.mcpServerStatus.textContent = payload.error?.message || "Could not save connection."; return; }
+	nodes.mcpServerForm.reset(); nodes.mcpServerId.value = ""; nodes.mcpServerEndpoint.setAttribute("required", ""); nodes.mcpServerStatus.textContent = "Connection saved. Refresh tools, enable the server, then authorize selected tools for a chat."; syncMcpEndpointPlaceholder(); await loadMcpServers();
+}
+async function handleMcpAction(button) {
+	const card = button.closest("[data-mcp-server-id]"); const id = card?.dataset.mcpServerId; const server = mcpServers.find((item) => item.id === id); if (!server) return;
+	const action = button.dataset.mcpAction;
+	if (action === "edit") { nodes.mcpServerId.value = id; nodes.mcpServerName.value = server.name; nodes.mcpServerKind.value = server.kind; nodes.mcpServerTransport.value = server.transport; nodes.mcpServerEndpoint.value = ""; nodes.mcpServerEndpoint.removeAttribute("required"); nodes.mcpServerPublisher.value = server.publisher || ""; nodes.mcpServerSource.value = server.source || ""; nodes.mcpServerScopes.value = (server.scopes || []).join(", "); nodes.mcpServerArgs.value = ""; nodes.mcpServerToken.value = ""; syncMcpEndpointPlaceholder(); nodes.mcpServerStatus.textContent = `Editing ${server.name}. Leave endpoint and token blank to keep the stored values.`; nodes.mcpServerName.focus(); return; }
+	if (action === "delete" && !(await openConfirmationModal({ title: "Remove connection?", message: `Remove ${server.name}? Chat tool access will be revoked.`, confirmLabel: "Remove", danger: true }))) return;
+	let response;
+	if (action === "discover") response = await apiFetch(`/api/mcp/servers/${encodeURIComponent(id)}/discover`, { method: "POST" });
+	else if (action === "toggle") response = await apiFetch(`/api/mcp/servers/${encodeURIComponent(id)}/enabled`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ enabled: !server.enabled }) });
+	else if (action === "scope") { const chat = getActiveChat(); const tools = [...card.querySelectorAll("[data-mcp-tool]:checked")].map((input) => input.dataset.mcpTool); const resources = [...card.querySelectorAll("[data-mcp-resource]:checked")].map((input) => input.dataset.mcpResource); response = await apiFetch(`/api/chats/${encodeURIComponent(chat.id)}/mcp/${encodeURIComponent(id)}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ enabled: true, tool_names: tools, resource_uris: resources }) }); }
+	else if (action === "delete") response = await apiFetch(`/api/mcp/servers/${encodeURIComponent(id)}`, { method: "DELETE" });
+	if (response) { const payload = await response.json(); nodes.mcpServerStatus.textContent = response.ok ? "Connection updated." : payload.error?.message || "Connection update failed."; await loadMcpServers(); }
+}
+
+async function loadAttention({ quiet = false } = {}) {
+	try {
+		const response = await apiFetch(`/api/attention?status=open${attentionFilter ? `&kind=${encodeURIComponent(attentionFilter)}` : ""}`); const payload = await response.json(); if (!response.ok) throw new Error(payload.error?.message || "Could not load attention inbox.");
+		attentionEvents = payload.events || []; const count = Number(payload.unread_count || 0); nodes.attentionCount.textContent = String(Math.min(99, count)); nodes.attentionCount.classList.toggle("hidden", count === 0); renderAttentionInbox(); maybeNotifyAttention(attentionEvents);
+	} catch (error) { if (!quiet && nodes.attentionList) nodes.attentionList.innerHTML = `<div class="empty-state">${escapeHtml(error.message)}</div>`; }
+}
+async function openAttentionInbox() { nodes.attentionModal.classList.remove("hidden"); await loadAttention(); nodes.closeAttentionBtn.focus(); }
+function closeAttentionInbox() { nodes.attentionModal.classList.add("hidden"); }
+function renderAttentionInbox() {
+	if (!nodes.attentionList) return;
+	document.querySelectorAll("[data-attention-filter]").forEach((button) => button.classList.toggle("active", button.dataset.attentionFilter === attentionFilter));
+	const events = attentionFilter ? attentionEvents.filter((item) => item.kind === attentionFilter) : attentionEvents;
+	nodes.attentionList.innerHTML = events.length ? events.map((item) => { const chat = getChatById(item.chat_id); return `<article class="attention-item${item.unread ? " unread" : ""}" data-attention-id="${escapeHtml(item.id)}"><button data-attention-action="open"><strong>${escapeHtml(item.title)}</strong><span>${escapeHtml(chat?.title || "Chat")} · ${escapeHtml(item.kind.replaceAll("_", " "))}</span></button><button class="btn ghost" data-attention-action="resolve">Resolve</button></article>`; }).join("") : "<div class=\"empty-state\">Nothing needs attention.</div>";
+}
+async function handleAttentionAction(item, action) {
+	const id = item.dataset.attentionId; const event = attentionEvents.find((entry) => entry.id === id); if (!event) return;
+	if (action === "resolve") await apiFetch(`/api/attention/${encodeURIComponent(id)}/resolve`, { method: "POST" });
+	else { await apiFetch(`/api/attention/${encodeURIComponent(id)}/read`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ read: true }) }); closeAttentionInbox(); if (getChatById(event.chat_id)) await activateChat(event.chat_id, { persist: false }); }
+	await loadAttention({ quiet: true });
+}
+function notificationSettings() { const fallback = { enabled: false, start: "22:00", end: "08:00", types: ["approval_needed", "question_asked", "task_failed", "conflict_required"] }; try { return { ...fallback, ...JSON.parse(localStorage.getItem(notificationSettingsStorageKey) || "{}") }; } catch { return fallback; } }
+function loadNotificationSettings() { const value = notificationSettings(); nodes.desktopNotificationsEnabled.checked = value.enabled; nodes.notificationQuietStart.value = value.start; nodes.notificationQuietEnd.value = value.end; nodes.notificationEventTypes?.querySelectorAll("input").forEach((input) => { input.checked = value.types.includes(input.value); }); }
+async function saveNotificationSettings() {
+	if (nodes.desktopNotificationsEnabled.checked && "Notification" in window && Notification.permission === "default") { const permission = await Notification.requestPermission(); if (permission !== "granted") nodes.desktopNotificationsEnabled.checked = false; }
+	const types = [...(nodes.notificationEventTypes?.querySelectorAll("input:checked") || [])].map((input) => input.value);
+	localStorage.setItem(notificationSettingsStorageKey, JSON.stringify({ enabled: nodes.desktopNotificationsEnabled.checked, start: nodes.notificationQuietStart.value || "22:00", end: nodes.notificationQuietEnd.value || "08:00", types }));
+}
+function maybeNotifyAttention(events) {
+	const settings = notificationSettings(); if (!settings.enabled || !("Notification" in window) || Notification.permission !== "granted" || inQuietHours(settings)) return;
+	for (const item of events.filter((entry) => entry.unread && settings.types.includes(entry.kind))) { if (notifiedAttentionIds.has(item.id)) continue; notifiedAttentionIds.add(item.id); new Notification("AI Chat needs attention", { body: item.title, tag: item.id, silent: true }); }
+}
+function inQuietHours(settings) { const minutes = new Date().getHours() * 60 + new Date().getMinutes(); const parse = (value) => { const [hour, minute] = String(value).split(":").map(Number); return hour * 60 + minute; }; const start = parse(settings.start), end = parse(settings.end); return start === end ? false : start < end ? minutes >= start && minutes < end : minutes >= start || minutes < end; }
+
+const defaultCommandShortcuts = Object.freeze({ palette: "Mod+K", new_chat: "Mod+Shift+N", previous_tab: "Alt+ArrowLeft", next_tab: "Alt+ArrowRight", inbox: "Mod+Shift+I", attach_context: "Mod+Shift+A", artifacts: "Mod+Shift+R" });
+function commandShortcuts() { try { return { ...defaultCommandShortcuts, ...JSON.parse(localStorage.getItem(commandShortcutsStorageKey) || "{}") }; } catch { return { ...defaultCommandShortcuts }; } }
+function commandRegistry() {
+	const chat = getActiveChat(); const pane = chat?.panes?.[0]; const latest = pane?.messages?.at(-1);
+	return [
+		{ id: "new_chat", label: "New chat", run: () => createAndActivateChat() },
+		{ id: "fork_chat", label: "Fork current chat", disabled: !latest ? "No current chat history" : "", run: () => branchMessageIntoNewChat(chat, pane.id, latest.id) },
+		{ id: "previous_tab", label: "Previous chat tab", disabled: openChatTabIds.length < 2 ? "Only one tab is open" : "", run: () => cycleChatTab(-1) },
+		{ id: "next_tab", label: "Next chat tab", disabled: openChatTabIds.length < 2 ? "Only one tab is open" : "", run: () => cycleChatTab(1) },
+		{ id: "switch_model", label: "Switch model", disabled: !chat ? "No active chat" : "", run: focusModelPicker },
+		{ id: "plan", label: "View active plan", disabled: !document.querySelector(".execution-plan") ? "No plan is available" : "", run: () => document.querySelector(".execution-plan")?.scrollIntoView({ behavior: "smooth", block: "center" }) },
+		{ id: "permissions", label: "Open permissions", run: () => { openSettings(); setSettingsTab("tools"); } },
+		{ id: "checkpoint_restore", label: "Restore latest checkpoint…", disabled: !document.querySelector("[data-diff-action='restore-all']") ? "No checkpoint is available" : "", run: () => document.querySelector("[data-diff-action='restore-all']")?.click() },
+		{ id: "attach_context", label: "Attach context", disabled: !chat ? "No active chat" : "", run: () => nodes.composerAttachmentBtn.click() },
+		{ id: "review_changes", label: "Review code changes", disabled: !document.querySelector(".code-diff-file") ? "No code changes are available" : "", run: () => document.querySelector(".code-diff-file")?.scrollIntoView({ behavior: "smooth", block: "start" }) },
+		{ id: "artifacts", label: "Open execution artifacts", disabled: !chat ? "No active chat" : "", run: () => void openArtifactRail() },
+		{ id: "inbox", label: "Open attention inbox", run: () => void openAttentionInbox() },
+		{ id: "plugins", label: "Manage MCP and plugins", run: openPluginsModal },
+		{ id: "settings", label: "Open settings", run: openSettings }
+	];
+}
+function openCommandPalette() { commandPaletteReturnFocus = document.activeElement; nodes.commandPalette.classList.remove("hidden"); nodes.commandPaletteSearch.value = ""; renderCommandPalette(); requestAnimationFrame(() => nodes.commandPaletteSearch.focus()); }
+function closeCommandPalette() { nodes.commandPalette.classList.add("hidden"); commandPaletteReturnFocus?.focus?.(); commandPaletteReturnFocus = null; }
+function renderCommandPalette() {
+	if (!nodes.commandPaletteResults) return; const query = String(nodes.commandPaletteSearch.value || "").trim().toLowerCase(); const shortcuts = commandShortcuts(); const commands = commandRegistry().filter((command) => !query || command.label.toLowerCase().includes(query));
+	nodes.commandPaletteResults.innerHTML = commands.map((command) => `<button role="option" data-command-id="${command.id}" ${command.disabled ? "disabled" : ""}><span>${escapeHtml(command.label)}${command.disabled ? `<small>${escapeHtml(command.disabled)}</small>` : ""}</span><kbd>${escapeHtml(shortcuts[command.id] || "")}</kbd></button>`).join("") || "<div class=\"empty-state\">No commands found.</div>";
+	const shortcutCommands = [{ id: "palette", label: "Open command palette" }, ...commandRegistry()];
+	nodes.shortcutEditorList.innerHTML = shortcutCommands.map((command) => `<label><span>${escapeHtml(command.label)}</span><input data-shortcut-id="${command.id}" value="${escapeHtml(shortcuts[command.id] || "")}" placeholder="Unassigned"></label>`).join("");
+}
+function executeCommand(id) { const command = commandRegistry().find((item) => item.id === id); if (!command || command.disabled) return; closeCommandPalette(); command.run(); }
+function handleCommandPaletteKeydown(event) { if (event.key === "Escape") { event.preventDefault(); closeCommandPalette(); return; } if (event.key === "Enter") { const first = nodes.commandPaletteResults.querySelector("[data-command-id]:not([disabled])"); if (first) { event.preventDefault(); executeCommand(first.dataset.commandId); } return; } if (["ArrowDown", "ArrowUp"].includes(event.key)) { const commands = [...nodes.commandPaletteResults.querySelectorAll("[data-command-id]:not([disabled])")]; if (!commands.length) return; event.preventDefault(); (event.key === "ArrowDown" ? commands[0] : commands.at(-1)).focus(); } }
+function eventShortcut(event) { const parts = []; if (event.metaKey || event.ctrlKey) parts.push("Mod"); if (event.altKey) parts.push("Alt"); if (event.shiftKey) parts.push("Shift"); let key = event.key.length === 1 ? event.key.toUpperCase() : event.key; if (["Meta", "Control", "Alt", "Shift"].includes(key)) return ""; parts.push(key); return parts.join("+"); }
+function handleGlobalShortcut(event) { const shortcut = eventShortcut(event); if (!shortcut) return; const paletteShortcut = commandShortcuts().palette; const editing = /^(INPUT|TEXTAREA|SELECT)$/.test(event.target?.tagName) || event.target?.isContentEditable; if (editing && shortcut !== paletteShortcut) return; const entry = Object.entries(commandShortcuts()).find(([, value]) => value === shortcut); if (!entry) return; event.preventDefault(); if (entry[0] === "palette") return nodes.commandPalette.classList.contains("hidden") ? openCommandPalette() : closeCommandPalette(); executeCommand(entry[0]); }
+function handleShortcutChange(event) { const id = event.target.dataset.shortcutId; if (!id) return; const value = String(event.target.value || "").trim(); const current = commandShortcuts(); const reserved = new Set(["Mod+L", "Mod+T", "Mod+W", "Mod+R", "Mod+Q"]); if (reserved.has(value)) { nodes.shortcutEditorStatus.textContent = `${value} is reserved by the browser or operating system.`; event.target.value = current[id] || ""; return; } const conflict = Object.entries(current).find(([key, shortcut]) => key !== id && shortcut && shortcut === value); if (conflict) { nodes.shortcutEditorStatus.textContent = `${value} is already assigned.`; event.target.value = current[id] || ""; return; } current[id] = value; localStorage.setItem(commandShortcutsStorageKey, JSON.stringify(current)); nodes.shortcutEditorStatus.textContent = "Shortcut saved."; renderCommandPalette(); }
+function resetCommandShortcuts() { localStorage.removeItem(commandShortcutsStorageKey); nodes.shortcutEditorStatus.textContent = "Shortcuts reset."; renderCommandPalette(); }
+function cycleChatTab(direction) { const ids = openChatTabIds.filter((id) => getChatById(id)); const index = Math.max(0, ids.indexOf(state.activeChatId)); if (ids.length > 1) void activateChat(ids[(index + direction + ids.length) % ids.length], { persist: false, focusTab: true }); }
+function focusModelPicker() { if (window.jQuery && nodes.composerProfileSelect) window.jQuery(nodes.composerProfileSelect).select2("open"); else nodes.composerProfileSelect?.focus(); }
 
 function summarizePluginsByProvider() {
 	const profileList = Array.isArray(state.settings.profiles) ? state.settings.profiles : [];
@@ -5934,9 +6658,116 @@ async function validateApiAuthTokenCandidate(token) {
 	}
 }
 
+function activeComposerAttachments() {
+	const chat = getActiveChat();
+	return chat ? composerAttachmentsByChat.get(chat.id) || [] : [];
+}
+
+function renderComposerAttachments() {
+	if (!nodes.composerAttachmentChips) return;
+	const attachments = activeComposerAttachments();
+	nodes.composerAttachmentChips.innerHTML = attachments.map((item) => `<span class="attachment-chip"><span><strong>${escapeHtml(item.name)}</strong><small>${escapeHtml(item.mime_type)} · ${formatNumber(item.size)} bytes · ${escapeHtml(item.extraction)} · sent to provider</small></span><button type="button" data-remove-attachment="${escapeHtml(item.id)}" aria-label="Remove ${escapeHtml(item.name)}">×</button></span>`).join("");
+}
+
+async function uploadComposerAttachments(fileList) {
+	const chat = getActiveChat();
+	const files = Array.from(fileList || []);
+	if (!chat || !files.length) return;
+	const existing = activeComposerAttachments();
+	if (existing.length + files.length > 8) { nodes.voiceStatus.textContent = "A message can include at most 8 attachments."; return; }
+	const form = new FormData();
+	for (const file of files) form.append("files", file, file.name);
+	const response = await apiFetch(`/api/chats/${encodeURIComponent(chat.id)}/attachments`, { method: "POST", body: form });
+	const payload = await response.json();
+	if (!response.ok) { nodes.voiceStatus.textContent = payload.error?.message || "Attachment upload failed."; return; }
+	composerAttachmentsByChat.set(chat.id, [...existing, ...payload.attachments]);
+	nodes.composerAttachmentInput.value = "";
+	if (nodes.composerFolderInput) nodes.composerFolderInput.value = "";
+	renderComposerAttachments();
+}
+
+async function removeComposerAttachment(id) {
+	const chat = getActiveChat(); if (!chat) return;
+	await apiFetch(`/api/chats/${encodeURIComponent(chat.id)}/attachments/${encodeURIComponent(id)}`, { method: "DELETE" });
+	composerAttachmentsByChat.set(chat.id, activeComposerAttachments().filter((item) => item.id !== id));
+	renderComposerAttachments();
+}
+
+async function configureActiveChatWorkspace(mode) {
+	const chat = getActiveChat(); if (!chat) return;
+	await persistStateToServer();
+	const response = await apiFetch(`/api/chats/${encodeURIComponent(chat.id)}/workspace`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode }) });
+	const payload = await response.json();
+	if (!response.ok) { nodes.voiceStatus.textContent = payload.error?.message || "Workspace setup failed."; await refreshActiveWorkspaceStatus(); return; }
+	chat.workspace = payload.workspace;
+	nodes.voiceStatus.textContent = `${payload.workspace.repository}: ${payload.workspace.worktree_label} · ${payload.workspace.branch || "non-Git"}`;
+}
+
+async function refreshActiveWorkspaceStatus() {
+	const chat = getActiveChat(); if (!chat || !nodes.chatWorkspaceMode) return;
+	try {
+		const response = await apiFetch(`/api/chats/${encodeURIComponent(chat.id)}/workspace`);
+		if (!response.ok) return;
+		const payload = await response.json();
+		chat.workspace = payload.workspace;
+		nodes.chatWorkspaceMode.value = payload.workspace?.mode || "current";
+		nodes.chatWorkspaceMode.title = payload.workspace ? `${payload.workspace.repository} · ${payload.workspace.branch || "non-Git"} · ${payload.workspace.dirty ? "dirty" : "clean"} · ↑${payload.workspace.ahead} ↓${payload.workspace.behind}` : "Chat workspace mode";
+	} catch {}
+}
+
+async function runActiveWorkspaceAction() {
+	const chat = getActiveChat(); if (!chat?.workspace) { nodes.voiceStatus.textContent = "Configure a chat workspace first."; return; }
+	const action = String(window.prompt("Workspace action: commit, prepare, or cleanup", "prepare") || "").trim().toLowerCase();
+	if (!action) return;
+	let url = `/api/chats/${encodeURIComponent(chat.id)}/workspace`;
+	let method = "POST"; let body;
+	if (action === "commit") { url += "/commit"; const message = window.prompt("Commit message", "Save agent changes"); if (!message) return; body = JSON.stringify({ message }); }
+	else if (action === "prepare") url += "/prepare-merge";
+	else if (action === "cleanup") { method = "DELETE"; if (!window.confirm("Clean up this managed worktree? Dirty or unmerged work will be refused.")) return; }
+	else { nodes.voiceStatus.textContent = "Choose commit, prepare, or cleanup."; return; }
+	const response = await apiFetch(url, { method, ...(body ? { headers: { "Content-Type": "application/json" }, body } : {}) });
+	const payload = await response.json();
+	if (!response.ok) { nodes.voiceStatus.textContent = payload.error?.message || "Workspace action failed."; return; }
+	nodes.voiceStatus.textContent = action === "prepare" ? `Merge-ready: ${(payload.preparation?.commits || []).length} commit(s).` : action === "cleanup" ? "Managed worktree cleaned up." : "Workspace committed.";
+	await refreshActiveWorkspaceStatus();
+}
+
+async function openArtifactRail() {
+	const chat = getActiveChat(); if (!chat) return;
+	nodes.artifactRail.classList.remove("hidden");
+	for (const button of nodes.artifactRail.querySelectorAll("[data-artifact-filter]")) button.classList.toggle("active", button.getAttribute("data-artifact-filter") === artifactRailFilter);
+	const response = await apiFetch(`/api/chats/${encodeURIComponent(chat.id)}/execution-artifacts`);
+	const payload = await response.json();
+	if (!response.ok) { nodes.artifactRailContent.textContent = payload.error?.message || "Could not load artifacts."; return; }
+	const cards = [];
+	for (const execution of payload.executions || []) for (const artifact of execution.artifacts || []) {
+		if (artifactRailFilter !== "all" && artifact.category !== artifactRailFilter) continue;
+		cards.push(`<article class="artifact-card ${escapeHtml(artifact.status)}"><header><strong>${escapeHtml(artifact.tool_name)}</strong><span>${escapeHtml(artifact.status)}</span></header><pre>${escapeHtml(artifact.preview)}</pre><div class="artifact-actions"><button type="button" data-artifact-action="open" data-execution-id="${escapeHtml(execution.execution_id)}" data-call-id="${escapeHtml(artifact.call_id)}">Open</button><button type="button" data-artifact-action="copy" data-execution-id="${escapeHtml(execution.execution_id)}" data-call-id="${escapeHtml(artifact.call_id)}">Copy</button><button type="button" data-artifact-action="download" data-execution-id="${escapeHtml(execution.execution_id)}" data-call-id="${escapeHtml(artifact.call_id)}">Download</button></div></article>`);
+	}
+	nodes.artifactRailContent.innerHTML = cards.join("") || `<p class="muted">No ${escapeHtml(artifactRailFilter === "all" ? "" : artifactRailFilter + " ")}artifacts for this chat.</p>`;
+}
+
+async function openExecutionArtifact(button) {
+	const chat = getActiveChat(); if (!chat) return;
+	const response = await apiFetch(`/api/chats/${encodeURIComponent(chat.id)}/execution-artifacts/${encodeURIComponent(button.dataset.executionId)}/${encodeURIComponent(button.dataset.callId)}`);
+	const payload = await response.json();
+	if (!response.ok) { nodes.voiceStatus.textContent = payload.error?.message || "Artifact unavailable."; return; }
+	const action = String(button.dataset.artifactAction || "open");
+	if (action === "copy") { await navigator.clipboard.writeText(payload.artifact.result); nodes.voiceStatus.textContent = "Artifact copied."; return; }
+	const blob = new Blob([payload.artifact.result], { type: "text/plain" });
+	const url = URL.createObjectURL(blob);
+	if (action === "download") { const link = document.createElement("a"); link.href = url; link.download = `${payload.artifact.tool_name}-${payload.artifact.call_id}.txt`; link.click(); }
+	else window.open(url, "_blank", "noopener");
+	window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
 async function sendFromComposer() {
 	if (activeStreamCount > 0 || activeStreamControllers.size > 0) {
-		stopActiveStreams();
+		const mode = String(nodes.composerSteeringMode?.value || "immediate");
+		const prompt = nodes.composerInput.value.trim();
+		if (mode !== "cancel_after_action" && !prompt) return;
+		await steerActiveExecutions(mode, prompt);
+		nodes.composerInput.value = "";
 		return;
 	}
 
@@ -5950,7 +6781,8 @@ async function sendFromComposer() {
 	}
 
 	const text = nodes.composerInput.value.trim();
-	if (!text) {
+	const attachments = activeComposerAttachments();
+	if (!text && !attachments.length) {
 		return;
 	}
 	if (text.length > composerPasteSoftLimitChars && nodes.voiceStatus) {
@@ -5961,7 +6793,9 @@ async function sendFromComposer() {
 	chat.updatedAt = Date.now();
 
 	const targetPanes = chat.panes.slice();
-	await Promise.all(targetPanes.map((pane) => sendMessageToPaneStream(chat, pane, text)));
+	await Promise.all(targetPanes.map((pane) => sendMessageToPaneStream(chat, pane, text || "Review the attached context.", { attachments })));
+	composerAttachmentsByChat.set(chat.id, []);
+	renderComposerAttachments();
 	schedulePersist();
 	renderWorkspace();
 	renderComposerUsageSummary();
@@ -5979,7 +6813,8 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 	const profile = reconcilePaneProfileSelection(pane) || getProfileById(pane.profile_id);
 	if (!profile) {
 		pane.status = "error";
-	const errorMessage = makeMessage("assistant", "");
+		renderChatTabs();
+		const errorMessage = makeMessage("assistant", "");
 		errorMessage.usage = { error: { message: "This pane has no valid provider profile selected.", retryable: true } };
 		pane.messages.push(errorMessage);
 		updatePaneMessageCount(pane);
@@ -5992,6 +6827,9 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 		? pane.messages.find((message) => message.id === options.reuseUserMessageId && message.role === "user")
 		: null;
 	const userMessage = existingUserMessage || makeMessage("user", text);
+	if (!existingUserMessage && Array.isArray(options.attachments) && options.attachments.length) {
+		userMessage.usage = { message_parts: options.attachments.map((item) => ({ type: "artifact_ref", artifact_id: item.id, name: item.name, mime_type: item.mime_type, size: item.size, extraction: item.extraction, provider_compatibility: item.provider_compatibility, leaves_machine: item.leaves_machine })) };
+	}
 	const assistantMessage = makeMessage("assistant", "");
 	assistantMessage.thinking = "";
 	assistantMessage.provider = profile.provider_id;
@@ -6006,6 +6844,11 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 	assistantMessage.retry_count = Math.max(0, Number(options.retryCount) || 0);
 	assistantMessage.trace_id = assistantMessage.id;
 	assistantMessage.tool_activity = [];
+	assistantMessage.code_diffs = null;
+	assistantMessage.approvals = [];
+	assistantMessage.execution_plan = null;
+	assistantMessage.diff_reviews = [];
+	assistantMessage.checkpoint_id = "";
 	assistantMessage.live_narration = "";
 
 	if (!existingUserMessage) {
@@ -6015,6 +6858,7 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 	updatePaneMessageCount(pane);
 	pane.status = "waiting";
 	chat.updatedAt = Date.now();
+	renderChatTabs();
 	renderWorkspace({ preserveScroll: Boolean(options.preserveInitialScroll) });
 	schedulePersist({ immediate: true });
 	await persistStateToServer();
@@ -6036,6 +6880,7 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 	activeStreamCount += 1;
 	updateStreamingControls();
 
+	const queuedFollowups = [];
 	try {
 		const maxContinuationPasses = 12;
 		const maxStreamErrorRecoveryPasses = 4;
@@ -6119,6 +6964,9 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 				messages: chatHistory,
 				tools: buildEnabledToolDefinitions(),
 				tool_discovery: true,
+				interactive_approvals: profile.provider_id !== "codex",
+				plan_events: true,
+				attachment_ids: (userMessage.usage?.message_parts || []).map((part) => part.artifact_id),
 				disable_thinking: forceFinalAnswer
 			};
 
@@ -6232,6 +7080,25 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 					return;
 				}
 
+				if (eventName === "plan") {
+					assistantMessage.execution_plan = payloadObj.plan || null;
+					assistantMessage.usage = { ...(assistantMessage.usage || {}), execution_plan: assistantMessage.execution_plan };
+					scheduleStreamingMessagePatch(chat.id, pane.id, assistantMessage.id);
+					scheduleStreamingPersist(chat.id, pane.id, assistantMessage.id);
+					return;
+				}
+
+				if (eventName === "approval") {
+					const approval = payloadObj.approval;
+					if (approval?.id) {
+						assistantMessage.approvals = [...(assistantMessage.approvals || []).filter((entry) => entry.id !== approval.id), approval].slice(-32);
+						assistantMessage.usage = { ...(assistantMessage.usage || {}), approvals: assistantMessage.approvals };
+						scheduleStreamingMessagePatch(chat.id, pane.id, assistantMessage.id);
+						scheduleStreamingPersist(chat.id, pane.id, assistantMessage.id);
+					}
+					return;
+				}
+
 				if (eventName === "tool") {
 					if (payloadObj.phase === "started") {
 						streamUsedTools = true;
@@ -6259,6 +7126,21 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 						...existingEntries.filter((entry) => `${entry.phase}|${entry.label}|${entry.command}` !== dedupeKey),
 						nextEntry
 					].slice(-32);
+					scheduleStreamingMessagePatch(chat.id, pane.id, assistantMessage.id);
+					scheduleStreamingPersist(chat.id, pane.id, assistantMessage.id);
+					return;
+				}
+
+				if (eventName === "diff") {
+					const normalizedDiffs = normalizeCodeDiffSet(payloadObj.diffs || payloadObj);
+					assistantMessage.code_diffs = normalizedDiffs.files.length > 0 ? normalizedDiffs : null;
+					assistantMessage.usage = { ...(assistantMessage.usage || {}) };
+					if (normalizedDiffs.files.length > 0) assistantMessage.usage.code_diffs = normalizedDiffs;
+					else delete assistantMessage.usage.code_diffs;
+					if (payloadObj.checkpoint_id) {
+						assistantMessage.checkpoint_id = String(payloadObj.checkpoint_id);
+						assistantMessage.usage.checkpoint_id = assistantMessage.checkpoint_id;
+					}
 					scheduleStreamingMessagePatch(chat.id, pane.id, assistantMessage.id);
 					scheduleStreamingPersist(chat.id, pane.id, assistantMessage.id);
 					return;
@@ -6365,6 +7247,9 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 			updateStreamingControls();
 
 			if (streamDonePayload) {
+				if (streamDonePayload.plan) assistantMessage.execution_plan = streamDonePayload.plan;
+				if (streamDonePayload.checkpoint_id) assistantMessage.checkpoint_id = String(streamDonePayload.checkpoint_id);
+				if (Array.isArray(streamDonePayload.queued_followups)) queuedFollowups.push(...streamDonePayload.queued_followups.map((entry) => String(entry.prompt || "").trim()).filter(Boolean));
 				watchdogTraceRecorded = watchdogTraceRecorded || Boolean(streamDonePayload.watchdog_trace);
 				assistantMessage.provider = streamDonePayload.provider || assistantMessage.provider;
 				assistantMessage.model = streamDonePayload.model || assistantMessage.model;
@@ -6403,6 +7288,9 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 						...streamDonePayload.tool_artifacts
 					]);
 				}
+				const completedDiffs = normalizeCodeDiffSet(streamDonePayload.code_diffs);
+				if (completedDiffs.files.length > 0) assistantMessage.code_diffs = completedDiffs;
+				assistantMessage.usage = { ...(assistantMessage.usage || {}), ...(assistantMessage.execution_plan ? { execution_plan: assistantMessage.execution_plan } : {}), ...(assistantMessage.checkpoint_id ? { checkpoint_id: assistantMessage.checkpoint_id } : {}), ...(assistantMessage.approvals.length ? { approvals: assistantMessage.approvals } : {}) };
 			}
 
 			const streamErrored = Boolean(streamErrorPayload) && !streamDonePayload;
@@ -6579,6 +7467,9 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 		if (assistantMessage.usage && Array.isArray(assistantMessage.tool_artifacts) && assistantMessage.tool_artifacts.length > 0) {
 			assistantMessage.usage.tool_artifacts = assistantMessage.tool_artifacts;
 		}
+		if (assistantMessage.usage && assistantMessage.code_diffs && assistantMessage.code_diffs.files.length > 0) {
+			assistantMessage.usage.code_diffs = assistantMessage.code_diffs;
+		}
 		assistantMessage.continuation_passes = continuationPass;
 		const continuationReasons = uniqueSorted(
 			streamMetrics.passes
@@ -6627,6 +7518,7 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 			});
 		}
 		if (!terminalStreamError) void maybeAutoTitleChat(chat, pane, profile, selectedModel);
+		renderChatTabs();
 		renderComposerUsageSummary();
 		if (isUsageModalOpen()) {
 			renderUsageModalContent();
@@ -6697,6 +7589,7 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 		}
 	}
 
+	renderChatTabs();
 	chat.updatedAt = Date.now();
 	completeThinkingTiming();
 	scheduleStreamingPersist(chat.id, pane.id, assistantMessage.id, { immediate: true });
@@ -6714,6 +7607,23 @@ async function sendMessageToPaneStream(chat, pane, text, options = {}) {
 		stopStreamingRequested = false;
 	}
 	updateStreamingControls();
+	if (queuedFollowups.length && !stopStreamingRequested) {
+		for (const followup of queuedFollowups) await sendMessageToPaneStream(chat, pane, followup, { preserveInitialScroll: true });
+	}
+}
+
+async function steerActiveExecutions(mode, prompt) {
+	const controllers = [...activeStreamControllers].filter((controller) => controller.streamRequestId);
+	if (!controllers.length) return;
+	const results = await Promise.all(controllers.map(async (controller) => {
+		const response = await apiFetch(`/api/executions/${encodeURIComponent(controller.streamRequestId)}/steer`, {
+			method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode, prompt })
+		});
+		const payload = await response.json();
+		if (!response.ok) throw new Error(payload.error?.message || "Could not steer the active execution.");
+		return payload;
+	}));
+	if (nodes.voiceStatus) nodes.voiceStatus.textContent = mode === "queued" ? `Queued for ${results.length} active execution${results.length === 1 ? "" : "s"}.` : mode === "cancel_after_action" ? "The active execution will stop after its current action." : "Steering will apply at the next execution boundary.";
 }
 
 async function retryFailedPaneMessage(chat, paneId, messageId) {
@@ -6898,10 +7808,12 @@ function updateStreamingControls() {
 	}
 
 	const streaming = activeStreamCount > 0 || activeStreamControllers.size > 0;
-	nodes.sendBtn.innerHTML = streaming ? stopButtonSvg : sendButtonSvg;
-	nodes.sendBtn.setAttribute("aria-label", streaming ? "Stop streaming" : "Send");
-	nodes.sendBtn.title = streaming ? "Stop streaming" : "Send message";
-	nodes.sendBtn.classList.toggle("streaming-stop", streaming);
+	nodes.sendBtn.innerHTML = sendButtonSvg;
+	nodes.sendBtn.setAttribute("aria-label", streaming ? "Send steering instruction" : "Send");
+	nodes.sendBtn.title = streaming ? "Send steering instruction" : "Send message";
+	nodes.sendBtn.classList.remove("streaming-stop");
+	nodes.stopStreamBtn?.classList.toggle("hidden", !streaming);
+	nodes.composerSteeringMode?.classList.toggle("hidden", !streaming);
 	nodes.sendBtn.disabled = false;
 	syncStreamingUiTicker(streaming);
 }
@@ -9389,7 +10301,9 @@ async function continueSavedExecution(chat,pane,message,inspection) {
  const controller=new AbortController();controller.streamRequestId=id;
  const restore=payload=>{
   message.content=String(payload.output_text||'');message.thinking=String(payload.thinking_text||message.thinking||'');
-  message.usage={...(payload.usage||{}),trace_id:payload.trace_id,tool_artifacts:payload.tool_artifacts||[]};
+  const restoredDiffs=normalizeCodeDiffSet(payload.code_diffs||(payload.usage&&payload.usage.code_diffs));
+  message.code_diffs=restoredDiffs.files.length?restoredDiffs:null;
+  message.usage={...(payload.usage||{}),trace_id:payload.trace_id,tool_artifacts:payload.tool_artifacts||[],...(restoredDiffs.files.length?{code_diffs:restoredDiffs}:{})};
   message.provider=payload.provider||message.provider;message.model=payload.model||message.model;
   pane.status='idle';message.streaming=false;
  };
@@ -9401,6 +10315,7 @@ async function continueSavedExecution(chat,pane,message,inspection) {
   if(event.event==='token')message.content+=String(payload.delta||'');
   if(event.event==='thinking')message.thinking=String(message.thinking||'')+String(payload.delta||'');
   if(event.event==='tool')message.tool_activity=[...(message.tool_activity||[]),{tool_name:payload.tool_name,phase:payload.phase,label:payload.label||`${payload.tool_name} · ${payload.phase}`,command:payload.command||''}].slice(-32);
+  if(event.event==='diff'){const diffs=normalizeCodeDiffSet(payload.diffs||payload);message.code_diffs=diffs.files.length?diffs:null;message.usage={...(message.usage||{})};if(diffs.files.length)message.usage.code_diffs=diffs;else delete message.usage.code_diffs;}
   if(event.event==='done'){restore(payload);terminal='done';}
   if(event.event==='error'){message.usage={...(payload.usage||message.usage||{}),error:payload};pane.status=message.content||message.thinking?'partial':'error';terminal='error';}
   scheduleStreamingMessagePatch(chat.id,pane.id,message.id);scheduleStreamingPersist(chat.id,pane.id,message.id);

@@ -29,6 +29,21 @@ Current endpoints:
 - `POST /api/transcribe`
 - `POST /api/browser/approvals`
 - `GET /api/browser/artifacts/:artifactId`
+- `GET|POST|DELETE /api/chats/:chatId/workspace`
+- `POST /api/chats/:chatId/workspace/commit`
+- `POST /api/chats/:chatId/workspace/prepare-merge`
+- `GET|POST /api/chats/:chatId/attachments`
+- `DELETE /api/chats/:chatId/attachments/:attachmentId`
+- `GET /api/chats/:chatId/execution-artifacts`
+- `GET /api/chats/:chatId/execution-artifacts/:executionId/:callId`
+- `GET|POST /api/mcp/servers`
+- `PUT|DELETE /api/mcp/servers/:serverId`
+- `POST /api/mcp/servers/:serverId/enabled`
+- `POST /api/mcp/servers/:serverId/discover`
+- `PUT /api/chats/:chatId/mcp/:serverId`
+- `GET /api/attention`
+- `POST /api/attention/:eventId/read`
+- `POST /api/attention/:eventId/resolve`
 
 ## 2. Authentication Contract
 
@@ -645,6 +660,7 @@ these deltas if they archive the complete multi-phase output; ordinary `token` a
 review/repair status and leaves detailed review content in the execution journal.
 `done.engineering_review` reports the final advisory status;
 `done.review_text` and `done.review_thinking_text` contain complete review deltas.
+
 Usage and provider-round counters include reviewer and repair requests. Older
 clients can ignore the additive event and metadata. Worker output is never
 retroactively deleted or replaced. Unresolved/inconclusive review status is also
@@ -655,6 +671,169 @@ Review state is checkpointed for explicit resume. Completed execution replay
 returns the saved result without starting another review. Detailed events remain
 available through the existing execution event API, including if a reviewer is
 cancelled before producing a verdict.
+
+### Live code-diff events
+
+When an authorized `local_file_write` completes, or native Codex reports a
+`file_change`, the stream emits an additive `diff` event. Its `diffs` object is
+the current turn-scoped change set relative to the first observed contents of
+each file:
+
+```json
+{
+  "version": 1,
+  "files": [{
+    "path": "public/app.js",
+    "status": "modified",
+    "source": "local_file_write",
+    "additions": 2,
+    "deletions": 1,
+    "hunks": [{
+      "old_start": 10,
+      "old_lines": 4,
+      "new_start": 10,
+      "new_lines": 5,
+      "lines": [{ "type": "context", "content": "..." }]
+    }],
+    "binary": false,
+    "truncated": false
+  }],
+  "totals": { "files": 1, "additions": 2, "deletions": 1 },
+  "truncated": false
+}
+```
+
+The event may contain an empty `files` array when later work reverts every
+observed change; clients must clear their prior preview in that case. The final
+`done.code_diffs` repeats the latest bounded snapshot. The browser stores a
+non-empty snapshot in the assistant message's `usage.code_diffs`, so each pane
+retains its own review surface after reload. Preview capture is limited to 48
+files, 512 KiB per text version, 2 MiB retained text, and 4,000 rendered lines.
+Binary, oversized, symlink-escaping, and sensitive-path content is never placed
+in the preview. Diff presentation is observational: it does not alter tool
+authorization, execution receipts, reconciliation requirements, or the files.
+
+### Harness supervision and recovery
+
+Generic streaming clients may send `interactive_approvals:true` and
+`plan_events:true`. Before a consequential provider-neutral tool dispatch, the
+stream emits `approval` with a sanitized action record and pauses. Decide it via
+`POST /api/approvals/:id/decision` with `decision` (`approve` or `deny`) and
+`scope` (`once`, `chat`, or `workspace`). Exact argument fingerprints bind all
+grants; argument values are not returned or stored. Pending requests expire
+closed. `GET /api/approvals` lists records and saved grants, and
+`DELETE /api/approval-grants/:id` revokes a grant. Native provider harnesses keep
+their own approval policy.
+
+With `plan_events:true`, additive `plan` events contain stable steps in
+`pending`, `active`, `completed`, `skipped`, `blocked`, or `failed` states.
+`GET /api/executions/:id/plan` returns the durable plan and steering queue.
+`POST /api/executions/:id/steer` accepts bounded text and mode `immediate`,
+`queued`, or `cancel_after_action`. Immediate guidance is consumed at the next
+provider-round boundary; queued guidance is returned once after terminal state;
+cancel-after-action stops before another model or tool action begins.
+
+Each streamed execution has an encrypted pre-turn checkpoint manifest for files
+it changes. `GET /api/executions/:id/checkpoint` returns its safe metadata.
+`POST /api/checkpoints/:id/restore` accepts an optional file path and hunk
+coordinates, refuses fingerprint conflicts, and returns the refreshed diff.
+`POST /api/checkpoints/:id/editor` returns an editor URI for a covered file.
+Checkpoint restore never mutates Git history and does not cover unrelated files.
+
+`GET /api/executions/:id/diff-reviews` returns durable file/hunk review states
+and comments. `PUT` to the same route upserts `path`, optional `hunk_key`,
+`status` (`unreviewed`, `accepted`, or `rejected`), and a bounded comment.
+Accept means reviewed; reject is implemented only through the conflict-checked
+checkpoint operation. Execution inspection also returns plan, steering,
+checkpoint, approval, and diff-review state for reload recovery.
+
+### Per-chat workspaces
+
+`POST /api/chats/:id/workspace` configures `current`, `worktree`, or
+`read_only` mode for the chat's persisted project folder. Managed worktree
+creation requires a clean Git source and creates an isolated branch, checkout,
+port, and runtime-data label. `GET` returns repository/branch labels, base and
+head revisions, dirty/conflict state, ahead/behind counts, and mode without
+returning absolute paths. Non-Git folders support current/read-only modes.
+
+`POST /api/chats/:id/workspace/commit` creates an explicit local commit;
+`POST /api/chats/:id/workspace/prepare-merge` returns bounded merge-preparation
+evidence; and `DELETE /api/chats/:id/workspace` removes only AI Chat-managed,
+clean worktrees whose branch is merged into the source checkout's current
+branch. Publishing and pull requests remain out of scope. Native Codex runs in
+the selected checkout, and provider-neutral local tools receive its dynamic
+workspace ID. Read-only mode removes local mutation tools and forces the native
+Codex sandbox to read-only.
+
+### Attachment context
+
+`POST /api/chats/:id/attachments` accepts authenticated multipart field
+`files`: at most 8 files, 5 MiB each. Allowed types are UTF-8 text, Markdown,
+CSV, JSON, PNG, JPEG, and WebP. `GET` lists safe metadata; `DELETE
+/api/chats/:chatId/attachments/:id` removes one item. Payloads are encrypted,
+expire under `DATA_RETENTION_DAYS`, and stale references fail closed.
+
+Streaming requests may include up to eight `attachment_ids` owned by that chat.
+The execution request persists typed `artifact_ref` parts. Text extraction is
+bounded to 40,000 characters per file and 80,000 characters per request. Image
+parts remain disclosed references for text-only provider transports. Clients
+show name, MIME type, size, extraction/truncation, compatibility, removal, and
+provider-delivery state rather than merging attachments into message text.
+
+### Execution artifact rail
+
+`GET /api/chats/:id/execution-artifacts` groups durable tool receipts by
+execution, pane, message, category, and normalized outcome (`passed`, `failed`,
+`cancelled`, `uncertain`, or `unavailable`). Previews are bounded and redact
+common credential shapes. `GET
+/api/chats/:chatId/execution-artifacts/:executionId/:callId` returns a bounded
+retained result only when the execution belongs to that chat. Clients may offer
+open, copy, and download for that returned text; unavailable or expired evidence
+remains visibly unavailable and is not re-executed automatically.
+
+### Native MCP and plugin connections
+
+`POST /api/mcp/servers` creates and `PUT /api/mcp/servers/:serverId` updates a
+validated server record. `transport` is `stdio` or `http`: stdio requires an
+existing absolute executable plus a bounded string `args` array; HTTP requires
+HTTPS or loopback HTTP and accepts an optional `auth_token` bearer credential.
+Credentials are encrypted server-side. Responses expose only safe endpoint
+labels, publisher/source, declared scopes, credential presence, tool/resource
+metadata, last check time, and sanitized last error. Raw commands, arguments,
+URLs, and tokens are not returned.
+
+New connections are disabled unless explicitly enabled through `POST
+/api/mcp/servers/:serverId/enabled`. `POST
+/api/mcp/servers/:serverId/discover` performs bounded `tools/list` and optional
+`resources/list` discovery with cancellation and health recording. `PUT
+/api/chats/:chatId/mcp/:serverId` stores an `enabled` flag plus allowlisted
+`tool_names` and `resource_uris`; undiscovered names are discarded. Disabled
+servers and entries outside that exact chat scope are absent from
+`mcp_server_list` and fail closed in `mcp_tool_call` or `mcp_resource_read`.
+External tool calls use the generic interactive approval contract. Results and
+transport responses are limited to 256 KiB and 15 seconds. Deleting a server
+removes its chat grants. Action adapters remain an independent compatibility
+path. Remote HTTP connections resolve and pin public addresses for each request;
+private, link-local, metadata, redirect, and DNS-rebinding destinations fail
+closed, while explicitly configured loopback HTTP remains available for local
+servers. HTTP bearer authentication is supported; interactive OAuth and
+resource templates are not part of this contract.
+
+### Attention events
+
+`GET /api/attention` lists durable normalized events with optional `status` and
+`kind` filters and returns the global open unread count. Supported kinds are
+`approval_needed`, `question_asked`, `task_failed`, `task_completed`, and
+`conflict_required`. Records contain opaque IDs, source chat/pane/source IDs,
+generic titles, status, unread state, and timestamps—not provider bodies,
+arguments, credentials, or hidden reasoning.
+
+`POST /api/attention/:eventId/read` sets read state (`{"read": false}` marks it
+unread); `POST /api/attention/:eventId/resolve` resolves it. Stable source keys
+deduplicate reconnect/reload updates. Approval decisions and a new response to
+an agent question resolve their matching authoritative attention state. Desktop
+notification preferences and command shortcuts are browser-local UI state and
+are not API contract fields.
 
 ### Engineering verification and task budgets
 

@@ -23,7 +23,6 @@ test("pane controls render a disclosure menu with hover and keyboard delete affo
 	assert.match(cssSource, /\.pane-menu-row:hover \.pane-menu-delete\.icon-only/);
 	assert.match(cssSource, /\.pane-menu-row:focus-within \.pane-menu-delete\.icon-only/);
 	assert.match(htmlSource, /id="toggle-pane-info-btn"[^>]*tooltip-delayed/);
-	assert.match(htmlSource, /id="toggle-usage-summary-btn"[^>]*tooltip-delayed/);
 });
 
 test("collapsed header keeps Copy Chat visible and expands actions in the requested order", () => {
@@ -42,6 +41,31 @@ test("collapsed header keeps Copy Chat visible and expands actions in the reques
 	assert.match(appSource, /class="pane-menu-add" data-action="add-pane"/);
 	assert.match(appSource, /paneInfoVisibleStorageKey = "ai_chat_pane_info_visible_v3"/);
 	assert.match(appSource, /let paneInfoVisible = loadBooleanPreference\(paneInfoVisibleStorageKey, false\)/);
+});
+
+test("chat tabs provide persistent, accessible switching without deleting chats", () => {
+	assert.match(htmlSource, /id="chat-tabs" class="chat-tabs" role="tablist"/);
+	assert.match(htmlSource, /id="pane-grid" class="pane-grid" role="tabpanel" tabindex="0"/);
+	assert.match(appSource, /const openChatTabsStorageKey = "ai_chat_open_chat_tabs_v1"/);
+	assert.match(appSource, /function renderChatTabs\(\)/);
+	assert.match(appSource, /function closeChatTab\(chatId, options = \{\}\)/);
+	assert.match(appSource, /event\.key === "ArrowLeft"/);
+	assert.match(appSource, /event\.key === "ArrowRight"/);
+	assert.match(appSource, /event\.key === "Delete"/);
+	assert.match(cssSource, /\.chat-tab-shell\.active\s*\{[^}]*box-shadow: inset 0 2px 0 #69a9df;/s);
+	assert.match(cssSource, /\.chat-tab-status\.running/);
+});
+
+test("token usage opens as an icon popover immediately before the language selector", () => {
+	const actions = htmlSource.match(/<div class="composer-actions">([\s\S]*?)<button id="voice-btn"/)?.[1] || "";
+	assert.ok(actions.indexOf('id="toggle-usage-summary-btn"') < actions.indexOf('class="composer-model-picker composer-language-picker"'));
+	assert.match(htmlSource, /id="toggle-usage-summary-btn"[^>]*aria-controls="usage-summary-details"/);
+	assert.match(htmlSource, /id="usage-summary-details" class="usage-summary-popover hidden" role="tooltip"/);
+	assert.doesNotMatch(appSource, /usageSummaryVisible \? chevronLeftSvg : chevronRightSvg/);
+	assert.match(appSource, /\["Total tokens", formatNumber\(totalTokens\)\]/);
+	assert.match(appSource, /\["Slowest response", responseTimes\.length/);
+	assert.match(appSource, /event\.composedPath\(\)\.includes\(nodes\.usageSummaryDetails\)/);
+	assert.match(cssSource, /\.usage-summary-row\s*\{[^}]*grid-template-columns:/s);
 });
 
 test("sidebar chrome keeps Departure Mono while other app text uses local Inter", () => {
@@ -154,7 +178,7 @@ test("sidebar chat actions fade without shifting titles and archived chats leave
 	assert.match(cssSource, /\.chat-item:hover \.chat-item-top,[\s\S]*?grid-template-columns: minmax\(0, 1fr\) 65px;/s);
 	assert.match(cssSource, /\.chat-action-more\s*\{[^}]*font: 700 16px\/12px var\(--display\);/s);
 	assert.match(appSource, /class="chat-action chat-action-more" data-action="rename"/);
-	assert.match(htmlSource, /app\.css\?v=20260930-responsive-gutters/);
+	assert.match(htmlSource, /app\.css\?v=20261006-usage-popover/);
 	assert.match(appSource, /function sidebarChatMatchesCurrentView\(chat\)/);
 	assert.match(appSource, /if \(state\.activeChatId === chat\.id && !sidebarChatMatchesCurrentView\(chat\)\)/);
 	assert.match(appSource, /state\.activeChatId = nextVisibleChat \? nextVisibleChat\.id : null;/);

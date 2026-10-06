@@ -1,5 +1,9 @@
 # Artifact, Agent, and Rendering Design
 
+Roadmap relationship: attachment/context delivery shipped as HR-06 and the
+structured artifact rail shipped as HR-07 in `docs/HARNESS_PRODUCT_ROADMAP.md`.
+This document defines the contracts those features retain.
+
 ## Large research input and uploads
 
 Chat accepts a single pasted message up to the server's aggregate request limit
@@ -8,19 +12,19 @@ currently receives the same text-only `messages` contract, so silently replacing
 paste with a server-only attachment would make the model lose the supplied
 context.
 
-A future upload feature must introduce an `artifacts` table and explicit message
-parts rather than overload `content`:
+HR-06 stores encrypted attachments separately and persists explicit message
+parts rather than overloading `content`:
 
 ```json
 {"type":"artifact_ref","artifact_id":"...","name":"research.md","mime_type":"text/markdown","text_excerpt":"..."}
 ```
 
-The upload endpoint must use authenticated multipart requests, bounded size/count
+The upload endpoint uses authenticated multipart requests, bounded size/count
 and MIME allowlists, encrypted or workspace-scoped storage, retention cleanup,
-and a provider adapter that either sends supported file parts or a bounded text
-extraction. The composer should offer conversion only after explaining which
-provider will receive the extracted text. Until that contract exists, accepting
-the full safe inline paste is the lossless behavior.
+and bounded text extraction. Context chips disclose type, size, extraction,
+compatibility, and that selected context is sent to each target provider. Binary
+images remain explicit references for text-only requests instead of being
+silently converted or omitted without disclosure.
 
 ## Cache accounting evidence
 

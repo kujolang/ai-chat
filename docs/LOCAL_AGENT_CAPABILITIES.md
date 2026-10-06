@@ -13,9 +13,9 @@ Skill reads reject binary or invalid UTF-8 content even when it uses a text exte
 | Skills | `skill_list`, `skill_read`, `skill_file_read` | Enabled | Read installed `SKILL.md` manuals and referenced text files | Read-only, bounded, scoped to configured skill roots |
 | System time | `system_time` | Enabled | Return the current UTC timestamp and local timezone | Read-only; no web, filesystem, shell, or credential access |
 | Workspace files | `local_workspace_list`, `local_file_list`, `local_file_read` | Disabled | Inspect configured workspaces with line/column pagination | Read-only, streamed and bounded by lines/bytes/characters/per-line size, sensitive-name denylist, no absolute paths returned |
-| Workspace writes | `local_file_write` | Disabled | Create/overwrite/append bounded text files | Requires `AI_CHAT_LOCAL_WRITE_ENABLED=1`; overwrite also requires a complete unchanged read in the current request |
-| Shell | `local_shell` | Disabled | Run allowlisted local commands | Requires `AI_CHAT_LOCAL_SHELL_ENABLED=1`, no shell interpolation, args array only, sanitized environment, timeout/output limits |
-| Action adapters | `action_adapter_list`, `action_adapter_call` | Disabled | Bridge document, MCP, plugin, and workflow actions through local adapter services | Requires a manifest, loopback-only HTTP POST, structured JSON input, bounded JSON output |
+| Workspace writes | `local_file_write` | Disabled | Create/overwrite/append bounded text files | Requires `AI_CHAT_LOCAL_WRITE_ENABLED=1`; overwrite also requires a complete unchanged read in the current request; interactive chat pauses before dispatch |
+| Shell | `local_shell` | Disabled | Run allowlisted local commands | Requires `AI_CHAT_LOCAL_SHELL_ENABLED=1`, no shell interpolation, args array only, sanitized environment, timeout/output limits; interactive chat pauses before dispatch |
+| Action adapters | `action_adapter_list`, `action_adapter_call` | Disabled | Bridge document, MCP, plugin, and workflow actions through local adapter services | Requires a manifest, loopback-only HTTP POST, structured JSON input, bounded JSON output; calls pause for interactive approval |
 | Browser | `browser_open`, `browser_snapshot`, `browser_act`, `browser_close` | Disabled | Inspect public web pages | Existing Playwright isolation and approval policy |
 | Web search | `web_search` | Enabled when backend credentials/config exist | Search external web | Existing backend policy and cache controls |
 | Page reader | `web_fetch` | Available; request must select it | Read static HTML/plain text without Chromium | Shared browser URL/DNS policy, pinned sockets, bounded read-only GET |
@@ -41,6 +41,10 @@ npm run dev
 ```
 
 Then open Settings > Tools and add Skill Tool Presets plus Local Tool Presets.
+Consequential actions show an approval card in chat. A decision may apply once,
+to the exact action in the current chat, or to the exact action in the current
+workspace. Saved grants are listed and revocable in Settings > Tools. Argument
+values are fingerprinted for matching but are not stored in approval records.
 
 For document, MCP, plugin, or workflow actions, expose a trusted local adapter service and point AI Chat at a manifest:
 
@@ -92,11 +96,15 @@ Use this list when adding additional action classes:
 
 ## Current Limitations
 
-- There is no arbitrary MCP or plugin bridge yet. Add each connector as a separate server-side adapter with the checklist above.
-- Action adapters are the supported bridge for MCP/plugin/document actions. AI Chat does not broker OAuth, secrets, or plugin credentials; the local adapter service owns those concerns.
+- Native MCP supports validated executable stdio servers and HTTPS or loopback HTTP endpoints with encrypted bearer credentials. Interactive OAuth authorization, resource templates, prompts, and subscriptions are not yet exposed.
+- Action adapters remain the supported narrow compatibility path for custom document/workflow services and connector-specific authentication.
 - Shell commands are intentionally allowlisted. Add `kujo`, `go` (and any other required executable such as `npm`) to `AI_CHAT_LOCAL_SHELL_ALLOWLIST` only for a trusted workspace.
 - The Kujo interpreter is resolved through `KUJO_BIN` (absolute path to the compiled binary) and `AI_SDK_PATH` (directory containing `ai_sdk.kujo` and `providers.kujo`). See `docs/KUJO_EXECUTION_SETUP.md` for build, wiring, and smoke-test steps.
-- The tool runtime does not perform interactive command approval prompts yet. Keep write and shell switches off except in workspaces where model-initiated local actions are acceptable.
+- Native provider harnesses retain their own approval policy. AI Chat's approval
+  cards govern actions dispatched by its provider-neutral tool runtime.
+
+Native MCP/plugin management is documented in the API contract and tracked as
+implemented under HR-08 in `docs/HARNESS_PRODUCT_ROADMAP.md`.
 
 ## Read Continuation Contract
 

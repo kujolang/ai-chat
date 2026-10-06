@@ -60,6 +60,21 @@ This project is for end users and teams who want one local web app to:
 - Streaming and thinking UI
 	- Live assistant text streaming via SSE
 	- Thinking/reasoning deltas shown when available
+	- Live, per-pane code diffs for native Codex file changes and provider-neutral local file writes, with responsive unified/split review, line numbers, intraline emphasis, file statistics, and patch copy
+	- Review files and hunks, leave durable comments, open files in an editor, and conflict-check reverts against later manual edits
+	- Restore encrypted pre-turn checkpoints or rewind into a forked chat without presenting checkpoints as Git commits
+	- Approve consequential provider-neutral tool actions once or by exact chat/workspace rule, with saved-grant revocation in Settings
+	- Follow durable execution plans and send immediate, queued, or cancel-after-action steering while a turn runs
+	- Isolate coding chats in managed Git worktrees, choose read-only mode, inspect branch/dirty/ahead state, and explicitly commit, prepare, or clean up
+	- Attach bounded text, JSON, CSV, and images by picker, folder, paste, or drop with explicit typed context chips and provider-delivery disclosure
+	- Inspect chat-scoped command, test, browser, file, source, and error evidence in a filterable execution artifact rail
+	- Connect validated local stdio or authenticated HTTP MCP servers, discover bounded tools/resources, and grant each chat only selected entries
+	- Track approvals, questions, failures, completions, and reconciliation conflicts in a durable attention inbox with optional quiet-hour desktop notifications
+	- Search and run shared chat, review, context, model, permission, artifact, and inbox actions from a keyboard-first command palette with configurable shortcuts
+- Multi-chat workspace tabs
+	- Keep up to 16 active chats immediately available above the workspace, including while the sidebar is collapsed
+	- Switch with mouse or standard arrow/Home/End tab keys, close with the pointer, middle click, or Delete, and retain each chat in history when its tab closes
+	- See per-chat working, partial, and error status without leaving the active conversation
 - Agent instructions
 	- Keep explicit chat constraints and decisions in Saved notes, independent of transcript compaction and shared by the chat's panes
 	- Apply the repository-owned, non-editable system prompt from `SYSTEM_PROMPT.md` to every model request; change it only by editing that Markdown file and restarting the server
@@ -87,6 +102,17 @@ This project is for end users and teams who want one local web app to:
 - Not unrestricted live-provider access by default
 
 Use the app as a clear boundary for chat workflows, not as a promise of correctness.
+
+## Product Roadmap
+
+The harness roadmap is defined in
+[`docs/HARNESS_PRODUCT_ROADMAP.md`](docs/HARNESS_PRODUCT_ROADMAP.md). It covers
+interactive approvals, actionable diff review, checkpoints, plan/steering UI,
+worktree isolation, attachments, structured execution artifacts, native
+MCP/plugin management, attention notifications, and a command palette.
+
+HR-01 through HR-10 are shipped. The roadmap keeps
+dependencies, safety constraints, and acceptance evidence with each item.
 
 ## Requirements
 
@@ -118,6 +144,7 @@ Use the app as a clear boundary for chat workflows, not as a promise of correctn
 	- `scripts/smoke-test.js`
 - Review and release references
 	- `docs/API_CONTRACT.md`
+	- `docs/HARNESS_PRODUCT_ROADMAP.md`
 	- `docs/RELEASE_CHECKLIST.md`
 	- `docs/SECURITY_HARDENING_CHECKLIST.md`
 	- `docs/SECURITY_OPERATIONS.md`

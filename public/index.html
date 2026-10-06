@@ -6,7 +6,7 @@
 	<title>AI Chat</title>
 	<link rel="stylesheet" href="/vendor/highlight.js/styles/github-dark.min.css">
 	<link rel="stylesheet" href="/vendor/select2/css/select2.min.css">
-	<link rel="stylesheet" href="/app.css?v=20260930-responsive-gutters">
+	<link rel="stylesheet" href="/app.css?v=20261006-usage-popover">
 </head>
 <body>
 		<div id="app" class="app-shell">
@@ -29,6 +29,12 @@
 					</button>
 					<button id="open-plugins-btn" type="button" class="btn ghost nav-link nav-link-muted icon-only" aria-label="Plugins" title="Plugins">
 						<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-blocks-icon lucide-blocks" aria-hidden="true"><path d="M10 22V7a1 1 0 0 0-1-1H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5a1 1 0 0 0-1-1H2"/><rect x="14" y="2" width="8" height="8" rx="1"/></svg>
+					</button>
+					<button id="open-attention-btn" type="button" class="btn ghost nav-link nav-link-muted icon-only badge-button" aria-label="Attention inbox" title="Attention inbox">
+						<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg><span id="attention-count" class="nav-badge hidden">0</span>
+					</button>
+					<button id="open-command-palette-btn" type="button" class="btn ghost nav-link nav-link-muted icon-only" aria-label="Command palette" title="Command palette">
+						<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M7 16h10"/><rect x="3" y="5" width="18" height="14" rx="2"/></svg>
 					</button>
 					<button id="open-automations-btn" type="button" class="btn ghost nav-link nav-link-muted icon-only" aria-label="Automations" title="Automations">
 						<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-bot-icon lucide-bot" aria-hidden="true"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
@@ -80,6 +86,13 @@
 					<input id="chat-title-input" type="text" value="" placeholder="Chat title">
 				</div>
 				<div class="workspace-actions">
+					<select id="chat-workspace-mode" class="workspace-mode-select" aria-label="Chat workspace mode" title="Chat workspace mode">
+						<option value="current">Current workspace</option><option value="worktree">New worktree</option><option value="read_only">Read-only</option>
+					</select>
+					<button id="chat-workspace-actions-btn" class="btn ghost icon-only" type="button" aria-label="Workspace actions" title="Commit, prepare merge, or clean up workspace">⋯</button>
+					<button id="open-artifact-rail-btn" class="btn ghost icon-only" type="button" aria-label="Open execution artifacts" title="Execution artifacts">
+						<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>
+					</button>
 					<button id="toggle-pane-info-btn" class="btn ghost icon-only compact-toggle-btn tooltip-delayed" aria-label="Hide pane information" title="Hide pane information" aria-expanded="true">
 						<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
 					</button>
@@ -99,22 +112,39 @@
 				</div>
 			</header>
 
-			<section id="pane-grid" class="pane-grid"></section>
+			<nav id="chat-tab-bar" class="chat-tab-bar" aria-label="Open chats">
+				<div id="chat-tabs" class="chat-tabs" role="tablist" aria-label="Open chats"></div>
+				<button id="new-chat-tab-btn" class="chat-tab-new" type="button" aria-label="New chat tab" title="New chat">
+					<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+				</button>
+			</nav>
+
+			<section id="pane-grid" class="pane-grid" role="tabpanel" tabindex="0"></section>
 
 			<footer class="composer">
+				<div id="composer-attachment-chips" class="composer-attachment-chips" aria-live="polite"></div>
 				<div class="composer-row">
 								<textarea id="composer-input" rows="3" placeholder="Ask anything"></textarea>
 				</div>
 				<div class="composer-actions">
 					<div class="composer-status-group">
 						<div id="save-status" class="save-status pending" role="status" aria-live="polite" title="Loading saved chats…"><span class="save-status-label">Loading saved chats…</span></div>
-						<button id="toggle-usage-summary-btn" class="btn ghost icon-only compact-toggle-btn tooltip-delayed" aria-label="Show token usage summary" title="Show token usage summary" aria-expanded="false">
-							<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
-						</button>
 						<div id="voice-status" class="voice-status">Voice: idle</div>
-						<div class="composer-status-separator" aria-hidden="true">|</div>
-						<div id="usage-summary-details" class="usage-summary-details hidden">
-							<div id="composer-token-summary" class="composer-token-summary" aria-live="polite">0 tokens</div>
+					</div>
+					<div class="composer-attachment-controls">
+						<input id="composer-attachment-input" class="visually-hidden" type="file" multiple accept=".txt,.md,.markdown,.csv,.json,image/png,image/jpeg,image/webp">
+						<input id="composer-folder-input" class="visually-hidden" type="file" multiple webkitdirectory>
+						<button id="composer-attachment-btn" class="btn ghost icon-only" type="button" aria-label="Attach files" title="Attach files">
+							<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m21.4 11.6-8.9 8.9a6 6 0 0 1-8.5-8.5l9.6-9.6a4 4 0 0 1 5.7 5.7l-9.7 9.6a2 2 0 0 1-2.8-2.8l8.9-8.9"/></svg>
+						</button>
+						<button id="composer-folder-btn" class="btn ghost icon-only" type="button" aria-label="Attach folder" title="Attach folder">@</button>
+					</div>
+					<div class="composer-usage-control">
+						<button id="toggle-usage-summary-btn" class="btn ghost icon-only usage-summary-btn" type="button" aria-label="Show token usage" title="Token usage" aria-expanded="false" aria-controls="usage-summary-details">
+							<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 16v-3"/><path d="M12 16V8"/><path d="M17 16V5"/></svg>
+						</button>
+						<div id="usage-summary-details" class="usage-summary-popover hidden" role="tooltip">
+							<dl id="composer-token-summary" class="composer-token-summary" aria-live="polite"></dl>
 						</div>
 					</div>
 					<div class="composer-model-picker composer-language-picker">
@@ -131,6 +161,14 @@
 					<button id="voice-btn" class="btn ghost icon-only" aria-label="Voice" title="Voice">
 						<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mic-icon lucide-mic" aria-hidden="true"><path d="M12 19v3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><rect x="9" y="2" width="6" height="13" rx="3"/></svg>
 					</button>
+					<select id="composer-steering-mode" class="composer-steering-mode hidden" aria-label="Active execution action">
+						<option value="immediate">Steer now</option>
+						<option value="queued">Queue next</option>
+						<option value="cancel_after_action">Stop after action</option>
+					</select>
+					<button id="stop-stream-btn" class="btn ghost icon-only streaming-stop hidden" aria-label="Stop immediately" title="Stop immediately">
+						<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>
+					</button>
 					<button id="send-btn" class="btn primary icon-only" aria-label="Send" title="Send">
 						<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-send-icon lucide-send" aria-hidden="true"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></svg>
 					</button>
@@ -138,6 +176,11 @@
 			</footer>
 		</main>
 	</div>
+	<aside id="artifact-rail" class="artifact-rail hidden" aria-label="Execution artifacts">
+		<header><h2>Execution artifacts</h2><button id="close-artifact-rail-btn" class="btn ghost icon-only" aria-label="Close execution artifacts">×</button></header>
+		<div class="artifact-rail-filters" role="group" aria-label="Artifact filters"><button class="active" data-artifact-filter="all">All</button><button data-artifact-filter="commands">Commands</button><button data-artifact-filter="tests">Tests</button><button data-artifact-filter="browser">Browser</button><button data-artifact-filter="files">Files</button><button data-artifact-filter="sources">Sources</button><button data-artifact-filter="errors">Errors</button></div>
+		<div id="artifact-rail-content" class="artifact-rail-content"></div>
+	</aside>
 
 	<div id="pane-profiles-modal" class="modal hidden">
 		<div class="modal-backdrop" data-close-pane-profiles="true"></div>
@@ -324,6 +367,11 @@
 					<p>Shell opt-in, command deadlines, output limits, credential filtering and file-tool permissions remain in effect. Disabling a switch does not stop commands already running.</p>
 					<button type="button" class="btn danger" disabled>Save command permissions</button>
 					<p role="status" aria-live="polite">Open Tools to load the current server permissions.</p>
+					<div class="approval-grants-settings">
+						<h5>Saved action approvals</h5>
+						<p>Exact chat and workspace grants can be revoked here. Revocation affects future actions, not work already running.</p>
+						<div data-approval-grants-list><span class="muted">Open Tools to load saved grants.</span></div>
+					</div>
 				</div>
 				<div id="tools-list" class="tools-list"></div>
 			</section>
@@ -352,16 +400,50 @@
 		<div class="modal-backdrop" data-close-plugins="true"></div>
 		<div class="modal-panel plugins-modal-panel">
 			<div class="modal-head">
-				<h2>Plugins</h2>
+				<h2>MCP &amp; Plugins</h2>
 				<button id="close-plugins-btn" class="modal-close-icon" aria-label="Close plugins" title="Close plugins">
 					<span aria-hidden="true">×</span>
 				</button>
 			</div>
-			<p class="settings-note">Manage model provider integrations configured for this workspace.</p>
+			<p class="settings-note">Connect local stdio or authenticated HTTP servers. Credentials stay encrypted on this server; each chat authorizes tools separately.</p>
+			<form id="mcp-server-form" class="mcp-server-form">
+				<input id="mcp-server-id" type="hidden">
+				<input id="mcp-server-name" required maxlength="120" placeholder="Server name">
+				<select id="mcp-server-kind" aria-label="Extension kind"><option value="mcp">MCP server</option><option value="plugin">Plugin</option></select>
+				<select id="mcp-server-transport" aria-label="Transport"><option value="http">HTTP</option><option value="stdio">Local stdio</option></select>
+				<input id="mcp-server-endpoint" required placeholder="https://server.example/mcp or /absolute/path/to/command">
+				<input id="mcp-server-publisher" maxlength="160" placeholder="Publisher (optional)">
+				<input id="mcp-server-source" maxlength="240" placeholder="Source URL or package (optional)">
+				<input id="mcp-server-scopes" maxlength="500" placeholder="Scopes, comma separated (optional)">
+				<input id="mcp-server-args" maxlength="2000" placeholder="Stdio arguments, one per line (optional)">
+				<input id="mcp-server-token" type="password" autocomplete="off" placeholder="Bearer token (optional; never returned)">
+				<button class="btn" type="submit">Save connection</button>
+			</form>
+			<div id="mcp-server-status" class="automation-status" role="status" aria-live="polite"></div>
 			<div id="plugins-modal-content" class="plugins-modal-content"></div>
 			<div class="profile-actions">
 				<button id="plugins-open-settings-btn" class="btn">Manage Provider Profiles</button>
 			</div>
+		</div>
+	</div>
+
+	<div id="attention-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="attention-title">
+		<div class="modal-backdrop" data-close-attention="true"></div>
+		<div class="modal-panel attention-modal-panel">
+			<div class="modal-head"><h2 id="attention-title">Attention inbox</h2><button id="close-attention-btn" class="modal-close-icon" aria-label="Close attention inbox"><span aria-hidden="true">×</span></button></div>
+			<div class="attention-toolbar" role="group" aria-label="Attention filters"><button class="active" data-attention-filter="">All</button><button data-attention-filter="approval_needed">Approvals</button><button data-attention-filter="question_asked">Questions</button><button data-attention-filter="task_failed">Failures</button><button data-attention-filter="task_completed">Completed</button><button data-attention-filter="conflict_required">Conflicts</button></div>
+			<div id="attention-list" class="attention-list"></div>
+			<details class="notification-settings"><summary>Desktop notifications</summary><label><input id="desktop-notifications-enabled" type="checkbox"> Enable safe desktop notifications</label><fieldset id="notification-event-types"><legend>Notify for</legend><label><input type="checkbox" value="approval_needed" checked> Approvals</label><label><input type="checkbox" value="question_asked" checked> Questions</label><label><input type="checkbox" value="task_failed" checked> Failures</label><label><input type="checkbox" value="task_completed"> Completed tasks</label><label><input type="checkbox" value="conflict_required" checked> Conflicts</label></fieldset><label>Quiet hours start <input id="notification-quiet-start" type="time" value="22:00"></label><label>Quiet hours end <input id="notification-quiet-end" type="time" value="08:00"></label></details>
+		</div>
+	</div>
+
+	<div id="command-palette" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="command-palette-title">
+		<div class="modal-backdrop" data-close-command-palette="true"></div>
+		<div class="modal-panel command-palette-panel">
+			<div class="modal-head"><h2 id="command-palette-title">Command palette</h2><button id="close-command-palette-btn" class="modal-close-icon" aria-label="Close command palette"><span aria-hidden="true">×</span></button></div>
+			<input id="command-palette-search" class="command-palette-search" type="search" autocomplete="off" aria-label="Search commands" placeholder="Search commands…">
+			<div id="command-palette-results" class="command-palette-results" role="listbox"></div>
+			<details class="shortcut-editor"><summary>Configure shortcuts</summary><div id="shortcut-editor-list"></div><button id="reset-shortcuts-btn" class="btn ghost" type="button">Reset defaults</button><div id="shortcut-editor-status" role="status" aria-live="polite"></div></details>
 		</div>
 	</div>
 
@@ -578,7 +660,7 @@
 	<script src="/continuity-editor.js"></script>
 	<script src="/retrieval-preferences.js"></script>
 	<script src="/chatgpt-connections.js"></script>
-	<script src="/app.js?v=20260731-sidebar-hover-6"></script>
+	<script src="/app.js?v=20261006-usage-popover"></script>
 	<script src="/local-permissions.js"></script>
 </body>
 </html>

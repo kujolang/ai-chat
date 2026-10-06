@@ -250,7 +250,7 @@ test("GET /api/health returns runtime metadata", async () => {
 			assert.equal(json.ok, true);
 			assert.equal(typeof json.auth_configured, "boolean");
 			assert.equal(typeof json.ai_sdk_available, "boolean");
-			assert.deepEqual(json.tool_runtime.tools, ["system_time", "web_search", "web_fetch", "skill_list", "skill_read", "skill_file_read"]);
+			assert.deepEqual(json.tool_runtime.tools, ["system_time", "web_search", "web_fetch", "skill_list", "skill_read", "skill_file_read", "mcp_server_list", "mcp_tool_call", "mcp_resource_read"]);
 			assert.equal(json.tool_runtime.schemas.some((schema) => schema.function.name === "system_time"), true);
 			assert.equal(json.tool_runtime.web_search_backend, "ollama");
 			assert.equal(json.tool_runtime.browser.available, false);
@@ -1126,6 +1126,112 @@ test("sidebar chats and New Chat support opening independent browser tabs", { ti
 			await newTab.waitForFunction(() => stateLoadedFromServer && Boolean(getActiveChat()));
 			assert.notEqual(newTab.url(), originalUrl);
 			assert.equal(page.url(), originalUrl);
+		});
+	} finally {
+		await browser?.close();
+		await runtime.close();
+		destroy();
+	}
+});
+
+test("in-app chat tabs switch, close, persist, and remain usable with the sidebar collapsed", { timeout: 30000 }, async () => {
+	const { chromium } = require("playwright");
+	const { runtime, destroy } = createIsolatedRuntime();
+	let browser;
+	try {
+		await withServer(runtime.app, async (baseUrl) => {
+			browser = await chromium.launch({ headless: true });
+			const context = await browser.newContext();
+			await context.addInitScript((token) => {
+				localStorage.setItem("ai_chat_api_token", token);
+				localStorage.setItem("ai_chat_api_token_expires_at", String(Date.now() + 86400000));
+			}, API_TOKEN);
+			const page = await context.newPage();
+			await page.goto(baseUrl);
+			await page.waitForFunction(() => stateLoadedFromServer);
+			const initialChatCount = await page.evaluate(() => state.chats.length);
+
+			await page.locator("#new-chat-btn").click();
+			await page.waitForURL("**/c/*");
+			const firstChatId = await page.evaluate(() => getActiveChat().id);
+			await page.locator("#new-chat-tab-btn").click();
+			const secondChatId = await page.evaluate(() => getActiveChat().id);
+			assert.notEqual(firstChatId, secondChatId);
+			assert.equal(await page.locator("#chat-tabs [role='tab']").count(), 2);
+
+			await page.locator("#toggle-sidebar-btn").click();
+			assert.equal(await page.locator("#app").evaluate((node) => node.classList.contains("sidebar-collapsed")), true);
+			assert.equal(await page.locator("#chat-tab-bar").isVisible(), true);
+
+			const firstTab = page.locator(`[data-chat-tab-id="${firstChatId}"]`);
+			await firstTab.click();
+			await page.waitForFunction((chatId) => getActiveChat()?.id === chatId, firstChatId);
+			await firstTab.press("ArrowRight");
+			await page.waitForFunction((chatId) => getActiveChat()?.id === chatId, secondChatId);
+			assert.equal(await page.locator(`[data-chat-tab-id="${secondChatId}"]`).getAttribute("aria-selected"), "true");
+
+			await page.locator(`[data-close-chat-tab="${firstChatId}"]`).click();
+			assert.equal(await page.locator("#chat-tabs [role='tab']").count(), 1);
+			assert.equal(await page.evaluate(() => state.chats.length), initialChatCount + 2, "closing a tab must not delete its chat");
+			await page.reload();
+			await page.waitForFunction(() => stateLoadedFromServer && Boolean(getActiveChat()));
+			assert.equal(await page.locator("#chat-tabs [role='tab']").count(), 1);
+			assert.equal(await page.locator("#chat-tabs [role='tab']").getAttribute("data-chat-tab-id"), secondChatId);
+		});
+	} finally {
+		await browser?.close();
+		await runtime.close();
+		destroy();
+	}
+});
+
+test("composer token usage opens in a line-by-line popover beside the language picker", { timeout: 30000 }, async () => {
+	const { chromium } = require("playwright");
+	const { runtime, destroy } = createIsolatedRuntime();
+	let browser;
+	try {
+		await withServer(runtime.app, async (baseUrl) => {
+			browser = await chromium.launch({ headless: true });
+			const context = await browser.newContext();
+			await context.addInitScript((token) => {
+				localStorage.setItem("ai_chat_api_token", token);
+				localStorage.setItem("ai_chat_api_token_expires_at", String(Date.now() + 86400000));
+			}, API_TOKEN);
+			const page = await context.newPage({ viewport: { width: 1280, height: 900 } });
+			await page.goto(baseUrl);
+			await page.waitForFunction(() => stateLoadedFromServer);
+			await page.locator("#new-chat-tab-btn").click();
+			await page.evaluate(() => {
+				const message = makeMessage("assistant", "Done");
+				message.usage = { total_tokens: 150, input_tokens: 100, output_tokens: 50 };
+				message.response_time_ms = 1200;
+				getActiveChat().panes[0].messages.push(message);
+				renderComposerUsageSummary();
+			});
+
+			const usageButton = page.locator("#toggle-usage-summary-btn");
+			const languagePicker = page.locator(".composer-language-picker");
+			const [usageBox, languageBox] = await Promise.all([usageButton.boundingBox(), languagePicker.boundingBox()]);
+			assert.ok(usageBox.x + usageBox.width <= languageBox.x);
+			await usageButton.click();
+			assert.equal(await usageButton.getAttribute("aria-expanded"), "true");
+			assert.equal(await page.locator("#usage-summary-details").isVisible(), true);
+			assert.deepEqual(await page.locator("#usage-summary-details .usage-summary-row").allTextContents(), [
+				"Total tokens150",
+				"Input100",
+				"Output50",
+				"Responses1",
+				"Average tokens150",
+				"Average response1.2s",
+				"Slowest response1.2s"
+			]);
+
+			await page.locator("#composer-input").click();
+			assert.equal(await page.locator("#usage-summary-details").isHidden(), true);
+			await usageButton.click();
+			await page.keyboard.press("Escape");
+			assert.equal(await page.locator("#usage-summary-details").isHidden(), true);
+			assert.equal(await usageButton.evaluate((node) => document.activeElement === node), true);
 		});
 	} finally {
 		await browser?.close();
@@ -5827,4 +5933,72 @@ test('a late completed worker answer is delivered without optional review infere
    assert.equal(fs.readFileSync(path.join(dir,'result.txt'),'utf8'),'result');
   });
  }finally{destroy();fs.rmSync(dir,{recursive:true,force:true});}
+});
+
+test("command palette is keyboard accessible at desktop and narrow widths", { timeout: 30000 }, async () => {
+	const { chromium } = require("playwright");
+	const { runtime, destroy } = createIsolatedRuntime();
+	let browser;
+	try {
+		await withServer(runtime.app, async (baseUrl) => {
+			browser = await chromium.launch({ headless: true });
+			const context = await browser.newContext();
+			await context.addInitScript((token) => {
+				localStorage.setItem("ai_chat_api_token", token);
+				localStorage.setItem("ai_chat_api_token_expires_at", String(Date.now() + 86400000));
+			}, API_TOKEN);
+			for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 }]) {
+				const page = await context.newPage({ viewport });
+				await page.goto(baseUrl);
+				await page.waitForFunction(() => stateLoadedFromServer);
+				await page.locator("#open-command-palette-btn").focus();
+				await page.keyboard.press("Control+K");
+				await page.locator("#command-palette:not(.hidden)").waitFor();
+				assert.equal(await page.locator("#command-palette-search").evaluate((node) => document.activeElement === node), true);
+				await page.locator("#command-palette-search").fill("attention inbox");
+				assert.match(await page.locator("#command-palette-results").innerText(), /Open attention inbox/);
+				await page.keyboard.press("Enter");
+				await page.locator("#attention-modal:not(.hidden)").waitFor();
+				await page.locator("#close-attention-btn").click();
+				await page.locator("#open-command-palette-btn").focus();
+				await page.keyboard.press("Control+K");
+				await page.waitForFunction(() => document.activeElement?.id === "command-palette-search");
+				await page.keyboard.press("Escape");
+				assert.equal(await page.locator("#command-palette").evaluate((node) => node.classList.contains("hidden")), true);
+				assert.equal(await page.locator("#open-command-palette-btn").evaluate((node) => document.activeElement === node), true);
+				await page.close();
+			}
+		});
+	} finally {
+		await browser?.close();
+		destroy();
+	}
+});
+
+test("MCP and attention management routes preserve sanitized scoped contracts", async () => {
+	const serverRecord = { id: "mcp_fixture", name: "Fixture", kind: "mcp", transport: "http", endpoint_label: "https://mcp.example", enabled: false, tools: [], resources: [], tool_count: 0, resource_count: 0, credential_configured: true };
+	const mcpManager = {
+		list: () => [serverRecord], listForChat: (chatId) => [{ ...serverRecord, chat_enabled: false, authorized_tools: [], authorized_resources: [], chat_id: chatId }],
+		save: () => serverRecord, remove: () => true, setEnabled: (_id, enabled) => ({ ...serverRecord, enabled }), discover: async () => ({ server: serverRecord, tools: [], resources: [] }),
+		setChatScope: (chatId, serverId, input) => ({ chat_id: chatId, server_id: serverId, enabled: input.enabled === true, tool_names: input.tool_names || [], resource_uris: input.resource_uris || [] }),
+		available: () => [], call: async () => ({}), readResource: async () => ({})
+	};
+	const { runtime, destroy } = createIsolatedRuntime({ mcpManager });
+	try {
+		await withServer(runtime.app, async (baseUrl) => {
+			const unauthorized = await fetch(`${baseUrl}/api/mcp/servers`);
+			assert.equal(unauthorized.status, 401);
+			const listed = await fetchJson(baseUrl, "/api/mcp/servers?chat_id=chat-a");
+			assert.equal(listed.response.status, 200);
+			assert.equal(JSON.stringify(listed.json).includes("credential-secret"), false);
+			const scoped = await fetchJson(baseUrl, "/api/chats/chat-a/mcp/mcp_fixture", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ enabled: true, tool_names: ["publish"], resource_uris: ["kb://release"] }) });
+			assert.equal(scoped.response.status, 200);
+			assert.deepEqual(scoped.json.scope.resource_uris, ["kb://release"]);
+			const attention = await fetchJson(baseUrl, "/api/attention");
+			assert.equal(attention.response.status, 200);
+			assert.deepEqual(attention.json.events, []);
+		});
+	} finally {
+		destroy();
+	}
 });

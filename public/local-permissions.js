@@ -5,6 +5,7 @@
  const destructive=card.querySelector('[name=allow_destructive]');
  const status=card.querySelector('[role=status]');
  const save=card.querySelector('button');
+	const grantsList=card.querySelector('[data-approval-grants-list]');
  let stored={skip_allowlist:false,allow_destructive:false};
  function render() {
   destructive.disabled=!skip.checked;
@@ -28,9 +29,44 @@
    const response=await apiFetch('/api/local/permissions');
    if(!response.ok) throw Error('Could not load local command permissions.');
    apply(await response.json());
+	   await loadGrants();
    save.disabled=false;
   } catch(error) {status.textContent=error.message;}
  }
+	async function loadGrants() {
+	 try {
+	  const response=await apiFetch('/api/approvals');
+	  if(!response.ok) throw Error('Could not load saved action approvals.');
+	  const grants=(await response.json()).grants || [];
+	  grantsList.replaceChildren();
+	  if(!grants.length) {
+	   const empty=document.createElement('span');
+	   empty.className='muted';
+	   empty.textContent='No saved action approvals.';
+	   grantsList.append(empty);
+	   return;
+	  }
+	  for(const grant of grants) {
+	   const row=document.createElement('div');
+	   row.className='approval-grant-row';
+	   const label=document.createElement('span');
+	   label.textContent=`${grant.tool_name} · ${grant.grant_scope} · ${grant.workspace_id || grant.chat_id || 'current scope'}`;
+	   const revoke=document.createElement('button');
+	   revoke.type='button';
+	   revoke.className='btn ghost';
+	   revoke.textContent='Revoke';
+	   revoke.setAttribute('aria-label',`Revoke saved approval for ${grant.tool_name}`);
+	   revoke.addEventListener('click',async()=>{
+	    revoke.disabled=true;
+	    const result=await apiFetch(`/api/approval-grants/${encodeURIComponent(grant.id)}`,{method:'DELETE'});
+	    if(result.ok) await loadGrants();
+	    else { status.textContent='Could not revoke the saved approval.'; revoke.disabled=false; }
+	   });
+	   row.append(label,revoke);
+	   grantsList.append(row);
+	  }
+	 } catch(error) { grantsList.textContent=error.message; }
+	}
  skip.addEventListener('change',render);
  destructive.addEventListener('change',render);
  save.addEventListener('click',async()=>{

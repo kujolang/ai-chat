@@ -11,6 +11,9 @@ Use these files as the source of truth for examples and onboarding:
 - `.env.example`: environment template only; keep placeholders safe.
 - `bridge_chat.kujo`: canonical Kujo bridge example used by the app.
 - `docs/API_CONTRACT.md`: HTTP/SSE contract for clients and agents.
+- `docs/HARNESS_PRODUCT_ROADMAP.md`: canonical source for planned harness work,
+  dependencies, sequencing, and acceptance evidence. A roadmap entry is not a
+  shipped contract.
 
 Tests under `tests/` are contract coverage, not teaching examples. Runtime data under `data/`, dependencies under `node_modules/`, and lockfiles are generated or bulk surfaces; exclude them from broad readability sweeps unless a task explicitly targets them.
 
