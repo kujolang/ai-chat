@@ -11,6 +11,8 @@ const { createAttachmentStore } = require("../lib/attachment-store");
 const { createExecutionJournal } = require("../lib/execution-journal");
 const { createAgentControlStore } = require("../lib/agent-control-store");
 const { createExecutionArtifacts } = require("../lib/execution-artifacts");
+const { createMcpManager } = require("../lib/mcp-manager");
+const { createAttentionStore } = require("../lib/attention-store");
 
 test("managed chat worktrees isolate changes and refuse dirty cleanup", () => {
 	const root = fs.mkdtempSync(path.join(os.tmpdir(), "ai-chat-worktrees-test-"));
@@ -85,6 +87,52 @@ test("browser exposes worktree, attachment, typed context, and artifact rail con
 	const app = fs.readFileSync(path.join(__dirname, "..", "public", "app.js"), "utf8");
 	for (const marker of ["chat-workspace-mode", "New worktree", "composer-attachment-input", "artifact-rail", "data-artifact-filter"]) assert.match(html, new RegExp(marker));
 	for (const marker of ["message_parts", "attachment_ids", "uploadComposerAttachments", "openArtifactRail", "configureActiveChatWorkspace"]) assert.match(app, new RegExp(marker));
+});
+
+test("MCP management encrypts credentials and enforces global and per-chat tool scope", async () => {
+	const db = new Database(":memory:"); const calls = [];
+	const manager = createMcpManager(db, { masterKey: crypto.randomBytes(32), transportFn: async (_server, requests, context) => {
+		calls.push({ requests, token: context.token });
+		const method = requests.at(-1).method;
+		return [{ id: 1, result: {} }, { id: 2, result: method === "tools/list" ? { tools: [{ name: "publish", description: "Publish content", inputSchema: { type: "object", properties: { title: { type: "string" } } } }, { name: "bad name", inputSchema: null }] } : method === "resources/list" ? { resources: [{ uri: "kb://release", name: "Release brief", mimeType: "text/markdown" }] } : method === "resources/read" ? { contents: [{ uri: "kb://release", text: "Release evidence" }] } : { content: [{ type: "text", text: "published" }] } }];
+	} });
+	const server = manager.save({ name: "Publishing", kind: "plugin", transport: "http", url: "https://plugins.example/mcp", auth_token: "top-secret-token", enabled: false, scopes: ["content"] });
+	assert.equal(JSON.stringify(manager.list()).includes("top-secret-token"), false);
+	assert.equal(JSON.stringify(db.prepare("SELECT * FROM mcp_servers").get()).includes("top-secret-token"), false);
+	const discovered = await manager.discover(server.id);
+	assert.deepEqual(discovered.tools.map((tool) => tool.name), ["publish", "bad_name"]);
+	assert.deepEqual(discovered.resources.map((resource) => resource.uri), ["kb://release"]);
+	assert.deepEqual(manager.available("chat-a"), []);
+	manager.setEnabled(server.id, true);
+	manager.setChatScope("chat-a", server.id, { enabled: true, tool_names: ["publish", "not-advertised"], resource_uris: ["kb://release", "kb://missing"] });
+	assert.deepEqual(manager.available("chat-a")[0].tools.map((tool) => tool.name), ["publish"]);
+	assert.deepEqual(manager.available("chat-a")[0].resources.map((resource) => resource.uri), ["kb://release"]);
+	await assert.rejects(manager.call("chat-b", { server_id: server.id, tool_name: "publish", arguments: {} }), (error) => error.code === "mcp_tool_not_authorized");
+	const result = await manager.call("chat-a", { server_id: server.id, tool_name: "publish", arguments: { title: "Release" } });
+	assert.equal(result.result.content[0].text, "published"); assert.equal(calls.at(-1).token, "top-secret-token");
+	const resource = await manager.readResource("chat-a", { server_id: server.id, uri: "kb://release" });
+	assert.equal(resource.result.contents[0].text, "Release evidence");
+	db.close();
+});
+
+test("attention events deduplicate, persist unread state, and resolve from authoritative sources", () => {
+	const db = new Database(":memory:"); let now = 100;
+	const store = createAttentionStore(db, { now: () => ++now, uid: () => `id-${now}` });
+	const first = store.upsert({ kind: "approval_needed", chatId: "chat", paneId: "pane", sourceId: "approval-1", title: "Approval needed" });
+	const duplicate = store.upsert({ kind: "approval_needed", chatId: "chat", paneId: "pane", sourceId: "approval-1", title: "Approval still needed" });
+	assert.equal(first.id, duplicate.id); assert.equal(store.countUnread(), 1);
+	store.markRead(first.id); assert.equal(store.countUnread(), 0);
+	store.resolveSource("approval_needed", "approval-1"); assert.equal(store.list({ status: "open" }).length, 0);
+	store.upsert({ kind: "question_asked", chatId: "chat", sourceId: "run-2" });
+	assert.equal(store.resolveChat("chat", ["question_asked"]), 1);
+	db.close();
+});
+
+test("browser exposes MCP, attention, notification, and command palette contracts", () => {
+	const html = fs.readFileSync(path.join(__dirname, "..", "public", "index.html"), "utf8");
+	const app = fs.readFileSync(path.join(__dirname, "..", "public", "app.js"), "utf8");
+	for (const marker of ["mcp-server-form", "attention-modal", "notification-event-types", "command-palette", "shortcut-editor-list"]) assert.match(html, new RegExp(marker));
+	for (const marker of ["loadMcpServers", "openAttentionInbox", "maybeNotifyAttention", "commandRegistry", "handleGlobalShortcut", "handleShortcutChange"]) assert.match(app, new RegExp(marker));
 });
 
 function git(cwd, args) { return execFileSync("git", args, { cwd, encoding: "utf8", stdio: "pipe" }); }
