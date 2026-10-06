@@ -153,3 +153,7 @@ not replace Codex's base instructions or sandbox. Interactive instances ignore
 the opt-in flag. These are documented in the [official Codex config schema](https://learn.chatgpt.com/docs/config-schema.json).
 Prompt boundaries still are not OS isolation; inspect execution evidence for
 out-of-scope reads before treating a run as valid.
+
+Each stage uses `--fresh-chats` and a distinct title prefix. Existing benchmark
+chat reuse is disabled for this comparison; a reused response is rejected before
+grading. Ordinary benchmark resumptions keep their existing behavior.

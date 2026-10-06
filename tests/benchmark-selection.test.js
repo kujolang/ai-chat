@@ -161,6 +161,13 @@ test("runner validates selection before mutations and preserves exact-lane resum
 	const resumedArtifact = JSON.parse(await fs.readFile(path.join(outputDirectory, "focused.json"), "utf8"));
 	assert.ok(resumedArtifact.tests[0].panes.every((pane) => pane.reused === true));
 
+	const fresh = await runBenchmark([...focusedArgs, "--run-id", "fresh", "--fresh-chats"]);
+	assert.equal(fresh.code, 0, fresh.stderr);
+	assert.equal(runtime.streams.length, streamCount + 2);
+	const freshArtifact = JSON.parse(await fs.readFile(path.join(outputDirectory, "fresh.json"), "utf8"));
+	assert.notEqual(freshArtifact.tests[0].chat_id, focusedArtifact.tests[0].chat_id);
+	assert.ok(freshArtifact.tests[0].panes.every(pane => !pane.reused && pane.execution_id));
+
 	const paneRun = await runBenchmark([...common, "--run-id", "pane", "--title-prefix", "PANE", "--pane-profile", "Exact Saved Profile"]);
 	assert.equal(paneRun.code, 0, paneRun.stderr);
 	const paneArtifact = JSON.parse(await fs.readFile(path.join(outputDirectory, "pane.json"), "utf8"));

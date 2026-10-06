@@ -139,7 +139,7 @@ async function main(argv = process.argv.slice(2)) {
    fs.writeFileSync(runManifest,JSON.stringify({...manifest,...acceptanceManifest([suite])}));
    const profile = kind === 'draft' ? selected.builder : selected.frontier;
    const fd = fs.openSync(path.join(root,id+'.log'),'w');
-   const child = spawn(process.execPath,['scripts/run-benchmark-suite.js','--base-url',instance.base,'--tests',suite,'--provider-profile',profile.id,'--model',lane.model,'--tool-preset','local-dev','--require-instance-role','benchmark','--run-id',id,'--output-dir',path.join(root,'runs'),'--max-tokens',String(config.max_tokens),'--max-attempts','1','--concurrency','1','--stream-timeout-ms',String(config.stage_timeout_ms),'--acceptance-manifest',runManifest],{cwd:repo,stdio:['ignore',fd,fd],env:{...process.env,BENCHMARK_API_TOKEN:process.env.API_AUTH_TOKEN}});
+   const child = spawn(process.execPath,['scripts/run-benchmark-suite.js','--base-url',instance.base,'--tests',suite,'--provider-profile',profile.id,'--model',lane.model,'--tool-preset','local-dev','--require-instance-role','benchmark','--run-id',id,'--fresh-chats','--title-prefix',id+' ','--output-dir',path.join(root,'runs'),'--max-tokens',String(config.max_tokens),'--max-attempts','1','--concurrency','1','--stream-timeout-ms',String(config.stage_timeout_ms),'--acceptance-manifest',runManifest],{cwd:repo,stdio:['ignore',fd,fd],env:{...process.env,BENCHMARK_API_TOKEN:process.env.API_AUTH_TOKEN}});
    fs.closeSync(fd);
    let interrupted;
    const monitor = setInterval(() => {try {infrastructureGuard();} catch(e) {interrupted=e;child.kill('SIGTERM');}},5000);
@@ -149,7 +149,7 @@ async function main(argv = process.argv.slice(2)) {
    const result = JSON.parse(fs.readFileSync(path.join(root,'runs',id+'.json')));
    const panes = result.tests.flatMap(t => t.panes), summary = result.summary;
    console.log(JSON.stringify({stage:id,status:code === 0 && summary.completed === 1 ? 'delivered' : 'failed',reported_tokens:summary.token_use?.total_tokens}));
-   if (panes.length !== 1 || !panes[0].execution_id) throw Error('Missing execution identity; cannot establish that candidate writes have stopped');
+   if (panes.length !== 1 || panes[0].reused || !panes[0].execution_id) throw Error('Missing execution identity; cannot establish that candidate writes have stopped');
    for (const pane of panes) if (pane.execution_id) {
     const evidence = await api(instance.base,'/api/executions/'+pane.execution_id);
     fs.writeFileSync(path.join(root,id+'-evidence.json'),JSON.stringify(evidence));

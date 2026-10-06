@@ -110,7 +110,7 @@ async function main() {
 
 		for (const benchmark of tests) {
 			if (acceptanceAssets) assertAcceptanceUnchanged(acceptanceAssets);
-			const existingChat = (state.state?.chats || []).find((chat) =>
+			const existingChat = args.freshChats === true || args.freshChats === "true" ? null : (state.state?.chats || []).find((chat) =>
 				chat.title === benchmarkTitle(benchmark) && chatMatchesLanes(chat, selection.lanes)
 			);
 			const chat = existingChat ? hydrateChat(existingChat) : createChat(benchmark);
