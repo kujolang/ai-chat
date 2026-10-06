@@ -57,6 +57,9 @@ can later compare another builder model. Initial automatic isolation supports
 managed Watchdog and Codex profiles: credentials stay with their existing external
 services. ChatGPT-plan connection tokens and API keys are not copied from live
 databases. That would need separate explicit setup before those routes can be used.
+The owned benchmark child explicitly uses Codex `workspace-write`; production
+sandbox settings are unchanged. Both models receive the exact qualified executable
+path rather than relying on whichever `kujo` happens to be on PATH.
 
 The live AI Chat instance must already be reachable (default port4174), Codex
 must already be authenticated, and the intended Watchdog proxy must be running.

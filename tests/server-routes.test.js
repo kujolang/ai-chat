@@ -5351,17 +5351,20 @@ test('discovered model windows reach JSON and streaming requests without changin
  }finally{destroy();}
 });
 
-test('unknown native Codex model does not inherit a guessed CLI context override',async()=>{
+for (const usageReported of [true, false]) test(`unknown native Codex model keeps explicit sandbox and honest usage metadata (${usageReported})`,async()=>{
  let argsSeen;
- const {runtime,destroy}=createIsolatedRuntime({envMerge:{CODEX_MODEL_CACHE_PATH:'/nonexistent-context-fixture.json'},spawnFn:(_command,args)=>{
+ const {runtime,destroy}=createIsolatedRuntime({envMerge:{CODEX_MODEL_CACHE_PATH:'/nonexistent-context-fixture.json',CODEX_SANDBOX_MODE:usageReported ? 'workspace-write' : 'read-only'},spawnFn:(_command,args)=>{
   argsSeen=args;const child=new(require('events').EventEmitter)();child.stdout=new PassThrough();child.stderr=new PassThrough();child.kill=()=>{};
-  process.nextTick(()=>{child.stdout.write('{"type":"thread.started","thread_id":"fixture-native"}\n{"type":"item.completed","item":{"type":"agent_message","text":"Done"}}\n{"type":"turn.completed","usage":{"input_tokens":1,"output_tokens":1}}\n');child.stdout.end();child.stderr.end();child.emit('close',0);});return child;
+  process.nextTick(()=>{child.stdout.write(JSON.stringify({type:'thread.started',thread_id:'fixture-native'})+'\n'+JSON.stringify({type:'item.completed',item:{type:'agent_message',text:'Done'}})+'\n'+JSON.stringify({type:'turn.completed',...(usageReported ? {usage:{input_tokens:1,output_tokens:1}} : {})})+'\n');child.stdout.end();child.stderr.end();child.emit('close',0);});return child;
  }});
  try{
   const profileId=applyProfileMutation(runtime,p=>{p.provider_id='codex';p.models_csv='unknown-native';});
   await withServer(runtime.app,async base=>{
    const r=await fetch(base+'/api/chat/stream',{method:'POST',headers:withAuthHeaders({'Content-Type':'application/json'}),body:JSON.stringify({profile_id:profileId,model:'unknown-native',messages:[{role:'user',content:'Hello'}]})});
    const done=parseSseEvents(await r.text()).find(e=>e.event==='done');assert.ok(done);assert.equal(done.data.context_budget.context_limit_known,false);assert.equal(done.data.context_budget.context_scope,'codex_initial_transcript');
+   assert.equal(done.data.usage_complete,usageReported);assert.equal(done.data.provider_rounds,1);
+   if (!usageReported) assert.equal(done.data.usage,null);
+   assert.equal(argsSeen[argsSeen.indexOf('--sandbox')+1],usageReported ? 'workspace-write' : 'read-only');
    assert.ok(!argsSeen.some(a=>a.startsWith('model_context_window=')||a.startsWith('model_auto_compact_token_limit=')));
   });
  }finally{destroy();}

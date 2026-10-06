@@ -48,6 +48,7 @@ function startInstance(root, binary, sha) {
   PORT:'0',AI_CHAT_HOST:'127.0.0.1',AI_CHAT_INSTANCE_ROLE:'benchmark',AI_CHAT_INSTANCE_LABEL:path.basename(root),
   DB_PATH:path.join(root,'benchmark.db'),DB_BACKUP_DIR:path.join(root,'backups'),AUDIT_LOG_PATH:path.join(root,'audit.log'),
   AI_CHAT_AGENT_KUJO_BIN:binary,AI_CHAT_AGENT_KUJO_SHA256:sha,
+  CODEX_SANDBOX_MODE:'workspace-write',
   // The explicit frontier stage is the review treatment. Avoid a hidden second
   // in-app model reviewer on one route but not the native Codex route.
   ENGINEERING_REVIEW_ENABLED:'0',ENGINEERING_CONTRACT_ENABLED:'0',KUJO_GROUNDING_MODE:'compact',
@@ -132,7 +133,7 @@ async function main(argv = process.argv.slice(2)) {
    report.stage_requests++; await save(report.rows);
    const id = `t${task.id}-${kind}`, suite = path.join(root,id+'.md');
    console.log(JSON.stringify({stage:id,status:'started',model:lane.model}));
-   fs.writeFileSync(suite,`# TEST ${task.id}: ${task.title}\n\n${prompt}\n`);
+   fs.writeFileSync(suite,`# TEST ${task.id}: ${task.title}\n\n${prompt}\nUse this exact qualified Kujo executable for commands and generated test harnesses: ${binary}. Do not substitute a different kujo on PATH.\n`);
    const runManifest = path.join(root,id+'-acceptance.json');
    fs.writeFileSync(runManifest,JSON.stringify({...manifest,...acceptanceManifest([suite])}));
    const profile = kind === 'draft' ? selected.builder : selected.frontier;
