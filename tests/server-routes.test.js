@@ -5021,9 +5021,9 @@ test("native Codex stdout and stderr share a byte limit and never report overflo
    return child;
   } });
   try {
+   const profileId = applyProfileMutation(runtime, profile => { profile.provider_id = "codex"; profile.api_key = ""; });
    await withServer(runtime.app, async baseUrl => {
-    const profile = runtime.helpers.readState().settings.profiles.find(p => p.provider_id === "codex");
-    const result = await fetchJson(baseUrl, "/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ profile_id: profile.id, model: "fixture", messages: [{ role: "user", content: "Bound output" }] }) });
+    const result = await fetchJson(baseUrl, "/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ profile_id: profileId, model: "fixture", messages: [{ role: "user", content: "Bound output" }] }) });
     assert.equal(result.response.status, 502);
     assert.equal(result.json.error.code, "codex_exec_failed");
     assert.match(result.json.error.message, /CODEX_MAX_OUTPUT_BYTES/);
@@ -5954,6 +5954,7 @@ test("command palette is keyboard accessible at desktop and narrow widths", { ti
 				await page.locator("#open-command-palette-btn").focus();
 				await page.keyboard.press("Control+K");
 				await page.locator("#command-palette:not(.hidden)").waitFor();
+				await page.waitForFunction(() => document.activeElement?.id === "command-palette-search");
 				assert.equal(await page.locator("#command-palette-search").evaluate((node) => document.activeElement === node), true);
 				await page.locator("#command-palette-search").fill("attention inbox");
 				assert.match(await page.locator("#command-palette-results").innerText(), /Open attention inbox/);
