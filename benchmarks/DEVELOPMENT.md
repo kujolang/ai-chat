@@ -87,3 +87,46 @@ node scripts/verify-engineering-failure-edges.js data/engineering-round/baseline
 Report these separately from the frozen 33 groups. The October 5 engineering
 comparison and grading corrections are in
 [`docs/benchmarks/engineering-judgment-2026-10-05.md`](../docs/benchmarks/engineering-judgment-2026-10-05.md).
+
+## Kujo maintenance with independent repair feedback
+
+The opt-in controller uses six Kujo maintenance fixtures and separate development
+and holdout cases. It is an experiment workflow, not a global chat completion gate.
+Only development failures reach a repair request. Holdouts remain controller-only;
+the same-model review is still advisory. Read [the frozen protocol](kujo-maintenance-protocol.md).
+
+Use an already configured **dedicated benchmark instance**, with the selected
+provider profile, local tools and qualified Kujo executable available. Supply app
+credentials through the environment. Use fresh directories for every model/arm:
+
+```sh
+node --env-file=.env scripts/run-kujo-maintenance-evaluation.js \
+  --base-url http://127.0.0.1:4198 \
+  --root data/maintenance-glm-baseline --mode baseline \
+  --provider-profile 'Watchdog / Ollama Cloud' --model glm-5.3-flash:cloud \
+  --kujo /absolute/path/to/qualified/kujo --kujo-sha256 QUALIFIED_SHA256
+```
+
+Repeat with another fresh root and `--mode feedback`. Its initial draft is the
+pattern-guidance measurement; its final draft adds at most two development-driven
+repair passes. This paired comparison does not count as two independent model runs.
+`--mode patterns` is available when only the guidance treatment is wanted.
+The 15-minute task budget limits further admission and remaining stream allowances;
+setup, cancellation/reconciliation and controller teardown add wall-clock overhead.
+Per-repair stream allowances are at most five minutes. Transport failures are not
+retried. Reports include the cost of initial and repair requests separately; sum
+both when comparing treatments. An incomplete initial delivery is never called a
+successful task merely because some seed behavior passes.
+
+The runner refuses a mismatching executable SHA and requalifies all examples before
+model dispatch. Offline controls can be repeated with:
+
+```sh
+KUJO_REFERENCE_BIN=/absolute/path/to/qualified/kujo \
+  node --test tests/verified-repair.test.js tests/kujo-maintenance-evaluation.test.js
+```
+
+Change only `--model`/`--provider-profile` and fresh roots for a later DeepSeek run;
+there are no GLM-specific runtime branches. Preserve the same specs, checks, runtime
+and settings. Prompt/hash boundaries are not an OS sandbox; use trusted candidates
+and owned fixtures. Never point this evaluator at production data.

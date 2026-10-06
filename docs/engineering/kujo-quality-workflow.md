@@ -173,3 +173,22 @@ reads do not trigger it. Evidence remains available; the notice does not block
 reads, grant writes, replay operations, or change task budgets. Its emitted state
 survives resume through the existing diagnostic checkpoint. This addresses a
 measured read-only loop; it does not guarantee that a model will follow the notice.
+
+## Independent development-feedback experiment
+
+The maintenance controller in `scripts/run-kujo-maintenance-evaluation.js` can
+feed bounded, controller-owned counterexamples to an explicitly selected model
+before final grading. It preserves each pre-repair candidate and grades different
+holdout cases without revealing those results. The generic state machine lives in
+`lib/verified-repair.js`; it stops on budget limits, incomplete execution or changed
+acceptance assets. Completed check evidence is saved before requesting another
+model pass. It does not automatically run arbitrary repository tests in ordinary
+chats or grant new tool permissions.
+
+`local_kujo guide` adds three small 1.7.0-qualified examples: `presence` (explicit
+false/zero versus missing fields), `staged_validation` (all transitions checked
+before publication), and `quoted_text` (one lossless CSV cell). They are on-demand
+examples, not full task solutions or a guarantee of correctness. The selected
+binary must still be qualified; no global prompt growth/default promotion is made.
+See [maintenance workflow](../../benchmarks/DEVELOPMENT.md#kujo-maintenance-with-independent-repair-feedback)
+for the provider-neutral experiment and calibration commands.

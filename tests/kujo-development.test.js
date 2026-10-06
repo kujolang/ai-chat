@@ -88,3 +88,10 @@ test('1.7 guide discloses unsupported nested assignment and provides a verified 
  assert.match(r.example, /rows\[0\] = \[row\[0\], 9\]/);
  assert.equal(r.expected_output, '[[1,9]]');
 });
+
+test('maintenance patterns stay unavailable on unqualified language versions',async()=>{
+ for(const topic of ['presence','staged_validation','quoted_text']){
+  const old=fixture({version:'kujo 1.5.0'});const r=await executeKujo({operation:'guide',topic},{},old.deps);assert.equal(r.example,null);
+  const current=fixture({version:'kujo 1.7.0'});const supported=await executeKujo({operation:'guide',topic},{},current.deps);assert.ok(supported.example);assert.equal(supported.expected_exit_code,0);
+ }
+});
