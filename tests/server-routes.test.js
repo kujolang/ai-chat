@@ -5925,3 +5925,71 @@ test('a late completed worker answer is delivered without optional review infere
   });
  }finally{destroy();fs.rmSync(dir,{recursive:true,force:true});}
 });
+
+test("command palette is keyboard accessible at desktop and narrow widths", { timeout: 30000 }, async () => {
+	const { chromium } = require("playwright");
+	const { runtime, destroy } = createIsolatedRuntime();
+	let browser;
+	try {
+		await withServer(runtime.app, async (baseUrl) => {
+			browser = await chromium.launch({ headless: true });
+			const context = await browser.newContext();
+			await context.addInitScript((token) => {
+				localStorage.setItem("ai_chat_api_token", token);
+				localStorage.setItem("ai_chat_api_token_expires_at", String(Date.now() + 86400000));
+			}, API_TOKEN);
+			for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 }]) {
+				const page = await context.newPage({ viewport });
+				await page.goto(baseUrl);
+				await page.waitForFunction(() => stateLoadedFromServer);
+				await page.locator("#open-command-palette-btn").focus();
+				await page.keyboard.press("Control+K");
+				await page.locator("#command-palette:not(.hidden)").waitFor();
+				assert.equal(await page.locator("#command-palette-search").evaluate((node) => document.activeElement === node), true);
+				await page.locator("#command-palette-search").fill("attention inbox");
+				assert.match(await page.locator("#command-palette-results").innerText(), /Open attention inbox/);
+				await page.keyboard.press("Enter");
+				await page.locator("#attention-modal:not(.hidden)").waitFor();
+				await page.locator("#close-attention-btn").click();
+				await page.locator("#open-command-palette-btn").focus();
+				await page.keyboard.press("Control+K");
+				await page.waitForFunction(() => document.activeElement?.id === "command-palette-search");
+				await page.keyboard.press("Escape");
+				assert.equal(await page.locator("#command-palette").evaluate((node) => node.classList.contains("hidden")), true);
+				assert.equal(await page.locator("#open-command-palette-btn").evaluate((node) => document.activeElement === node), true);
+				await page.close();
+			}
+		});
+	} finally {
+		await browser?.close();
+		destroy();
+	}
+});
+
+test("MCP and attention management routes preserve sanitized scoped contracts", async () => {
+	const serverRecord = { id: "mcp_fixture", name: "Fixture", kind: "mcp", transport: "http", endpoint_label: "https://mcp.example", enabled: false, tools: [], resources: [], tool_count: 0, resource_count: 0, credential_configured: true };
+	const mcpManager = {
+		list: () => [serverRecord], listForChat: (chatId) => [{ ...serverRecord, chat_enabled: false, authorized_tools: [], authorized_resources: [], chat_id: chatId }],
+		save: () => serverRecord, remove: () => true, setEnabled: (_id, enabled) => ({ ...serverRecord, enabled }), discover: async () => ({ server: serverRecord, tools: [], resources: [] }),
+		setChatScope: (chatId, serverId, input) => ({ chat_id: chatId, server_id: serverId, enabled: input.enabled === true, tool_names: input.tool_names || [], resource_uris: input.resource_uris || [] }),
+		available: () => [], call: async () => ({}), readResource: async () => ({})
+	};
+	const { runtime, destroy } = createIsolatedRuntime({ mcpManager });
+	try {
+		await withServer(runtime.app, async (baseUrl) => {
+			const unauthorized = await fetch(`${baseUrl}/api/mcp/servers`);
+			assert.equal(unauthorized.status, 401);
+			const listed = await fetchJson(baseUrl, "/api/mcp/servers?chat_id=chat-a");
+			assert.equal(listed.response.status, 200);
+			assert.equal(JSON.stringify(listed.json).includes("credential-secret"), false);
+			const scoped = await fetchJson(baseUrl, "/api/chats/chat-a/mcp/mcp_fixture", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ enabled: true, tool_names: ["publish"], resource_uris: ["kb://release"] }) });
+			assert.equal(scoped.response.status, 200);
+			assert.deepEqual(scoped.json.scope.resource_uris, ["kb://release"]);
+			const attention = await fetchJson(baseUrl, "/api/attention");
+			assert.equal(attention.response.status, 200);
+			assert.deepEqual(attention.json.events, []);
+		});
+	} finally {
+		destroy();
+	}
+});

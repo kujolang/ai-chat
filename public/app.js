@@ -61,6 +61,11 @@ const pendingCodeHighlightRoots = new Set();
 const browserArtifactImageUrls = new Map();
 const composerAttachmentsByChat = new Map();
 let artifactRailFilter = "all";
+let attentionFilter = "";
+let attentionEvents = [];
+let mcpServers = [];
+let commandPaletteReturnFocus = null;
+const notifiedAttentionIds = new Set();
 let screenshotGalleryArtifacts = [];
 let screenshotGalleryIndex = 0;
 const apiTokenStorageKey = "ai_chat_api_token";
@@ -79,6 +84,8 @@ const collapsedProvidersStorageKey = "ai_chat_collapsed_providers_v1";
 const collapsedToolsStorageKey = "ai_chat_collapsed_tools_v1";
 const collapsedAgentInstructionsStorageKey = "ai_chat_collapsed_agent_instructions_v1";
 const openChatTabsStorageKey = "ai_chat_open_chat_tabs_v1";
+const commandShortcutsStorageKey = "ai_chat_command_shortcuts_v1";
+const notificationSettingsStorageKey = "ai_chat_notification_settings_v1";
 const stateChangesBatchBytes = 512 * 1024;
 const streamingPersistDebounceMs = 1500;
 const streamingPersistCharThreshold = 4096;
@@ -147,6 +154,9 @@ const nodes = {
 	newChatBtn: document.getElementById("new-chat-btn"),
 	openSearchBtn: document.getElementById("open-search-btn"),
 	openPluginsBtn: document.getElementById("open-plugins-btn"),
+	openAttentionBtn: document.getElementById("open-attention-btn"),
+	attentionCount: document.getElementById("attention-count"),
+	openCommandPaletteBtn: document.getElementById("open-command-palette-btn"),
 	openAutomationsBtn: document.getElementById("open-automations-btn"),
 	showActiveBtn: document.getElementById("show-active-btn"),
 	showArchivedBtn: document.getElementById("show-archived-btn"),
@@ -216,6 +226,32 @@ const nodes = {
 	closePluginsBtn: document.getElementById("close-plugins-btn"),
 	pluginsModalContent: document.getElementById("plugins-modal-content"),
 	pluginsOpenSettingsBtn: document.getElementById("plugins-open-settings-btn"),
+	mcpServerForm: document.getElementById("mcp-server-form"),
+	mcpServerId: document.getElementById("mcp-server-id"),
+	mcpServerName: document.getElementById("mcp-server-name"),
+	mcpServerKind: document.getElementById("mcp-server-kind"),
+	mcpServerTransport: document.getElementById("mcp-server-transport"),
+	mcpServerEndpoint: document.getElementById("mcp-server-endpoint"),
+	mcpServerPublisher: document.getElementById("mcp-server-publisher"),
+	mcpServerSource: document.getElementById("mcp-server-source"),
+	mcpServerScopes: document.getElementById("mcp-server-scopes"),
+	mcpServerArgs: document.getElementById("mcp-server-args"),
+	mcpServerToken: document.getElementById("mcp-server-token"),
+	mcpServerStatus: document.getElementById("mcp-server-status"),
+	attentionModal: document.getElementById("attention-modal"),
+	closeAttentionBtn: document.getElementById("close-attention-btn"),
+	attentionList: document.getElementById("attention-list"),
+	desktopNotificationsEnabled: document.getElementById("desktop-notifications-enabled"),
+	notificationQuietStart: document.getElementById("notification-quiet-start"),
+	notificationQuietEnd: document.getElementById("notification-quiet-end"),
+	notificationEventTypes: document.getElementById("notification-event-types"),
+	commandPalette: document.getElementById("command-palette"),
+	closeCommandPaletteBtn: document.getElementById("close-command-palette-btn"),
+	commandPaletteSearch: document.getElementById("command-palette-search"),
+	commandPaletteResults: document.getElementById("command-palette-results"),
+	shortcutEditorList: document.getElementById("shortcut-editor-list"),
+	resetShortcutsBtn: document.getElementById("reset-shortcuts-btn"),
+	shortcutEditorStatus: document.getElementById("shortcut-editor-status"),
 	projectFolderModal: document.getElementById("project-folder-modal"),
 	confirmationModal: document.getElementById("confirmation-modal"),
 	confirmationModalTitle: document.getElementById("confirmation-modal-title"),
@@ -333,6 +369,9 @@ async function bootstrap() {
 	}
 	setupSpeechRecognition();
 	setupWhisperRecorder();
+	loadNotificationSettings();
+	void loadAttention({ quiet: true });
+	window.setInterval(() => void loadAttention({ quiet: true }), 15000);
 }
 
 async function loadRuntimeCapabilities() {
@@ -826,22 +865,17 @@ function wireEvents() {
 	});
 
 	window.addEventListener("keydown", (event) => {
-		if (!event.metaKey || !event.shiftKey || event.ctrlKey || event.altKey) {
-			return;
-		}
-
-		if (String(event.key || "").toLowerCase() !== "n") {
-			return;
-		}
-
-		event.preventDefault();
-		createAndActivateChat();
+		handleGlobalShortcut(event);
 	});
 
 	nodes.openSearchBtn.addEventListener("click", openSearchModal);
 	nodes.closeSearchBtn.addEventListener("click", closeSearchModal);
 	nodes.openPluginsBtn.addEventListener("click", openPluginsModal);
 	nodes.closePluginsBtn.addEventListener("click", closePluginsModal);
+	nodes.openAttentionBtn?.addEventListener("click", () => void openAttentionInbox());
+	nodes.closeAttentionBtn?.addEventListener("click", closeAttentionInbox);
+	nodes.openCommandPaletteBtn?.addEventListener("click", openCommandPalette);
+	nodes.closeCommandPaletteBtn?.addEventListener("click", closeCommandPalette);
 	nodes.openAutomationsBtn.addEventListener("click", openAutomationsModal);
 	nodes.openPaneProfilesBtn.addEventListener("click", openPaneProfilesModal);
 	nodes.closePaneProfilesBtn.addEventListener("click", closePaneProfilesModal);
@@ -883,7 +917,23 @@ function wireEvents() {
 		if (event.target.getAttribute("data-close-plugins") === "true") {
 			closePluginsModal();
 		}
+		const action = event.target.closest("[data-mcp-action]");
+		if (action) void handleMcpAction(action);
 	});
+	nodes.mcpServerForm?.addEventListener("submit", (event) => { event.preventDefault(); void saveMcpServer(); });
+	nodes.mcpServerTransport?.addEventListener("change", syncMcpEndpointPlaceholder);
+	nodes.attentionModal?.addEventListener("click", (event) => {
+		if (event.target.getAttribute("data-close-attention") === "true") return closeAttentionInbox();
+		const filter = event.target.closest("[data-attention-filter]"); if (filter) { attentionFilter = String(filter.dataset.attentionFilter || ""); void loadAttention(); return; }
+		const item = event.target.closest("[data-attention-id]"); if (item) void handleAttentionAction(item, event.target.closest("button")?.dataset.attentionAction || "open");
+	});
+	for (const input of [nodes.desktopNotificationsEnabled, nodes.notificationQuietStart, nodes.notificationQuietEnd]) input?.addEventListener("change", saveNotificationSettings);
+	nodes.notificationEventTypes?.addEventListener("change", saveNotificationSettings);
+	nodes.commandPalette?.addEventListener("click", (event) => { if (event.target.getAttribute("data-close-command-palette") === "true") closeCommandPalette(); const command = event.target.closest("[data-command-id]"); if (command) executeCommand(command.dataset.commandId); });
+	nodes.commandPaletteSearch?.addEventListener("input", renderCommandPalette);
+	nodes.commandPaletteSearch?.addEventListener("keydown", handleCommandPaletteKeydown);
+	nodes.shortcutEditorList?.addEventListener("change", handleShortcutChange);
+	nodes.resetShortcutsBtn?.addEventListener("click", resetCommandShortcuts);
 
 	nodes.automationsModal.addEventListener("click", (event) => {
 		if (event.target.getAttribute("data-close-automations") === "true") {
@@ -4647,8 +4697,9 @@ function openSearchModal() {
 }
 
 function openPluginsModal() {
-	renderPluginsModal();
 	nodes.pluginsModal.classList.remove("hidden");
+	syncMcpEndpointPlaceholder();
+	void loadMcpServers();
 }
 
 function closePluginsModal() {
@@ -5651,28 +5702,118 @@ function renderSearchResults() {
 }
 
 function renderPluginsModal() {
-	const providerRows = summarizePluginsByProvider();
-	if (providerRows.length === 0) {
-		nodes.pluginsModalContent.innerHTML = "<div class=\"empty-state\">No provider profiles are configured yet.</div>";
+	if (mcpServers.length === 0) {
+		nodes.pluginsModalContent.innerHTML = "<div class=\"empty-state\">No MCP servers or plugins connected.</div>";
 		return;
 	}
-
-	nodes.pluginsModalContent.innerHTML = providerRows
-		.map((provider) => {
-			const configuredLabel = provider.configuredCount === 1 ? "1 profile" : `${provider.configuredCount} profiles`;
-			const keyLabel = provider.profilesWithKeyCount === 1 ? "1 key saved" : `${provider.profilesWithKeyCount} keys saved`;
-			return `
-				<div class="plugin-card">
-					<div class="plugin-card-head">
-						<div class="plugin-card-title">${escapeHtml(provider.label)}</div>
-						<div class="plugin-card-badge">${escapeHtml(configuredLabel)}</div>
-					</div>
-					<div class="plugin-card-meta">${escapeHtml(keyLabel)} | ${escapeHtml(provider.modelsLabel)}</div>
-				</div>
-			`;
-		})
-		.join("");
+	const chat = getActiveChat();
+	nodes.pluginsModalContent.innerHTML = mcpServers.map((server) => `<article class="plugin-card" data-mcp-server-id="${escapeHtml(server.id)}">
+		<div class="plugin-card-head"><div><div class="plugin-card-title">${escapeHtml(server.name)}</div><div class="plugin-card-meta">${escapeHtml(server.kind)} · ${escapeHtml(server.transport)} · ${escapeHtml(server.endpoint_label)}${server.publisher ? ` · ${escapeHtml(server.publisher)}` : ""}${server.source ? ` · ${escapeHtml(server.source)}` : ""}</div></div><div class="plugin-card-badge">${server.enabled ? "Connected" : "Disabled"}</div></div>
+		<div class="plugin-card-meta">${server.tool_count} tools · ${server.resource_count || 0} resources · scopes: ${escapeHtml((server.scopes || []).join(", ") || "none")} · credentials ${server.credential_configured ? "configured" : "not configured"}${server.last_error ? ` · Last error: ${escapeHtml(server.last_error)}` : ""}</div>
+		<div class="mcp-tool-list">${(server.tools || []).map((tool) => `<label title="${escapeHtml(tool.description || "")}"><input type="checkbox" data-mcp-tool="${escapeHtml(tool.name)}" ${server.authorized_tools?.includes(tool.name) ? "checked" : ""} ${!chat ? "disabled" : ""}> ${escapeHtml(tool.name)}</label>`).join("") || "<span>No tools discovered yet.</span>"}</div>
+		<div class="mcp-tool-list">${(server.resources || []).map((resource) => `<label title="${escapeHtml(resource.description || resource.uri)}"><input type="checkbox" data-mcp-resource="${escapeHtml(resource.uri)}" ${server.authorized_resources?.includes(resource.uri) ? "checked" : ""} ${!chat ? "disabled" : ""}> ${escapeHtml(resource.name || resource.uri)}</label>`).join("") || "<span>No resources discovered yet.</span>"}</div>
+		<div class="artifact-actions"><button data-mcp-action="discover">Refresh tools</button><button data-mcp-action="scope" ${!chat ? "disabled" : ""}>${server.chat_enabled ? "Update chat access" : "Enable for chat"}</button><button data-mcp-action="toggle">${server.enabled ? "Disable" : "Enable"}</button><button data-mcp-action="edit">Edit</button><button data-mcp-action="delete" class="danger">Remove</button></div>
+	</article>`).join("");
 }
+
+async function loadMcpServers() {
+	const chat = getActiveChat(); const response = await apiFetch(`/api/mcp/servers${chat ? `?chat_id=${encodeURIComponent(chat.id)}` : ""}`); const payload = await response.json();
+	if (!response.ok) { nodes.mcpServerStatus.textContent = payload.error?.message || "Could not load connections."; return; }
+	mcpServers = payload.servers || []; renderPluginsModal();
+}
+function syncMcpEndpointPlaceholder() { if (nodes.mcpServerEndpoint) nodes.mcpServerEndpoint.placeholder = nodes.mcpServerTransport.value === "stdio" ? "/absolute/path/to/command" : "https://server.example/mcp"; }
+async function saveMcpServer() {
+	const id = nodes.mcpServerId.value; const transport = nodes.mcpServerTransport.value;
+	const endpoint = String(nodes.mcpServerEndpoint.value || "").trim();
+	const argsText = String(nodes.mcpServerArgs.value || "").trim();
+	const body = { name: nodes.mcpServerName.value, kind: nodes.mcpServerKind.value, transport, publisher: nodes.mcpServerPublisher.value, source: nodes.mcpServerSource.value, scopes: String(nodes.mcpServerScopes.value || "").split(",").map((item) => item.trim()).filter(Boolean), ...(transport === "stdio" ? { ...(endpoint ? { command: endpoint } : {}), ...(!id || argsText ? { args: argsText.split("\n").map((item) => item.trim()).filter(Boolean) } : {}) } : (endpoint ? { url: endpoint } : {})), ...(nodes.mcpServerToken.value ? { auth_token: nodes.mcpServerToken.value } : {}) };
+	const response = await apiFetch(id ? `/api/mcp/servers/${encodeURIComponent(id)}` : "/api/mcp/servers", { method: id ? "PUT" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); const payload = await response.json();
+	if (!response.ok) { nodes.mcpServerStatus.textContent = payload.error?.message || "Could not save connection."; return; }
+	nodes.mcpServerForm.reset(); nodes.mcpServerId.value = ""; nodes.mcpServerEndpoint.setAttribute("required", ""); nodes.mcpServerStatus.textContent = "Connection saved. Refresh tools, enable the server, then authorize selected tools for a chat."; syncMcpEndpointPlaceholder(); await loadMcpServers();
+}
+async function handleMcpAction(button) {
+	const card = button.closest("[data-mcp-server-id]"); const id = card?.dataset.mcpServerId; const server = mcpServers.find((item) => item.id === id); if (!server) return;
+	const action = button.dataset.mcpAction;
+	if (action === "edit") { nodes.mcpServerId.value = id; nodes.mcpServerName.value = server.name; nodes.mcpServerKind.value = server.kind; nodes.mcpServerTransport.value = server.transport; nodes.mcpServerEndpoint.value = ""; nodes.mcpServerEndpoint.removeAttribute("required"); nodes.mcpServerPublisher.value = server.publisher || ""; nodes.mcpServerSource.value = server.source || ""; nodes.mcpServerScopes.value = (server.scopes || []).join(", "); nodes.mcpServerArgs.value = ""; nodes.mcpServerToken.value = ""; syncMcpEndpointPlaceholder(); nodes.mcpServerStatus.textContent = `Editing ${server.name}. Leave endpoint and token blank to keep the stored values.`; nodes.mcpServerName.focus(); return; }
+	if (action === "delete" && !(await openConfirmationModal({ title: "Remove connection?", message: `Remove ${server.name}? Chat tool access will be revoked.`, confirmLabel: "Remove", danger: true }))) return;
+	let response;
+	if (action === "discover") response = await apiFetch(`/api/mcp/servers/${encodeURIComponent(id)}/discover`, { method: "POST" });
+	else if (action === "toggle") response = await apiFetch(`/api/mcp/servers/${encodeURIComponent(id)}/enabled`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ enabled: !server.enabled }) });
+	else if (action === "scope") { const chat = getActiveChat(); const tools = [...card.querySelectorAll("[data-mcp-tool]:checked")].map((input) => input.dataset.mcpTool); const resources = [...card.querySelectorAll("[data-mcp-resource]:checked")].map((input) => input.dataset.mcpResource); response = await apiFetch(`/api/chats/${encodeURIComponent(chat.id)}/mcp/${encodeURIComponent(id)}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ enabled: true, tool_names: tools, resource_uris: resources }) }); }
+	else if (action === "delete") response = await apiFetch(`/api/mcp/servers/${encodeURIComponent(id)}`, { method: "DELETE" });
+	if (response) { const payload = await response.json(); nodes.mcpServerStatus.textContent = response.ok ? "Connection updated." : payload.error?.message || "Connection update failed."; await loadMcpServers(); }
+}
+
+async function loadAttention({ quiet = false } = {}) {
+	try {
+		const response = await apiFetch(`/api/attention?status=open${attentionFilter ? `&kind=${encodeURIComponent(attentionFilter)}` : ""}`); const payload = await response.json(); if (!response.ok) throw new Error(payload.error?.message || "Could not load attention inbox.");
+		attentionEvents = payload.events || []; const count = Number(payload.unread_count || 0); nodes.attentionCount.textContent = String(Math.min(99, count)); nodes.attentionCount.classList.toggle("hidden", count === 0); renderAttentionInbox(); maybeNotifyAttention(attentionEvents);
+	} catch (error) { if (!quiet && nodes.attentionList) nodes.attentionList.innerHTML = `<div class="empty-state">${escapeHtml(error.message)}</div>`; }
+}
+async function openAttentionInbox() { nodes.attentionModal.classList.remove("hidden"); await loadAttention(); nodes.closeAttentionBtn.focus(); }
+function closeAttentionInbox() { nodes.attentionModal.classList.add("hidden"); }
+function renderAttentionInbox() {
+	if (!nodes.attentionList) return;
+	document.querySelectorAll("[data-attention-filter]").forEach((button) => button.classList.toggle("active", button.dataset.attentionFilter === attentionFilter));
+	const events = attentionFilter ? attentionEvents.filter((item) => item.kind === attentionFilter) : attentionEvents;
+	nodes.attentionList.innerHTML = events.length ? events.map((item) => { const chat = getChatById(item.chat_id); return `<article class="attention-item${item.unread ? " unread" : ""}" data-attention-id="${escapeHtml(item.id)}"><button data-attention-action="open"><strong>${escapeHtml(item.title)}</strong><span>${escapeHtml(chat?.title || "Chat")} · ${escapeHtml(item.kind.replaceAll("_", " "))}</span></button><button class="btn ghost" data-attention-action="resolve">Resolve</button></article>`; }).join("") : "<div class=\"empty-state\">Nothing needs attention.</div>";
+}
+async function handleAttentionAction(item, action) {
+	const id = item.dataset.attentionId; const event = attentionEvents.find((entry) => entry.id === id); if (!event) return;
+	if (action === "resolve") await apiFetch(`/api/attention/${encodeURIComponent(id)}/resolve`, { method: "POST" });
+	else { await apiFetch(`/api/attention/${encodeURIComponent(id)}/read`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ read: true }) }); closeAttentionInbox(); if (getChatById(event.chat_id)) await activateChat(event.chat_id, { persist: false }); }
+	await loadAttention({ quiet: true });
+}
+function notificationSettings() { const fallback = { enabled: false, start: "22:00", end: "08:00", types: ["approval_needed", "question_asked", "task_failed", "conflict_required"] }; try { return { ...fallback, ...JSON.parse(localStorage.getItem(notificationSettingsStorageKey) || "{}") }; } catch { return fallback; } }
+function loadNotificationSettings() { const value = notificationSettings(); nodes.desktopNotificationsEnabled.checked = value.enabled; nodes.notificationQuietStart.value = value.start; nodes.notificationQuietEnd.value = value.end; nodes.notificationEventTypes?.querySelectorAll("input").forEach((input) => { input.checked = value.types.includes(input.value); }); }
+async function saveNotificationSettings() {
+	if (nodes.desktopNotificationsEnabled.checked && "Notification" in window && Notification.permission === "default") { const permission = await Notification.requestPermission(); if (permission !== "granted") nodes.desktopNotificationsEnabled.checked = false; }
+	const types = [...(nodes.notificationEventTypes?.querySelectorAll("input:checked") || [])].map((input) => input.value);
+	localStorage.setItem(notificationSettingsStorageKey, JSON.stringify({ enabled: nodes.desktopNotificationsEnabled.checked, start: nodes.notificationQuietStart.value || "22:00", end: nodes.notificationQuietEnd.value || "08:00", types }));
+}
+function maybeNotifyAttention(events) {
+	const settings = notificationSettings(); if (!settings.enabled || !("Notification" in window) || Notification.permission !== "granted" || inQuietHours(settings)) return;
+	for (const item of events.filter((entry) => entry.unread && settings.types.includes(entry.kind))) { if (notifiedAttentionIds.has(item.id)) continue; notifiedAttentionIds.add(item.id); new Notification("AI Chat needs attention", { body: item.title, tag: item.id, silent: true }); }
+}
+function inQuietHours(settings) { const minutes = new Date().getHours() * 60 + new Date().getMinutes(); const parse = (value) => { const [hour, minute] = String(value).split(":").map(Number); return hour * 60 + minute; }; const start = parse(settings.start), end = parse(settings.end); return start === end ? false : start < end ? minutes >= start && minutes < end : minutes >= start || minutes < end; }
+
+const defaultCommandShortcuts = Object.freeze({ palette: "Mod+K", new_chat: "Mod+Shift+N", previous_tab: "Alt+ArrowLeft", next_tab: "Alt+ArrowRight", inbox: "Mod+Shift+I", attach_context: "Mod+Shift+A", artifacts: "Mod+Shift+R" });
+function commandShortcuts() { try { return { ...defaultCommandShortcuts, ...JSON.parse(localStorage.getItem(commandShortcutsStorageKey) || "{}") }; } catch { return { ...defaultCommandShortcuts }; } }
+function commandRegistry() {
+	const chat = getActiveChat(); const pane = chat?.panes?.[0]; const latest = pane?.messages?.at(-1);
+	return [
+		{ id: "new_chat", label: "New chat", run: () => createAndActivateChat() },
+		{ id: "fork_chat", label: "Fork current chat", disabled: !latest ? "No current chat history" : "", run: () => branchMessageIntoNewChat(chat, pane.id, latest.id) },
+		{ id: "previous_tab", label: "Previous chat tab", disabled: openChatTabIds.length < 2 ? "Only one tab is open" : "", run: () => cycleChatTab(-1) },
+		{ id: "next_tab", label: "Next chat tab", disabled: openChatTabIds.length < 2 ? "Only one tab is open" : "", run: () => cycleChatTab(1) },
+		{ id: "switch_model", label: "Switch model", disabled: !chat ? "No active chat" : "", run: focusModelPicker },
+		{ id: "plan", label: "View active plan", disabled: !document.querySelector(".execution-plan") ? "No plan is available" : "", run: () => document.querySelector(".execution-plan")?.scrollIntoView({ behavior: "smooth", block: "center" }) },
+		{ id: "permissions", label: "Open permissions", run: () => { openSettings(); setSettingsTab("tools"); } },
+		{ id: "checkpoint_restore", label: "Restore latest checkpoint…", disabled: !document.querySelector("[data-diff-action='restore-all']") ? "No checkpoint is available" : "", run: () => document.querySelector("[data-diff-action='restore-all']")?.click() },
+		{ id: "attach_context", label: "Attach context", disabled: !chat ? "No active chat" : "", run: () => nodes.composerAttachmentBtn.click() },
+		{ id: "review_changes", label: "Review code changes", disabled: !document.querySelector(".code-diff-file") ? "No code changes are available" : "", run: () => document.querySelector(".code-diff-file")?.scrollIntoView({ behavior: "smooth", block: "start" }) },
+		{ id: "artifacts", label: "Open execution artifacts", disabled: !chat ? "No active chat" : "", run: () => void openArtifactRail() },
+		{ id: "inbox", label: "Open attention inbox", run: () => void openAttentionInbox() },
+		{ id: "plugins", label: "Manage MCP and plugins", run: openPluginsModal },
+		{ id: "settings", label: "Open settings", run: openSettings }
+	];
+}
+function openCommandPalette() { commandPaletteReturnFocus = document.activeElement; nodes.commandPalette.classList.remove("hidden"); nodes.commandPaletteSearch.value = ""; renderCommandPalette(); requestAnimationFrame(() => nodes.commandPaletteSearch.focus()); }
+function closeCommandPalette() { nodes.commandPalette.classList.add("hidden"); commandPaletteReturnFocus?.focus?.(); commandPaletteReturnFocus = null; }
+function renderCommandPalette() {
+	if (!nodes.commandPaletteResults) return; const query = String(nodes.commandPaletteSearch.value || "").trim().toLowerCase(); const shortcuts = commandShortcuts(); const commands = commandRegistry().filter((command) => !query || command.label.toLowerCase().includes(query));
+	nodes.commandPaletteResults.innerHTML = commands.map((command) => `<button role="option" data-command-id="${command.id}" ${command.disabled ? "disabled" : ""}><span>${escapeHtml(command.label)}${command.disabled ? `<small>${escapeHtml(command.disabled)}</small>` : ""}</span><kbd>${escapeHtml(shortcuts[command.id] || "")}</kbd></button>`).join("") || "<div class=\"empty-state\">No commands found.</div>";
+	const shortcutCommands = [{ id: "palette", label: "Open command palette" }, ...commandRegistry()];
+	nodes.shortcutEditorList.innerHTML = shortcutCommands.map((command) => `<label><span>${escapeHtml(command.label)}</span><input data-shortcut-id="${command.id}" value="${escapeHtml(shortcuts[command.id] || "")}" placeholder="Unassigned"></label>`).join("");
+}
+function executeCommand(id) { const command = commandRegistry().find((item) => item.id === id); if (!command || command.disabled) return; closeCommandPalette(); command.run(); }
+function handleCommandPaletteKeydown(event) { if (event.key === "Escape") { event.preventDefault(); closeCommandPalette(); return; } if (event.key === "Enter") { const first = nodes.commandPaletteResults.querySelector("[data-command-id]:not([disabled])"); if (first) { event.preventDefault(); executeCommand(first.dataset.commandId); } return; } if (["ArrowDown", "ArrowUp"].includes(event.key)) { const commands = [...nodes.commandPaletteResults.querySelectorAll("[data-command-id]:not([disabled])")]; if (!commands.length) return; event.preventDefault(); (event.key === "ArrowDown" ? commands[0] : commands.at(-1)).focus(); } }
+function eventShortcut(event) { const parts = []; if (event.metaKey || event.ctrlKey) parts.push("Mod"); if (event.altKey) parts.push("Alt"); if (event.shiftKey) parts.push("Shift"); let key = event.key.length === 1 ? event.key.toUpperCase() : event.key; if (["Meta", "Control", "Alt", "Shift"].includes(key)) return ""; parts.push(key); return parts.join("+"); }
+function handleGlobalShortcut(event) { const shortcut = eventShortcut(event); if (!shortcut) return; const paletteShortcut = commandShortcuts().palette; const editing = /^(INPUT|TEXTAREA|SELECT)$/.test(event.target?.tagName) || event.target?.isContentEditable; if (editing && shortcut !== paletteShortcut) return; const entry = Object.entries(commandShortcuts()).find(([, value]) => value === shortcut); if (!entry) return; event.preventDefault(); if (entry[0] === "palette") return nodes.commandPalette.classList.contains("hidden") ? openCommandPalette() : closeCommandPalette(); executeCommand(entry[0]); }
+function handleShortcutChange(event) { const id = event.target.dataset.shortcutId; if (!id) return; const value = String(event.target.value || "").trim(); const current = commandShortcuts(); const reserved = new Set(["Mod+L", "Mod+T", "Mod+W", "Mod+R", "Mod+Q"]); if (reserved.has(value)) { nodes.shortcutEditorStatus.textContent = `${value} is reserved by the browser or operating system.`; event.target.value = current[id] || ""; return; } const conflict = Object.entries(current).find(([key, shortcut]) => key !== id && shortcut && shortcut === value); if (conflict) { nodes.shortcutEditorStatus.textContent = `${value} is already assigned.`; event.target.value = current[id] || ""; return; } current[id] = value; localStorage.setItem(commandShortcutsStorageKey, JSON.stringify(current)); nodes.shortcutEditorStatus.textContent = "Shortcut saved."; renderCommandPalette(); }
+function resetCommandShortcuts() { localStorage.removeItem(commandShortcutsStorageKey); nodes.shortcutEditorStatus.textContent = "Shortcuts reset."; renderCommandPalette(); }
+function cycleChatTab(direction) { const ids = openChatTabIds.filter((id) => getChatById(id)); const index = Math.max(0, ids.indexOf(state.activeChatId)); if (ids.length > 1) void activateChat(ids[(index + direction + ids.length) % ids.length], { persist: false, focusTab: true }); }
+function focusModelPicker() { if (window.jQuery && nodes.composerProfileSelect) window.jQuery(nodes.composerProfileSelect).select2("open"); else nodes.composerProfileSelect?.focus(); }
 
 function summarizePluginsByProvider() {
 	const profileList = Array.isArray(state.settings.profiles) ? state.settings.profiles : [];
