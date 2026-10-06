@@ -250,7 +250,7 @@ test("GET /api/health returns runtime metadata", async () => {
 			assert.equal(json.ok, true);
 			assert.equal(typeof json.auth_configured, "boolean");
 			assert.equal(typeof json.ai_sdk_available, "boolean");
-			assert.deepEqual(json.tool_runtime.tools, ["system_time", "web_search", "web_fetch", "skill_list", "skill_read", "skill_file_read"]);
+			assert.deepEqual(json.tool_runtime.tools, ["system_time", "web_search", "web_fetch", "skill_list", "skill_read", "skill_file_read", "mcp_server_list", "mcp_tool_call", "mcp_resource_read"]);
 			assert.equal(json.tool_runtime.schemas.some((schema) => schema.function.name === "system_time"), true);
 			assert.equal(json.tool_runtime.web_search_backend, "ollama");
 			assert.equal(json.tool_runtime.browser.available, false);
