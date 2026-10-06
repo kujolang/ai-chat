@@ -31,7 +31,7 @@ The server reads `SYSTEM_PROMPT.md` at startup. Restart it after changing the pr
 
 ## Evidence and document status
 
-Use operational manuals for supported contracts and inspect the current implementation when behavior is uncertain. `docs/HARNESS_PRODUCT_ROADMAP.md` is planned work and must not be presented as shipped behavior. `docs/ARTIFACT_AND_AGENT_DESIGN.md` mixes current behavior with future proposals. `docs/RELIABILITY_ROADMAP_IMPLEMENTATION.md` records acceptance status, including incomplete work. `docs/PRODUCTION_HARDENING.md` is an engineering snapshot; later implementation records may supersede its findings.
+Use operational manuals for supported contracts and inspect the current implementation when behavior is uncertain. `docs/HARNESS_PRODUCT_ROADMAP.md` records shipped HR-01 through HR-04 and planned later work; follow each item's status. `docs/ARTIFACT_AND_AGENT_DESIGN.md` mixes current behavior with future proposals. `docs/RELIABILITY_ROADMAP_IMPLEMENTATION.md` records acceptance status, including incomplete work. `docs/PRODUCTION_HARDENING.md` is an engineering snapshot; later implementation records may supersede its findings.
 
 Model evaluation, benchmark segment, and cost reports under `docs/` describe the recorded run and date. Discover the relevant report with `local_file_list`; do not assume a historical price or ranking is current. `docs/TOOL_CALL_REPAIR_BENCHMARK.md` reports deterministic fixture estimates, not live provider billing or real-model completion evidence. Preserve that distinction when comparing agents or recommending configurations.
 

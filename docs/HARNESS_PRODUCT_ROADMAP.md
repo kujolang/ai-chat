@@ -1,6 +1,6 @@
 # Agent Harness Product Roadmap
 
-Status: planned work. This document does not describe shipped behavior.
+Status: HR-01 through HR-04 implemented; remaining items are planned work.
 
 Baseline reviewed: 2026-10-06 on `codex/diff-viewer` at `730dcff`.
 
@@ -64,7 +64,7 @@ technical dependencies.
 ## HR-01 — Interactive approvals
 
 **Priority:** 1  
-**Status:** Planned  
+**Status:** Implemented
 **Depends on:** existing execution journal, tool receipts, browser approval model  
 **Unblocks:** safe write/shell adoption, HR-08
 
@@ -99,10 +99,14 @@ broad write or shell authority for every future request.
   expired request.
 - Audit records contain identities and decisions but no secret argument values.
 
+**Implementation evidence:** `lib/approval-store.js`, authenticated approval
+routes and SSE events in `lib/server-runtime.js`, chat decision cards and the
+Settings grant manager, plus `tests/harness-controls.test.js`.
+
 ## HR-02 — Actionable diff review
 
 **Priority:** 2  
-**Status:** Planned  
+**Status:** Implemented
 **Depends on:** HR-03 for safe revert; HR-05 for isolated workspace ownership  
 **Can begin early:** open-in-editor, inline comments, reviewed/unreviewed state
 
@@ -132,10 +136,14 @@ The diff viewer becomes a review surface, not only a rendering surface.
 - Browser coverage includes keyboard navigation, mobile unified mode,
   multi-pane mode, binary files, truncation, and conflicts.
 
+**Implementation evidence:** `lib/diff-review-store.js`, conflict-checked
+checkpoint operations, persistent review state/comments, and diff controls in
+`public/app.js` with focused contract and UI regression tests.
+
 ## HR-03 — Checkpoints, rewind, and fork
 
 **Priority:** 3  
-**Status:** Planned  
+**Status:** Implemented
 **Depends on:** workspace identity and the existing execution/message journal  
 **Unblocks:** HR-02 reject/revert
 
@@ -163,10 +171,14 @@ without confusing checkpoints with permanent version control.
 - Fork creates a new chat lineage and a matching workspace state.
 - Retention removes expired checkpoint payloads without breaking chat history.
 
+**Implementation evidence:** encrypted, bounded checkpoint manifests in
+`lib/checkpoint-store.js`, execution inspection/restore/fork routes, and exact
+restore, hunk-revert, and conflict fixtures in `tests/harness-controls.test.js`.
+
 ## HR-04 — Plan, task progress, and mid-run steering
 
 **Priority:** 4  
-**Status:** Planned  
+**Status:** Implemented
 **Depends on:** durable execution identity and message ordering
 
 ### Outcome
@@ -192,6 +204,10 @@ human decision. Users can queue guidance without terminating useful work.
 - Cancellation cannot start a queued follow-up accidentally.
 - Tabs and the attention inbox reflect blocked or question states.
 - Providers without structured plans retain normal chat behavior.
+
+**Implementation evidence:** durable provider-neutral plans and steering in
+`lib/agent-control-store.js`, ordered SSE events, composer steering modes, and
+consume-once tests in `tests/harness-controls.test.js`.
 
 ## HR-05 — Per-chat worktree and branch isolation
 

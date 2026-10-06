@@ -698,6 +698,40 @@ Binary, oversized, symlink-escaping, and sensitive-path content is never placed
 in the preview. Diff presentation is observational: it does not alter tool
 authorization, execution receipts, reconciliation requirements, or the files.
 
+### Harness supervision and recovery
+
+Generic streaming clients may send `interactive_approvals:true` and
+`plan_events:true`. Before a consequential provider-neutral tool dispatch, the
+stream emits `approval` with a sanitized action record and pauses. Decide it via
+`POST /api/approvals/:id/decision` with `decision` (`approve` or `deny`) and
+`scope` (`once`, `chat`, or `workspace`). Exact argument fingerprints bind all
+grants; argument values are not returned or stored. Pending requests expire
+closed. `GET /api/approvals` lists records and saved grants, and
+`DELETE /api/approval-grants/:id` revokes a grant. Native provider harnesses keep
+their own approval policy.
+
+With `plan_events:true`, additive `plan` events contain stable steps in
+`pending`, `active`, `completed`, `skipped`, `blocked`, or `failed` states.
+`GET /api/executions/:id/plan` returns the durable plan and steering queue.
+`POST /api/executions/:id/steer` accepts bounded text and mode `immediate`,
+`queued`, or `cancel_after_action`. Immediate guidance is consumed at the next
+provider-round boundary; queued guidance is returned once after terminal state;
+cancel-after-action stops before another model or tool action begins.
+
+Each streamed execution has an encrypted pre-turn checkpoint manifest for files
+it changes. `GET /api/executions/:id/checkpoint` returns its safe metadata.
+`POST /api/checkpoints/:id/restore` accepts an optional file path and hunk
+coordinates, refuses fingerprint conflicts, and returns the refreshed diff.
+`POST /api/checkpoints/:id/editor` returns an editor URI for a covered file.
+Checkpoint restore never mutates Git history and does not cover unrelated files.
+
+`GET /api/executions/:id/diff-reviews` returns durable file/hunk review states
+and comments. `PUT` to the same route upserts `path`, optional `hunk_key`,
+`status` (`unreviewed`, `accepted`, or `rejected`), and a bounded comment.
+Accept means reviewed; reject is implemented only through the conflict-checked
+checkpoint operation. Execution inspection also returns plan, steering,
+checkpoint, approval, and diff-review state for reload recovery.
+
 ### Engineering verification and task budgets
 
 Generic streaming requests accept optional `task_deadline_ms`, a positive integer

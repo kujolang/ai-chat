@@ -61,6 +61,10 @@ This project is for end users and teams who want one local web app to:
 	- Live assistant text streaming via SSE
 	- Thinking/reasoning deltas shown when available
 	- Live, per-pane code diffs for native Codex file changes and provider-neutral local file writes, with responsive unified/split review, line numbers, intraline emphasis, file statistics, and patch copy
+	- Review files and hunks, leave durable comments, open files in an editor, and conflict-check reverts against later manual edits
+	- Restore encrypted pre-turn checkpoints or rewind into a forked chat without presenting checkpoints as Git commits
+	- Approve consequential provider-neutral tool actions once or by exact chat/workspace rule, with saved-grant revocation in Settings
+	- Follow durable execution plans and send immediate, queued, or cancel-after-action steering while a turn runs
 - Multi-chat workspace tabs
 	- Keep up to 16 active chats immediately available above the workspace, including while the sidebar is collapsed
 	- Switch with mouse or standard arrow/Home/End tab keys, close with the pointer, middle click, or Delete, and retain each chat in history when its tab closes
@@ -95,15 +99,14 @@ Use the app as a clear boundary for chat workflows, not as a promise of correctn
 
 ## Product Roadmap
 
-The next harness round is defined in
+The harness roadmap is defined in
 [`docs/HARNESS_PRODUCT_ROADMAP.md`](docs/HARNESS_PRODUCT_ROADMAP.md). It covers
 interactive approvals, actionable diff review, checkpoints, plan/steering UI,
 worktree isolation, attachments, structured execution artifacts, native
 MCP/plugin management, attention notifications, and a command palette.
 
-Roadmap entries are planned work, not shipped behavior. The roadmap includes
-dependencies, safety constraints, acceptance evidence, and the documentation
-updates required before any item can be marked complete.
+HR-01 through HR-04 are shipped; later entries remain planned. The roadmap keeps
+dependencies, safety constraints, and acceptance evidence with each item.
 
 ## Requirements
 
