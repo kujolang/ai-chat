@@ -1,0 +1,7 @@
+{
+  "builder": { "profile": "Watchdog / Ollama Cloud", "model": "glm-5.3-flash:cloud" },
+  "frontier": { "profile": "Watchdog / Codex", "model": "gpt-5.6-sol" },
+  "task_ids": [1, 2, 3, 4, 5, 6],
+  "stage_timeout_ms": 900000,
+  "max_tokens": 12000
+}
