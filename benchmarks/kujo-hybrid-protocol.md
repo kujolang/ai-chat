@@ -167,5 +167,9 @@ and one timed-out builder. Read its limitations before interpreting savings.
 After that pilot, isolated native Codex subprocesses also receive `KUJO_BIN`
 from `AI_CHAT_AGENT_KUJO_BIN`. This prevents generated harnesses with environment
 overrides from accidentally selecting the app's bridge runtime. It does not
-change the bridge runtime or interactive Codex environment. The pilot was not
-rerun after this correction; its original runtime-inheritance caveat remains.
+change the bridge runtime or interactive Codex environment. The pilot’s original runtime-inheritance caveat remains. The
+[full repeat](../docs/benchmarks/kujo-hybrid-repeat-2026-10-06.md) includes the
+correction and delivered six tasks in both arms. It used a detached checkout
+after concurrent development invalidated an initial shared-checkout attempt.
+Run future comparisons from a dedicated checkout of the measured commit;
+retain invalid-attempt usage separately rather than blending or discarding it.

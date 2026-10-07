@@ -1,0 +1,1035 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-06",
+  "experiment_commit": "160711784893932c1241b5add808eaaa65212173",
+  "started_at": "2026-10-06T22:52:51.776Z",
+  "finished_at": "2026-10-07T00:10:18.153Z",
+  "root": "data/kujo-hybrid-repeat-checkout/data/kujo-hybrid-round-6",
+  "runtime_sha256": "2f9242613c497736f77c20fdb669a18b7c815e489e8a2e8cf5047ee75fd2e3e0",
+  "models": {
+    "builder": "glm-5.3-flash:cloud",
+    "frontier": "gpt-5.6-sol"
+  },
+  "summary": {
+    "assigned_tasks": 6,
+    "direct_deliveries": 6,
+    "hybrid_deliveries": 6,
+    "direct_verified": 6,
+    "hybrid_verified": 6,
+    "frontier_direct": {
+      "input_tokens": 3829151,
+      "output_tokens": 66780,
+      "total_tokens": 3912338,
+      "cached_input_tokens": 3607040,
+      "tools": 142,
+      "rounds": 6,
+      "elapsed_ms": 1295450,
+      "usage_complete": true
+    },
+    "frontier_hybrid": {
+      "input_tokens": 2094653,
+      "output_tokens": 39053,
+      "total_tokens": 2145414,
+      "cached_input_tokens": 1917952,
+      "tools": 67,
+      "rounds": 6,
+      "elapsed_ms": 880030,
+      "usage_complete": true
+    },
+    "builder": {
+      "input_tokens": 8031745,
+      "output_tokens": 436410,
+      "total_tokens": 8468155,
+      "cached_input_tokens": 6571264,
+      "tools": 230,
+      "rounds": 152,
+      "elapsed_ms": 2435571,
+      "usage_complete": true
+    },
+    "hybrid_total": {
+      "input_tokens": 10126398,
+      "output_tokens": 475463,
+      "total_tokens": 10613569,
+      "cached_input_tokens": 8489216,
+      "tools": 297,
+      "rounds": 158,
+      "elapsed_ms": 3315601,
+      "usage_complete": true
+    },
+    "matched_verified_tasks": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "matched_frontier_token_reduction": 0.4516286680752021,
+    "quality_assessment": "Independently reviewed; see anchored subjective per-artifact grades.",
+    "pricing": "No dollar or subscription-quota savings inferred from token counts."
+  },
+  "quality_assessment": {
+    "direct_all_mean": 7.083333333333333,
+    "direct_matched_mean": 7.083333333333333,
+    "draft_matched_mean": 6.458333333333333,
+    "upgrade_matched_mean": 6.875,
+    "draft_all_including_partial_mean": 6.458333333333333
+  },
+  "matched_comparison": {
+    "matched_tasks": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "matched_direct_tokens": 3912338,
+    "matched_review_tokens": 2145414,
+    "matched_hybrid_total_tokens": 10613569,
+    "matched_frontier_reduction": 0.4516286680752021,
+    "matched_uncached_input_reduction": 0.2044473258866063,
+    "matched_direct_elapsed_ms": 1295450,
+    "matched_hybrid_elapsed_ms": 3315601
+  },
+  "comparison": {
+    "prior_report": "kujo-hybrid-2026-10-06.json",
+    "prior_quality": {
+      "direct_all_mean": 6.875,
+      "direct_matched_mean": 7.0,
+      "draft_matched_mean": 6.75,
+      "upgrade_matched_mean": 7.25,
+      "draft_all_including_partial_mean": 6.25
+    },
+    "current_same_five_quality": {
+      "direct": 7.25,
+      "draft": 6.375,
+      "upgrade": 6.875
+    },
+    "current_combined_token_ratio": 2.7128456181444447,
+    "current_elapsed_ratio": 2.5594202786676443
+  },
+  "rows": [
+    {
+      "task": 1,
+      "order": [
+        "direct",
+        "hybrid"
+      ],
+      "direct": {
+        "delivered": true,
+        "usage": {
+          "input_tokens": 555569,
+          "output_tokens": 10621,
+          "total_tokens": 569702,
+          "cached_input_tokens": 532224
+        },
+        "usage_complete": true,
+        "tools": 24,
+        "rounds": 1,
+        "elapsed_ms": 193767,
+        "checks": 13,
+        "passed": 13,
+        "failures": [],
+        "source_sha256": "ff8b86992ee32aedbc0454252a97ef59da8401af09b96a383e817946a0810173",
+        "quality": {
+          "compatibility": 3,
+          "maintainability": 3,
+          "failure_handling": 3,
+          "test_adequacy": 3
+        },
+        "score_out_of_10": 7.5,
+        "review": [
+          "Clear strict resolver with specific diagnostics and narrow parse catch; defaults preserve explicit false, zero and empty string.",
+          "Sixteen byte-exact CLI assertions with separate streams. Temporary tree is not cleaned and missing-argument/escaped-label cases are absent; appropriate but not exceptional coverage."
+        ]
+      },
+      "draft": {
+        "delivered": true,
+        "usage": {
+          "input_tokens": 1350923,
+          "output_tokens": 71901,
+          "total_tokens": 1422824,
+          "cached_input_tokens": 1099264
+        },
+        "usage_complete": true,
+        "tools": 31,
+        "rounds": 26,
+        "elapsed_ms": 530486,
+        "checks": 13,
+        "passed": 13,
+        "failures": [],
+        "source_sha256": "ad015575214cb6f1a05c81762b4490206ef58a589fbde5a1315982b25769f7a1",
+        "quality": {
+          "compatibility": 3,
+          "maintainability": 3,
+          "failure_handling": 2,
+          "test_adequacy": 2
+        },
+        "score_out_of_10": 6.25,
+        "review": [
+          "Correct explicit-presence resolver and strict validation; orchestration is more layered than needed but logic is not duplicated.",
+          "Catch spans parse, validation and serialization while labeling every exception invalid JSON. Saved 33-case suite executes each input twice, checks only second exit, and strips newlines despite exact-output claim."
+        ]
+      },
+      "upgrade": {
+        "delivered": true,
+        "usage": {
+          "input_tokens": 255183,
+          "output_tokens": 6513,
+          "total_tokens": 263683,
+          "cached_input_tokens": 222336
+        },
+        "usage_complete": true,
+        "tools": 10,
+        "rounds": 1,
+        "elapsed_ms": 154801,
+        "checks": 13,
+        "passed": 13,
+        "failures": [],
+        "source_sha256": "ad015575214cb6f1a05c81762b4490206ef58a589fbde5a1315982b25769f7a1",
+        "quality": {
+          "compatibility": 3,
+          "maintainability": 3,
+          "failure_handling": 2,
+          "test_adequacy": 3
+        },
+        "score_out_of_10": 6.875,
+        "review": [
+          "Source preserved, including broad catch labeling unexpected process failures invalid JSON.",
+          "Reviewer fixes actual double-execution/newline-stripping assertion defects, adds four parsing cases and scoped cleanup. Thirty-seven single-execution byte-exact checks; useful test improvement, not source redesign."
+        ]
+      }
+    },
+    {
+      "task": 2,
+      "order": [
+        "hybrid",
+        "direct"
+      ],
+      "direct": {
+        "delivered": true,
+        "usage": {
+          "input_tokens": 411353,
+          "output_tokens": 10047,
+          "total_tokens": 423060,
+          "cached_input_tokens": 376448
+        },
+        "usage_complete": true,
+        "tools": 17,
+        "rounds": 1,
+        "elapsed_ms": 166070,
+        "checks": 12,
+        "passed": 12,
+        "failures": [],
+        "source_sha256": "17e61a74b61d763f470db6e9e66ef8f6978fe94bbe0883d90cd78feb1dc596bf",
+        "quality": {
+          "compatibility": 3,
+          "maintainability": 3,
+          "failure_handling": 3,
+          "test_adequacy": 2
+        },
+        "score_out_of_10": 6.875,
+        "review": [
+          "One strict pagination helper and narrow parse catch preserve specific validation errors.",
+          "Saved shell harness checks exact exit, streams, line count and size boundaries, but success strips newlines and error uses permissive shell pattern; maximum-item case selects zero items. Predictable temporary path and no deadline."
+        ]
+      },
+      "draft": {
+        "delivered": true,
+        "usage": {
+          "input_tokens": 1069879,
+          "output_tokens": 54117,
+          "total_tokens": 1123996,
+          "cached_input_tokens": 899840
+        },
+        "usage_complete": true,
+        "tools": 32,
+        "rounds": 23,
+        "elapsed_ms": 342490,
+        "checks": 12,
+        "passed": 12,
+        "failures": [],
+        "source_sha256": "d22f34952d0190e684ae07f4be7659f4e8c18daf3a841b49ef5b7832449ed273",
+        "quality": {
+          "compatibility": 3,
+          "maintainability": 3,
+          "failure_handling": 2,
+          "test_adequacy": 1
+        },
+        "score_out_of_10": 5.625,
+        "review": [
+          "Straightforward validated slice with named unknown-field diagnostic and preserved zero offset/limit. Broad catch masks any page failure as invalid JSON.",
+          "Shell suite strips newlines and has weak structural fallback; saved Go boundary harness has exact streams but targets an absolute draft path and only four cases.",
+          "Independent rerun confirms shell suite fails all 42 cases because run subcommand is absent; Go boundary runner passes. Test deliverable is broken."
+        ]
+      },
+      "upgrade": {
+        "delivered": true,
+        "usage": {
+          "input_tokens": 354476,
+          "output_tokens": 5462,
+          "total_tokens": 361178,
+          "cached_input_tokens": 325120
+        },
+        "usage_complete": true,
+        "tools": 10,
+        "rounds": 1,
+        "elapsed_ms": 113223,
+        "checks": 12,
+        "passed": 12,
+        "failures": [],
+        "source_sha256": "d22f34952d0190e684ae07f4be7659f4e8c18daf3a841b49ef5b7832449ed273",
+        "quality": {
+          "compatibility": 3,
+          "maintainability": 3,
+          "failure_handling": 2,
+          "test_adequacy": 3
+        },
+        "score_out_of_10": 6.875,
+        "review": [
+          "Source unchanged including broad invalid-JSON fallback.",
+          "Reviewer fixes missing run subcommand and draft target; saved shell suite now 47 byte-exact cases plus four Go boundary cases. Absolute candidate path remains and no subprocess deadlines."
+        ]
+      }
+    },
+    {
+      "task": 3,
+      "order": [
+        "direct",
+        "hybrid"
+      ],
+      "direct": {
+        "delivered": true,
+        "usage": {
+          "input_tokens": 960994,
+          "output_tokens": 13499,
+          "total_tokens": 977904,
+          "cached_input_tokens": 913024
+        },
+        "usage_complete": true,
+        "tools": 32,
+        "rounds": 1,
+        "elapsed_ms": 293911,
+        "checks": 12,
+        "passed": 12,
+        "failures": [],
+        "source_sha256": "474b09c5a20b033b06bcac52abb266ac5f84f64000901237dd538fedbb8517c9",
+        "quality": {
+          "compatibility": 3,
+          "maintainability": 3,
+          "failure_handling": 2,
+          "test_adequacy": 2
+        },
+        "score_out_of_10": 6.25,
+        "review": [
+          "Explicit staged copy and sequential bounds preserve atomic output; one authoritative adjust helper.",
+          "Broad CLI catch labels all unexpected faults invalid JSON. Eighteen retained shell cases omit size/purity and several types; newline-stripping/regex assertions and uncleaned unchecked temporary directory limit test quality."
+        ]
+      },
+      "draft": {
+        "delivered": true,
+        "usage": {
+          "input_tokens": 1961358,
+          "output_tokens": 91538,
+          "total_tokens": 2052896,
+          "cached_input_tokens": 1571072
+        },
+        "usage_complete": true,
+        "tools": 51,
+        "rounds": 32,
+        "elapsed_ms": 413494,
+        "checks": 12,
+        "passed": 12,
+        "failures": [],
+        "source_sha256": "0bedd0d1d42bddd71be4d0bddca5c615eec6a6cb8c634677cb6b2bca036db38a",
+        "quality": {
+          "compatibility": 3,
+          "maintainability": 3,
+          "failure_handling": 3,
+          "test_adequacy": 2
+        },
+        "score_out_of_10": 6.875,
+        "review": [
+          "Authoritative implementation ends in main.kujo; explicit stock/change validation, sequential range checks and narrow parse catch. Superseded module is clearly marked.",
+          "Retained 40-case shell suite uses substring success assertions that can accept incorrect extra fields/values; runtime-assumption tests do not exercise adjust. Documentation overgeneralizes failed import experiments."
+        ]
+      },
+      "upgrade": {
+        "delivered": true,
+        "usage": {
+          "input_tokens": 175764,
+          "output_tokens": 4908,
+          "total_tokens": 182079,
+          "cached_input_tokens": 154624
+        },
+        "usage_complete": true,
+        "tools": 7,
+        "rounds": 1,
+        "elapsed_ms": 82942,
+        "checks": 12,
+        "passed": 12,
+        "failures": [],
+        "source_sha256": "0bedd0d1d42bddd71be4d0bddca5c615eec6a6cb8c634677cb6b2bca036db38a",
+        "quality": {
+          "compatibility": 3,
+          "maintainability": 3,
+          "failure_handling": 3,
+          "test_adequacy": 2
+        },
+        "score_out_of_10": 6.875,
+        "review": [
+          "Source unchanged; reviewer corrects substring assertions to whole-response comparison and adds three boundary/late-failure cases.",
+          "Forty-three CLI cases plus seven runtime assumptions; newline stripping and regex error validation remain, so exact-channel claim is overstated. Repeats unverified general claim that imports cannot work; useful improvements within same grade band."
+        ]
+      }
+    },
+    {
+      "task": 4,
+      "order": [
+        "hybrid",
+        "direct"
+      ],
+      "direct": {
+        "delivered": true,
+        "usage": {
+          "input_tokens": 312079,
+          "output_tokens": 9297,
+          "total_tokens": 323399,
+          "cached_input_tokens": 278272
+        },
+        "usage_complete": true,
+        "tools": 12,
+        "rounds": 1,
+        "elapsed_ms": 167947,
+        "checks": 12,
+        "passed": 12,
+        "failures": [],
+        "source_sha256": "da4f22241a4cf8ff5e64e11894638fd4146d861abc99059eb4ef4b8d82e4deea",
+        "quality": {
+          "compatibility": 3,
+          "maintainability": 3,
+          "failure_handling": 3,
+          "test_adequacy": 3
+        },
+        "score_out_of_10": 7.5,
+        "review": [
+          "Clear shared field validation, dictionary duplicate tracking and narrow JSON parse catch with specific errors.",
+          "Node harness compares decoded exact values and error shape, validates streams and generated 1000/1001 boundaries. No subprocess timeout and whitespace trimming slightly weaken strict-output checks."
+        ]
+      },
+      "draft": {
+        "delivered": true,
+        "usage": {
+          "input_tokens": 1586169,
+          "output_tokens": 78833,
+          "total_tokens": 1665002,
+          "cached_input_tokens": 1342464
+        },
+        "usage_complete": true,
+        "tools": 35,
+        "rounds": 27,
+        "elapsed_ms": 464496,
+        "checks": 12,
+        "passed": 12,
+        "failures": [],
+        "source_sha256": "54b80da12537daa50224af83ab578791e81963c225e8ed374e14ba712724f65f",
+        "quality": {
+          "compatibility": 3,
+          "maintainability": 3,
+          "failure_handling": 2,
+          "test_adequacy": 3
+        },
+        "score_out_of_10": 6.875,
+        "review": [
+          "Strict v1/v2 migration with dictionary duplicate tracking and bounded preallocation; unused v2 key branch and redundant final slice remain minor cleanup.",
+          "Go suite uses source-relative path, deadlines, decoded exact values/keys and generated scale/idempotence cases. Broad parse+migrate catch incorrectly labels unexpected implementation faults invalid JSON."
+        ]
+      },
+      "upgrade": {
+        "delivered": true,
+        "usage": {
+          "input_tokens": 384432,
+          "output_tokens": 5722,
+          "total_tokens": 391874,
+          "cached_input_tokens": 360832
+        },
+        "usage_complete": true,
+        "tools": 14,
+        "rounds": 1,
+        "elapsed_ms": 143001,
+        "checks": 12,
+        "passed": 12,
+        "failures": [],
+        "source_sha256": "54b80da12537daa50224af83ab578791e81963c225e8ed374e14ba712724f65f",
+        "quality": {
+          "compatibility": 3,
+          "maintainability": 3,
+          "failure_handling": 2,
+          "test_adequacy": 3
+        },
+        "score_out_of_10": 6.875,
+        "review": [
+          "Source unchanged including broad invalid-JSON fallback and small dead branch.",
+          "Reviewer pins runtime, strengthens exact error lines and adds eight missing cases. Forty-two CLI cases plus chained scale idempotence; meaningful coverage improvement within same appropriate-test band."
+        ]
+      }
+    },
+    {
+      "task": 5,
+      "order": [
+        "direct",
+        "hybrid"
+      ],
+      "direct": {
+        "delivered": true,
+        "usage": {
+          "input_tokens": 845643,
+          "output_tokens": 11559,
+          "total_tokens": 859879,
+          "cached_input_tokens": 809728
+        },
+        "usage_complete": true,
+        "tools": 26,
+        "rounds": 1,
+        "elapsed_ms": 221378,
+        "checks": 12,
+        "passed": 12,
+        "failures": [],
+        "source_sha256": "70f6a136d18c3ffff82ad47f9efbb9eb93b8b2f6a5c7ab463fb25c3e36f18c53",
+        "quality": {
+          "compatibility": 3,
+          "maintainability": 3,
+          "failure_handling": 3,
+          "test_adequacy": 3
+        },
+        "score_out_of_10": 7.5,
+        "review": [
+          "Narrow read/parse/write failure boundaries, strict source/patch shape and atomic write after revision check. Simple authoritative revision helper.",
+          "Eleven retained cases check byte-exact output, same path, existing-file preservation and permission-denied writes, with scoped cleanup. Some field/type cases and missing-source check absent; no concurrency guarantee claimed."
+        ]
+      },
+      "draft": {
+        "delivered": true,
+        "usage": {
+          "input_tokens": 871734,
+          "output_tokens": 58106,
+          "total_tokens": 929840,
+          "cached_input_tokens": 673664
+        },
+        "usage_complete": true,
+        "tools": 50,
+        "rounds": 23,
+        "elapsed_ms": 297641,
+        "checks": 12,
+        "passed": 12,
+        "failures": [],
+        "source_sha256": "d34cfae1b7919c7354b005992dbe1cfe9177d8b30623b6d83dfbb04add19644d",
+        "quality": {
+          "compatibility": 3,
+          "maintainability": 3,
+          "failure_handling": 3,
+          "test_adequacy": 2
+        },
+        "score_out_of_10": 6.875,
+        "review": [
+          "Strict authoritative revise helper, narrow read/parse/write errors and atomic destination update before stdout; explicit durability limitation.",
+          "Retained cases cover shape/type/conflict/same-path and some file checks, but regex accepts empty/multiple error output, shell strips file bytes, no permission-denied existing-destination case. Shared tests/tmp directory limits concurrent reruns."
+        ]
+      },
+      "upgrade": {
+        "delivered": true,
+        "usage": {
+          "input_tokens": 544305,
+          "output_tokens": 11379,
+          "total_tokens": 559442,
+          "cached_input_tokens": 508416
+        },
+        "usage_complete": true,
+        "tools": 16,
+        "rounds": 1,
+        "elapsed_ms": 262590,
+        "checks": 12,
+        "passed": 12,
+        "failures": [],
+        "source_sha256": "160856f7c2e4e59ca61f1f24a491a44fb73c4439b50ede545bd0f74ec41f4d6f",
+        "quality": {
+          "compatibility": 3,
+          "maintainability": 3,
+          "failure_handling": 3,
+          "test_adequacy": 2
+        },
+        "score_out_of_10": 6.875,
+        "review": [
+          "Only source comments changed; reviewer correctly clarifies validation-before-write versus failure during atomic write.",
+          "Adds permission-denied existing-file and seeded validation destination cases. File-preservation helper still strips trailing newlines, error regex still not JSON validation, shared test paths remain. Claimed exact bytes exceed actual assertions; same grade band."
+        ]
+      }
+    },
+    {
+      "task": 6,
+      "order": [
+        "hybrid",
+        "direct"
+      ],
+      "direct": {
+        "delivered": true,
+        "usage": {
+          "input_tokens": 743513,
+          "output_tokens": 11757,
+          "total_tokens": 758394,
+          "cached_input_tokens": 697344
+        },
+        "usage_complete": true,
+        "tools": 31,
+        "rounds": 1,
+        "elapsed_ms": 252377,
+        "checks": 11,
+        "passed": 11,
+        "failures": [],
+        "source_sha256": "716a1fdd68aa1e5784841c5a260fe5b88ac992c0cea2e4d53c58c2e04e0200e8",
+        "quality": {
+          "compatibility": 3,
+          "maintainability": 3,
+          "failure_handling": 2,
+          "test_adequacy": 3
+        },
+        "score_out_of_10": 6.875,
+        "review": [
+          "Compact authoritative CSV implementation preserves literal values and strict schema. Broad catch spans export and labels unexpected failures invalid JSON.",
+          "Seventeen retained CLI cases use byte-exact success and structured error validator, including escapes/Unicode/control characters and over-limit rows. No accepted 1000-row case; predictable uncleaned temporary path."
+        ]
+      },
+      "draft": {
+        "delivered": true,
+        "usage": {
+          "input_tokens": 1191682,
+          "output_tokens": 81915,
+          "total_tokens": 1273597,
+          "cached_input_tokens": 984960
+        },
+        "usage_complete": true,
+        "tools": 31,
+        "rounds": 21,
+        "elapsed_ms": 386964,
+        "checks": 11,
+        "passed": 11,
+        "failures": [],
+        "source_sha256": "f8286a1139c8e6cb1eef8c123d1f4c74c63bcf5289eced26d2d034ebb629b2cc",
+        "quality": {
+          "compatibility": 3,
+          "maintainability": 3,
+          "failure_handling": 3,
+          "test_adequacy": 1
+        },
+        "score_out_of_10": 6.25,
+        "review": [
+          "Correct quoted-cell function, strict schema and row-index diagnostics; narrow parse handling preserves literals and CRLF.",
+          "Independent rerun confirms 28/31 saved cases pass; quote-only expectation, zero-argument invocation and maximum-row expectation fail. Source remains correct on independent grader."
+        ]
+      },
+      "upgrade": {
+        "delivered": true,
+        "usage": {
+          "input_tokens": 380493,
+          "output_tokens": 5069,
+          "total_tokens": 387158,
+          "cached_input_tokens": 346624
+        },
+        "usage_complete": true,
+        "tools": 10,
+        "rounds": 1,
+        "elapsed_ms": 123473,
+        "checks": 11,
+        "passed": 11,
+        "failures": [],
+        "source_sha256": "f8286a1139c8e6cb1eef8c123d1f4c74c63bcf5289eced26d2d034ebb629b2cc",
+        "quality": {
+          "compatibility": 3,
+          "maintainability": 3,
+          "failure_handling": 3,
+          "test_adequacy": 2
+        },
+        "score_out_of_10": 6.875,
+        "review": [
+          "Source unchanged; reviewer repairs three broken test expectations/invocation and adds five error cases.",
+          "Thirty-six passing cases retain double execution and newline-stripping limitations, explicitly acknowledged. Corrects usable delivery but does not reach strict complete stream verification."
+        ]
+      }
+    }
+  ],
+  "verification": {
+    "independent_checks": 216,
+    "passed": 216,
+    "delivered_artifacts": 18,
+    "all_harnesses_passed_artifacts": 16,
+    "draft_harness_failures": [
+      "2-draft: shell 0/42; Go boundary suite passed",
+      "6-draft: shell 28/31"
+    ],
+    "harnesses": [
+      {
+        "candidate": "1-direct",
+        "checks": [
+          {
+            "command": [
+              "sh",
+              "test_cli.sh"
+            ],
+            "exit": 0,
+            "receipt": [
+              "PASS: 16 CLI regression cases"
+            ]
+          }
+        ],
+        "source_unchanged": true
+      },
+      {
+        "candidate": "1-draft",
+        "checks": [
+          {
+            "command": [
+              "sh",
+              "run_tests.sh"
+            ],
+            "exit": 0,
+            "receipt": [
+              "passed: 33, failed: 0"
+            ]
+          }
+        ],
+        "source_unchanged": true
+      },
+      {
+        "candidate": "1-upgrade",
+        "checks": [
+          {
+            "command": [
+              "sh",
+              "run_tests.sh"
+            ],
+            "exit": 0,
+            "receipt": [
+              "passed: 37, failed: 0"
+            ]
+          }
+        ],
+        "source_unchanged": true
+      },
+      {
+        "candidate": "2-direct",
+        "checks": [
+          {
+            "command": [
+              "sh",
+              "tests/run.sh"
+            ],
+            "exit": 0,
+            "receipt": [
+              "All CLI tests passed."
+            ]
+          }
+        ],
+        "source_unchanged": true
+      },
+      {
+        "candidate": "2-draft",
+        "checks": [
+          {
+            "command": [
+              "sh",
+              "run_tests.sh"
+            ],
+            "exit": 1,
+            "receipt": [
+              "passed=0 failed=42"
+            ]
+          },
+          {
+            "command": [
+              "go",
+              "run",
+              "harness.go"
+            ],
+            "exit": 0,
+            "receipt": [
+              "PASS items_5001"
+            ]
+          }
+        ],
+        "source_unchanged": true
+      },
+      {
+        "candidate": "2-upgrade",
+        "checks": [
+          {
+            "command": [
+              "sh",
+              "run_tests.sh"
+            ],
+            "exit": 0,
+            "receipt": [
+              "passed=47 failed=0"
+            ]
+          },
+          {
+            "command": [
+              "go",
+              "run",
+              "harness.go"
+            ],
+            "exit": 0,
+            "receipt": [
+              "PASS items_5001"
+            ]
+          }
+        ],
+        "source_unchanged": true
+      },
+      {
+        "candidate": "3-direct",
+        "checks": [
+          {
+            "command": [
+              "bash",
+              "test.sh"
+            ],
+            "exit": 0,
+            "receipt": [
+              "PASS: 18 tests"
+            ]
+          }
+        ],
+        "source_unchanged": true
+      },
+      {
+        "candidate": "3-draft",
+        "checks": [
+          {
+            "command": [
+              "bash",
+              "run_tests.sh"
+            ],
+            "exit": 0,
+            "receipt": [
+              "passed: 40, failed: 0"
+            ]
+          },
+          {
+            "command": [
+              "/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/data/toolchains/kujo-2f9242613c497736f77c20fdb669a18b7c815e489e8a2e8cf5047ee75fd2e3e0",
+              "run",
+              "tests.kujo"
+            ],
+            "exit": 0,
+            "receipt": [
+              "ALL TESTS PASSED"
+            ]
+          }
+        ],
+        "source_unchanged": true
+      },
+      {
+        "candidate": "3-upgrade",
+        "checks": [
+          {
+            "command": [
+              "bash",
+              "run_tests.sh"
+            ],
+            "exit": 0,
+            "receipt": [
+              "passed: 43, failed: 0"
+            ]
+          },
+          {
+            "command": [
+              "/Users/robertdevore/2026/Kujolang/kujo-repos/ai-chat/data/toolchains/kujo-2f9242613c497736f77c20fdb669a18b7c815e489e8a2e8cf5047ee75fd2e3e0",
+              "run",
+              "tests.kujo"
+            ],
+            "exit": 0,
+            "receipt": [
+              "ALL TESTS PASSED"
+            ]
+          }
+        ],
+        "source_unchanged": true
+      },
+      {
+        "candidate": "4-direct",
+        "checks": [
+          {
+            "command": [
+              "node",
+              "test.mjs"
+            ],
+            "exit": 0,
+            "receipt": [
+              "CLI regression tests passed"
+            ]
+          }
+        ],
+        "source_unchanged": true
+      },
+      {
+        "candidate": "4-draft",
+        "checks": [
+          {
+            "command": [
+              "go",
+              "run",
+              "harness.go"
+            ],
+            "exit": 0,
+            "receipt": [
+              "all cases passed"
+            ]
+          }
+        ],
+        "source_unchanged": true
+      },
+      {
+        "candidate": "4-upgrade",
+        "checks": [
+          {
+            "command": [
+              "go",
+              "run",
+              "harness.go"
+            ],
+            "exit": 0,
+            "receipt": [
+              "all cases passed"
+            ]
+          }
+        ],
+        "source_unchanged": true
+      },
+      {
+        "candidate": "5-direct",
+        "checks": [
+          {
+            "command": [
+              "sh",
+              "test.sh"
+            ],
+            "exit": 0,
+            "receipt": [
+              "ok 11 tests"
+            ]
+          }
+        ],
+        "source_unchanged": true
+      },
+      {
+        "candidate": "5-draft",
+        "checks": [
+          {
+            "command": [
+              "sh",
+              "tests/run_tests.sh"
+            ],
+            "exit": 0,
+            "receipt": [
+              "passed 33 failed 0"
+            ]
+          }
+        ],
+        "source_unchanged": true
+      },
+      {
+        "candidate": "5-upgrade",
+        "checks": [
+          {
+            "command": [
+              "sh",
+              "tests/run_tests.sh"
+            ],
+            "exit": 0,
+            "receipt": [
+              "passed 36 failed 0"
+            ]
+          }
+        ],
+        "source_unchanged": true
+      },
+      {
+        "candidate": "6-direct",
+        "checks": [
+          {
+            "command": [
+              "sh",
+              "tests/run.sh"
+            ],
+            "exit": 0,
+            "receipt": [
+              "17 passed"
+            ]
+          }
+        ],
+        "source_unchanged": true
+      },
+      {
+        "candidate": "6-draft",
+        "checks": [
+          {
+            "command": [
+              "sh",
+              "run_tests.sh"
+            ],
+            "exit": 1,
+            "receipt": [
+              "28 passed, 3 failed"
+            ]
+          }
+        ],
+        "source_unchanged": true
+      },
+      {
+        "candidate": "6-upgrade",
+        "checks": [
+          {
+            "command": [
+              "sh",
+              "run_tests.sh"
+            ],
+            "exit": 0,
+            "receipt": [
+              "36 passed, 0 failed"
+            ]
+          }
+        ],
+        "source_unchanged": true
+      }
+    ],
+    "repository_tests": {
+      "tests": 728,
+      "passed": 727,
+      "failed": 0,
+      "skipped": 1,
+      "duration_ms": 74665.926034,
+      "commit": "160711784893932c1241b5add808eaaa65212173"
+    }
+  },
+  "interrupted_attempt": {
+    "root": "data/kujo-hybrid-round-5",
+    "status": "invalidated",
+    "cause": "Concurrent staged changes modified lib/local-runtime.js; frozen-asset integrity guard aborted.",
+    "stage_requests": 13,
+    "completed_task_pairs": 4,
+    "reported_token_overhead": 11751283,
+    "excluded_from_comparison": true,
+    "last_stage_reported_tokens": 520101,
+    "last_stage_note": "Execution completed, benchmark stage failed integrity; its usage was omitted by aggregate rows and explicitly restored here."
+  },
+  "limitations": [
+    "Two valid six-task workflow rounds, not a base-model ranking or proof of frontier equivalence.",
+    "GLM local tools and native Codex harness differ; native rounds are harness attempts.",
+    "Cached tokens included; no dollar or subscription-quota savings inferred.",
+    "Subjective anchored review is not blind or calibrated across raters.",
+    "Detached checkout fixes repository-source interference, not shared-host or provider timing variability.",
+    "Native commands can inspect repository documentation and use /tmp; no sealed filesystem isolation.",
+    "Prior pilot preceded native KUJO_BIN inheritance fix; current run includes it."
+  ]
+}
