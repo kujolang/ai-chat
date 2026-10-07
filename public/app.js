@@ -63,6 +63,7 @@ const composerAttachmentsByChat = new Map();
 let artifactRailFilter = "all";
 let attentionFilter = "";
 let attentionEvents = [];
+let attentionLoadSequence = 0;
 let mcpServers = [];
 let commandPaletteReturnFocus = null;
 const notifiedAttentionIds = new Set();
@@ -5745,16 +5746,35 @@ async function handleMcpAction(button) {
 }
 
 async function loadAttention({ quiet = false } = {}) {
+	const sequence = ++attentionLoadSequence;
+	renderAttentionFilters();
 	try {
-		const response = await apiFetch(`/api/attention?status=open${attentionFilter ? `&kind=${encodeURIComponent(attentionFilter)}` : ""}`); const payload = await response.json(); if (!response.ok) throw new Error(payload.error?.message || "Could not load attention inbox.");
-		attentionEvents = payload.events || []; const count = Number(payload.unread_count || 0); nodes.attentionCount.textContent = String(Math.min(99, count)); nodes.attentionCount.classList.toggle("hidden", count === 0); renderAttentionInbox(); maybeNotifyAttention(attentionEvents);
-	} catch (error) { if (!quiet && nodes.attentionList) nodes.attentionList.innerHTML = `<div class="empty-state">${escapeHtml(error.message)}</div>`; }
+		const response = await apiFetch(`/api/attention?status=open${attentionFilter ? `&kind=${encodeURIComponent(attentionFilter)}` : ""}`);
+		const payload = await response.json();
+		if (sequence !== attentionLoadSequence) return;
+		if (!response.ok) throw new Error(payload.error?.message || "Could not load attention inbox.");
+		attentionEvents = payload.events || [];
+		const count = Number(payload.unread_count || 0);
+		nodes.attentionCount.textContent = String(Math.min(99, count));
+		nodes.attentionCount.classList.toggle("hidden", count === 0);
+		renderAttentionInbox();
+		maybeNotifyAttention(attentionEvents);
+	} catch (error) {
+		if (sequence === attentionLoadSequence && !quiet && nodes.attentionList) nodes.attentionList.innerHTML = `<div class="empty-state">${escapeHtml(error.message)}</div>`;
+	}
+}
+function renderAttentionFilters() {
+	document.querySelectorAll("[data-attention-filter]").forEach((button) => {
+		const selected = button.dataset.attentionFilter === attentionFilter;
+		button.classList.toggle("active", selected);
+		button.setAttribute("aria-pressed", String(selected));
+	});
 }
 async function openAttentionInbox() { nodes.attentionModal.classList.remove("hidden"); await loadAttention(); nodes.closeAttentionBtn.focus(); }
 function closeAttentionInbox() { nodes.attentionModal.classList.add("hidden"); }
 function renderAttentionInbox() {
 	if (!nodes.attentionList) return;
-	document.querySelectorAll("[data-attention-filter]").forEach((button) => button.classList.toggle("active", button.dataset.attentionFilter === attentionFilter));
+	renderAttentionFilters();
 	const events = attentionFilter ? attentionEvents.filter((item) => item.kind === attentionFilter) : attentionEvents;
 	nodes.attentionList.innerHTML = events.length ? events.map((item) => { const chat = getChatById(item.chat_id); return `<article class="attention-item${item.unread ? " unread" : ""}" data-attention-id="${escapeHtml(item.id)}"><button data-attention-action="open"><strong>${escapeHtml(item.title)}</strong><span>${escapeHtml(chat?.title || "Chat")} · ${escapeHtml(item.kind.replaceAll("_", " "))}</span></button><button class="btn ghost" data-attention-action="resolve">Resolve</button></article>`; }).join("") : "<div class=\"empty-state\">Nothing needs attention.</div>";
 }
