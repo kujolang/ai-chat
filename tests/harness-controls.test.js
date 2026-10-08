@@ -125,7 +125,26 @@ test("plans and steering are durable, ordered, and consumed once", () => {
 test("browser client exposes approval, plan, review, checkpoint and steering controls", () => {
 	const app = fs.readFileSync(path.join(__dirname, "..", "public", "app.js"), "utf8");
 	const html = fs.readFileSync(path.join(__dirname, "..", "public", "index.html"), "utf8");
-	for (const marker of ["Allow once", "Allow for chat", "Always this exact action", "Rewind &amp; fork", "Revert hunk", "execution-plan", "interactive_approvals"]) assert.match(app, new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+	for (const marker of ["Allow once", "Allow this exact action for chat", "Always this exact action", "Rewind &amp; fork", "Revert hunk", "execution-plan", "interactive_approvals"]) assert.match(app, new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
 	assert.match(html, /composer-steering-mode/);
 	assert.match(html, /cancel_after_action/);
+});
+
+test("approval timeout resolves the same terminal decision as polling and removes its abort listener", async (t) => {
+ const {getEventListeners} = require('node:events');
+ t.mock.timers.enable({apis:['setTimeout']});
+ const db = new Database(':memory:');
+ const controller = new AbortController();
+ let clock = 1000;
+ const store = createApprovalStore(db,{now:()=>clock,timeoutMs:30000,uid:()=> 'timer'});
+ try {
+  const request = store.request({executionId:'run',toolName:'local_file_write',input:{path:'script.kujo'},summary:'Write script'});
+  const waiting = store.wait(request.approval.id,{signal:controller.signal});
+  assert.equal(getEventListeners(controller.signal,'abort').length,1);
+  clock += 30000;
+  t.mock.timers.tick(30000);
+  assert.equal((await waiting).status,'expired');
+  assert.equal(getEventListeners(controller.signal,'abort').length,0);
+  assert.equal(store.list({executionId:'run'})[0].status,'expired');
+ } finally {db.close();}
 });

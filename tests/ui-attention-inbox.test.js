@@ -48,3 +48,35 @@ test('attention filters select before failed requests and ignore stale responses
   }
  } finally {await browser.close();}
 });
+
+test('recovered execution renders approval decisions and retains its plan', async () => {
+ const vm = require('node:vm');
+ const source = read('public/app.js');
+ const message={id:'message',content:'',execution_cursor:0};
+ const pane={id:'pane',messages:[message]};
+ const chat={id:'chat',panes:[pane]};
+ const approval={id:'approval',status:'pending',summary:'Write script'};
+ const plan={steps:[{id:'execute',state:'blocked'}]};
+ let observed=false;
+ const context=vm.createContext({AbortController,AbortSignal,Date,Set,console,
+  activeStreamControllers:new Set(),activeStreamCount:0,stopStreamingRequested:false,
+  messageApprovals:m=>m.approvals||m.usage?.approvals||[],
+  normalizeCodeDiffSet:()=>({files:[]}),schedulePersist:()=>{},renderWorkspace:()=>{},updateStreamingControls:()=>{},scheduleStreamingPersist:()=>{},
+  scheduleStreamingMessagePatch:()=>{if(message.approvals?.some(a=>a.status==='pending'))observed=true;},
+  apiFetch:async()=>({}),
+  window:{AIChatExecutionStream:{consumeExecutionResponse:async(_r,{onEvent})=>{
+   onEvent({sequence:1,event:'approval',data:{approval}});
+   assert.equal(message.usage.approvals[0].status,'pending');
+   onEvent({sequence:2,event:'approval',data:{approval:{...approval,status:'expired'}}});
+   onEvent({sequence:3,event:'plan',data:{plan}});
+   onEvent({sequence:4,event:'error',data:{code:'tool_approval_expired'}});
+  }}}
+ });
+ vm.runInContext(source.slice(source.indexOf('async function continueSavedExecution(')),context);
+ await context.continueSavedExecution(chat,pane,message,{execution:{id:'run',status:'interrupted',checkpoint:{}},last_cursor:0,approvals:[]});
+ assert.equal(observed,true);
+ assert.equal(message.usage.approvals[0].status,'expired');
+ assert.equal(message.usage.execution_plan.steps[0].state,'blocked');
+ assert.equal(message.usage.error.code,'tool_approval_expired');
+ assert.equal(message.streaming,false);
+});

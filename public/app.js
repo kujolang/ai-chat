@@ -4004,7 +4004,7 @@ function messageApprovals(message) {
 function renderMessageApprovals(message, paneId) {
 	const pending = messageApprovals(message).filter((approval) => approval.status === "pending");
 	if (!pending.length) return "";
-	return `<section class="message-approvals" aria-label="Actions awaiting approval">${pending.map((approval) => `<article class="approval-card ${escapeHtml(approval.risk)}"><div><strong>Approval required</strong><span>${escapeHtml(approval.summary)}</span><small>${escapeHtml(approval.tool_name.replaceAll("_", " "))} · ${escapeHtml(approval.risk)} risk</small></div><div class="approval-actions"><button type="button" class="btn" data-approval-id="${escapeHtml(approval.id)}" data-approval-decision="approve" data-approval-scope="once" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}">Allow once</button><button type="button" class="btn ghost" data-approval-id="${escapeHtml(approval.id)}" data-approval-decision="approve" data-approval-scope="chat" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}">Allow for chat</button><button type="button" class="btn ghost" data-approval-id="${escapeHtml(approval.id)}" data-approval-decision="approve" data-approval-scope="workspace" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}">Always this exact action</button><button type="button" class="btn danger" data-approval-id="${escapeHtml(approval.id)}" data-approval-decision="deny" data-approval-scope="once" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}">Deny</button></div></article>`).join("")}</section>`;
+	return `<section class="message-approvals" aria-label="Actions awaiting approval">${pending.map((approval) => `<article class="approval-card ${escapeHtml(approval.risk)}"><div><strong>Approval required</strong><span>${escapeHtml(approval.summary)}</span><small>${escapeHtml(approval.tool_name.replaceAll("_", " "))} · ${escapeHtml(approval.risk)} risk</small></div><div class="approval-actions"><button type="button" class="btn" data-approval-id="${escapeHtml(approval.id)}" data-approval-decision="approve" data-approval-scope="once" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}">Allow once</button><button type="button" class="btn ghost" data-approval-id="${escapeHtml(approval.id)}" data-approval-decision="approve" data-approval-scope="chat" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}">Allow this exact action for chat</button><button type="button" class="btn ghost" data-approval-id="${escapeHtml(approval.id)}" data-approval-decision="approve" data-approval-scope="workspace" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}">Always this exact action</button><button type="button" class="btn danger" data-approval-id="${escapeHtml(approval.id)}" data-approval-decision="deny" data-approval-scope="once" data-pane-id="${escapeHtml(paneId)}" data-message-id="${escapeHtml(message.id)}">Deny</button></div></article>`).join("")}</section>`;
 }
 
 function normalizeCodeDiffSet(value) {
@@ -10318,12 +10318,16 @@ async function reviewSavedExecution(chat, paneId, messageId) {
 
 async function continueSavedExecution(chat,pane,message,inspection) {
  const run=inspection.execution,id=run.id;
+ message.approvals=inspection.approvals||messageApprovals(message);
+ message.execution_plan=inspection.plan||message.execution_plan;
+ message.usage={...(message.usage||{}),approvals:message.approvals,execution_plan:message.execution_plan};
  const controller=new AbortController();controller.streamRequestId=id;
  const restore=payload=>{
   message.content=String(payload.output_text||'');message.thinking=String(payload.thinking_text||message.thinking||'');
   const restoredDiffs=normalizeCodeDiffSet(payload.code_diffs||(payload.usage&&payload.usage.code_diffs));
   message.code_diffs=restoredDiffs.files.length?restoredDiffs:null;
-  message.usage={...(payload.usage||{}),trace_id:payload.trace_id,tool_artifacts:payload.tool_artifacts||[],...(restoredDiffs.files.length?{code_diffs:restoredDiffs}:{})};
+  message.execution_plan=payload.plan||message.execution_plan;
+  message.usage={...(payload.usage||{}),approvals:message.approvals,execution_plan:message.execution_plan,trace_id:payload.trace_id,tool_artifacts:payload.tool_artifacts||[],...(restoredDiffs.files.length?{code_diffs:restoredDiffs}:{})};
   message.provider=payload.provider||message.provider;message.model=payload.model||message.model;
   pane.status='idle';message.streaming=false;
  };
@@ -10336,6 +10340,8 @@ async function continueSavedExecution(chat,pane,message,inspection) {
   if(event.event==='thinking')message.thinking=String(message.thinking||'')+String(payload.delta||'');
   if(event.event==='tool')message.tool_activity=[...(message.tool_activity||[]),{tool_name:payload.tool_name,phase:payload.phase,label:payload.label||`${payload.tool_name} · ${payload.phase}`,command:payload.command||''}].slice(-32);
   if(event.event==='diff'){const diffs=normalizeCodeDiffSet(payload.diffs||payload);message.code_diffs=diffs.files.length?diffs:null;message.usage={...(message.usage||{})};if(diffs.files.length)message.usage.code_diffs=diffs;else delete message.usage.code_diffs;}
+  if(event.event==='approval'&&payload.approval?.id){message.approvals=[...messageApprovals(message).filter(a=>a.id!==payload.approval.id),payload.approval].slice(-32);message.usage={...(message.usage||{}),approvals:message.approvals};}
+  if(event.event==='plan'){message.execution_plan=payload.plan;message.usage={...(message.usage||{}),execution_plan:payload.plan};}
   if(event.event==='done'){restore(payload);terminal='done';}
   if(event.event==='error'){message.usage={...(payload.usage||message.usage||{}),error:payload};pane.status=message.content||message.thinking?'partial':'error';terminal='error';}
   scheduleStreamingMessagePatch(chat.id,pane.id,message.id);scheduleStreamingPersist(chat.id,pane.id,message.id);

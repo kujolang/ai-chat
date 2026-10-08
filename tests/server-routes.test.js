@@ -6003,3 +6003,70 @@ test("MCP and attention management routes preserve sanitized scoped contracts", 
 		destroy();
 	}
 });
+
+for (const decision of ['deny', 'expire']) {
+ test(`interactive approval ${decision} stops only its pane without model continuation and survives resume`, async () => {
+  let clock = Date.now(), calls = 0, writes = 0, guides = 0;
+  const {runtime, destroy} = createIsolatedRuntime({
+   nowFn: () => clock,
+   localRuntime: {canExecute: () => true, status: () => ({enabled:true}),
+    writeFile: () => {writes++; return {ok:true};},
+    runKujo: () => {guides++; return {ok:true};}},
+   fetchFn: async (_url, options) => {
+    calls++;
+    const body = JSON.parse(options.body);
+    const guide = body.messages.some(m => m.content === 'Read the guide');
+    const continued = guide && body.messages.some(m => m.role === 'tool');
+    const call = {index:0,id:guide?'guide-call':'write-call',function:{name:guide?'local_kujo':'local_file_write',arguments:JSON.stringify(guide?{root_id:'workspace_0',operation:'guide'}:{root_id:'workspace_0',path:'script.kujo',content:'print(1)',mode:'create'})}};
+    return mockSseResponse([{choices:[{delta:continued?{content:'Finished.'}:{tool_calls:[call]},finish_reason:continued?'stop':'tool_calls'}]}]);
+   }
+  });
+  try {
+   const profileId = applyProfileMutation(runtime,p=>{p.provider_id='openai';p.api_key='fixture';});
+   await withServer(runtime.app, async base => {
+    const requestId = `approval-${decision}`;
+    const body = {request_id:requestId,chat_id:'two-model-chat',pane_id:'write-pane',profile_id:profileId,interactive_approvals:true,include_saved_runtime_presets:false,tools:[{type:'function',function:{name:'local_file_write',parameters:{type:'object'}}}],messages:[{role:'user',content:'Write a script'}]};
+    const stream = await fetch(base+'/api/chat/stream',{method:'POST',headers:withAuthHeaders({'Content-Type':'application/json'}),body:JSON.stringify(body)});
+    const text = stream.text();
+    let pending;
+    for(let i=0;i<100;i++) {
+     pending=(await fetchJson(base,`/api/approvals?execution_id=${requestId}&status=pending`)).json.approvals[0];
+     if(pending)break;
+     await new Promise(resolve=>setTimeout(resolve,10));
+    }
+    assert.ok(pending);
+    // The other pane can finish harmless documentation work while this waits.
+    const other = await fetch(base+'/api/chat/stream',{method:'POST',headers:withAuthHeaders({'Content-Type':'application/json'}),body:JSON.stringify({...body,request_id:requestId+'-guide',pane_id:'guide-pane',tools:[{type:'function',function:{name:'local_kujo',parameters:{type:'object'}}}],messages:[{role:'user',content:'Read the guide'}]})});
+    assert.ok(parseSseEvents(await other.text()).some(e=>e.event==='done'));
+    assert.equal(guides,1);
+    if(decision==='deny') await fetchJson(base,`/api/approvals/${pending.id}/decision`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({decision:'deny'})});
+    else {clock=pending.expires_at+1;await fetchJson(base,`/api/approvals?execution_id=${requestId}`);}
+    const events=parseSseEvents(await text);
+    assert.equal(events.find(e=>e.event==='error')?.data.code,decision==='deny'?'tool_approval_denied':'tool_approval_expired');
+    assert.equal(events.find(e=>e.event==='error')?.data.retryable,false);
+    assert.equal(events.some(e=>e.event==='done'),false);
+    assert.equal(calls,3);
+    assert.equal(writes,0);
+    assert.equal(events.filter(e=>e.event==='approval').at(-1).data.approval.status,decision==='deny'?'denied':'expired');
+    const inbox=(await fetchJson(base,'/api/attention')).json.events;
+    assert.ok(!inbox.some(e=>e.kind==='approval_needed'&&e.source_id===pending.id));
+    const saved=(await fetchJson(base,`/api/executions/${requestId}`)).json;
+    assert.equal(saved.execution.request.interactive_approvals,true);
+    assert.ok(saved.plan.steps.some(s=>s.state==='blocked'));
+    // Explicit resume must request approval again, never silently execute.
+    const resumed=await fetch(base+`/api/executions/${requestId}/resume`,{method:'POST',headers:withAuthHeaders({'Content-Type':'application/json'}),body:'{}'});
+    const resumedText=resumed.text();
+    let again;
+    for(let i=0;i<100;i++) {
+     again=(await fetchJson(base,`/api/approvals?execution_id=${requestId}&status=pending`)).json.approvals[0];
+     if(again)break;
+     await new Promise(resolve=>setTimeout(resolve,10));
+    }
+    assert.ok(again, await Promise.race([resumedText, new Promise(resolve=>setTimeout(()=>resolve("still waiting"),100))]));
+    await fetchJson(base,`/api/approvals/${again.id}/decision`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({decision:'deny'})});
+    assert.equal(parseSseEvents(await resumedText).find(e=>e.event==='error')?.data.code,'tool_approval_denied');
+    assert.equal(writes,0);
+   });
+  } finally {destroy();}
+ });
+}

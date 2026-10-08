@@ -725,6 +725,18 @@ closed. `GET /api/approvals` lists records and saved grants, and
 `DELETE /api/approval-grants/:id` revokes a grant. Native provider harnesses keep
 their own approval policy.
 
+Denial or expiry terminates that execution with non-retryable
+`tool_approval_denied` or `tool_approval_expired`, marks the plan blocked, and
+resolves its pending attention entry. It does not enter another model/review
+round or automatically request approval again. Other panes continue independently.
+Explicit resume retains interactive approval policy; legacy executions with saved
+approvals also retain it. Chat and workspace grants apply only to the exact tool
+and arguments. `local_kujo` guide only probes the configured runtime version and
+returns bundled documentation, so it needs no additional interactive approval;
+Kujo script execution and arbitrary shell commands still do. Loading a deferred
+tool schema does not execute the tool and does not request approval.
+
+
 With `plan_events:true`, additive `plan` events contain stable steps in
 `pending`, `active`, `completed`, `skipped`, `blocked`, or `failed` states.
 `GET /api/executions/:id/plan` returns the durable plan and steering queue.
