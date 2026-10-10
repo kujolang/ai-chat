@@ -1,0 +1,790 @@
+[
+  {
+    "model": "upstage/solar-pro4:free",
+    "catalog_available": false,
+    "catalog_free": false,
+    "attempted": 0,
+    "delivered": 0,
+    "full_tasks": 0,
+    "passed_checks": 0,
+    "delivered_checks": 0,
+    "all_checks": 0,
+    "latency_ms": 0,
+    "output_tokens": 0,
+    "errors": [],
+    "tasks": [
+      {
+        "task": "statistics",
+        "status": "not dispatched"
+      },
+      {
+        "task": "unique",
+        "status": "not dispatched"
+      },
+      {
+        "task": "frequencies",
+        "status": "not dispatched"
+      },
+      {
+        "task": "prefix",
+        "status": "not dispatched"
+      },
+      {
+        "task": "rotate",
+        "status": "not dispatched"
+      },
+      {
+        "task": "rle",
+        "status": "not dispatched"
+      },
+      {
+        "task": "intervals",
+        "status": "not dispatched"
+      },
+      {
+        "task": "dot",
+        "status": "not dispatched"
+      },
+      {
+        "task": "balance",
+        "status": "not dispatched"
+      },
+      {
+        "task": "ledger",
+        "status": "not dispatched"
+      }
+    ]
+  },
+  {
+    "model": "meituan/longcat-2.5-preview:free",
+    "catalog_available": true,
+    "catalog_free": true,
+    "attempted": 10,
+    "delivered": 2,
+    "full_tasks": 1,
+    "passed_checks": 48,
+    "delivered_checks": 62,
+    "all_checks": 311,
+    "latency_ms": 1299195,
+    "output_tokens": 56867,
+    "errors": [
+      {
+        "task": "statistics",
+        "error": "Output limit reached before completion."
+      },
+      {
+        "task": "frequencies",
+        "error": "Output limit reached before completion."
+      },
+      {
+        "task": "rotate",
+        "error": "Output limit reached before completion."
+      },
+      {
+        "task": "rle",
+        "error": "Output limit reached before completion."
+      },
+      {
+        "task": "intervals",
+        "error": "Output limit reached before completion."
+      },
+      {
+        "task": "dot",
+        "error": "Output limit reached before completion."
+      },
+      {
+        "task": "balance",
+        "error": "Output limit reached before completion."
+      },
+      {
+        "task": "ledger",
+        "error": "Output limit reached before completion."
+      }
+    ],
+    "tasks": [
+      {
+        "task": "statistics",
+        "status": "Output limit reached before completion."
+      },
+      {
+        "task": "unique",
+        "status": "PASS"
+      },
+      {
+        "task": "frequencies",
+        "status": "Output limit reached before completion."
+      },
+      {
+        "task": "prefix",
+        "status": "17/31"
+      },
+      {
+        "task": "rotate",
+        "status": "Output limit reached before completion."
+      },
+      {
+        "task": "rle",
+        "status": "Output limit reached before completion."
+      },
+      {
+        "task": "intervals",
+        "status": "Output limit reached before completion."
+      },
+      {
+        "task": "dot",
+        "status": "Output limit reached before completion."
+      },
+      {
+        "task": "balance",
+        "status": "Output limit reached before completion."
+      },
+      {
+        "task": "ledger",
+        "status": "Output limit reached before completion."
+      }
+    ]
+  },
+  {
+    "model": "inclusionai/ling-3.0-flash-sante:free",
+    "catalog_available": true,
+    "catalog_free": true,
+    "attempted": 10,
+    "delivered": 0,
+    "full_tasks": 0,
+    "passed_checks": 0,
+    "delivered_checks": 0,
+    "all_checks": 311,
+    "latency_ms": 12827,
+    "output_tokens": 0,
+    "errors": [
+      {
+        "task": "statistics",
+        "error": "Provider returned HTTP 404"
+      },
+      {
+        "task": "unique",
+        "error": "Provider returned HTTP 404"
+      },
+      {
+        "task": "frequencies",
+        "error": "Provider returned HTTP 404"
+      },
+      {
+        "task": "prefix",
+        "error": "Provider returned HTTP 404"
+      },
+      {
+        "task": "rotate",
+        "error": "Provider returned HTTP 404"
+      },
+      {
+        "task": "rle",
+        "error": "Provider returned HTTP 404"
+      },
+      {
+        "task": "intervals",
+        "error": "Provider returned HTTP 404"
+      },
+      {
+        "task": "dot",
+        "error": "Provider returned HTTP 404"
+      },
+      {
+        "task": "balance",
+        "error": "Provider returned HTTP 404"
+      },
+      {
+        "task": "ledger",
+        "error": "Provider returned HTTP 404"
+      }
+    ],
+    "tasks": [
+      {
+        "task": "statistics",
+        "status": "Provider returned HTTP 404"
+      },
+      {
+        "task": "unique",
+        "status": "Provider returned HTTP 404"
+      },
+      {
+        "task": "frequencies",
+        "status": "Provider returned HTTP 404"
+      },
+      {
+        "task": "prefix",
+        "status": "Provider returned HTTP 404"
+      },
+      {
+        "task": "rotate",
+        "status": "Provider returned HTTP 404"
+      },
+      {
+        "task": "rle",
+        "status": "Provider returned HTTP 404"
+      },
+      {
+        "task": "intervals",
+        "status": "Provider returned HTTP 404"
+      },
+      {
+        "task": "dot",
+        "status": "Provider returned HTTP 404"
+      },
+      {
+        "task": "balance",
+        "status": "Provider returned HTTP 404"
+      },
+      {
+        "task": "ledger",
+        "status": "Provider returned HTTP 404"
+      }
+    ]
+  },
+  {
+    "model": "inclusionai/ling-3.0-flash-fin:free",
+    "catalog_available": true,
+    "catalog_free": true,
+    "attempted": 10,
+    "delivered": 0,
+    "full_tasks": 0,
+    "passed_checks": 0,
+    "delivered_checks": 0,
+    "all_checks": 311,
+    "latency_ms": 8313,
+    "output_tokens": 0,
+    "errors": [
+      {
+        "task": "statistics",
+        "error": "Provider returned HTTP 404"
+      },
+      {
+        "task": "unique",
+        "error": "Provider returned HTTP 404"
+      },
+      {
+        "task": "frequencies",
+        "error": "Provider returned HTTP 404"
+      },
+      {
+        "task": "prefix",
+        "error": "Provider returned HTTP 404"
+      },
+      {
+        "task": "rotate",
+        "error": "Provider returned HTTP 404"
+      },
+      {
+        "task": "rle",
+        "error": "Provider returned HTTP 404"
+      },
+      {
+        "task": "intervals",
+        "error": "Provider returned HTTP 404"
+      },
+      {
+        "task": "dot",
+        "error": "Provider returned HTTP 404"
+      },
+      {
+        "task": "balance",
+        "error": "Provider returned HTTP 404"
+      },
+      {
+        "task": "ledger",
+        "error": "Provider returned HTTP 404"
+      }
+    ],
+    "tasks": [
+      {
+        "task": "statistics",
+        "status": "Provider returned HTTP 404"
+      },
+      {
+        "task": "unique",
+        "status": "Provider returned HTTP 404"
+      },
+      {
+        "task": "frequencies",
+        "status": "Provider returned HTTP 404"
+      },
+      {
+        "task": "prefix",
+        "status": "Provider returned HTTP 404"
+      },
+      {
+        "task": "rotate",
+        "status": "Provider returned HTTP 404"
+      },
+      {
+        "task": "rle",
+        "status": "Provider returned HTTP 404"
+      },
+      {
+        "task": "intervals",
+        "status": "Provider returned HTTP 404"
+      },
+      {
+        "task": "dot",
+        "status": "Provider returned HTTP 404"
+      },
+      {
+        "task": "balance",
+        "status": "Provider returned HTTP 404"
+      },
+      {
+        "task": "ledger",
+        "status": "Provider returned HTTP 404"
+      }
+    ]
+  },
+  {
+    "model": "stealth/space-bunny-alpha",
+    "catalog_available": false,
+    "catalog_free": false,
+    "attempted": 0,
+    "delivered": 0,
+    "full_tasks": 0,
+    "passed_checks": 0,
+    "delivered_checks": 0,
+    "all_checks": 0,
+    "latency_ms": 0,
+    "output_tokens": 0,
+    "errors": [],
+    "tasks": [
+      {
+        "task": "statistics",
+        "status": "not dispatched"
+      },
+      {
+        "task": "unique",
+        "status": "not dispatched"
+      },
+      {
+        "task": "frequencies",
+        "status": "not dispatched"
+      },
+      {
+        "task": "prefix",
+        "status": "not dispatched"
+      },
+      {
+        "task": "rotate",
+        "status": "not dispatched"
+      },
+      {
+        "task": "rle",
+        "status": "not dispatched"
+      },
+      {
+        "task": "intervals",
+        "status": "not dispatched"
+      },
+      {
+        "task": "dot",
+        "status": "not dispatched"
+      },
+      {
+        "task": "balance",
+        "status": "not dispatched"
+      },
+      {
+        "task": "ledger",
+        "status": "not dispatched"
+      }
+    ]
+  },
+  {
+    "model": "poolside/laguna-xs-2.1:free",
+    "catalog_available": true,
+    "catalog_free": true,
+    "attempted": 10,
+    "delivered": 6,
+    "full_tasks": 0,
+    "passed_checks": 36,
+    "delivered_checks": 187,
+    "all_checks": 311,
+    "latency_ms": 470531,
+    "output_tokens": 48094,
+    "errors": [
+      {
+        "task": "frequencies",
+        "error": "Output limit reached before completion."
+      },
+      {
+        "task": "rotate",
+        "error": "Output limit reached before completion."
+      },
+      {
+        "task": "intervals",
+        "error": "Output limit reached before completion."
+      },
+      {
+        "task": "ledger",
+        "error": "Output limit reached before completion."
+      }
+    ],
+    "tasks": [
+      {
+        "task": "statistics",
+        "status": "0/31"
+      },
+      {
+        "task": "unique",
+        "status": "17/31"
+      },
+      {
+        "task": "frequencies",
+        "status": "Output limit reached before completion."
+      },
+      {
+        "task": "prefix",
+        "status": "17/31"
+      },
+      {
+        "task": "rotate",
+        "status": "Output limit reached before completion."
+      },
+      {
+        "task": "rle",
+        "status": "2/31"
+      },
+      {
+        "task": "intervals",
+        "status": "Output limit reached before completion."
+      },
+      {
+        "task": "dot",
+        "status": "0/31"
+      },
+      {
+        "task": "balance",
+        "status": "0/32"
+      },
+      {
+        "task": "ledger",
+        "status": "Output limit reached before completion."
+      }
+    ]
+  },
+  {
+    "model": "poolside/laguna-s-2.1:free",
+    "catalog_available": true,
+    "catalog_free": true,
+    "attempted": 10,
+    "delivered": 8,
+    "full_tasks": 0,
+    "passed_checks": 0,
+    "delivered_checks": 249,
+    "all_checks": 311,
+    "latency_ms": 359973,
+    "output_tokens": 15664,
+    "errors": [
+      {
+        "task": "intervals",
+        "error": "Output limit reached before completion."
+      },
+      {
+        "task": "dot",
+        "error": "Output limit reached before completion."
+      }
+    ],
+    "tasks": [
+      {
+        "task": "statistics",
+        "status": "0/31"
+      },
+      {
+        "task": "unique",
+        "status": "0/31"
+      },
+      {
+        "task": "frequencies",
+        "status": "0/31"
+      },
+      {
+        "task": "prefix",
+        "status": "0/31"
+      },
+      {
+        "task": "rotate",
+        "status": "0/31"
+      },
+      {
+        "task": "rle",
+        "status": "0/31"
+      },
+      {
+        "task": "intervals",
+        "status": "Output limit reached before completion."
+      },
+      {
+        "task": "dot",
+        "status": "Output limit reached before completion."
+      },
+      {
+        "task": "balance",
+        "status": "0/32"
+      },
+      {
+        "task": "ledger",
+        "status": "0/31"
+      }
+    ]
+  },
+  {
+    "model": "stepfun/step-3.7-flash:free",
+    "catalog_available": true,
+    "catalog_free": true,
+    "attempted": 10,
+    "delivered": 1,
+    "full_tasks": 0,
+    "passed_checks": 0,
+    "delivered_checks": 31,
+    "all_checks": 311,
+    "latency_ms": 82667,
+    "output_tokens": 12424,
+    "errors": [
+      {
+        "task": "unique",
+        "error": "Provider returned HTTP 429"
+      },
+      {
+        "task": "frequencies",
+        "error": "Provider returned HTTP 429"
+      },
+      {
+        "task": "prefix",
+        "error": "Output limit reached before completion."
+      },
+      {
+        "task": "rotate",
+        "error": "Provider returned HTTP 429"
+      },
+      {
+        "task": "rle",
+        "error": "Provider returned HTTP 429"
+      },
+      {
+        "task": "intervals",
+        "error": "Provider returned HTTP 429"
+      },
+      {
+        "task": "dot",
+        "error": "Output limit reached before completion."
+      },
+      {
+        "task": "balance",
+        "error": "Provider returned HTTP 429"
+      },
+      {
+        "task": "ledger",
+        "error": "Provider returned HTTP 429"
+      }
+    ],
+    "tasks": [
+      {
+        "task": "statistics",
+        "status": "0/31"
+      },
+      {
+        "task": "unique",
+        "status": "Provider returned HTTP 429"
+      },
+      {
+        "task": "frequencies",
+        "status": "Provider returned HTTP 429"
+      },
+      {
+        "task": "prefix",
+        "status": "Output limit reached before completion."
+      },
+      {
+        "task": "rotate",
+        "status": "Provider returned HTTP 429"
+      },
+      {
+        "task": "rle",
+        "status": "Provider returned HTTP 429"
+      },
+      {
+        "task": "intervals",
+        "status": "Provider returned HTTP 429"
+      },
+      {
+        "task": "dot",
+        "status": "Output limit reached before completion."
+      },
+      {
+        "task": "balance",
+        "status": "Provider returned HTTP 429"
+      },
+      {
+        "task": "ledger",
+        "status": "Provider returned HTTP 429"
+      }
+    ]
+  },
+  {
+    "model": "meituan/longcat-2.0:free",
+    "catalog_available": true,
+    "catalog_free": true,
+    "attempted": 10,
+    "delivered": 0,
+    "full_tasks": 0,
+    "passed_checks": 0,
+    "delivered_checks": 0,
+    "all_checks": 311,
+    "latency_ms": 4199,
+    "output_tokens": 0,
+    "errors": [
+      {
+        "task": "statistics",
+        "error": "Provider returned HTTP 404"
+      },
+      {
+        "task": "unique",
+        "error": "Provider returned HTTP 404"
+      },
+      {
+        "task": "frequencies",
+        "error": "Provider returned HTTP 404"
+      },
+      {
+        "task": "prefix",
+        "error": "Provider returned HTTP 404"
+      },
+      {
+        "task": "rotate",
+        "error": "Provider returned HTTP 404"
+      },
+      {
+        "task": "rle",
+        "error": "Provider returned HTTP 404"
+      },
+      {
+        "task": "intervals",
+        "error": "Provider returned HTTP 404"
+      },
+      {
+        "task": "dot",
+        "error": "Provider returned HTTP 404"
+      },
+      {
+        "task": "balance",
+        "error": "Provider returned HTTP 404"
+      },
+      {
+        "task": "ledger",
+        "error": "Provider returned HTTP 404"
+      }
+    ],
+    "tasks": [
+      {
+        "task": "statistics",
+        "status": "Provider returned HTTP 404"
+      },
+      {
+        "task": "unique",
+        "status": "Provider returned HTTP 404"
+      },
+      {
+        "task": "frequencies",
+        "status": "Provider returned HTTP 404"
+      },
+      {
+        "task": "prefix",
+        "status": "Provider returned HTTP 404"
+      },
+      {
+        "task": "rotate",
+        "status": "Provider returned HTTP 404"
+      },
+      {
+        "task": "rle",
+        "status": "Provider returned HTTP 404"
+      },
+      {
+        "task": "intervals",
+        "status": "Provider returned HTTP 404"
+      },
+      {
+        "task": "dot",
+        "status": "Provider returned HTTP 404"
+      },
+      {
+        "task": "balance",
+        "status": "Provider returned HTTP 404"
+      },
+      {
+        "task": "ledger",
+        "status": "Provider returned HTTP 404"
+      }
+    ]
+  },
+  {
+    "model": "stealth/missingno",
+    "catalog_available": true,
+    "catalog_free": true,
+    "attempted": 10,
+    "delivered": 8,
+    "full_tasks": 6,
+    "passed_checks": 222,
+    "delivered_checks": 249,
+    "all_checks": 311,
+    "latency_ms": 117921,
+    "output_tokens": 35552,
+    "errors": [
+      {
+        "task": "unique",
+        "error": "Provider returned an empty response."
+      },
+      {
+        "task": "ledger",
+        "error": "Output limit reached before completion."
+      }
+    ],
+    "tasks": [
+      {
+        "task": "statistics",
+        "status": "20/31"
+      },
+      {
+        "task": "unique",
+        "status": "Provider returned an empty response."
+      },
+      {
+        "task": "frequencies",
+        "status": "PASS"
+      },
+      {
+        "task": "prefix",
+        "status": "PASS"
+      },
+      {
+        "task": "rotate",
+        "status": "PASS"
+      },
+      {
+        "task": "rle",
+        "status": "PASS"
+      },
+      {
+        "task": "intervals",
+        "status": "PASS"
+      },
+      {
+        "task": "dot",
+        "status": "15/31"
+      },
+      {
+        "task": "balance",
+        "status": "PASS"
+      },
+      {
+        "task": "ledger",
+        "status": "Output limit reached before completion."
+      }
+    ]
+  }
+]
