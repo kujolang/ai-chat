@@ -94,7 +94,8 @@ test("seeds and upgrades OpenRouter and Watchdog model suggestions from the stat
 		assert.match(watchdogOllamaTud.models_csv, /mistral-large-3:675b/);
 		assert.match(hermes.models_csv, /stealth\/space-bunny-alpha/);
 		assert.match(hermes.models_csv, /meituan\/longcat-2\.5-preview:free/);
-		assert.equal(hermes.models_csv.split(",").length, 9);
+		assert.match(hermes.models_csv, /stealth\/missingno/);
+		assert.equal(hermes.models_csv.split(",").length, 10);
 		assert.match(hermes.models_csv, /poolside\/laguna-s-2\.1:free/);
 		assert.equal(hermes.credential_managed, true);
 		assert.equal(xaiOAuth.name, "xAI Grok (X OAuth)");
@@ -154,6 +155,7 @@ test("catalog migration keeps existing model suggestions while appending new can
 		const openRouter = state.settings.profiles.find((profile) => profile.provider_id === "openrouter");
 		const watchdog = state.settings.profiles.find((profile) => profile.provider_id === "watchdog");
 		openRouter.models_csv = "custom/openrouter-model";
+		state.settings.profiles.find((profile) => profile.provider_id === "hermes").models_csv = "custom/hermes-model,stealth/space-bunny-alpha";
 		watchdog.models_csv = "qwen3.5:397b-cloud,gemma4:e2b,gemini-3-flash-preview,deepseek-v4-flash,deepseek-v4-flash:cloud";
 		firstRuntime.helpers.writeState(state);
 	} finally {
@@ -166,6 +168,9 @@ test("catalog migration keeps existing model suggestions while appending new can
 		const openRouter = state.settings.profiles.find((profile) => profile.provider_id === "openrouter");
 		const watchdog = state.settings.profiles.find((profile) => profile.provider_id === "watchdog");
 		assert.match(openRouter.models_csv, /custom\/openrouter-model/);
+		const hermesModels = state.settings.profiles.find((profile) => profile.provider_id === "hermes").models_csv.split(",");
+		assert.ok(hermesModels.includes("custom/hermes-model"));
+		assert.equal(hermesModels.filter((model) => model === "stealth/missingno").length, 1);
 		assert.match(openRouter.models_csv, /moonshotai\/kimi-k2\.7-code/);
 		assert.match(watchdog.models_csv, /qwen3\.5:397b-cloud/);
 		assert.match(watchdog.models_csv, /gemma4:31b/);
