@@ -5,7 +5,7 @@
 	"description": "Modern multi-provider chat UI built with Kujo.",
 	"main": "server.js",
 	"engines": {
-		"node": ">=22.23.4 <23",
+		"node": ">=22.23.4 <23 || >=24.22.1 <25 || >=26.12.1",
 		"npm": ">=9"
 	},
 	"scripts": {
@@ -30,7 +30,7 @@
 		"context:refresh": "node scripts/refresh-model-context.js"
 	},
 	"dependencies": {
-		"better-sqlite3": "^11.7.0",
+		"better-sqlite3": "12.10.1",
 		"diff": "9.0.0",
 		"express": "^4.21.2",
 		"highlight.js": "^11.11.1",
@@ -48,6 +48,6 @@
 		"qs": "6.16.0"
 	},
 	"allowScripts": {
-		"better-sqlite3@11.10.0": true
+		"better-sqlite3@12.10.1": true
 	}
 }

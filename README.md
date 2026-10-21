@@ -116,7 +116,7 @@ dependencies, safety constraints, and acceptance evidence with each item.
 
 ## Requirements
 
-- Node.js 22.23.4 (use `nvm use`; this repo includes `.nvmrc`)
+- Node.js 26.12.1 (use `nvm use`; patched 22.23.4 and 24.22.1 releases are also supported)
 - npm 9+
 - Kujo binary available locally
 - AI SDK directory available locally (for example: `/path/to/ai-sdk/src`)
