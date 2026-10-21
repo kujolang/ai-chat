@@ -63,7 +63,8 @@ test("network containment blocks host TCP and UDP in the child process and inher
 	} finally { udp.close(); await new Promise((resolve) => tcp.close(resolve)); }
 });
 
-test("contained Chromium renders over pipes but cannot bypass routing with WebSocket or WebRTC STUN", { skip: !available, timeout: 20000 }, async () => {
+// Allow both cold Chromium launches to finish on shared CI hosts; network assertions remain unchanged.
+test("contained Chromium renders over pipes but cannot bypass routing with WebSocket or WebRTC STUN", { skip: !available, timeout: 60000 }, async () => {
 	let upgrades = 0, datagrams = 0;
 	const server = http.createServer();
 	server.on("upgrade", (_req, socket) => { upgrades++; socket.destroy(); });
