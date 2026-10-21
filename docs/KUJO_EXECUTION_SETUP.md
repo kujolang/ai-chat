@@ -17,7 +17,7 @@ This guide documents how to make the Kujo programming language tooling ecosystem
 
   `/Users/robertdevore/2026/Kujolang/kujo-repos/ai-sdk/src`
 
-- Node.js 22.17.0 and npm 9+ (for `npm run dev`).
+- Node.js 22.23.4 and npm 9+ (for `npm run dev`).
 
 ## Build steps (only if no binary exists)
 
