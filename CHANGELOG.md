@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Update the SQLite native binding for Node 26 compatibility, default to patched Node 26.12.1, and test patched Node 22, 24, and 26 in CI.
+
 ## [1.3.0] - 2026-10-06
 
 - Add live, per-pane code diffs for native Codex changes and provider-neutral writes, with responsive unified and split views, line and file statistics, intraline emphasis, patch copy, review comments, editor links, and conflict-aware revert controls.

@@ -4,7 +4,7 @@ This guide is a dedicated, end-user focused setup reference for running AI Chat 
 
 ## 1. Prerequisites
 
-- Node.js 22.23.4 through `nvm use` from this repository
+- Node.js 26.12.1 through `nvm use` from this repository (patched 22.23.4 and 24.22.1 releases are also supported)
 - npm 9+
 - Kujo binary built and available on your machine
 - Playwright Chromium installed locally for browser tools
