@@ -1,6 +1,6 @@
 # AI Chat
 
-[![Version](https://img.shields.io/badge/version-1.3.0-black)](https://github.com/kujolang/ai-chat/releases/tag/v1.3.0)
+[![Version](https://img.shields.io/badge/version-1.3.1-black)](https://github.com/kujolang/ai-chat/releases/tag/v1.3.1)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
 [![built with Kujo](https://img.shields.io/badge/built%20with-Kujo-white.svg)](https://github.com/kujolang/kujo)
 
@@ -12,7 +12,11 @@ It is intentionally small enough to clone, inspect, and extend without losing th
 
 For agent and contributor guidance, including canonical examples and search exclusions, see `AGENTS.md`.
 
-## Version 1.3.0
+## Version 1.3.1
+
+This maintenance release supports patched Node 26 with an updated SQLite binding, fixes approval recovery and attention-inbox feedback, and updates markdown parsing. See [the changelog](CHANGELOG.md).
+
+### Features introduced in 1.3.0
 
 This release turns AI Chat into a first-class agent workspace: live per-pane code diffs, actionable review comments, encrypted checkpoints and rewind, plans and steering, managed Git worktrees, typed attachments, execution artifacts, scoped MCP connections, an attention inbox, a command palette, and persistent multi-chat tabs. See [the changelog](CHANGELOG.md#130---2026-10-06) and [upgrade instructions](SETUP_AND_INSTALL.md#upgrading-to-130).
 

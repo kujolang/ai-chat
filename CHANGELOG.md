@@ -1,6 +1,11 @@
 # Changelog
 
-## Unreleased
+## [1.3.1] - 2026-10-21
+
+- Stop expired approval loops while preserving approval decisions during execution recovery.
+- Correct attention-inbox filter feedback and notification controls.
+- Update markdown parsing and retain regression coverage for bounded input handling.
+- Add reproducible script-generation benchmark fixtures and document model delivery limits.
 
 - Update the SQLite native binding for Node 26 compatibility, default to patched Node 26.12.1, and test patched Node 22, 24, and 26 in CI.
 
