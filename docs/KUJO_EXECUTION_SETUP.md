@@ -4,7 +4,7 @@ This guide documents how to make the Kujo programming language tooling ecosystem
 
 ## What this enables
 
-- The AI Chat chat bridge (`bridge_chat.kujo`) runs through the default Kujo VM for provider-gated chat completion.
+- The AI Chat chat bridge (`bridge_chat.kujo`) runs through Kujo for provider-gated chat completion.
 - The model can run Kujo programs (`kujo run`, `kujo test`, `kujo check`, etc.) through the `local_shell` tool once `kujo` is allowlisted for a trusted workspace.
 - Kujo workflow skills (`kujo-*-workflows`) that shell out to the Kujo runtime become executable rather than read-only.
 
@@ -53,13 +53,13 @@ Where these are read in code:
 - `KUJO_BIN` — `lib/server-runtime.js` (line 113; default `"kujo"` at line 112).
 - `AI_SDK_PATH` — `lib/server-runtime.js` (line 120; must contain `ai_sdk.kujo` and `providers.kujo`, checked at lines 121-128).
 
-The chat bridge is invoked as:
+The application currently invokes the chat bridge with its explicit interpreter override:
 
 ```
-kujo run bridge_chat.kujo -- --payload '<json>'
+kujo run bridge_chat.kujo --interpreter -- --payload '<json>'
 ```
 
-with the working directory set to `AI_SDK_PATH` so `from providers import ...` and `from ai_sdk import ...` resolve.
+with the working directory set to `AI_SDK_PATH` so `from providers import ...` and `from ai_sdk import ...` resolve. For direct manual execution, the README shows the shorter default-VM command; its offline fixture passes on Kujo 1.9.0. This manual check does not change the application’s runtime selection.
 
 ## Smoke test
 
