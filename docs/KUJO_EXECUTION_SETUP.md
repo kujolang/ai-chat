@@ -4,9 +4,9 @@ This guide documents how to make the Kujo programming language tooling ecosystem
 
 ## What this enables
 
-- The AI Chat chat bridge (`bridge_chat.kujo`) runs through the Kujo interpreter for provider-gated chat completion.
+- The AI Chat chat bridge (`bridge_chat.kujo`) runs through the default Kujo VM for provider-gated chat completion.
 - The model can run Kujo programs (`kujo run`, `kujo test`, `kujo check`, etc.) through the `local_shell` tool once `kujo` is allowlisted for a trusted workspace.
-- Kujo workflow skills (`kujo-*-workflows`) that shell out to the interpreter become executable rather than read-only.
+- Kujo workflow skills (`kujo-*-workflows`) that shell out to the Kujo runtime become executable rather than read-only.
 
 ## Prerequisites
 
@@ -56,7 +56,7 @@ Where these are read in code:
 The chat bridge is invoked as:
 
 ```
-kujo run bridge_chat.kujo --interpreter -- --payload '<json>'
+kujo run bridge_chat.kujo -- --payload '<json>'
 ```
 
 with the working directory set to `AI_SDK_PATH` so `from providers import ...` and `from ai_sdk import ...` resolve.
@@ -69,11 +69,11 @@ A minimal hello-world program:
 print("hello from kujo")
 ```
 
-Run it with the interpreter:
+Run it with the default VM:
 
 ```bash
 KUJO_BIN=/Users/robertdevore/2026/Kujolang/kujo-repos/kujo/target/release/kujo
-"$KUJO_BIN" run /tmp/hello.kujo --interpreter
+"$KUJO_BIN" run /tmp/hello.kujo
 ```
 
 Expected output:
@@ -85,7 +85,7 @@ hello from kujo
 The full bridge smoke test (offline fixture path, no provider key required):
 
 ```bash
-"$KUJO_BIN" run bridge_chat.kujo --interpreter -- --payload '{"provider_id":"openai","messages":[{"role":"user","content":"hi"}],"offline_fixture":true}'
+"$KUJO_BIN" run bridge_chat.kujo -- --payload '{"provider_id":"openai","messages":[{"role":"user","content":"hi"}],"offline_fixture":true}'
 ```
 
 run from `AI_SDK_PATH`.

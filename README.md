@@ -284,7 +284,7 @@ WDG_PROXY_AUTH_MODE=override \
 WDG_UPSTREAM_API_KEY_ENV=OPENROUTER_API_KEY \
 WDG_PROXY_AUTHZ_MODE=token \
 WDG_PROXY_AUTHZ_TOKEN="$(<"$AI_CHAT_SECRETS_DIR/watchdog-openrouter-proxy-token")" \
-kujo run --interpreter "$WATCHDOG_ROOT/dashboard_server.kujo"
+kujo run "$WATCHDOG_ROOT/dashboard_server.kujo"
 ```
 
 Then point AI Chat at that managed proxy and restart AI Chat:
@@ -632,12 +632,12 @@ smoke checks passed against http://127.0.0.1:4173
 Manual SDK check:
 
 ```bash
-cd /path/to/ai-sdk
+cd /path/to/ai-sdk/src
 
 AI_CHAT_ROOT=/absolute/path/to/ai-chat
 BRIDGE_PAYLOAD='{"provider_id":"openai","api_key":"x","offline_fixture":true,"messages":[{"role":"user","content":"hello"}]}'
 
-kujo run "$AI_CHAT_ROOT/bridge_chat.kujo" --interpreter -- --payload "$BRIDGE_PAYLOAD"
+kujo run "$AI_CHAT_ROOT/bridge_chat.kujo" -- --payload "$BRIDGE_PAYLOAD"
 ```
 
 Expected result: a JSON response with `"ok": true` and non-empty `"output_text"`.
