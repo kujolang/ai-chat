@@ -92,11 +92,7 @@ test("seeds and upgrades OpenRouter and Watchdog model suggestions from the stat
 		assert.match(watchdogOpenRouter.models_csv, /moonshotai\/kimi-k2\.7-code/);
 		assert.match(watchdogOllamaTud.models_csv, /kimi-k3:cloud/);
 		assert.match(watchdogOllamaTud.models_csv, /mistral-large-3:675b/);
-		assert.match(hermes.models_csv, /stealth\/space-bunny-alpha/);
-		assert.match(hermes.models_csv, /meituan\/longcat-2\.5-preview:free/);
-		assert.match(hermes.models_csv, /stealth\/missingno/);
-		assert.equal(hermes.models_csv.split(",").length, 10);
-		assert.match(hermes.models_csv, /poolside\/laguna-s-2\.1:free/);
+		assert.deepEqual(hermes.models_csv.split(","), require("../lib/hermes-free-models.json").models.map((model) => model.id));
 		assert.equal(hermes.credential_managed, true);
 		assert.equal(xaiOAuth.name, "xAI Grok (X OAuth)");
 		assert.match(xaiOAuth.models_csv, /grok-4\.20-0309-reasoning/);
@@ -170,7 +166,8 @@ test("catalog migration keeps existing model suggestions while appending new can
 		assert.match(openRouter.models_csv, /custom\/openrouter-model/);
 		const hermesModels = state.settings.profiles.find((profile) => profile.provider_id === "hermes").models_csv.split(",");
 		assert.ok(hermesModels.includes("custom/hermes-model"));
-		assert.equal(hermesModels.filter((model) => model === "stealth/missingno").length, 1);
+		assert.ok(!hermesModels.includes("stealth/space-bunny-alpha"));
+		assert.equal(hermesModels.filter((model) => model === "stealth/crouton-alpha").length, 1);
 		assert.match(openRouter.models_csv, /moonshotai\/kimi-k2\.7-code/);
 		assert.match(watchdog.models_csv, /qwen3\.5:397b-cloud/);
 		assert.match(watchdog.models_csv, /gemma4:31b/);

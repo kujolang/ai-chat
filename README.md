@@ -720,3 +720,20 @@ In **Settings → General → Chat Appearance**, **Show language picker** contro
 Use **Settings → Providers → Continue with ChatGPT** after enabling `CHATGPT_SIGN_IN_ENABLED=1` on a loopback server with a strong encryption secret. Eligible Plus/Pro users can authorize plan-backed text and local function tools through a separate profile; API-key and native Codex profiles stay independent. See [setup, security and limitations](docs/CHATGPT_PLAN.md).
 
 Kujo development tasks receive bounded runtime-grounding guidance when `local_kujo` is authorized. See [Kujo quality workflow](docs/engineering/kujo-quality-workflow.md) for verified examples, dependency manifests, and independent acceptance checks.
+
+### Refreshing the Hermes free catalog
+
+The reviewed snapshot in `lib/hermes-free-models.json` was verified against the
+[Nous inference catalog](https://inference-api.nousresearch.com/v1/models) and
+[Portal recommendations](https://portal.nousresearch.com/api/nous/recommended-models)
+on November 5, 2026. Five models have zero prompt and completion prices:
+Solar Mini 4, LongCat 2.5, Step 3.7 Flash, Beam 1.0, and Crouton Alpha.
+Catalog visibility does not prove account entitlement or successful inference.
+
+Run `node scripts/refresh-hermes-models.js` to inspect the current free catalog;
+add `--write` to update the bundled snapshot, then review and restart AI Chat.
+Startup adds current suggestions and removes only known retired suggestions,
+preserving custom model names and saved conversations. Existing panes selecting
+a retired model must select a current model before sending again. Hermes owns
+Nous authentication; if the proxy reports no login, run
+`hermes auth add nous --type oauth` locally before testing inference.

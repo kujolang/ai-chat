@@ -1,0 +1,61 @@
+{
+  "verified_at": "2026-11-05T15:17:51.161780+00:00",
+  "source": "https://inference-api.nousresearch.com/v1/models",
+  "recommendations_source": "https://portal.nousresearch.com/api/nous/recommended-models",
+  "verification": "Public catalog presence and zero prompt/completion pricing; authenticated inference not verified.",
+  "models": [
+    {
+      "id": "upstage/solar-mini4:free",
+      "context_length": 524288,
+      "pricing": {
+        "prompt": "0",
+        "completion": "0"
+      }
+    },
+    {
+      "id": "meituan/longcat-2.5:free",
+      "context_length": 1048576,
+      "pricing": {
+        "prompt": "0",
+        "completion": "0"
+      }
+    },
+    {
+      "id": "stepfun/step-3.7-flash:free",
+      "context_length": 262144,
+      "pricing": {
+        "prompt": "0",
+        "completion": "0"
+      }
+    },
+    {
+      "id": "reflection/beam-1.0-501b-a23b:free",
+      "context_length": 262144,
+      "pricing": {
+        "prompt": "0",
+        "completion": "0"
+      }
+    },
+    {
+      "id": "stealth/crouton-alpha",
+      "context_length": 1048576,
+      "pricing": {
+        "prompt": "0",
+        "completion": "0"
+      }
+    }
+  ],
+  "retired_model_ids": [
+    "upstage/solar-pro4:free",
+    "meituan/longcat-2.5-preview:free",
+    "inclusionai/ling-3.0-flash-sante:free",
+    "inclusionai/ling-3.0-flash-fin:free",
+    "stealth/space-bunny-alpha",
+    "stealth/missingno",
+    "poolside/laguna-xs-2.1:free",
+    "poolside/laguna-s-2.1:free",
+    "meituan/longcat-2.0:free",
+    "stealth/ox-alpha",
+    "ornith/ornith-1.5-122b:free"
+  ]
+}
