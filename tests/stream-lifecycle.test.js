@@ -65,3 +65,26 @@ test('non-streaming auxiliary requests have no heartbeat and cancel on disconnec
  entry.close();
  assert.equal(registry.size(),0);
 });
+
+test('shutdown aborts every stream even when one checkpoint fails', async () => {
+ const registry=createStreamRegistry();
+ const first=registry.open('first',response());
+ const second=registry.open('second',response());
+ let preserved=false;
+ let failed;
+ first.onShutdown(()=>{throw Error('fixture persistence failure');});
+ second.onShutdown(()=>{preserved=true;});
+ try {
+  const shutdown=registry.close({onCheckpointFailure(count){failed=count;}});
+  assert.equal(first.signal.aborted,true);
+  assert.equal(second.signal.aborted,true);
+  assert.equal(preserved,true);
+  assert.equal(failed,1);
+  first.close();
+  second.close();
+  await shutdown;
+ } finally {
+  first.close();
+  second.close();
+ }
+});
