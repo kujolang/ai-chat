@@ -73,3 +73,31 @@ test("terminal delivery stops on disconnect or cancellation and removes wait lis
 		assert.equal(res.listenerCount("close"), 0);
 	}
 });
+
+test("terminal delivery waits for byte capacity even when write reports success", async () => {
+	const res = response();
+	res.writableLength = 0;
+	let peak = 0;
+	res.write = (frame, flushed) => {
+		res.frames.push(Buffer.from(frame));
+		res.writableLength += Buffer.byteLength(frame);
+		peak = Math.max(peak, res.writableLength);
+		setImmediate(() => { res.writableLength = 0; flushed?.(); });
+		return true;
+	};
+	const writer = createSseWriter(res, { maxBytes: 16 });
+	const delivery = writer.writeTerminal("é".repeat(30));
+	writer.end();
+	assert.equal(await delivery, true);
+	assert.equal(Buffer.concat(res.frames).toString(), "é".repeat(30));
+	assert.equal(res.writableEnded, true);
+	assert.ok(peak <= 16);
+});
+
+test("an overflow hook failure still closes the stalled SSE response", () => {
+	const res = response();
+	const writer = createSseWriter(res, { maxBytes: 4, onOverflow() { throw Error("fixture persistence failure"); } });
+	assert.throws(() => writer.write("too large"), /fixture persistence failure/);
+	assert.equal(res.destroyed, true);
+	assert.equal(writer.metrics().closed, true);
+});
